@@ -43,7 +43,7 @@ if iscell(IsSelected)
 end
 if any(IsSelected)
     ResultsDir = fullfile(obj.Session.RootDirectory,obj.SimResultsFolderName);
-    MATResultFilePaths = fullfile(ResultsDir,obj.Item(IsSelected).MATFileName);
+    MATResultFilePaths = cellfun(@(X) fullfile(ResultsDir,X), {obj.Item(IsSelected).MATFileName}, 'UniformOutput', false);
     if ~iscell(MATResultFilePaths)
         MATResultFilePaths = {MATResultFilePaths};
     end    
@@ -126,8 +126,14 @@ if any(MatchIdx)
             SelectedGroupColors = cell2mat(obj.PlotGroupTable(IsSelected,2));
             SelectedGroupIDs = obj.PlotGroupTable(IsSelected,3);
             
+            % convert to numeric
+            SelectedGroupIDs = arrayfun(@(k) str2num(SelectedGroupIDs{k,:}), 1:size(SelectedGroupIDs,1));
+            
             % Get the Group Column from the imported dataset
             GroupColumn = OptimData(:,strcmp(OptimHeader,obj.GroupName));
+            if iscell(GroupColumn)
+                GroupColumn = cell2mat(GroupColumn);
+            end
             
             % Get the Time Column from the imported dataset
             Time = OptimData(:,strcmp(OptimHeader,'Time'));
@@ -140,10 +146,10 @@ if any(MatchIdx)
                 if ~isempty(ColumnIdx) && ~isempty(axIdx) && ~isnan(axIdx)
                     for gIdx = 1:numel(SelectedGroupIDs)
                         % Find the GroupID match within the GroupColumn
-                        MatchIdx = (GroupColumn == SelectedGroupIDs{gIdx});
+                        MatchIdx = (GroupColumn == SelectedGroupIDs(gIdx));
                         
                         % Plot the selected column by GroupID
-                        plot(hAxes(axIdx),Time(MatchIdx),OptimData(MatchIdx,ColumnIdx),...
+                        plot(hAxes(axIdx),cell2mat(Time(MatchIdx)),cell2mat(OptimData(MatchIdx,ColumnIdx)),...
                             'LineStyle','none',...
                             'Marker','*',...
                             'Color',SelectedGroupColors(gIdx,:));
