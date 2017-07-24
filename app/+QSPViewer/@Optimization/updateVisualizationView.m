@@ -195,7 +195,8 @@ if ~isempty(vObj.Data)
         vObj.PlotSpeciesInvalidRowIndices = [];
     else
         NewPlotTable = cell(numel(SpeciesNames),3);
-        vObj.Data.PlotSpeciesTable(:,1) = {' '};
+%         vObj.Data.PlotSpeciesTable(:,1) = {' '};
+        NewPlotTable(:,1) = vObj.Data.PlotSpeciesTable(:,1);
         NewPlotTable(:,2) = SpeciesNames;
         NewPlotTable(:,3) = DataNames;
         

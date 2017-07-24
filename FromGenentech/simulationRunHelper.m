@@ -24,9 +24,7 @@ output = cell(1,nItems);
 Pin = [];
 if nargin == 3
     Pin = varargin{1};
-    if size(Pin,1)>size(Pin,2)
-        Pin = Pin';
-    end
+    Pin = reshape(Pin,1,[]); % row vector
     paramNames = varargin{2};
 else
     paramNames = {};
@@ -36,15 +34,6 @@ end
 simName = obj.Name;
 
 % Extract the names of all tasks and vpops %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% allTaskNames = cell(length(obj.Settings.Task),1);
-% allVpopNames = cell(length(obj.Settings.VirtualPopulation),1);
-% for ii = 1 : length(obj.Settings.Task)
-%     allTaskNames{ii} = obj.Settings.Task(ii).Name;
-% end % for
-% for ii = 1 : length(obj.Settings.VirtualPopulation)
-%     allVpopNames{ii} = obj.Settings.VirtualPopulation(ii).Name;
-% end % for
-
 allTaskNames = {obj.Settings.Task.Name};
 allVpopNames = {obj.Settings.VirtualPopulation.Name};
 
@@ -112,41 +101,28 @@ for ii = 1:nItems
     if ~isempty(tObj_i.ActiveVariantNames)
         % turn off all variants
         varObj_i = getvariant(model_i);
-        for jj = 1 : length(varObj_i);
-            varObj_i(jj).Active = false;
-        end % for
-        
+        set(varObj_i,'Active',false);
+
         % combine active variants in order into a new variant, add to the
         % model and activate
-        clear varObj_i
-        for jj = 1 : length(tObj_i.ActiveVariantNames)
-            varObj_i(jj) = model_i.variant(strcmp(tObj_i.ActiveVariantNames{jj},tObj_i.VariantNames));
-        end % for
+        varObj_i = model_i.variant(ismember(tObj_i.VariantNames, tObj_i.ActiveVariantNames));
         [model_i,varSpeciesObj_i] = CombineVariants(model_i,varObj_i);
     end % if
     
     % inactivate reactions (if specified)
     if ~isempty(tObj_i.InactiveReactionNames)
         % turn on all reactions
-        for jj = 1:length(model_i.Reactions)
-            model_i.Reactions(jj).Active = true;
-        end % for
+        set(model_i.Reactions,'Active',true);
         % turn off inactive reactions
-        for jj = 1 : length(tObj_i.InactiveReactionNames)
-            model_i.Reactions(strcmp(tObj_i.InactiveReactionNames{jj},tObj_i.ReactionNames)).Active = false;
-        end % for
+        set(model_i.Reactions(ismember(tObj_i.ReactionNames, tObj_i.InactiveReactionNames)),'Active',false);
     end % if
     
     % inactivate rules (if specified)
-    if ~isempty(tObj_i.InactiveRuleNames)
+    if ~isempty(tObj_i.InactiveRuleNames)        
         % turn on all rules
-        for jj = 1 : length(model_i.Rules);
-            model_i.Rules(jj).Active = true;
-        end % for
+        set(model_i.Rules,'Active',true);
         % turn off inactive rules
-        for jj = 1 : length(tObj_i.InactiveRuleNames)
-            model_i.Reactions(strcmp(tObj_i.InactiveRuleNames{jj},tObj_i.RuleNames)).Active = false;
-        end % for
+        set(model_i.Rules(ismember(tObj_i.RuleNames,tObj_i.InactiveRuleNames)),'Active',false);
     end % if
     
 %%%%% Load the Vpop and parse contents %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -180,20 +156,13 @@ for ii = 1:nItems
         % vary in the vpop
         % if a names in paramNames_i matches a species name in the model,
         % change the status of the corresponding Vpop information
-        for jj = 1 : length(paramNames_i)
-            if any(strcmp(paramNames_i{jj},tObj_i.SpeciesNames))
-                vPop_speciesNames_i = [vPop_speciesNames_i, paramNames_i{jj}];
-                vPop_speciesIC_i = [vPop_speciesIC_i, vPop_params_i(:,jj)];
-                vPop_species_inds = [vPop_species_inds, find(strcmp(paramNames_i{jj},tObj_i.SpeciesNames))];
-            end % if
-        end % for
-        for jj = 1 : length(vPop_speciesNames_i)
-            if any(strcmp(vPop_speciesNames_i{jj},paramNames_i))
-                ind = find(strcmp(vPop_speciesNames_i{jj},paramNames_i));
-                paramNames_i(ind) = [];
-                vPop_params_i(:,ind) = [];
-            end % if
-        end % for
+        
+        [vPop_speciesNames_i,tmp,vPop_species_inds] = intersect(paramNames_i,tObj_i.SpeciesNames);
+        vPop_speciesIC_i = vPop_params_i(:,tmp);
+        [~,vPop_param_inds] = setdiff(paramNames_i,tObj_i.SpeciesNames); % indices of parameters
+        
+        [paramNames_i,tmp] = setdiff(paramNames_i, vPop_speciesNames_i);
+        vPop_params_i = vPop_params_i(:,tmp);
         
         % select parameters that vary in the vpop
         if isempty(paramNames_i)
@@ -207,7 +176,7 @@ for ii = 1:nItems
         % case 2)
         % case 1)
         T_i = readtable(vObj_i.FilePath);
-        vPop_params_i = T_i{1:end,1:end};
+        vPop_params_i = table2array(T_i);
         paramNames_i = T_i.Properties.VariableNames;
         % check whether the last column is PWeight
         if strcmp('PWeight',paramNames_i{end})
@@ -223,22 +192,13 @@ for ii = 1:nItems
         % vary in the vpop
         % if a name in paramNames_i matches a species name in the model,
         % change the status of the corresponding Vpop information
-        for jj = 1 : length(paramNames_i)
-            if any(strcmp(paramNames_i{jj},tObj_i.SpeciesNames))
-                vPop_speciesNames_i = [vPop_speciesNames_i, paramNames_i{jj}]; % list of species that appeared in the Vpop
-                vPop_speciesIC_i = [vPop_speciesIC_i, vPop_params_i(:,jj)]; % values of initial conditions from the Vpop for each of those species 
-                vPop_species_inds = [vPop_species_inds, find(strcmp(paramNames_i{jj},tObj_i.SpeciesNames))]; % find where in the full initial condition vector these updated values will go
-            end % if
-        end % for
-        % remove Vpop species information from the Vpop parameter information
-        for jj = 1 : length(vPop_speciesNames_i)
-            if any(strcmp(vPop_speciesNames_i{jj},paramNames_i))
-                ind = find(strcmp(vPop_speciesNames_i{jj},paramNames_i));
-                paramNames_i(ind) = [];
-                vPop_params_i(:,ind) = [];
-            end % if
-        end % for
+        [vPop_speciesNames_i,tmp,vPop_species_inds] = intersect(paramNames_i,tObj_i.SpeciesNames);
+        vPop_speciesIC_i = vPop_params_i(:,tmp);      
+        [~,vPop_param_inds] = setdiff(paramNames_i,tObj_i.SpeciesNames); % indices of parameters
         
+        [paramNames_i,tmp] = setdiff(paramNames_i, vPop_speciesNames_i);
+        vPop_params_i = vPop_params_i(:,tmp);
+               
         % if we are here, the parameters in Pin are organized in the same
         % order as those in the Vpops, and all Vpops have the same
         % parameters. ie paramNames should be equal to paramNames_i, after
@@ -273,6 +233,9 @@ for ii = 1:nItems
             pObj_i(jj) = sbioselect(model_i, 'Name', paramNames{jj});
         end % for
         
+        vPop_param_inds = 1:numel(paramNames); % indices of parameters
+
+        
     end % if
     
     % select species for which the initial conditions vary in the vpop
@@ -283,6 +246,7 @@ for ii = 1:nItems
     end % if
     
     ItemModels(ii).VPopParams = vPop_params_i;
+    ItemModels(ii).VPopParamInds = vPop_param_inds;
     ItemModels(ii).VPopSpeciesICs = vPop_speciesIC_i;
     ItemModels(ii).VpopSpeciesInds = vPop_species_inds;
     ItemModels(ii).nPatients = nPatients_i;
@@ -410,7 +374,7 @@ for ii = 1:nItems
     for jj = 1 : ItemModels(ii).nPatients
         % check for user-input parameter values
         if ~isempty(Pin)
-            params_ij = Pin;
+            params_ij = Pin(ItemModels(ii).VPopParamInds);
         else
             params_ij = ItemModels(ii).VPopParams(jj,:);
         end

@@ -66,18 +66,16 @@ if any(IsSelected)
                 % find the group associated with this task
                 ThisGroupName = obj.PlotItemTable{SelectedInds(ii),4};
                 % find the name of the vpop generated for this task + group
-                IndCell = strfind(obj.VPopNames,['Group = ' ThisGroupName]);
-                NonEmpty = zeros(size(IndCell));
-                for jj = 1:numel(IndCell)
-                    NonEmpty(jj) = ~isempty(IndCell{jj});
-                end
+                IndCell = strfind(obj.VPopName,['Group = ' ThisGroupName]);
+                NonEmpty = ~cellfun(@isempty, IndCell);
+
                 % only 1 Vpop should match
-                if sum(NonEmpty)~=1
+                if nnz(NonEmpty)~=1
                     Message = 'Multiple Vpops share the same group.';
                     error('plotOptimization: %s',Message);
                 end
                 % assign the vpop name
-                simObj.Item(ii).VPopName = obj.VPopNames(NonEmpty);
+                simObj.Item(ii).VPopName = obj.VPopName{NonEmpty};
             end
                 
         else
@@ -105,6 +103,8 @@ Pin = obj.PlotParametersData(:,2);
 if iscell(Pin)
     Pin = cell2mat(Pin);
 end
+
+Results = [];
 
 if any(IsSelected)
     [StatusOK,Message,~,Results] = simulationRunHelper(simObj,Pin,ParamNames);
@@ -140,22 +140,22 @@ end
 for sIdx = 1:size(obj.PlotSpeciesTable,1)
     axIdx = str2double(obj.PlotSpeciesTable{sIdx,1});
     ThisName = obj.PlotSpeciesTable{sIdx,2};
-    if ~isempty(axIdx) && ~isnan(axIdx)
+    if ~isempty(axIdx) && ~isnan(axIdx) && ~isempty(Results)
         for itemIdx = 1:numel(Results)
             % Plot the species from the simulation item in the appropriate
             % color
             
             % Get the match in Sim 1 (Virtual Patient 1) in this VPop
-            ColumnIdx = find(strcmp(Results(itemIdx).SpeciesNames,ThisName));
+            ColumnIdx = find(strcmp(Results{itemIdx}.SpeciesNames,ThisName));
             
             % since not all tasks will contain all species...
             if ~isempty(ColumnIdx)
                 % Update ColumnIdx to get species for ALL virtual patients
-                NumSpecies = numel(Results(itemIdx).SpeciesNames);
-                ColumnIdx = ColumnIdx:NumSpecies:size(Results(1).Data,2);
+                NumSpecies = numel(Results{itemIdx}.SpeciesNames);
+                ColumnIdx = ColumnIdx:NumSpecies:size(Results{1}.Data,2);
                 
                 % Plot
-                plot(hAxes(axIdx),Results(itemIdx).Time,Results(itemIdx).Data(:,ColumnIdx),'Color',SelectedItemColors(itemIdx,:));
+                plot(hAxes(axIdx),Results{itemIdx}.Time,Results{itemIdx}.Data(:,ColumnIdx),'Color',SelectedItemColors(itemIdx,:));
             end
         end
     end
@@ -183,10 +183,10 @@ if any(MatchIdx)
             SelectedGroupIDs = obj.PlotItemTable(IsSelected,4);
             
             % Get the Group Column from the imported dataset
-            GroupColumn = OptimData(:,strcmp(OptimHeader,obj.GroupName));
+            GroupColumn = cell2mat(OptimData(:,strcmp(OptimHeader,obj.GroupName)));
             
             % Get the Time Column from the imported dataset
-            TimeColumn = OptimData(:,strcmp(OptimHeader,'Time'));
+            TimeColumn = cell2mat(OptimData(:,strcmp(OptimHeader,'Time')));
             
             for dIdx = 1:size(obj.PlotSpeciesTable,1)
                 axIdx = str2double(obj.PlotSpeciesTable{dIdx,1});
@@ -196,10 +196,10 @@ if any(MatchIdx)
                 if ~isempty(ColumnIdx) && ~isempty(axIdx) && ~isnan(axIdx)
                     for gIdx = 1:numel(SelectedGroupIDs)
                         % Find the GroupID match within the GroupColumn
-                        MatchIdx = (GroupColumn == SelectedGroupIDs{gIdx});
+                        MatchIdx = (GroupColumn == str2double(SelectedGroupIDs{gIdx}));
                         
                         % Plot the selected column by GroupID
-                        plot(hAxes(axIdx),TimeColumn(MatchIdx),OptimData(MatchIdx,ColumnIdx),...
+                        plot(hAxes(axIdx),TimeColumn(MatchIdx), cell2mat(OptimData(MatchIdx,ColumnIdx)),...
                             'LineStyle','none',...
                             'Marker','*',...
                             'Color',SelectedGroupColors(gIdx,:));

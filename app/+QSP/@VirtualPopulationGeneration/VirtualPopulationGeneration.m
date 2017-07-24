@@ -166,7 +166,7 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
                 
                 % Check that RefParamName (Parameters) is valid if it exists
                 if ~isempty(obj.Settings.Parameters)
-                    MatchIdx = find(strcmpi(obj.Settings.Parameters.Name,obj.RefParamName));
+                    MatchIdx = find(strcmpi({obj.Settings.Parameters.Name},obj.RefParamName));
                     if isempty(MatchIdx) || numel(MatchIdx) > 1
                         StatusOK = false;
                         Message = sprintf('%s\n* %s\n',Message,'Invalid reference parameter name specified for Parameters.');

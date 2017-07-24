@@ -120,7 +120,7 @@ classdef Optimization < uix.abstract.CardViewPane
             vObj.TempData.RefParamName = vObj.ParameterPopupItems{get(h,'Value')};
            
             % Try importing to load data for Parameters view
-            MatchIdx = strcmp(vObj.TempData.Settings.Parameters.Name,vObj.TempData.RefParamName);
+            MatchIdx = strcmp({vObj.TempData.Settings.Parameters.Name},vObj.TempData.RefParamName);
             if any(MatchIdx)
                 pObj = vObj.TempData.Settings.Parameters(MatchIdx);
                 [StatusOk,Message,vObj.ParametersHeader,vObj.ParametersData] = importData(pObj,pObj.FilePath);
@@ -421,7 +421,7 @@ classdef Optimization < uix.abstract.CardViewPane
             
             % Update the view
             updateVisualizationView(vObj);
-            
+            update(vObj);
         end %function
                 
         function onParametersTablePlot(vObj,h,e)

@@ -22,8 +22,10 @@ if any(MatchIdx)
     if ~ThisStatusOk
         StatusOK = false;
         Message = sprintf('%s\n%s\n',Message,ThisMessage);
+        return
     end
 else
+    warning('Could not find match for specified parameter file')
     paramData = {};
 end
 
@@ -57,7 +59,7 @@ if ~isempty(paramData)
     end
     
     % record indices of parameters that will be log-scaled
-    logInds = find(strcmp('log',estParamData(:,3)));
+    logInds = find(strcmpi('log',estParamData(:,3)));
     % extract parameter names
     estParamNames = estParamData(:,2);
     fixedParamNames = fixedParamData(:,2);
@@ -100,77 +102,34 @@ if ~isempty(optimHeader) && ~isempty(optimData)
     IDs = cell2mat(optimData(:,strcmp(obj.IDName,optimHeader)));
     Time = cell2mat(optimData(:,strcmp('Time',optimHeader)));
     % find columns corresponding to species data and initial conditions
-    dataInds = [];
-    for ii = 1:length(optimHeader)
-        if any(strcmp(optimHeader{ii},{obj.SpeciesData.DataName}))
-            dataInds = [dataInds; ii];
-        elseif any(strcmp(optimHeader{ii},{obj.SpeciesIC.DataName}))
-            dataInds = [dataInds; ii];
-        end % if
-    end % for ii
+    [~, dataInds] = ismember({obj.SpeciesData.DataName}, optimHeader);
+    
+    
     % convert optimData into a matrix of species data
     optimData = cell2mat(optimData(:,dataInds));
     % save only the headers for the data columns
     dataNames = optimHeader(:,dataInds);
     
     % remove data for groups that are not currently being used in optimization
-    optimGrps = zeros(length(obj.Item),1);
-    for ii = 1:length(obj.Item)
-        optimGrps(ii) = str2double(obj.Item(ii).GroupID);
-    end % for ii
-    uniqueGrps = unique(Groups);
-    for ii = 1:length(uniqueGrps)
-        if ~any(uniqueGrps(ii)==optimGrps)
-            optimData(Groups==uniqueGrps(ii),:) = [];
-            Time(Groups==uniqueGrps(ii)) = [];
-            IDs(Groups==uniqueGrps(ii)) = [];
-            Groups(Groups==uniqueGrps(ii)) = [];
-        end % if
-    end % for ii
-    uniqueGrps = unique(Groups);
+    optimGrps = cell2mat(cellfun(@str2num, {obj.Item.GroupID}, 'UniformOutput', false));
+    include = ismember(Groups, optimGrps);
+    optimData = optimData(include,:);
+    Time = Time(include,:);
+    IDs = IDs(include,:);
+    Groups = Groups(include,:);
     
     % process data so that if there are multiple measurements for a given time
     % point, replace with the average of those measurements
-    for grp1 = 1:length(uniqueGrps)
-        % find times and IDs associated with group
-        Time_grp1 = Time(Groups==uniqueGrps(grp1));
-        IDs_grp1 = IDs(Groups==uniqueGrps(grp1));
-        uniqueIDs_grp1 = unique(IDs_grp1);
-        for id1 = 1:length(uniqueIDs_grp1)
-            % find unique times associated with this ID
-            Time_id1 = Time_grp1(IDs_grp1==uniqueIDs_grp1(id1));
-            uniqueTime_id = unique(Time_id1);
-            
-            for t1 = 1:length(uniqueTime_id)
-                % for each unique time in this ID, find where that time value
-                % occurs in the larger Time vector, conditional that it also
-                % belongs to the current Group and ID
-                repInds = find(Time==uniqueTime_id(t1) & Groups==uniqueGrps(grp1) & IDs==IDs_grp1(id1));
-                
-                % if this time value occurs more than once in this Group and ID
-                if length(repInds)>1
-                    % set the values of the data at the first instance of the
-                    % time value, for all species, to the nanmean of all
-                    % measurements at this time value
-                    optimData(repInds(1),:) = nanmean(optimData(repInds,:),1);
-                    
-                    % remove the remaining data for the time value, and remove
-                    % the corresponding Time, ID, and Group info
-                    optimData(repInds(2:end),:) = [];
-                    Time(repInds(2:end),:) = [];
-                    IDs(repInds(2:end),:) = [];
-                    Groups(repInds(2:end),:) = [];
-                end % if
-            end % for % t1
-        end % for id1
-    end % for grp1
+    [~,ia,G] = unique([Groups, IDs, Time], 'rows');
+    optimData = splitapply(@(X) nanmean(X,1), optimData, G );
+    Time = Time(ia,:);
+    IDs = IDs(ia,:);
+    Groups = Groups(ia,:);
 else
-    
     StatusOK = false;
     Message = 'The selected Data for Optimization file is empty.';
     return
 end
-
 % At this point, the data contains measurements only for unique time values
 
 
@@ -189,6 +148,9 @@ ItemModels = struct('TaskName',zeros(nItems,1),'RunToSteadyState',zeros(nItems,1
 Title1 = sprintf('Configuring models...');
 hWbar1 = uix.utility.CustomWaitbar(0,Title1,'',false);
 
+
+
+
 % for each task-group item
 for ii = 1:nItems
     % update waitbar
@@ -199,81 +161,48 @@ for ii = 1:nItems
     tObj_i = obj.Settings.Task(tskInd);
     
     % load the model in that task
-    AllModels = sbioloadproject(tObj_i.RelativeFilePath);
-    AllModels = cell2mat(struct2cell(AllModels));
-    model_i = sbioselect(AllModels,'Name',tObj_i.ModelName,'type','sbiomodel');
+%     AllModels = sbioloadproject(tObj_i.RelativeFilePath);
+    
+    if ~isempty(tObj_i.ModelObj) % use cached model
+        model_i = tObj_i.ModelObj;
+    else
+        AllModels = sbioloadproject(fullfile(tObj_i.Session.RootDirectory, tObj_i.RelativeFilePath));
+        AllModels = cell2mat(struct2cell(AllModels));
+        model_i = sbioselect(AllModels,'Name',tObj_i.ModelName,'type','sbiomodel');
+    end
+    
     
     % apply the active variants (if specified)
-    if ~isempty(tObj_i.ActiveVariantNames)
-        % turn off all variants
-        varObj_i = getvariant(model_i);
-        for jj = 1 : length(varObj_i);
-            varObj_i(jj).Active = false;
-        end % for
-        
-        % combine active variants in order into a new variant, add to the
-        % model and activate
-        clear varObj_i
-        for jj = 1 : length(tObj_i.ActiveVariantNames)
-            varObj_i(jj) = model_i.variant(strcmp(tObj_i.ActiveVariantNames{jj},tObj_i.VariantNames));
-        end % for
-        [model_i,varSpeciesObj_i] = CombineVariants(model_i,varObj_i);
-    else
-        varSpeciesObj_i = [];
-    end % if
+    % combine active variants in order into a new variant, add to the
+    % model and activate
+    ixActive = ismember(tObj_i.VariantNames, tObj_i.ActiveVariantNames);
+    [model_i,varSpeciesObj_i] = CombineVariants(model_i,model_i.variant(ixActive));
     
-    % inactivate reactions (if specified)
-    if ~isempty(tObj_i.InactiveReactionNames)
-        % turn on all reactions
-        for jj = 1:length(model_i.Reactions)
-            model_i.Reactions(jj).Active = true;
-        end % for
-        % turn off inactive reactions
-        for jj = 1 : length(tObj_i.InactiveReactionNames)
-            model_i.Reactions(strcmp(tObj_i.InactiveReactionNames{jj},tObj_i.ReactionNames)).Active = false;
-        end % for
-    end % if
+    % inactivate reactions (if specified)   
+    set(model_i.Reactions, 'Active', true);
+    set(model_i.Reactions(ismember(tObj_i.ReactionNames,tObj_i.InactiveReactionNames)), false);
     
-    % inactivate rules (if specified)
-    if ~isempty(tObj_i.InactiveRuleNames)
-        % turn on all rules
-        for jj = 1 : length(model_i.Rules);
-            model_i.Rules(jj).Active = true;
-        end % for
-        % turn off inactive rules
-        for jj = 1 : length(tObj_i.InactiveRuleNames)
-            model_i.Reactions(strcmp(tObj_i.InactiveRuleNames{jj},tObj_i.RuleNames)).Active = false;
-        end % for
-    end % if
+    % inactivate rules (if specified)   
+    set(model_i.Rules, 'Active', true);
+    set(model_i.Rules(ismember(tObj_i.RuleNames, tObj_i.InactiveRuleNames)), 'Active', false);
     
     % assume all parameters are present in all models
-    clear est_pObj_i fixed_pObj_i
-    for jj = 1:length(estParamNames)
-        est_pObj_i(jj) = sbioselect(model_i,'Name',estParamNames{jj});
-    end % for
-    
-    for jj = 1:length(fixedParamNames)
-        fixed_pObj_i(jj) = sbioselect(model_i,'Name',fixedParamNames{jj});
-    end % for
-    
-    % grab the default initial conditions from the model
-    IC_i = zeros(1,length(model_i.Species));
-    for jj = 1:length(model_i.Species)
-        IC_i(jj) = model_i.Species(jj).InitialAmount;
-    end % for
+    est_pObj_i = sbioselect(model_i,'Name',estParamNames);
+    fixed_pObj_i = sbioselect(model_i,'Name',fixedParamNames);
+        
+    % grab the default initial conditions from the model   
+    IC_i = cell2mat(get(model_i.Species,'InitialAmount'));
     
     % if variants affect the initial conditions, we must include them in the
     % IC_i vector so that those variants do not get overwritten by the
     % model defaults when IC_i is input to the exported model
     
     % first, get the names of all species in the model
-    modelSpeciesNames_i = cell(length(model_i.Species),1);
-    for jj = 1:length(model_i.Species)
-        modelSpeciesNames_i{jj} = model_i.Species(jj).Name;
-    end
+    modelSpeciesNames_i = get(model_i.Species,'Name');
+    
     if ~isempty(varSpeciesObj_i)
         nVarSpec = length(varSpeciesObj_i.Content);
-        for jj = 1:nVarSpec;
+        for jj = 1:nVarSpec
             % get the species name
             var_speciesName_j = varSpeciesObj_i.Content{jj}{2};
             % get its initial amount
@@ -283,23 +212,20 @@ for ii = 1:nItems
             IC_i(ind) = var_speciesIC_j;
         end
     end % if
+    
     ItemModels(ii).DefaultICs = IC_i;
     
-    % find the indices of each measured species in the model
-    speciesInds_i = [];
-    for jj = 1:length(obj.SpeciesIC)
-        speciesInds_i = [speciesInds_i;find(strcmp(obj.SpeciesIC(jj).SpeciesName,modelSpeciesNames_i))];
-    end
-    ItemModels(ii).SpeciesInds = speciesInds_i;
+    % find the indices of each measured species in the model   
+    [~,ItemModels(ii).SpeciesInds] = ismember({obj.SpeciesIC.SpeciesName}, modelSpeciesNames_i);
     
     % run model to steady state?
     ItemModels(ii).RunToSteadyState = tObj_i.RunToSteadyState;
     
     % Export model, allowing all initial conditions and the parameters to vary
     if isempty(fixedParamNames)
-        exp_model_i = export(model_i, [model_i.Species', est_pObj_i]);
+        exp_model_i = export(model_i, [model_i.Species; est_pObj_i]);
     else
-        exp_model_i = export(model_i, [model_i.Species', est_pObj_i, fixed_pObj_i]);
+        exp_model_i = export(model_i, [model_i.Species; est_pObj_i; fixed_pObj_i]);
     end % if
     
     % set MaxWallClockTime in the exported model
@@ -321,6 +247,8 @@ for ii = 1:nItems
         end % for
     end % if
     ItemModels(ii).Doses = exp_doses_i;
+    
+    
     
     % accelerate model
     try
@@ -394,10 +322,7 @@ else
     
     % get names of all species for which there is initial condition data,
     % across groups
-    ICspecNames = {};
-    for i = 1:length(obj.SpeciesIC)
-        ICspecNames = [ICspecNames,obj.SpeciesIC(i).SpeciesName];
-    end
+    ICspecNames = {obj.SpeciesIC.SpeciesName};
     
     % get indices of all species for which there is initial condition data,
     % across groups. need to do this so that the Vpops for each group are
@@ -462,7 +387,7 @@ else
                 IC_id1 = IC_id1(allSpeciesInds);
                 
                 % Add VP parameters and data ICs for this ID to the Vpop
-                Vpop_grp = [Vpop_grp;VpopParams(pat,:),IC_id1];
+                Vpop_grp = [Vpop_grp;VpopParams(pat,:),IC_id1'];
 
             end % for id1 = ...
         end % for pat = ...
@@ -532,7 +457,7 @@ end
         tempStatusOK = true;
         tempMessage = '';
         
-        inputStr = '(species,data,simTime,dataTime,allData,ID,Grp,currID,currGrp)';
+%         inputStr = '(species,data,simTime,dataTime,allData,ID,Grp,currID,currGrp)';
         
         if size(logInds,2)>size(logInds,1)
             logInds = logInds';
@@ -543,7 +468,7 @@ end
         % added property ObjectiveName to SpeciesData class
         objective_handles = cell(length(obj.SpeciesData),1);
         for spec = 1:length(obj.SpeciesData)
-            objective_handles{spec} = str2func(['@' inputStr ' ' obj.SpeciesData(spec).ObjectiveName inputStr]);
+            objective_handles{spec} = str2func(obj.SpeciesData(spec).ObjectiveName);
         end
         SpeciesData = obj.SpeciesData;
         SpeciesIC = obj.SpeciesIC;
@@ -612,7 +537,7 @@ end
                         ItemModels(grp).ExportedModel.SimulationOptions.OutputTimes = [];
                         ItemModels(grp).ExportedModel.SimulationOptions.StopTime = ItemModels(grp).TimeToSteadyState;
                         % simulate model
-                        [~,RTSSdata] = simulate(ItemModels(grp).ExportedModel,[IC_id,est_p',fixed_p']);
+                        [~,RTSSdata] = simulate(ItemModels(grp).ExportedModel,[IC_id',est_p',fixed_p']);
                         % record steady state values
                         IC_id = RTSSdata(end,1:length(IC_id));
                         % update output times
@@ -677,7 +602,7 @@ end
                 
             end % for grp = ...
             
-        catch
+        catch simErr
             % if objective calculation fails
             objectiveVec = [];
             for grp = 1:length(obj.Item)
@@ -700,7 +625,7 @@ end
                     %
                     for spec = 1:length(SpeciesData)
                         optimData_spec = optimData_id(Time_id>=0,strcmp(SpeciesData(spec).DataName,dataNames));
-                        objectiveVec = [objectiveVec; 1e6*ones(length(optimData_spec(~isnan(optimData_spec))),1)];
+                        objectiveVec = [objectiveVec;inf(length(optimData_spec(~isnan(optimData_spec))),1)];
                     end % for spec = ...
                 end % for id
             end % for grp
