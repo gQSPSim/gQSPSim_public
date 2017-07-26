@@ -246,14 +246,14 @@ classdef (Abstract) AppWithSessionFiles < uix.abstract.AppWindow
         end %function
         
         
-        function saveToFile(obj,UseSaveAs,idxToSave)
+        function StatusOK = saveToFile(obj,UseSaveAs,idxToSave)
             % Save the specified session to a file
             
             % Check if save index was specified, else use selected session
             if nargin<3
                 idxToSave = obj.SelectedSessionIdx;
             end
-            
+            StatusOK = true;
             % Loop on each file to save
             for idx=idxToSave'
                 
@@ -292,11 +292,12 @@ classdef (Abstract) AppWithSessionFiles < uix.abstract.AppWindow
                 else
                     obj.IsDirty(idx) = OldDirty;
                     obj.SessionPaths{idx} = OldSessionPath;
+                    StatusOK = false;
                     return %something failed
                 end
                 
             end %for idx=idxToSave'
-            
+
         end %function
         
         
