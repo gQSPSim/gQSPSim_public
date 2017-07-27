@@ -384,7 +384,7 @@ classdef VirtualPopulationGeneration < uix.abstract.CardViewPane
                 
 %                 try
                 % Plot
-                plotVirtualPopulation(vObj.Data,vObj.h.MainAxes);
+                plotVirtualPopulationGeneration(vObj.Data,vObj.h.MainAxes);
                                 %                 catch ME
 %                     hDlg = errordlg(sprintf('Cannot plot. %s',ME.message),'Invalid','modal');
 %                     uiwait(hDlg);
