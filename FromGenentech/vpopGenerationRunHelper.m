@@ -335,7 +335,7 @@ while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients
     % LB_accCrit and UB_accCrit
     
     % compare model outputs to acceptance criteria
-    if ~isempty(model_outputs) && all(model_outputs>=LB_accCrit) && all(model_outputs<=UB_accCrit)
+    if ~isempty(model_outputs) && all(model_outputs>=LB_accCrit(grpInds)) && all(model_outputs<=UB_accCrit(grpInds))
         nPat = nPat+1; % if conditions are satisfied, tick up the number of virutal patients
         Vpop(nPat,:) = param_candidate'; % store the parameter set
     end
