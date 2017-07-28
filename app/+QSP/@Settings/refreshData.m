@@ -9,7 +9,9 @@ Message = '';
 for index = 1:numel(obj.Task)
     ProjectPath = obj.Task(index).FilePath;
     ModelName = obj.Task(index).ModelName;
+    MaxWallClockTime = obj.Task(index).MaxWallClockTime;
     [ThisStatusOk,ThisMessage] = importModel(obj.Task(index),ProjectPath,ModelName);
+    obj.Task(index).MaxWallClockTime = MaxWallClockTime;
     if ~ThisStatusOk
         StatusOk = false;
         Message = sprintf('%s\n%s\n',Message,ThisMessage);
