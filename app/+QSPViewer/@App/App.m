@@ -442,6 +442,12 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
             ChildTypes = {hChildNodes.UserData};
             hParentNode = hChildNodes(strcmp(ChildTypes,ItemType));
             
+            % check for duplicate names
+            if any(strcmp( SelNode.Value.Name, {ParentObj.(ItemType).Name} ))
+                errordlg('Cannot restore deleted item because its name is identical to an existing item.')
+                return
+            end
+            
             % Move the object from deleted to the new parent 
             ParentObj.(ItemType)(end+1) = ThisObj;
             MatchIdx = false(size(ThisSession.Deleted));
