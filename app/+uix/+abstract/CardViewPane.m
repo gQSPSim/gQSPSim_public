@@ -332,6 +332,14 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                     FlagRemoveInvalid = false;
                     [StatusOK,Message] = validate(obj.TempData,FlagRemoveInvalid);
                     
+                    % check for duplicate name
+                    tmp = strsplit(class(obj), '.');
+                    PaneType = tmp{end};
+                    if any(strcmp( obj.TempData.Name, {obj.Data.Session.Settings.(PaneType).Name}))
+                        StatusOK = false;
+                        Message = sprintf('%sDuplicate names are not allowed.\n', Message);
+                    end
+                    
                     if StatusOK
                         % Copy from TempData into Data, using obj.Data as a
                         % starting point
@@ -354,6 +362,15 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                         if strcmpi(Result,'Save')
                             FlagRemoveInvalid = false;
                             [StatusOK,Message] = validate(obj.TempData,FlagRemoveInvalid);
+                            
+                            % check for duplicate name
+                            tmp = strsplit(class(obj), '.');
+                            PaneType = tmp{end};
+                            if any(strcmp( obj.TempData.Name, {obj.Data.Session.Settings.(PaneType).Name}))
+                                StatusOK = false;
+                                Message = sprintf('%sDuplicate names are not allowed.\n', Message);
+                            end
+                            
                             
                             if StatusOK
                                 obj.Selection = 1;
