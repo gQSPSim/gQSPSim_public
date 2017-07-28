@@ -176,7 +176,7 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 
                 % Check that Dataset (OptimizationData) is valid if it exists
                 if ~isempty(obj.Settings.OptimizationData)
-                    MatchIdx = find(strcmpi(obj.Settings.OptimizationData.Name,obj.DatasetName));
+                    MatchIdx = find(strcmpi({obj.Settings.OptimizationData.Name},obj.DatasetName));
                     if isempty(MatchIdx) || numel(MatchIdx) > 1
                         StatusOK = false;
                         Message = sprintf('%s\n* %s\n',Message,'Invalid dataset name specified for Optimization Data.');
@@ -195,12 +195,14 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 
                 % Check that RefParamName (Parameters) is valid if it exists
                 if ~isempty(obj.Settings.Parameters)
-                    MatchIdx = find(strcmpi(obj.Settings.Parameters.Name,obj.RefParamName));
+                    MatchIdx = find(strcmpi({obj.Settings.Parameters.Name},obj.RefParamName));
                     if isempty(MatchIdx) || numel(MatchIdx) > 1
                         StatusOK = false;
                         Message = sprintf('%s\n* %s\n',Message,'Invalid reference parameter name specified for Parameters.');
                     else
-                        [ThisStatusOK,ThisMessage] = validate(obj.Settings.OptimizationData(MatchIdx),FlagRemoveInvalid);
+%                         [ThisStatusOK,ThisMessage] = validate(obj.Settings.OptimizationData(MatchIdx),FlagRemoveInvalid);
+                        [ThisStatusOK,ThisMessage] = validate(obj.Settings.Parameters(MatchIdx),FlagRemoveInvalid);
+                        
                         if ~ThisStatusOK
                             StatusOK = false;
                             Message = sprintf('%s\n* %s\n',Message,ThisMessage);

@@ -38,8 +38,7 @@ refreshDataset(vObj);
 
 %% Refresh Items Table
 
-refreshSpeciesDataTable(vObj);
-
+refreshItemsTable(vObj);
 
 %% Refresh SpeciesData Table
 

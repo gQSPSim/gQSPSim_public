@@ -490,6 +490,7 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
             
             % Update the view
             updateVisualizationView(obj);
+            update(obj);
         end
         
         function onAxesContextMenu(obj,h,~,axIndex)

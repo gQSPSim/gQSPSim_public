@@ -84,16 +84,16 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
             % color
             
             % Get the match in Sim 1 (Virtual Patient 1) in this VPop
-            ColumnIdx = find(strcmp(Results(itemIdx).SpeciesNames,ThisName));
+            ColumnIdx = find(strcmp(Results{itemIdx}.SpeciesNames,ThisName));
             
             % since not all tasks will contain all species...
             if ~isempty(ColumnIdx)
                 % Update ColumnIdx to get species for ALL virtual patients
-                NumSpecies = numel(Results(itemIdx).SpeciesNames);
-                ColumnIdx = ColumnIdx:NumSpecies:size(Results(1).Data,2);
+                NumSpecies = numel(Results{itemIdx}.SpeciesNames);
+                ColumnIdx = ColumnIdx:NumSpecies:size(Results{1}.Data,2);
                 
                 % Plot
-                plot(hAxes(axIdx),Results(itemIdx).Time,Results(itemIdx).Data(:,ColumnIdx),'Color',SelectedItemColors(itemIdx,:));
+                plot(hAxes(axIdx),Results{itemIdx}.Time,Results{itemIdx}.Data(:,ColumnIdx),'Color',SelectedItemColors(itemIdx,:));
             end
         end
     end
@@ -129,7 +129,7 @@ if any(MatchIdx)
             TimeColumn = AccCritData(:,strcmp(AccCritHeader,'Time'));
             
             % Get the Species COlumn from the imported dataset
-            SpeciesColumn = AccCritData(:,strcmp(AccCritHeader,'Species'));
+            SpeciesColumn = AccCritData(:,strcmp(AccCritHeader,'Data'));
             
             for dIdx = 1:size(obj.PlotSpeciesTable,1)
                 axIdx = str2double(obj.PlotSpeciesTable{dIdx,1});
@@ -144,7 +144,8 @@ if any(MatchIdx)
                         % Plot the lower and upper bounds associated with
                         % the selected Group and Species, for each time
                         % point
-                        plot(hAxes(axIdx),TimeColumn(MatchIdx),AccCritData(MatchIdx,3),TimeColumn(MatchIdx),AccCritData(MatchIdx,4),...
+                        plot(hAxes(axIdx),TimeColumn{MatchIdx},AccCritData{MatchIdx,strcmp(AccCritHeader,'LB')}, ...
+                            TimeColumn{MatchIdx},AccCritData{MatchIdx,strcmp(AccCritHeader,'UB')},...
                             'LineStyle','none',...
                             'Marker','*',...
                             'Color',SelectedGroupColors(gIdx,:));

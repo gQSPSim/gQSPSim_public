@@ -114,7 +114,7 @@ classdef VirtualPopulationGeneration < uix.abstract.CardViewPane
             vObj.TempData.RefParamName = vObj.ParameterPopupItems{get(h,'Value')};
             
             % Try importing to load data for Parameters view
-            MatchIdx = strcmp(vObj.TempData.Settings.Parameters.Name,vObj.TempData.RefParamName);
+            MatchIdx = strcmp({vObj.TempData.Settings.Parameters.Name},vObj.TempData.RefParamName);
             if any(MatchIdx)
                 pObj = vObj.TempData.Settings.Parameters(MatchIdx);
                 [StatusOk,Message,vObj.ParametersHeader,vObj.ParametersData] = importData(pObj,pObj.FilePath);
@@ -384,7 +384,7 @@ classdef VirtualPopulationGeneration < uix.abstract.CardViewPane
                 
 %                 try
                 % Plot
-                plotVirtualPopulation(vObj.Data,vObj.h.MainAxes);
+                plotVirtualPopulationGeneration(vObj.Data,vObj.h.MainAxes);
                                 %                 catch ME
 %                     hDlg = errordlg(sprintf('Cannot plot. %s',ME.message),'Invalid','modal');
 %                     uiwait(hDlg);
