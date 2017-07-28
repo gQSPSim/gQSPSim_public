@@ -332,6 +332,8 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                     FlagRemoveInvalid = false;
                     [StatusOK,Message] = validate(obj.TempData,FlagRemoveInvalid);
                     
+                    [StatusOK,Message] = checkDuplicateNames(obj,StatusOK,Message);
+                    
                     if StatusOK
                         % Copy from TempData into Data, using obj.Data as a
                         % starting point
@@ -355,6 +357,9 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                             FlagRemoveInvalid = false;
                             [StatusOK,Message] = validate(obj.TempData,FlagRemoveInvalid);
                             
+                            [StatusOK,Message] = checkDuplicateNames(obj,StatusOK,Message);
+                            
+                                                        
                             if StatusOK
                                 obj.Selection = 1;
                                 set([obj.h.SummaryButton,obj.h.EditButton,obj.h.RunButton,obj.h.VisualizeButton],'Enable','on');
@@ -396,6 +401,34 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
             end
             
         end %function
+        
+        function [StatusOK, Message] = checkDuplicateNames(obj, StatusOK, Message)
+            % check for duplicate name
+            DuplicateName = false;
+            switch class(obj)
+                case 'QSPViewer.OptimizationData'
+                    DuplicateName = any(strcmp( obj.TempData.Name, {obj.Data.Session.Settings.OptimizationData.Name}));
+                case 'QSPViewer.Parameters'
+                    DuplicateName = any(strcmp( obj.TempData.Name, {obj.Data.Session.Settings.Parameters.Name}));                    
+                case 'QSPViewer.Task'
+                    DuplicateName = any(strcmp( obj.TempData.Name, {obj.Data.Session.Settings.Task.Name}));
+                case 'QSPViewer.VirtualPopulationData'
+                    DuplicateName = any(strcmp( obj.TempData.Name, {obj.Data.Session.Settings.VirtualPopulationData.Name}));
+                case 'QSPViewer.VirtualPopulation'
+                    DuplicateName = any(strcmp( obj.TempData.Name, {obj.Data.Session.Settings.VirtualPopulation.Name}));
+                case 'QSPViewer.Simulation'
+                    DuplicateName = any(strcmp( obj.TempData.Name, {obj.Data.Session.Simulation.Name}));
+                case 'QSPViewer.Optimization'
+                    DuplicateName = any(strcmp( obj.TempData.Name, {obj.Data.Session.Optimization.Name}));
+                case 'QSPViewer.VirtualPopulationGeneration'
+                    DuplicateName = any(strcmp( obj.TempData.Name, {obj.Data.Session.VirtualPopulationGeneration.Name}));
+            end
+
+            if DuplicateName
+                Message = sprintf('%s\nDuplicate names are not allowed.\n', Message);
+                StatusOK = false;
+            end
+        end
         
         function onRemoveInvalidVisualization(obj,h,e)
             
