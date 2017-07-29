@@ -242,17 +242,20 @@ if ~isempty(vObj.Data)
     
     % Source
     MatchIdx = find(strcmpi(vObj.Data.PlotParametersSource,vObj.Data.PlotParametersSourceOptions));
-    if isempty(MatchIdx)
+    
+    if isempty(MatchIdx) && ~isempty(vObj.Data.PlotParametersSourceOptions)
         MatchIdx = 1;
         vObj.Data.PlotParametersSource = vObj.Data.PlotParametersSourceOptions{1};
         % Re-import
         [StatusOk,Message] = importParametersSource(vObj.Data,vObj.Data.PlotParametersSource);                
     end
+    
     if isempty(vObj.Data.PlotParametersSourceOptions)
         vObj.Data.PlotParametersSourceOptions = {
             'N/A'
             };
     end
+    
     set(vObj.h.PlotSourcePopup,...
         'String',vObj.Data.PlotParametersSourceOptions,...
         'Value',MatchIdx);
