@@ -412,7 +412,7 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                 case 'QSPViewer.Parameters'
                     ref_obj = obj.Data.Session.Settings.Parameters;                    
                 case 'QSPViewer.Task'
-                    ref_obj = obj.Data.Session.Settings.Task.Name;
+                    ref_obj = obj.Data.Session.Settings.Task;
                 case 'QSPViewer.VirtualPopulationData'
                     ref_obj = obj.Data.Session.Settings.VirtualPopulationData;
                 case 'QSPViewer.VirtualPopulation'
