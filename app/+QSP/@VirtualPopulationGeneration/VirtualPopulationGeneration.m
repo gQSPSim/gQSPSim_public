@@ -147,7 +147,7 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
                                 
                 % Check that Dataset (VirtualPopulationData) is valid if it exists
                 if ~isempty(obj.Settings.VirtualPopulationData)
-                    MatchIdx = find(strcmpi(obj.Settings.VirtualPopulationData.Name,obj.DatasetName));
+                    MatchIdx = find(strcmpi({obj.Settings.VirtualPopulationData.Name},obj.DatasetName));
                     if isempty(MatchIdx) || numel(MatchIdx) > 1
                         StatusOK = false;
                         Message = sprintf('%s\n* %s\n',Message,'Invalid dataset name specified for Optimization Data.');
