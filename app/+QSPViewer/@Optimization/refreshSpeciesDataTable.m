@@ -33,7 +33,7 @@ if ~isempty(vObj.TempData)
     NumTasksPerSpecies = zeros(size(SpeciesNames));
     for iSpecies = 1:numel(SpeciesNames)
         for iTask = 1:numel(ValidSelectedTasks)
-            if any(strcmpi(SpeciesNames{iSpecies},ValidSelectedTasks(iTask).SpeciesNames))
+            if any(strcmpi(SpeciesNames{iSpecies},ValidSelectedTasks(iTask).ActiveSpeciesNames))
                 NumTasksPerSpecies(iSpecies) = NumTasksPerSpecies(iSpecies) + 1;
             end
         end
