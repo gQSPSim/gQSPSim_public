@@ -358,6 +358,13 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                     Message = sprintf('%s\n* %s\n',Message,ThisMessage);
                 end
                 
+                % Check for multiple initial conditions for same species
+                if length({obj.SpeciesIC.SpeciesName}) > length(unique({obj.SpeciesIC.SpeciesName}))
+                    StatusOK = false;
+                    ThisMessage = 'Only one initial condition allowed per species';
+                    Message = sprintf('%s\n* %s\n',Message,ThisMessage);
+                end
+                
                 % Then, remove invalid
                 RemoveIndices = ~SpeciesMappingIndex | ~DataMappingIndex;
                 if any(RemoveIndices)
