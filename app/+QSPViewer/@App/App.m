@@ -282,6 +282,14 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
                error('Invalid ItemType'); 
             end
             
+            % special case since vpop data has been renamed to acceptance
+            % criteria
+            if strcmp(ItemType, 'VirtualPopulationData')
+                ItemName = 'AcceptanceCriteria';
+            else
+                ItemName = ItemType;
+            end
+            
             % Get the session
             ThisSession = obj.SelectedSession;
             
@@ -300,7 +308,7 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
             % Create the new item
             NewName = ThisObj.Name;
             if isempty(NewName)
-                NewName = ['New ' ItemType];
+                NewName = ['New ' ItemName];
             end
             DisallowedNames = {ParentObj.(ItemType).Name};
             NewName = matlab.lang.makeUniqueStrings(NewName, DisallowedNames);

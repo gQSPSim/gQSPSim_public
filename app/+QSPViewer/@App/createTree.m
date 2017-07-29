@@ -66,7 +66,10 @@ for idx=1:numel(AllData)
             
             hVPopDatas = i_addNode(hSettings, Data.Settings, ...
                 'Acceptance Criteria', 'database_24.png',...
-                obj.h.TreeMenu.Branch.VirtualPopulationData, 'VirtualPopulationData', 'Virtual Population Data');
+                obj.h.TreeMenu.Branch.VirtualPopulationData, 'VirtualPopulationData', 'Acceptance Criteria');
+
+%                 obj.h.TreeMenu.Branch.VirtualPopulationData, 'VirtualPopulationData', 'Virtual Population Data');
+
             thisFcn(hVPopDatas, Data.Settings.VirtualPopulationData);
             
             % Other session children
