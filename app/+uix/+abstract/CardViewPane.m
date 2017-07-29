@@ -405,26 +405,28 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
         function [StatusOK, Message] = checkDuplicateNames(obj, StatusOK, Message)
             % check for duplicate name
             DuplicateName = false;
+            ref_obj = [];
             switch class(obj)
                 case 'QSPViewer.OptimizationData'
-                    DuplicateName = any(strcmp( obj.TempData.Name, {obj.Data.Session.Settings.OptimizationData.Name}));
+                    ref_obj = obj.Data.Session.Settings.OptimizationData;
                 case 'QSPViewer.Parameters'
-                    DuplicateName = any(strcmp( obj.TempData.Name, {obj.Data.Session.Settings.Parameters.Name}));                    
+                    ref_obj = obj.Data.Session.Settings.Parameters;                    
                 case 'QSPViewer.Task'
-                    DuplicateName = any(strcmp( obj.TempData.Name, {obj.Data.Session.Settings.Task.Name}));
+                    ref_obj = obj.Data.Session.Settings.Task.Name;
                 case 'QSPViewer.VirtualPopulationData'
-                    DuplicateName = any(strcmp( obj.TempData.Name, {obj.Data.Session.Settings.VirtualPopulationData.Name}));
+                    ref_obj = obj.Data.Session.Settings.VirtualPopulationData;
                 case 'QSPViewer.VirtualPopulation'
-                    DuplicateName = any(strcmp( obj.TempData.Name, {obj.Data.Session.Settings.VirtualPopulation.Name}));
+                    ref_obj = obj.Data.Session.Settings.VirtualPopulation;
                 case 'QSPViewer.Simulation'
-                    DuplicateName = any(strcmp( obj.TempData.Name, {obj.Data.Session.Simulation.Name}));
+                    ref_obj = obj.Data.Session.Simulation;
                 case 'QSPViewer.Optimization'
-                    DuplicateName = any(strcmp( obj.TempData.Name, {obj.Data.Session.Optimization.Name}));
+                    ref_obj = obj.Data.Session.Optimization;
                 case 'QSPViewer.VirtualPopulationGeneration'
-                    DuplicateName = any(strcmp( obj.TempData.Name, {obj.Data.Session.VirtualPopulationGeneration.Name}));
+                    ref_obj = obj.Data.Session.VirtualPopulationGeneration;
             end
-
-            if DuplicateName
+            
+            ixDup = find(strcmp( obj.TempData.Name, {ref_obj.Name}));
+            if ~isempty(ixDup) && (ref_obj(ixDup) ~= obj.Data)
                 Message = sprintf('%s\nDuplicate names are not allowed.\n', Message);
                 StatusOK = false;
             end
