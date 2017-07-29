@@ -180,10 +180,20 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             end
             
             % OutputTimes
-            if isempty(obj.OutputTimes)
+            try
+                if ~isnumeric(obj.OutputTimes) && ~isnumeric(eval(obj.OutputTimes))
+                    StatusOK = false;
+                    Message = sprintf('%s\n* Invalid OutputTimes. OutputTimes must be valid Matlab numeric vector.\n',Message);                
+                elseif isempty(obj.OutputTimes)
+                    StatusOK = false;
+                    Message = sprintf('%s\n* Invalid OutputTimes. OutputTimes must not be empty.\n',Message);
+                end
+            
+            catch
                 StatusOK = false;
-                Message = sprintf('%s\n* Invalid OutputTimes. OutputTimes must not be empty.\n',Message);
-            end
+                Message = sprintf('%s\n* Invalid OutputTimes. OutputTimes must not be valid Matlab numeric vector.\n',Message);
+            end            
+
             
             % MaxWallClockTime
             if obj.MaxWallClockTime == 0
