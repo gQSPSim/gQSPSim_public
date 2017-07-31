@@ -447,6 +447,7 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         
         function set.OutputTimesStr(obj,Value)
             validateattributes(Value,{'char'},{});
+            validateattributes(str2num(Value),{'numeric'},{});
             obj.OutputTimesStr = Value;
         end % set.OutputTimesStr
         
