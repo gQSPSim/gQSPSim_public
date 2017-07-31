@@ -332,6 +332,8 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                     FlagRemoveInvalid = false;
                     [StatusOK,Message] = validate(obj.TempData,FlagRemoveInvalid);
                     
+                    [StatusOK,Message] = checkDuplicateNames(obj,StatusOK,Message);
+                    
                     if StatusOK
                         % Copy from TempData into Data, using obj.Data as a
                         % starting point
@@ -355,6 +357,9 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                             FlagRemoveInvalid = false;
                             [StatusOK,Message] = validate(obj.TempData,FlagRemoveInvalid);
                             
+                            [StatusOK,Message] = checkDuplicateNames(obj,StatusOK,Message);
+                            
+                                                        
                             if StatusOK
                                 obj.Selection = 1;
                                 set([obj.h.SummaryButton,obj.h.EditButton,obj.h.RunButton,obj.h.VisualizeButton],'Enable','on');
@@ -396,6 +401,36 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
             end
             
         end %function
+        
+        function [StatusOK, Message] = checkDuplicateNames(obj, StatusOK, Message)
+            % check for duplicate name
+            DuplicateName = false;
+            ref_obj = [];
+            switch class(obj)
+                case 'QSPViewer.OptimizationData'
+                    ref_obj = obj.Data.Session.Settings.OptimizationData;
+                case 'QSPViewer.Parameters'
+                    ref_obj = obj.Data.Session.Settings.Parameters;                    
+                case 'QSPViewer.Task'
+                    ref_obj = obj.Data.Session.Settings.Task;
+                case 'QSPViewer.VirtualPopulationData'
+                    ref_obj = obj.Data.Session.Settings.VirtualPopulationData;
+                case 'QSPViewer.VirtualPopulation'
+                    ref_obj = obj.Data.Session.Settings.VirtualPopulation;
+                case 'QSPViewer.Simulation'
+                    ref_obj = obj.Data.Session.Simulation;
+                case 'QSPViewer.Optimization'
+                    ref_obj = obj.Data.Session.Optimization;
+                case 'QSPViewer.VirtualPopulationGeneration'
+                    ref_obj = obj.Data.Session.VirtualPopulationGeneration;
+            end
+            
+            ixDup = find(strcmp( obj.TempData.Name, {ref_obj.Name}));
+            if ~isempty(ixDup) && (ref_obj(ixDup) ~= obj.Data)
+                Message = sprintf('%s\nDuplicate names are not allowed.\n', Message);
+                StatusOK = false;
+            end
+        end
         
         function onRemoveInvalidVisualization(obj,h,e)
             

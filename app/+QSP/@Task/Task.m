@@ -134,10 +134,13 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             Message = sprintf('Task: %s\n%s\n',obj.Name,repmat('-',1,75));
             
             % Import model
+            MaxWallClockTime = obj.MaxWallClockTime;
+            
             [ThisStatusOk,ThisMessage] = importModel(obj,obj.FilePath,obj.ModelName);
+            obj.MaxWallClockTime = MaxWallClockTime; % override model defaults
             if ~ThisStatusOk
                 Message = sprintf('%s\n* Error loading model "%s" in "%s". %s\n',Message,obj.ModelName,obj.FilePath,ThisMessage);
-            end
+            end            
             
             % Active Variants
             [InvalidActiveVariantNames,MatchIndex] = getInvalidActiveVariantNames(obj);
@@ -177,10 +180,20 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             end
             
             % OutputTimes
-            if isempty(obj.OutputTimes)
+            try
+                if ~isnumeric(obj.OutputTimes) && ~isnumeric(eval(obj.OutputTimes))
+                    StatusOK = false;
+                    Message = sprintf('%s\n* Invalid OutputTimes. OutputTimes must be valid Matlab numeric vector.\n',Message);                
+                elseif isempty(obj.OutputTimes)
+                    StatusOK = false;
+                    Message = sprintf('%s\n* Invalid OutputTimes. OutputTimes must not be empty.\n',Message);
+                end
+            
+            catch
                 StatusOK = false;
-                Message = sprintf('%s\n* Invalid OutputTimes. OutputTimes must not be empty.\n',Message);
-            end
+                Message = sprintf('%s\n* Invalid OutputTimes. OutputTimes must not be valid Matlab numeric vector.\n',Message);
+            end            
+
             
             % MaxWallClockTime
             if obj.MaxWallClockTime == 0

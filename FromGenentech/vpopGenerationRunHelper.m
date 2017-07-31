@@ -140,20 +140,19 @@ for ii = 1:nItems
         % turn on all reactions
         set(model_i.Reactions, 'Active', true);
         % turn off inactive reactions
-        [~,ix] = ismember(tObj_i.InactiveReactionNames{jj},tObj_i.ReactionNames);
+        [~,ix] = ismember(tObj_i.InactiveReactionNames,tObj_i.ReactionNames);
         set(model_i.Reactions(ix), 'Active', false);
     end % if
     
     % inactivate rules (if specified)
     if ~isempty(tObj_i.InactiveRuleNames)
         % turn on all rules
-        for jj = 1 : length(model_i.Rules);
+        for jj = 1 : length(model_i.Rules)
             model_i.Rules(jj).Active = true;
         end % for        
         % turn off inactive rules
-        for jj = 1 : length(tObj_i.InactiveRuleNames)
-            model_i.Reactions(strcmp(tObj_i.InactiveRuleNames{jj},tObj_i.RuleNames)).Active = false;
-        end % for
+        [~,ix] = ismember(tObj_i.InactiveRuleNames,tObj_i.RuleNames);
+        set(model_i.Rules(ix), 'Active', false);
     end % if
     
     % assume all parameters are present in all models. varying species

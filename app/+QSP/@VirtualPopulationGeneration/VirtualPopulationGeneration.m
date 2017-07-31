@@ -147,7 +147,7 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
                                 
                 % Check that Dataset (VirtualPopulationData) is valid if it exists
                 if ~isempty(obj.Settings.VirtualPopulationData)
-                    MatchIdx = find(strcmpi(obj.Settings.VirtualPopulationData.Name,obj.DatasetName));
+                    MatchIdx = find(strcmpi({obj.Settings.VirtualPopulationData.Name},obj.DatasetName));
                     if isempty(MatchIdx) || numel(MatchIdx) > 1
                         StatusOK = false;
                         Message = sprintf('%s\n* %s\n',Message,'Invalid dataset name specified for Optimization Data.');
@@ -291,6 +291,14 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
                     ThisMessage = sprintf('Invalid species: %s',uix.utility.cellstr2dlmstr(BadValues,','));
                     StatusOK = false;
                     Message = sprintf('%s\n* %s\n',Message,ThisMessage);
+                else
+                    % Check that the function is only a function of x
+                    tmp = cellfun(@symvar, {obj.SpeciesData.FunctionExpression}, 'UniformOutput', false);
+                    StatusOK = all(cellfun(@(x) length(x) == 1 && strcmp(x,'x'), tmp));
+                    if ~StatusOK
+                        ThisMessage = 'Data mappings must be a function of x only';
+                        Message = sprintf('%s\n* %s\n',Message,ThisMessage);
+                    end
                 end
                 
                 % Then, remove invalid

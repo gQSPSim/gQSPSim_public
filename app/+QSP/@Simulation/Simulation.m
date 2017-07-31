@@ -153,10 +153,32 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 end
             end
             
+            % Check that the group column specified contains only integers 
+            if ~isempty(obj.DatasetName)
+                Names = {obj.Settings.OptimizationData.Name};
+                MatchIdx = strcmpi(Names,obj.DatasetName);
+
+                % Continue if dataset exists
+                if any(MatchIdx)
+                    % Get dataset
+                    dObj = obj.Settings.OptimizationData(MatchIdx);      
+                    DestDatasetType = 'wide';
+                    [StatusOK,~,OptimHeader,OptimData] = importData(dObj,dObj.FilePath,DestDatasetType);
+                    
+                    if StatusOK
+                        tmp = cell2mat(OptimData(:, strcmp(obj.GroupName, OptimHeader)));
+                        if ~all(isnumeric(tmp) & floor(tmp) == tmp)
+                            StatusOK = false;
+                            Message = sprintf('%s\nSpecified group column contains invalid (non-integer) data.\n', Message);
+                        end
+                    else
+                        Message = sprintf('%s\nCould not load dataset file.\n', Message);
+                    end
+                end
+            end
+    
         end %function
     end
-    
-    
     %% Methods    
     methods
         

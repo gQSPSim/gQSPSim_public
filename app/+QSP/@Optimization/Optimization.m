@@ -314,7 +314,18 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                     ThisMessage = sprintf('Invalid data: %s',uix.utility.cellstr2dlmstr(BadValues,','));
                     StatusOK = false;
                     Message = sprintf('%s\n* %s\n',Message,ThisMessage);
+                else
+                    % Check that the function is only a function of x
+                    tmp = cellfun(@symvar, {obj.SpeciesData.FunctionExpression}, 'UniformOutput', false);
+                    StatusOK = all(cellfun(@(x) length(x) == 1 && strcmp(x,'x'), tmp));
+                    if ~StatusOK
+                        ThisMessage = 'Data mappings must be a function of x only';
+                        Message = sprintf('%s\n* %s\n',Message,ThisMessage);
+                    end
+
                 end
+                
+                
                 
                 % Check ObjectiveFcn
                 if any(ObjectiveFcnMappingIndex == 0)
@@ -355,6 +366,13 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                     BadValues = {obj.SpeciesIC(DataMappingIndex==0).DataName};
                     ThisMessage = sprintf('Invalid species: %s',uix.utility.cellstr2dlmstr(BadValues,','));
                     StatusOK = false;
+                    Message = sprintf('%s\n* %s\n',Message,ThisMessage);
+                end
+                
+                % Check for multiple initial conditions for same species
+                if length({obj.SpeciesIC.SpeciesName}) > length(unique({obj.SpeciesIC.SpeciesName}))
+                    StatusOK = false;
+                    ThisMessage = 'Only one initial condition allowed per species';
                     Message = sprintf('%s\n* %s\n',Message,ThisMessage);
                 end
                 

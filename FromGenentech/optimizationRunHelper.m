@@ -163,13 +163,13 @@ for ii = 1:nItems
     % load the model in that task
 %     AllModels = sbioloadproject(tObj_i.RelativeFilePath);
     
-    if ~isempty(tObj_i.ModelObj) % use cached model
-        model_i = tObj_i.ModelObj;
-    else
-        AllModels = sbioloadproject(fullfile(tObj_i.Session.RootDirectory, tObj_i.RelativeFilePath));
-        AllModels = cell2mat(struct2cell(AllModels));
-        model_i = sbioselect(AllModels,'Name',tObj_i.ModelName,'type','sbiomodel');
-    end
+%     if ~isempty(tObj_i.ModelObj) % use cached model
+%         model_i = tObj_i.ModelObj;
+%     else
+    AllModels = sbioloadproject(fullfile(tObj_i.Session.RootDirectory, tObj_i.RelativeFilePath));
+    AllModels = cell2mat(struct2cell(AllModels));
+    model_i = sbioselect(AllModels,'Name',tObj_i.ModelName,'type','sbiomodel');
+%     end
     
     
     % apply the active variants (if specified)

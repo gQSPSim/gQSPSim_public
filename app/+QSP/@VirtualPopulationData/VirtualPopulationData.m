@@ -76,10 +76,16 @@ classdef VirtualPopulationData < QSP.abstract.BaseProps & uix.mixin.HasTreeRefer
                 Message = sprintf('%s\n* Virtual Population data file "%s" is invalid or does not exist',Message,obj.FilePath);
             else
                 % Import data
-                [ThisStatusOk,ThisMessage] = importData(obj,obj.FilePath);
+                [ThisStatusOk,ThisMessage,Header] = importData(obj,obj.FilePath);
                 if ~ThisStatusOk
                     Message = sprintf('%s\n* Error loading data "%s". %s\n',Message,obj.FilePath,ThisMessage);
+                    StatusOK = false;
+                elseif ~all(ismember(Header,{'Group','Time','Data','LB','UB'}))
+                    % Validate headers
+                    Message = sprintf('%s\n* Acceptance criteria file contains incorrect headers. "%s". %s\n',Message,obj.FilePath,ThisMessage);
+                    StatusOK = false;
                 end
+                
             end
             
         end
