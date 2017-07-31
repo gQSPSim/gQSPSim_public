@@ -139,8 +139,8 @@ if any(MatchIdx)
             Time = OptimData(:,strcmp(OptimHeader,'Time'));
             
             for dIdx = 1:size(obj.PlotDataTable,1)
-                axIdx = str2double(obj.PlotDataTable{sIdx,1});
-                ThisName = obj.PlotDataTable{sIdx,2};
+                axIdx = str2double(obj.PlotDataTable{dIdx,1});
+                ThisName = obj.PlotDataTable{dIdx,2};
                 ColumnIdx = find(strcmp(OptimHeader,ThisName));
                 
                 if ~isempty(ColumnIdx) && ~isempty(axIdx) && ~isnan(axIdx)
