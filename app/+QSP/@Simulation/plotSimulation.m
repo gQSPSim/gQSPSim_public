@@ -124,16 +124,11 @@ if any(MatchIdx)
         
         if any(IsSelected)
             SelectedGroupColors = cell2mat(obj.PlotGroupTable(IsSelected,2));
-            SelectedGroupIDs = obj.PlotGroupTable(IsSelected,3);
-            
-            % convert to numeric
-            SelectedGroupIDs = arrayfun(@(k) str2num(SelectedGroupIDs{k,:}), 1:size(SelectedGroupIDs,1));
+            SelectedGroupIDs = categorical(obj.PlotGroupTable(IsSelected,3));
             
             % Get the Group Column from the imported dataset
             GroupColumn = OptimData(:,strcmp(OptimHeader,obj.GroupName));
-            if iscell(GroupColumn)
-                GroupColumn = cell2mat(GroupColumn);
-            end
+            GroupColumn = categorical(GroupColumn);
             
             % Get the Time Column from the imported dataset
             Time = OptimData(:,strcmp(OptimHeader,'Time'));

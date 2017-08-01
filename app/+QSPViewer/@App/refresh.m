@@ -112,6 +112,7 @@ if isscalar(SelNode)
     Data = SelNode.Value;
     IsDeleted = strcmpi(SelNode.Parent.UserData,'Deleted');
     obj.launchPane(Data, PaneType, IsDeleted);
+    
     % Assign navigation changed listener (for RHS views - summary, edit, etc.)
     if ~isempty(obj.NavigationChangedListener)
         delete(obj.NavigationChangedListener);

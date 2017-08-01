@@ -255,19 +255,34 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
             % Find the session node that is selected
             Root = h.Root;
             SelNode = e.Nodes;
-            while ~isempty(SelNode) && SelNode.Parent~=Root
-                SelNode = SelNode.Parent;                
+            ThisSessionNode = SelNode;
+            while ~isempty(ThisSessionNode) && ThisSessionNode.Parent~=Root
+                ThisSessionNode = ThisSessionNode.Parent;                
             end
             
             % Update the selected session based on tree selection
-            if isempty(SelNode)
+            if isempty(ThisSessionNode)
                 obj.SelectedSessionIdx = [];
             else
-                obj.SelectedSessionIdx = find(SelNode == obj.SessionNode);
+                obj.SelectedSessionIdx = find(ThisSessionNode == obj.SessionNode);
             end
             
             % Update the display
             obj.refresh();
+            
+            % Check the type
+            % If either Simulation, Optimization, or Virtual Population Generation, re-plot            
+            if ~isempty(SelNode)
+                thisObj = SelNode.Value;
+                switch class(thisObj)
+                    case 'QSP.Simulation'
+                        plotSimulation(thisObj,obj.ActivePane.h.MainAxes);
+                    case 'QSP.Optimization'                        
+                        plotOptimization(thisObj,obj.ActivePane.h.MainAxes);
+                    case 'QSP.VirtualPopulationGeneration'
+                        plotVirutalPopulationGeneration(thisObj,obj.ActivePane.h.MainAxes);
+                end
+            end
             
         end %function
                 
