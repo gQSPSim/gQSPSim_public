@@ -267,7 +267,7 @@ if ~isempty(vObj.Data) && ~isempty(OptimData)
     
     % Update Colors column
     TableData = vObj.PlotGroupAsInvalidTable;
-    TableData(:,2) = uix.utility.getHTMLColor(vObj.Data.PlotItemTable(:,2));
+    TableData(:,2) = uix.utility.getHTMLColor(vObj.PlotGroupAsInvalidTable(:,2));
     % Group table
     set(vObj.h.PlotGroupTable,...
         'Data',TableData,...

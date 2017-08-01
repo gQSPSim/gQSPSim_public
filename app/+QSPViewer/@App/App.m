@@ -162,7 +162,10 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
         SessionNode
     end
     
-    
+    properties( Access = private )
+        NavigationChangedListener = event.listener.empty(0,1)
+    end
+        
     %% Methods in separate files with custom permissions
     methods (Access=protected)
         create(obj);
@@ -267,7 +270,23 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
             obj.refresh();
             
         end %function
-        
+                
+        function onNavigationChanged(obj,h,e)
+            
+            if ~isempty(e) && isprop(e,'Name')
+                switch e.Name
+                    case 'Edit'
+                        obj.h.SessionTree.Enable = false;
+                        obj.h.FileMenu.Menu.Enable = 'off';
+                        obj.h.QSPMenu.Menu.Enable = 'off';
+                    otherwise
+                        obj.h.SessionTree.Enable = true;
+                        obj.h.FileMenu.Menu.Enable = 'on';
+                        obj.h.QSPMenu.Menu.Enable = 'on';
+                end
+            end
+            
+        end %function
         
         function onAddItem(obj,ItemType)
             

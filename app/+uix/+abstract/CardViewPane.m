@@ -33,6 +33,7 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
     
     events( NotifyAccess = protected )
         TempDataEdited
+        NavigationChanged
     end
     
     %% Constructor and Destructor
@@ -372,6 +373,11 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                                 evt.InteractionType = sprintf('Updated %s',class(obj.Data));
                                 evt.Name = obj.Data.Name;
                                 obj.callCallback(evt);
+                                
+                                % Notify
+                                View = 'Summary';
+                                EventData = uix.abstract.NavigationEventData('Name',View);
+                                notify(obj,'NavigationChanged',EventData);
                             else
                                 hDlg = errordlg(sprintf('Cannot save changes. Please review invalid entries:\n\n%s',Message),'Cannot Save','modal');
                                 uiwait(hDlg);
@@ -382,7 +388,11 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                             set([obj.h.SummaryButton,obj.h.EditButton,obj.h.RunButton,obj.h.VisualizeButton],'Enable','on');
                             % Copy from Data into TempData, using obj.TempData as a
                             % starting point
-                            obj.TempData = copy(obj.Data,obj.TempData);
+                            obj.TempData = copy(obj.Data,obj.TempData);                            
+                            % Notify
+                            View = 'Summary';
+                            EventData = uix.abstract.NavigationEventData('Name',View);
+                            notify(obj,'NavigationChanged',EventData);
                         end %Else, do nothing
                     else
                         obj.Selection = 1;
@@ -390,6 +400,10 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                         % Copy from Data into TempData, using obj.TempData as a
                         % starting point
                         obj.TempData = copy(obj.Data,obj.TempData);
+                        % Notify
+                        View = 'Summary';
+                        EventData = uix.abstract.NavigationEventData('Name',View);
+                        notify(obj,'NavigationChanged',EventData);
                     end
             end
             
@@ -515,6 +529,10 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
             
             % Update the view
             update(obj);
+            
+            % Notify
+            EventData = uix.abstract.NavigationEventData('Name',View);
+            notify(obj,'NavigationChanged',EventData);
             
         end %function
         
