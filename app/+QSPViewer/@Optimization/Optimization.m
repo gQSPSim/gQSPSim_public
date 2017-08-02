@@ -459,24 +459,29 @@ classdef Optimization < uix.abstract.CardViewPane
         function onPlotItemsTableContextMenu(vObj,h,e)
             
             SelectedRow = get(vObj.h.PlotItemsTable,'SelectedRows');
-            ThisColor = vObj.Data.PlotItemTable{SelectedRow,2};
-            
-            NewColor = uisetcolor(ThisColor);
-            
-            if ~isequal(NewColor,0)
-                vObj.Data.PlotItemTable{SelectedRow,2} = NewColor;                 
+            if ~isempty(SelectedRow)
+                ThisColor = vObj.Data.PlotItemTable{SelectedRow,2};
                 
-%                 try
+                NewColor = uisetcolor(ThisColor);
+                
+                if ~isequal(NewColor,0)
+                    vObj.Data.PlotItemTable{SelectedRow,2} = NewColor;
+                    
+                    %                 try
                     % Plot
                     plotOptimization(vObj.Data,vObj.h.MainAxes);
-%                 catch ME
-%                     hDlg = errordlg(sprintf('Cannot plot. %s',ME.message),'Invalid','modal');
-%                     uiwait(hDlg);
-%                 end
-                
-                % Update the view
-                updateVisualizationView(vObj);
-                
+                    %                 catch ME
+                    %                     hDlg = errordlg(sprintf('Cannot plot. %s',ME.message),'Invalid','modal');
+                    %                     uiwait(hDlg);
+                    %                 end
+                    
+                    % Update the view
+                    updateVisualizationView(vObj);
+                    
+                end
+            else
+                hDlg = errordlg('Please select a row first to set new color.','No row selected','modal');
+                uiwait(hDlg);
             end
         end %function
         
