@@ -280,7 +280,7 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
                     case 'QSP.Optimization'                        
                         plotOptimization(thisObj,obj.ActivePane.h.MainAxes);
                     case 'QSP.VirtualPopulationGeneration'
-                        plotVirutalPopulationGeneration(thisObj,obj.ActivePane.h.MainAxes);
+                        plotVirtualPopulationGeneration(thisObj,obj.ActivePane.h.MainAxes);
                 end
             end
             
