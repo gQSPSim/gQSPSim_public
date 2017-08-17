@@ -26,6 +26,13 @@ function updateVisualizationView(vObj)
 %   $Revision: 331 $  $Date: 2016-10-05 18:01:36 -0400 (Wed, 05 Oct 2016) $
 % ---------------------------------------------------------------------
 
+%% Update plot layout
+
+if ~isempty(vObj.Data)
+    vObj.SelectedPlotLayout = vObj.Data.SelectedPlotLayout;
+end
+
+
 %% Update table contextmenus
 
 hFigure = ancestor(vObj.UIContainer,'figure');
@@ -60,35 +67,42 @@ if ~isempty(vObj.Data)
     SpeciesNames = getSpeciesFromValidSelectedTasks(vObj.Data.Settings,ItemTaskNames);
     
     % If empty, populate
+    updateSpeciesLineStyles(vObj.Data);
     if isempty(vObj.Data.PlotSpeciesTable)
-        vObj.Data.PlotSpeciesTable = cell(numel(SpeciesNames),2);
+        vObj.Data.PlotSpeciesTable = cell(numel(SpeciesNames),3);
         vObj.Data.PlotSpeciesTable(:,1) = {' '};
-        vObj.Data.PlotSpeciesTable(:,2) = SpeciesNames;
+        vObj.Data.PlotSpeciesTable(:,2) = vObj.Data.SpeciesLineStyles(:);
+        vObj.Data.PlotSpeciesTable(:,3) = SpeciesNames;
         
         vObj.PlotSpeciesAsInvalidTable = vObj.Data.PlotSpeciesTable;
         vObj.PlotSpeciesInvalidRowIndices = [];
     else
-        NewPlotTable = cell(numel(SpeciesNames),2);
+        NewPlotTable = cell(numel(SpeciesNames),3);
         NewPlotTable(:,1) = {' '};
-        NewPlotTable(:,2) = SpeciesNames;
+        NewPlotTable(:,2) = {'-'}; % vObj.Data.SpeciesLineStyles(:); % TODO: !!
+        NewPlotTable(:,3) = SpeciesNames;
         
+        if size(vObj.Data.PlotSpeciesTable,2) == 2
+            vObj.Data.PlotSpeciesTable(:,3) = vObj.Data.PlotSpeciesTable(:,2);
+            vObj.Data.PlotSpeciesTable(:,2) = {'-'};  % TODO: !!
+        end
         % Update Table
-        [vObj.Data.PlotSpeciesTable,vObj.PlotSpeciesAsInvalidTable,vObj.PlotSpeciesInvalidRowIndices] = QSPViewer.updateVisualizationTable(vObj.Data.PlotSpeciesTable,NewPlotTable,2);
+        [vObj.Data.PlotSpeciesTable,vObj.PlotSpeciesAsInvalidTable,vObj.PlotSpeciesInvalidRowIndices] = QSPViewer.updateVisualizationTable(vObj.Data.PlotSpeciesTable,NewPlotTable,3);
     end
     
     % Species table
     set(vObj.h.PlotSpeciesTable,...
         'Data',vObj.PlotSpeciesAsInvalidTable,...
-        'ColumnName',{'Plot','Name'},...
-        'ColumnFormat',{AxesOptions,'char'},...
-        'ColumnEditable',[true,false]...
+        'ColumnName',{'Plot','Style','Name'},...
+        'ColumnFormat',{AxesOptions,vObj.Data.Settings.LineStyleMap,'char'},...
+        'ColumnEditable',[true,true,false]...
         );
 else
     set(vObj.h.PlotSpeciesTable,...
-        'Data',cell(0,2),...
-        'ColumnName',{'Plot','Name'},...
-        'ColumnFormat',{AxesOptions,'char'},...
-        'ColumnEditable',[true,false]...
+        'Data',cell(0,3),...
+        'ColumnName',{'Plot','Style','Name'},...
+        'ColumnFormat',{AxesOptions,'char','char'},...
+        'ColumnEditable',[true,true,false]...
         );
 end
 
@@ -141,8 +155,19 @@ if ~isempty(vObj.Data)
         [vObj.Data.PlotItemTable,vObj.PlotItemAsInvalidTable,vObj.PlotItemInvalidRowIndices] = QSPViewer.updateVisualizationTable(vObj.Data.PlotItemTable,NewPlotTable,[3 4]);
     end
     
-    % Update Colors column
+    % Check which results files are invalid
+    ResultsDir = fullfile(vObj.Data.Session.RootDirectory,vObj.Data.SimResultsFolderName);
+    IsInvalidResultFile = find(cellfun(@(X) ~isequal(exist(fullfile(ResultsDir,X),'file'),2), {vObj.Data.Item.MATFileName}));
+    
+    % Only make the "valids" missing. Leave the invalids as is
     TableData = vObj.PlotItemAsInvalidTable;
+    MissingIdx = setdiff(IsInvalidResultFile(:),vObj.PlotItemInvalidRowIndices(:));
+    for index = MissingIdx(:)'
+        TableData{index,3} = QSP.makeMissing(TableData{index,3});
+        TableData{index,4} = QSP.makeMissing(TableData{index,4});
+    end
+    
+    % Update Colors column
     TableData(:,2) = uix.utility.getHTMLColor(vObj.Data.PlotItemTable(:,2));
     % Items table
     set(vObj.h.PlotItemsTable,...

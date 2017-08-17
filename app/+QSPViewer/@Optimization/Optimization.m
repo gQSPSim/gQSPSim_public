@@ -90,6 +90,20 @@ classdef Optimization < uix.abstract.CardViewPane
     %notify(obj, 'DataEdited', <eventdata>);
     
     
+    %% Methods from CardViewPane
+    methods
+       function onPlotConfigChange(obj,h,e)
+            
+            Value = get(h,'Value');
+            obj.Data.SelectedPlotLayout = obj.PlotLayoutOptions{Value};
+            
+            % Update the view
+            updateVisualizationView(obj);
+            update(obj);
+        end 
+    end
+    
+    
     %% Callbacks
     methods
         

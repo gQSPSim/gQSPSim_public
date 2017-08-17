@@ -70,7 +70,7 @@ for index = 1:numel(MATResultFilePaths)
             warning('plotSimulation: Data cannot be loaded from %s. File must contain Results structure with fields Time, Data, SpeciesNames.',MATResultFilePaths{index});
         end
     elseif ~isdir(MATResultFilePaths{index}) % Invalid file
-        warning('plotSimulation: Invalid file %s',MATResultFilePaths{index});
+        fprintf('plotSimulation: Invalid file %s\n',MATResultFilePaths{index});
     end
 end
 
@@ -82,7 +82,8 @@ SelectedItemColors = cell2mat(obj.PlotItemTable(IsSelected,2));
 
 for sIdx = 1:size(obj.PlotSpeciesTable,1)
     axIdx = str2double(obj.PlotSpeciesTable{sIdx,1});
-    ThisName = obj.PlotSpeciesTable{sIdx,2};
+    ThisLineStyle = obj.PlotSpeciesTable{sIdx,2};
+    ThisName = obj.PlotSpeciesTable{sIdx,3};
     if ~isempty(axIdx) && ~isnan(axIdx)
         for itemIdx = 1:numel(Results)
             % Plot the species from the simulation item in the appropriate
@@ -96,7 +97,9 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
             ColumnIdx = ColumnIdx:NumSpecies:size(Results(1).Data,2);
             
             % Plot
-            plot(hAxes(axIdx),Results(itemIdx).Time,Results(itemIdx).Data(:,ColumnIdx),'Color',SelectedItemColors(itemIdx,:));
+            plot(hAxes(axIdx),Results(itemIdx).Time,Results(itemIdx).Data(:,ColumnIdx),...
+                'Color',SelectedItemColors(itemIdx,:),...
+                'LineStyle',ThisLineStyle);
         end
     end
 end
@@ -128,6 +131,10 @@ if any(MatchIdx)
             
             % Get the Group Column from the imported dataset
             GroupColumn = OptimData(:,strcmp(OptimHeader,obj.GroupName));
+            if all(cellfun(@isnumeric,GroupColumn))
+                % If numeric column, convert to matrix to use categorical
+                GroupColumn = cell2mat(GroupColumn);
+            end
             GroupColumn = categorical(GroupColumn);
             
             % Get the Time Column from the imported dataset

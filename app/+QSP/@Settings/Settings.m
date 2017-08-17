@@ -45,7 +45,16 @@ classdef Settings < matlab.mixin.SetGet & uix.mixin.AssignPVPairs & uix.mixin.Ha
         VirtualPopulationData = QSP.VirtualPopulationData.empty(1,0)
     end
     
-    
+    %% Properties
+    properties
+        LineStyleMap = {...
+            '-',...
+            '--',...
+            ':',...
+            '-.',...
+            }
+    end
+
     %% Constructor
     methods
         function obj = Settings(varargin)
@@ -150,6 +159,11 @@ classdef Settings < matlab.mixin.SetGet & uix.mixin.AssignPVPairs & uix.mixin.Ha
     %% Get/Set Methods
     methods
       
+        function set.LineStyleMap(obj,Value)
+            validateattributes(Value,{'cell'},{});
+            obj.LineStyleMap = Value;
+        end
+        
     end %methods
     
 end %classdef

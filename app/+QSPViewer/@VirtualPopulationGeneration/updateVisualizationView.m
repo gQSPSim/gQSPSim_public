@@ -26,6 +26,13 @@ function updateVisualizationView(vObj)
 %   $Revision: 331 $  $Date: 2016-10-05 18:01:36 -0400 (Wed, 05 Oct 2016) $
 % ---------------------------------------------------------------------
 
+%% Update plot layout
+
+if ~isempty(vObj.Data)
+    vObj.SelectedPlotLayout = vObj.Data.SelectedPlotLayout;
+end
+
+
 %% Update table contextmenu
 
 hFigure = ancestor(vObj.UIContainer,'figure');

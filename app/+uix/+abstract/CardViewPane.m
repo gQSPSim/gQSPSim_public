@@ -19,10 +19,10 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
         TempData
         Selection = 1
         IsDeleted = false
+        SelectedPlotLayout = '1x1'
     end
     
-    properties (SetAccess=private)
-        SelectedPlotLayout = '1x1'
+    properties (SetAccess=private)        
         UseRunVis = false
     end
     
@@ -162,15 +162,15 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                 'Parent',obj.h.EditButtonLayout,...
                 'Style','pushbutton',...
                 'Tag','Save',...
-                'String','Save',...
+                'String','OK',...
                 'TooltipString','Apply and Save Changes to Selection',...
                 'FontSize',10,...
                 'Callback',@(h,e)onButtonPress(obj,h,e));
-            obj.h.CloseButton = uicontrol(...
+            obj.h.CancelButton = uicontrol(...
                 'Parent',obj.h.EditButtonLayout,...
                 'Style','pushbutton',...
-                'Tag','Close',...
-                'String','Close',...
+                'Tag','Cancel',...
+                'String','Cancel',...
                 'TooltipString','Close without Saving',...
                 'FontSize',10,...
                 'Callback',@(h,e)onButtonPress(obj,h,e));
@@ -341,6 +341,14 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                         obj.Data = copy(obj.TempData,obj.Data);
                         % Update time
                         updateLastSavedTime(obj.Data);
+                        
+                        obj.Selection = 1;
+                        set([obj.h.SummaryButton,obj.h.EditButton,obj.h.RunButton,obj.h.VisualizeButton],'Enable','on');
+                        % Notify
+                        View = 'Summary';
+                        EventData = uix.abstract.NavigationEventData('Name',View);
+                        notify(obj,'NavigationChanged',EventData);
+                        
                         % Call the callback
                         evt.InteractionType = sprintf('Updated %s',class(obj.Data));
                         evt.Name = obj.Data.Name;
@@ -350,7 +358,7 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                         uiwait(hDlg);
                     end
                     
-                case 'Close'
+                case 'Cancel'
                     if ~isPublicPropsEqual(obj.Data,obj.TempData)
                         Prompt = sprintf('Changes have not been saved. How would you like to continue?');
                         Result = questdlg(Prompt,'Continue?','Save','Don''t Save','Cancel','Cancel');
@@ -805,6 +813,11 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
             obj.TempData = Value;
             refresh(obj);
         end
+        
+        function set.SelectedPlotLayout(obj,Value)
+            obj.SelectedPlotLayout = Value;
+        end
+        
     end
     
 end % classdef

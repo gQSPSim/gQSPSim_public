@@ -41,6 +41,11 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         PlotDataTable = cell(0,2)
         PlotGroupTable = cell(0,3)
         
+        SelectedPlotLayout = '1x1'
+    end
+    
+    properties (SetAccess = 'private')
+        SpeciesLineStyles
     end
     
     %% Constructor
@@ -179,6 +184,7 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
     
         end %function
     end
+    
     %% Methods    
     methods
         
@@ -200,6 +206,18 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 end
             end 
             
+        end %function
+        
+        function updateSpeciesLineStyles(obj)
+            ThisMap = obj.Settings.LineStyleMap;
+            if ~isempty(ThisMap) && size(obj.PlotSpeciesTable,1) ~= numel(obj.SpeciesLineStyles)
+                obj.SpeciesLineStyles = uix.utility.GetLineStyleMap(ThisMap,size(obj.PlotSpeciesTable,1)); % Number of species
+            end
+        end %function
+        
+        function setSpeciesLineStyles(obj,Index,NewLineStyle)
+            NewLineStyle = validatestring(NewLineStyle,obj.Settings.LineStyleMap);
+            obj.SpeciesLineStyles{Index} = NewLineStyle;
         end %function
         
     end %methods
@@ -234,7 +252,7 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         end
         
         function set.PlotSpeciesTable(obj,Value)
-            validateattributes(Value,{'cell'},{'size',[nan 2]});
+            validateattributes(Value,{'cell'},{});
             obj.PlotSpeciesTable = Value;
         end
         
@@ -252,6 +270,7 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             validateattributes(Value,{'cell'},{'size',[nan 3]});
             obj.PlotGroupTable = Value;
         end
+        
     end %methods
     
 end %classdef

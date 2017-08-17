@@ -75,6 +75,18 @@ classdef Simulation < uix.abstract.CardViewPane
     %RAJ - for callbacks:
     %notify(obj, 'DataEdited', <eventdata>);
     
+    %% Methods from CardViewPane
+    methods
+       function onPlotConfigChange(obj,h,e)
+            
+            Value = get(h,'Value');
+            obj.Data.SelectedPlotLayout = obj.PlotLayoutOptions{Value};
+            
+            % Update the view
+            updateVisualizationView(obj);
+            update(obj);
+        end 
+    end
     
     %% Callbacks
     methods
@@ -206,13 +218,23 @@ classdef Simulation < uix.abstract.CardViewPane
             
             h.SelectedRows = RowIdx;
             
-            vObj.Data.PlotSpeciesTable(RowIdx,ColIdx) = ThisData(RowIdx,ColIdx);
-            
-            % Plot
-            plotSimulation(vObj.Data,vObj.h.MainAxes);
-            
-            % Update the view
-            updateVisualizationView(vObj);
+            if ~isequal(vObj.Data.PlotSpeciesTable,[ThisData(:,1) ThisData(:,2) ThisData(:,3)]) || ...
+                    ColIdx == 2
+                
+                if ~isempty(RowIdx) && ColIdx == 2
+                    NewLineStyle = ThisData{RowIdx,2};
+                    setSpeciesLineStyles(vObj.Data,RowIdx,NewLineStyle);
+                end
+                
+                vObj.Data.PlotSpeciesTable(RowIdx,ColIdx) = ThisData(RowIdx,ColIdx);
+                
+                % Plot
+                plotSimulation(vObj.Data,vObj.h.MainAxes);
+                
+                % Update the view
+                updateVisualizationView(vObj);
+                
+            end
             
         end %function
         

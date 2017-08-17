@@ -27,8 +27,8 @@ if ~isempty(obj.ActivePane)
         
     catch err
         warning('QSPViewer:AssignData',...
-            'Unable to assign data to ViewPane %s.\nError: %s',...
-            class(obj.ActivePane), err.message);
+            'Unable to assign data to ViewPane %s.\nError: %s (%s - line %d)',...
+            class(obj.ActivePane), err.message, err.stack(1).name, err.stack(1).line);
     end
 end
 

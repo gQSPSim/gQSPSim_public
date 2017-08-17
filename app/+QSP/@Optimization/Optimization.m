@@ -53,6 +53,8 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         PlotParametersSourceOptions = {
             'N/A'            
             }
+        
+        SelectedPlotLayout = '1x1'
     end
     
     %% Constant Properties
