@@ -27,6 +27,13 @@ function update(vObj)
 % ---------------------------------------------------------------------
 
 
+%% Update plot layout
+
+if ~isempty(vObj.Data)
+    vObj.SelectedPlotLayout = vObj.Data.SelectedPlotLayout;
+end
+
+
 %% Invoke superclass's update
 
 update@uix.abstract.CardViewPane(vObj);

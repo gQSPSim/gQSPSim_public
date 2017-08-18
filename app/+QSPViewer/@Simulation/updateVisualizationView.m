@@ -26,12 +26,6 @@ function updateVisualizationView(vObj)
 %   $Revision: 331 $  $Date: 2016-10-05 18:01:36 -0400 (Wed, 05 Oct 2016) $
 % ---------------------------------------------------------------------
 
-%% Update plot layout
-
-if ~isempty(vObj.Data)
-    vObj.SelectedPlotLayout = vObj.Data.SelectedPlotLayout;
-end
-
 
 %% Update table contextmenus
 
@@ -82,6 +76,7 @@ if ~isempty(vObj.Data)
         NewPlotTable(:,2) = {'-'}; % vObj.Data.SpeciesLineStyles(:); % TODO: !!
         NewPlotTable(:,3) = SpeciesNames;
         
+        % Adjust size if from an old saved session
         if size(vObj.Data.PlotSpeciesTable,2) == 2
             vObj.Data.PlotSpeciesTable(:,3) = vObj.Data.PlotSpeciesTable(:,2);
             vObj.Data.PlotSpeciesTable(:,2) = {'-'};  % TODO: !!
@@ -219,37 +214,45 @@ if ~isempty(vObj.Data) && ~isempty(vObj.Data.DatasetName)
         DatasetHeaderPopupItems = {};
     end
     
+    % Adjust size if from an old saved session
+    if size(vObj.Data.PlotDataTable,2) == 2
+        vObj.Data.PlotDataTable(:,3) = vObj.Data.PlotDataTable(:,2);
+        vObj.Data.PlotDataTable(:,2) = {'*'};  % TODO: !!
+    end
+    
     % If empty, populate
     if isempty(vObj.Data.PlotDataTable)
         vObj.Data.PlotDataTable = cell(numel(DatasetHeaderPopupItems),2);
         vObj.Data.PlotDataTable(:,1) = {' '};
-        vObj.Data.PlotDataTable(:,2) = DatasetHeaderPopupItems;
+        vObj.Data.PlotDataTable(:,2) = {'*'}; % TODO: !!
+        vObj.Data.PlotDataTable(:,3) = DatasetHeaderPopupItems;
         
         vObj.PlotDataAsInvalidTable = vObj.Data.PlotDataTable;
         vObj.PlotDataInvalidRowIndices = [];
     else
         NewPlotTable = cell(numel(DatasetHeaderPopupItems),2);
         NewPlotTable(:,1) = {' '};
-        NewPlotTable(:,2) = DatasetHeaderPopupItems;
+        NewPlotTable(:,2) = {'*'}; % TODO: !!
+        NewPlotTable(:,3) = DatasetHeaderPopupItems;
         
         % Update Table
-        [vObj.Data.PlotDataTable,vObj.PlotDataAsInvalidTable,vObj.PlotDataInvalidRowIndices] = QSPViewer.updateVisualizationTable(vObj.Data.PlotDataTable,NewPlotTable,2);
+        [vObj.Data.PlotDataTable,vObj.PlotDataAsInvalidTable,vObj.PlotDataInvalidRowIndices] = QSPViewer.updateVisualizationTable(vObj.Data.PlotDataTable,NewPlotTable,3);
     end
     
     % Dataset table
     set(vObj.h.PlotDatasetTable,...
         'Data',vObj.PlotDataAsInvalidTable,...
-        'ColumnName',{'Plot','Name'},...
-        'ColumnFormat',{AxesOptions,'char'},...
-        'ColumnEditable',[true,false]...
+        'ColumnName',{'Plot','Marker','Name'},...
+        'ColumnFormat',{AxesOptions,vObj.Data.Settings.LineMarkerMap,'char'},...
+        'ColumnEditable',[true,true,false]...
         );
 else
     % Dataset table
     set(vObj.h.PlotDatasetTable,...
-        'Data',cell(0,2),...
-        'ColumnName',{'Plot','Name'},...
-        'ColumnFormat',{AxesOptions,'char'},...
-        'ColumnEditable',[true,false]...
+        'Data',cell(0,3),...
+        'ColumnName',{'Plot','Marker','Name'},...
+        'ColumnFormat',{AxesOptions,'char','char'},...
+        'ColumnEditable',[true,true,false]...
         );
 end
 

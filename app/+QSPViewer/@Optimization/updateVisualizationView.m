@@ -27,13 +27,6 @@ function updateVisualizationView(vObj)
 % ---------------------------------------------------------------------
 
 
-%% Update plot layout
-
-if ~isempty(vObj.Data)
-    vObj.SelectedPlotLayout = vObj.Data.SelectedPlotLayout;
-end
-
-
 %% Update table contextmenu
 
 hFigure = ancestor(vObj.UIContainer,'figure');

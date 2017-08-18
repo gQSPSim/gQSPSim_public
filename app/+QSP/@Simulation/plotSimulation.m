@@ -127,7 +127,7 @@ if any(MatchIdx)
         
         if any(IsSelected)
             SelectedGroupColors = cell2mat(obj.PlotGroupTable(IsSelected,2));
-            SelectedGroupIDs = categorical(obj.PlotGroupTable(IsSelected,3));
+            SelectedGroupIDs = categorical(obj.PlotGroupTable(IsSelected,3));            
             
             % Get the Group Column from the imported dataset
             GroupColumn = OptimData(:,strcmp(OptimHeader,obj.GroupName));
@@ -142,7 +142,9 @@ if any(MatchIdx)
             
             for dIdx = 1:size(obj.PlotDataTable,1)
                 axIdx = str2double(obj.PlotDataTable{dIdx,1});
-                ThisName = obj.PlotDataTable{dIdx,2};
+                ThisMarker = obj.PlotDataTable{dIdx,2};
+                ThisName = obj.PlotDataTable{dIdx,3};
+                
                 ColumnIdx = find(strcmp(OptimHeader,ThisName));
                 
                 if ~isempty(ColumnIdx) && ~isempty(axIdx) && ~isnan(axIdx)
@@ -153,7 +155,7 @@ if any(MatchIdx)
                         % Plot the selected column by GroupID
                         plot(hAxes(axIdx),cell2mat(Time(MatchIdx)),cell2mat(OptimData(MatchIdx,ColumnIdx)),...
                             'LineStyle','none',...
-                            'Marker','*',...
+                            'Marker',ThisMarker,...
                             'Color',SelectedGroupColors(gIdx,:));
                     end
                 end

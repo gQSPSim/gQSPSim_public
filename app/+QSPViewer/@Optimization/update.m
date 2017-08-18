@@ -26,6 +26,12 @@ function update(vObj)
 %   $Revision: 264 $  $Date: 2016-08-30 15:24:41 -0400 (Tue, 30 Aug 2016) $
 % ---------------------------------------------------------------------
 
+%% Update plot layout
+
+if ~isempty(vObj.Data)
+    vObj.SelectedPlotLayout = vObj.Data.SelectedPlotLayout;
+end
+
 
 %% Invoke superclass's update
 

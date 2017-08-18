@@ -26,6 +26,13 @@ function update(vObj)
 %   $Revision: 269 $  $Date: 2016-08-31 00:01:30 -0400 (Wed, 31 Aug 2016) $
 % ---------------------------------------------------------------------
 
+%% Update plot layout
+
+if ~isempty(vObj.Data)
+    vObj.SelectedPlotLayout = vObj.Data.SelectedPlotLayout;
+end
+
+
 %% Invoke superclass's update
 
 update@uix.abstract.CardViewPane(vObj);

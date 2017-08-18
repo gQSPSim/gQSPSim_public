@@ -262,7 +262,7 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         end
         
         function set.PlotDataTable(obj,Value)
-            validateattributes(Value,{'cell'},{'size',[nan 2]});
+            validateattributes(Value,{'cell'},{});
             obj.PlotDataTable = Value;
         end
         
