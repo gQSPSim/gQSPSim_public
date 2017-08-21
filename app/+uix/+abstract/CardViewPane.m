@@ -495,6 +495,9 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                     % TempData may be out of date)
                     obj.TempData = copy(obj.Data,obj.TempData);
                     
+                    % Validate when switching to 'Edit'
+                    [StatusOK, Message] = validate(obj.TempData,false);
+            
                     obj.Selection = 2;
                     set([obj.h.SummaryButton,obj.h.EditButton,obj.h.RunButton,obj.h.VisualizeButton],'Enable','off');
                     
