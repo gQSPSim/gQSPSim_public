@@ -374,7 +374,19 @@ classdef VirtualPopulationGeneration < uix.abstract.CardViewPane
             
             % Update the view
             updateVisualizationView(vObj);
-        end %function  
+        end %function
+        
+        function onEditTypePlot(vObj,h,e)
+            
+            vObj.Data.PlotType = get(get(h,'SelectedObject'),'Tag');
+            
+            % Plot
+            plotVirtualPopulationGeneration(vObj.Data,vObj.h.MainAxes);
+            
+            % Update the view
+            updateVisualizationView(vObj);
+            
+        end %function        
         
         function onItemsTablePlot(vObj,h,e)
             

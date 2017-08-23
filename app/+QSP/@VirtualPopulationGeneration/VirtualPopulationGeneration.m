@@ -44,10 +44,21 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
         MaxNumVirtualPatients = 500
         
         PlotSpeciesTable = cell(0,3)
-        PlotItemTable = cell(0,4)    
+        PlotItemTable = cell(0,4) 
+        
+        PlotType = 'Normal'
         
         SelectedPlotLayout = '1x1'
         
+    end
+    
+    
+    %% Constant Properties
+    properties (Constant=true)
+        ValidPlotTypes = {
+            'Normal'
+            'Diagnostic'
+            }
     end
     
     
@@ -405,6 +416,11 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
         function set.MaxNumVirtualPatients(obj,Value)
             validateattributes(Value,{'numeric'},{'scalar','nonnegative'});
             obj.MaxNumVirtualPatients = Value;
+        end
+        
+        function set.PlotType(obj,Value)
+            Value = validatestring(Value,obj.ValidPlotTypes);
+            obj.PlotType = Value;
         end
     end %methods
     

@@ -115,8 +115,8 @@ if any(MatchIdx)
     % Continue if OK
     if StatusOk
         
-        if any(IsSelected)
-            SelectedGroupColors = getGroupColors(obj.Session,sum(IsSelected));
+        if any(IsSelected)            
+            SelectedGroupColors = vertcat(obj.PlotItemTable{IsSelected,2});
             SelectedGroupIDs = obj.PlotItemTable(IsSelected,4);
             
             % Get the Group Column from the imported dataset
