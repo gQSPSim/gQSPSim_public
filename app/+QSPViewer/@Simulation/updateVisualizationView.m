@@ -60,7 +60,7 @@ if ~isempty(vObj.Data)
     ItemTaskNames = {vObj.Data.Item.TaskName};
     SpeciesNames = getSpeciesFromValidSelectedTasks(vObj.Data.Settings,ItemTaskNames);
     
-    % If empty, populate
+    % If empty, populate, but first update line styles
     updateSpeciesLineStyles(vObj.Data);
     if isempty(vObj.Data.PlotSpeciesTable)
         vObj.Data.PlotSpeciesTable = cell(numel(SpeciesNames),3);

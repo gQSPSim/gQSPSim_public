@@ -77,7 +77,8 @@ SelectedItemColors = cell2mat(obj.PlotItemTable(IsSelected,2));
 
 for sIdx = 1:size(obj.PlotSpeciesTable,1)
     axIdx = str2double(obj.PlotSpeciesTable{sIdx,1});
-    ThisName = obj.PlotSpeciesTable{sIdx,2};
+    ThisLineStyle = obj.PlotSpeciesTable{sIdx,2};
+    ThisName = obj.PlotSpeciesTable{sIdx,3};
     if ~isempty(axIdx) && ~isnan(axIdx)
         for itemIdx = 1:numel(Results)
             % Plot the species from the simulation item in the appropriate
@@ -93,7 +94,9 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
                 ColumnIdx = ColumnIdx:NumSpecies:size(Results{1}.Data,2);
                 
                 % Plot
-                plot(hAxes(axIdx),Results{itemIdx}.Time,Results{itemIdx}.Data(:,ColumnIdx),'Color',SelectedItemColors(itemIdx,:));
+                plot(hAxes(axIdx),Results{itemIdx}.Time,Results{itemIdx}.Data(:,ColumnIdx),...
+                    'LineStyle',ThisLineStyle,...
+                    'Color',SelectedItemColors(itemIdx,:));
             end
         end
     end

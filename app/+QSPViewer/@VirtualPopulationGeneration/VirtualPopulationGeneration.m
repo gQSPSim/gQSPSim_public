@@ -351,13 +351,23 @@ classdef VirtualPopulationGeneration < uix.abstract.CardViewPane
             
             h.SelectedRows = RowIdx;
             
-            vObj.Data.PlotSpeciesTable(RowIdx,ColIdx) = ThisData(RowIdx,ColIdx);
-            
-            % Plot
-            plotVirtualPopulationGeneration(vObj.Data,vObj.h.MainAxes);
-            
-            % Update the view
-            updateVisualizationView(vObj);
+            if ~isequal(vObj.Data.PlotSpeciesTable,[ThisData(:,1) ThisData(:,2) ThisData(:,3) ThisData(:,4)]) || ...
+                    ColIdx == 2
+                
+                if ~isempty(RowIdx) && ColIdx == 2
+                    NewLineStyle = ThisData{RowIdx,2};
+                    setSpeciesLineStyles(vObj.Data,RowIdx,NewLineStyle);
+                end
+                
+                vObj.Data.PlotSpeciesTable(RowIdx,ColIdx) = ThisData(RowIdx,ColIdx);
+                
+                % Plot
+                plotVirtualPopulationGeneration(vObj.Data,vObj.h.MainAxes);
+                
+                % Update the view
+                updateVisualizationView(vObj);
+                
+            end
             
         end %function
         

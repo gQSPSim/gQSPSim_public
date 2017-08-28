@@ -48,10 +48,12 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
         
         PlotType = 'Normal'
         
-        SelectedPlotLayout = '1x1'
-        
+        SelectedPlotLayout = '1x1'        
     end
     
+    properties (SetAccess = 'private')
+        SpeciesLineStyles
+    end
     
     %% Constant Properties
     properties (Constant=true)
@@ -365,6 +367,18 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
                 vpopObj = QSP.VirtualPopulation.empty(0,1);
             end
             
+        end %function
+        
+        function updateSpeciesLineStyles(obj)
+            ThisMap = obj.Settings.LineStyleMap;
+            if ~isempty(ThisMap) && size(obj.PlotSpeciesTable,1) ~= numel(obj.SpeciesLineStyles)
+                obj.SpeciesLineStyles = uix.utility.GetLineStyleMap(ThisMap,size(obj.PlotSpeciesTable,1)); % Number of species
+            end
+        end %function
+        
+        function setSpeciesLineStyles(obj,Index,NewLineStyle)
+            NewLineStyle = validatestring(NewLineStyle,obj.Settings.LineStyleMap);
+            obj.SpeciesLineStyles{Index} = NewLineStyle;
         end %function
         
     end %methods
