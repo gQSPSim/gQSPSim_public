@@ -147,8 +147,23 @@ if ~isempty(vObj.Data)
         [vObj.Data.PlotItemTable,vObj.PlotItemAsInvalidTable,vObj.PlotItemInvalidRowIndices] = QSPViewer.updateVisualizationTable(vObj.Data.PlotItemTable,NewPlotTable,[3 4]);
     end
     
-    % Update Colors column 
+    % Check which results files are invalid
+    ResultsDir = fullfile(vObj.Data.Session.RootDirectory,vObj.Data.VPopResultsFolderName);
+    if exist(fullfile(ResultsDir,vObj.Data.ExcelResultFileName),'file') == 2
+        IsInvalidResultFile = [];
+    else
+        IsInvalidResultFile = 1:size(vObj.PlotItemAsInvalidTable,1);
+    end
+    
+    % Only make the "valids" missing. Leave the invalids as is
     TableData = vObj.PlotItemAsInvalidTable;
+    MissingIdx = setdiff(IsInvalidResultFile(:),vObj.PlotItemInvalidRowIndices(:));
+    for index = MissingIdx(:)'
+        TableData{index,3} = QSP.makeMissing(TableData{index,3});
+        TableData{index,4} = QSP.makeMissing(TableData{index,4});
+    end
+    
+    % Update Colors column     
     TableData(:,2) = uix.utility.getHTMLColor(vObj.Data.PlotItemTable(:,2));
     % Items table
     set(vObj.h.PlotItemsTable,...

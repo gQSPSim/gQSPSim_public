@@ -144,17 +144,19 @@ if any(MatchIdx)
                         % Plot the lower and upper bounds associated with
                         % the selected Group and Species, for each time
                         % point
-                        plot(hAxes(axIdx),TimeColumn{MatchIdx},AccCritData{MatchIdx,strcmp(AccCritHeader,'LB')}, ...
-                            TimeColumn{MatchIdx},AccCritData{MatchIdx,strcmp(AccCritHeader,'UB')},...
-                            'LineStyle','none',...
-                            'Marker','*',...
-                            'Color',SelectedGroupColors(gIdx,:));
-                    end
-                end
-            end
-        end
-    end
-end
+                        if any(MatchIdx)
+                            plot(hAxes(axIdx),TimeColumn{MatchIdx},AccCritData{MatchIdx,strcmp(AccCritHeader,'LB')}, ...
+                                TimeColumn{MatchIdx},AccCritData{MatchIdx,strcmp(AccCritHeader,'UB')},...
+                                'LineStyle','none',...
+                                'Marker','*',...
+                                'Color',SelectedGroupColors(gIdx,:));
+                        end
+                    end %for
+                end %if
+            end %for
+        end %if
+    end %if
+end %if
 
 
 %% Turn off hold
