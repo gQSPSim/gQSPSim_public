@@ -60,10 +60,11 @@ if ~isempty(vObj.Data)
     ItemTaskNames = {vObj.Data.Item.TaskName};
     SpeciesNames = getSpeciesFromValidSelectedTasks(vObj.Data.Settings,ItemTaskNames);
     
-    % If empty, populate, but first update line styles
-    updateSpeciesLineStyles(vObj.Data);
     if isempty(vObj.Data.PlotSpeciesTable)
+        % If empty, populate, but first update line styles
         vObj.Data.PlotSpeciesTable = cell(numel(SpeciesNames),3);
+        updateSpeciesLineStyles(vObj.Data);
+        
         vObj.Data.PlotSpeciesTable(:,1) = {' '};
         vObj.Data.PlotSpeciesTable(:,2) = vObj.Data.SpeciesLineStyles(:);
         vObj.Data.PlotSpeciesTable(:,3) = SpeciesNames;
@@ -83,6 +84,8 @@ if ~isempty(vObj.Data)
         end
         % Update Table
         [vObj.Data.PlotSpeciesTable,vObj.PlotSpeciesAsInvalidTable,vObj.PlotSpeciesInvalidRowIndices] = QSPViewer.updateVisualizationTable(vObj.Data.PlotSpeciesTable,NewPlotTable,3);
+        % Update line styles
+        updateSpeciesLineStyles(vObj.Data);
     end
     
     % Species table
