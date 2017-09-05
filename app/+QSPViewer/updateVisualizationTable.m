@@ -20,6 +20,8 @@ end
 % Before assigning, get the non-members and highlight
 MissingIndices = false(size(CurrPlotTable,1),1);
 for kIndex = KeyIndex
+    IsEmpty = cellfun(@isempty,CurrPlotTable(:,kIndex));
+    CurrPlotTable(IsEmpty,kIndex) = {''};
     MissingIndices = MissingIndices | ~ismember(CurrPlotTable(:,kIndex),NewPlotTable(:,kIndex));
 end
 InvalidRows = CurrPlotTable(MissingIndices,:);
