@@ -44,12 +44,18 @@ end
 
 if ~isempty(ParamVec)
     Var1=fh2(ParamVec,cell2mat(ParamVal),'ParamVar');
-    addvariant(m1,Var1); Var1.Active = true;
+    addvariant(m1,Var1);      
+    Var1 = getvariant(m1,'ParamVar');
+    Var1.Active = true; % need fresh copy of variant
+
 end
 
 if ~isempty(SpeciesVec)
     Var2=fh3(SpeciesVec,cell2mat(SpeciesVal));
-    addvariant(m1,Var2); Var2.Active = true;
+    addvariant(m1,Var2); 
+    Var2 = getvariant(m1,'InitVar');
+    Var2.Active = true;    
+
 else
     Var2 = [];
 end
