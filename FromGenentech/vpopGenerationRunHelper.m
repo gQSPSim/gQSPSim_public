@@ -373,7 +373,11 @@ if StatusOK
     if SaveFlag
         VpopName = ['Results - Vpop Generation = ' obj.Name ' - Date = ' datestr(now,'dd-mmm-yyyy_HH-MM-SS')];
         ResultsFileName = [VpopName '.xlsx'];
-        [ThisStatusOk,ThisMessage] = xlswrite(fullfile(SaveFilePath,ResultsFileName),Vpop);
+        if ispc
+            [ThisStatusOk,ThisMessage] = xlswrite(fullfile(SaveFilePath,ResultsFileName),Vpop);
+        else
+            [ThisStatusOk,ThisMessage] = xlwrite(fullfile(SaveFilePath,ResultsFileName),Vpop);
+        end
         if ~ThisStatusOk
             StatusOK = false;
             Message = sprintf('%s\n%s\n',Message,ThisMessage.message);
