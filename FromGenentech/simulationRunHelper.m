@@ -379,6 +379,9 @@ for ii = 1:nItems
             params_ij = ItemModels(ii).VPopParams(jj,:);
         end
         
+        exp_model_i = ItemModels(ii).ExportedModel;
+        exp_doses_i = ItemModels(ii).Doses;
+
         %%%%%%% If running the simulation to steady state %%%%%%%%%%%%%%%%%%%%%%%%%
         if tObj_i.RunToSteadyState
             % Update initial conditions if species ICs vary in the Vpop by
@@ -390,12 +393,10 @@ for ii = 1:nItems
             end % if
             
             % Set run time using the user-provided time to reach steady state
-            exp_model_i = ItemModels(ii).ExportedModel;
             exp_model_i.SimulationOptions.OutputTimes = [];
             exp_model_i.SimulationOptions.StopTime = tObj_i.TimeToSteadyState;
             
             % Grab doses
-            exp_doses_i = ItemModels(ii).Doses;
             
             % Simulate to steady state
             try
@@ -488,7 +489,7 @@ for ii = 1:nItems
                 % Add results of the simulation to Results.Data
                 Results.Data = [Results.Data,activeSpec_j];
                 
-            catch % simulation
+            catch exception% simulation
                 % If the simulation fails, store NaNs
                 
                 % pad Results.Data with appropriate number of NaNs
