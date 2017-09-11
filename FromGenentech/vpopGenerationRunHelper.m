@@ -372,10 +372,11 @@ if StatusOK
     
     if SaveFlag
         VpopName = ['Results - Vpop Generation = ' obj.Name ' - Date = ' datestr(now,'dd-mmm-yyyy_HH-MM-SS')];
-        ResultsFileName = [VpopName '.xlsx'];
         if ispc
+            ResultsFileName = [VpopName '.xlsx'];
             [ThisStatusOk,ThisMessage] = xlswrite(fullfile(SaveFilePath,ResultsFileName),Vpop);
         else
+            ResultsFileName = [VpopName '.xls'];
             [ThisStatusOk,ThisMessage] = xlwrite(fullfile(SaveFilePath,ResultsFileName),Vpop);
         end
         if ~ThisStatusOk
