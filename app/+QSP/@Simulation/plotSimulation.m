@@ -94,7 +94,8 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
             
             % Update ColumnIdx to get species for ALL virtual patients
             NumSpecies = numel(Results(itemIdx).SpeciesNames);
-            ColumnIdx = ColumnIdx:NumSpecies:size(Results(1).Data,2);
+            ColumnIdx = ColumnIdx:NumSpecies:size(Results(itemIdx).Data,2);
+
             
             % Plot
             plot(hAxes(axIdx),Results(itemIdx).Time,Results(itemIdx).Data(:,ColumnIdx),...

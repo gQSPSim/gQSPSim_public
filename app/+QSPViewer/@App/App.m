@@ -386,11 +386,11 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
             ParentObj = ParentNode.Value;
             
             % Copy the object
-            NewObj = ThisObj.copy();
+%             NewObj = ThisObj.copy();
             
             % Parent the object
-            ParentObj.(ItemType)(end+1) = NewObj;
-            
+%             ParentObj.(ItemType)(end+1) = NewObj;
+%             
             % Create the duplicate item
             DisallowedNames = {ParentObj.(ItemType).Name};
             NewName = matlab.lang.makeUniqueStrings(ThisObj.Name, DisallowedNames);

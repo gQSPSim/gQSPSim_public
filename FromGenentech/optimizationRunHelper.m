@@ -410,13 +410,12 @@ else
         
         if SaveFlag
             VpopNames{grp1} = ['Results - Optimization = ' obj.Name ' - Group = ' obj.Item(grp1).GroupID ' - Date = ' timeStamp];
-            ResultsFileNames{grp1} = [VpopNames{grp1} '.xls'];
+            ResultsFileNames{grp1} = [VpopNames{grp1} '.xlsx'];
             if ispc
                 xlswrite(fullfile(SaveFilePath,ResultsFileNames{grp1}),Vpop_grp);
             else
                 xlwrite(fullfile(SaveFilePath,ResultsFileNames{grp1}),Vpop_grp);
             end
-            
         else
             StatusOK = false;
             ThisMessage = 'Unable to save results to Excel file.';
@@ -451,7 +450,11 @@ if SaveFlag
     if ispc
         xlswrite(fullfile(SaveFilePath,ResultsFileNames{end}),Vpop);
     else
+<<<<<<< HEAD
         xlwrite(fullfile(SaveFilePath,ResultsFileNames{end}),Vpop);
+=======
+        xlswrite(fullfile(SaveFilePath,ResultsFileNames{end}),Vpop);
+>>>>>>> ae20b00e9d41c0e7f909159ed60ec168cf7bd29b
     end
 else
     StatusOK = false;

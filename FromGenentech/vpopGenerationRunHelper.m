@@ -256,7 +256,7 @@ while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients
     
     for grp = 1:nItems
         % grab the task object
-        tskInd = find(strcmp(obj.Item(ii).TaskName,{obj.Settings.Task.Name}));
+        tskInd = find(strcmp(obj.Item(grp).TaskName,{obj.Settings.Task.Name}));
         tObj_grp = obj.Settings.Task(tskInd);
         
         grpInds = find(Groups == str2double(obj.Item(grp).GroupID));
@@ -334,7 +334,7 @@ while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients
     % LB_accCrit and UB_accCrit
     
     % compare model outputs to acceptance criteria
-    if ~isempty(model_outputs) && all(model_outputs>=LB_accCrit(grpInds)) && all(model_outputs<=UB_accCrit(grpInds))
+    if ~isempty(model_outputs) && all(model_outputs>=LB_accCrit) && all(model_outputs<=UB_accCrit)
         nPat = nPat+1; % if conditions are satisfied, tick up the number of virutal patients
         Vpop(nPat,:) = param_candidate'; % store the parameter set
     end
