@@ -167,6 +167,8 @@ for ii = 1:nItems
         % select parameters that vary in the vpop
         if isempty(paramNames_i)
             pObj_i = []; 
+        else
+            clear pObj_i
         end
         for jj = 1 : length(paramNames_i)
             pObj_i(jj) = sbioselect(model_i, 'Name', paramNames_i{jj});             
@@ -210,7 +212,9 @@ for ii = 1:nItems
         % select parameters in Pin
         if isempty(paramNames_i)
             pObj_i = []; 
-        end
+        else
+            clear pObj_i
+        end 
         for jj = 1 : length(paramNames_i)
             pObj_i(jj) = sbioselect(model_i, 'Name', paramNames_i{jj});
         end % for
@@ -226,9 +230,11 @@ for ii = 1:nItems
         vPop_speciesNames_i = [];
                 
         % select parameters in Pin
-        if isempty(paramNames)
+        if isempty(paramNames_i)
             pObj_i = []; 
-        end
+        else
+            clear pObj_i
+        end       
         for jj = 1 : length(paramNames)
             pObj_i(jj) = sbioselect(model_i, 'Name', paramNames{jj});
         end % for
