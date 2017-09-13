@@ -31,6 +31,7 @@ function plotSimulation(obj,hAxes)
 for index = 1:numel(hAxes)
     cla(hAxes(index));
     hold(hAxes(index),'on')    
+    set(hAxes(index), 'XTickLabel', '', 'XTickLabelMode', 'auto', 'XTickMode', 'auto')
 end
 
 
