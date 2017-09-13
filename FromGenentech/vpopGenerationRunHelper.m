@@ -33,19 +33,30 @@ else
     accCritData = {};
 end
 
+%% Prepare species-data Mappings
+Mappings = cell(length(obj.SpeciesData),2);
+for ii = 1:length(obj.SpeciesData)
+    Mappings{ii,1} = obj.SpeciesData(ii).SpeciesName;
+    Mappings{ii,2} = obj.SpeciesData(ii).DataName;
+end
+
+
 if ~isempty(accCritHeader) && ~isempty(accCritData)
+    spIdx = ismember( accCritData(:,3), Mappings(:,2));
     % [Group, Species, Time, LB, UB]
-    Groups = cell2mat(accCritData(:,strcmp('Group',accCritHeader)));
-    Time = cell2mat(accCritData(:,strcmp('Time',accCritHeader)));
-    Species = accCritData(:,strcmp('Data',accCritHeader));
-    LB_accCrit = cell2mat(accCritData(:,strcmp('LB',accCritHeader)));
-    UB_accCrit = cell2mat(accCritData(:,strcmp('UB',accCritHeader)));
+    Groups = cell2mat(accCritData(spIdx,strcmp('Group',accCritHeader)));
+    Time = cell2mat(accCritData(spIdx,strcmp('Time',accCritHeader)));
+    Species = accCritData(spIdx,strcmp('Data',accCritHeader));
+    LB_accCrit = cell2mat(accCritData(spIdx,strcmp('LB',accCritHeader)));
+    UB_accCrit = cell2mat(accCritData(spIdx,strcmp('UB',accCritHeader)));
 else
     
     StatusOK = false;
     Message = 'The selected Acceptance Criteria file is empty.';
     return
 end
+
+
 
 %% Load Parameters
 Names = {obj.Settings.Parameters.Name};
@@ -88,12 +99,6 @@ end
 
 
 
-%% Prepare species-data Mappings
-Mappings = cell(length(obj.SpeciesData),2);
-for ii = 1:length(obj.SpeciesData)
-    Mappings{ii,1} = obj.SpeciesData(ii).SpeciesName;
-    Mappings{ii,2} = obj.SpeciesData(ii).DataName;
-end
 
 
 %% For each task/group, load models and prepare for simulations
