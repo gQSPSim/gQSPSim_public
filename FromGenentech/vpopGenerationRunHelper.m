@@ -253,6 +253,7 @@ while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients
     % generate a long vector of model outputs to compare to the acceptance
     % criteria
     model_outputs = [];
+    time_outputs = [];
     
     for grp = 1:nItems
         % grab the task object
@@ -320,6 +321,7 @@ while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients
                 
                 % save model outputs
                 model_outputs = [model_outputs;simData_spec];
+                time_outputs = [time_outputs;Time_grp_spec];
                 
             end % for spec
         catch ME2
@@ -337,8 +339,7 @@ while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients
     if ~isempty(model_outputs) && all(model_outputs>=LB_accCrit) && all(model_outputs<=UB_accCrit)
         nPat = nPat+1; % if conditions are satisfied, tick up the number of virutal patients
         Vpop(nPat,:) = param_candidate'; % store the parameter set
-    end
-    
+    end    
 end % while
 
 % in case nPat is less than the maximum number of virtual patients...
