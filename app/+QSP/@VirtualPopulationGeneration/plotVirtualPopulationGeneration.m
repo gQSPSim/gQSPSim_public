@@ -60,7 +60,7 @@ end
 
 %% Run the simulations
 if ~isempty(simObj)
-    [StatusOK,Message,~,Results] = simulationRunHelper(simObj);
+    [StatusOK,Message,ResultFileNames,Results] = simulationRunHelper(simObj);
     
     if StatusOK == false
         error('plotVirtualPopulationGeneration: %s',Message);

@@ -368,7 +368,7 @@ end
 if StatusOK
     
     SaveFlag = true;
-    Vpop = [[paramNames; 'PW']'; [num2cell(Vpop), num2cell(isValid)]];
+    Vpop = [[paramNames; 'PWeight']'; [num2cell(Vpop), num2cell(isValid)]];
     % save results
     SaveFilePath = fullfile(obj.Session.RootDirectory,obj.VPopResultsFolderName);
     if ~exist(SaveFilePath,'dir')
