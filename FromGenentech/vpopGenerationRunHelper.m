@@ -246,7 +246,7 @@ end
 nSim = 0;
 nPat = 0;
 Vpop = zeros(obj.MaxNumVirtualPatients,length(LB_params));
-
+isValid = zeros(obj.MaxNumVirtualPatients,1);
 % while the total number of simulations and number of virtual patients are
 % less than their respective maximum values...
 while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients
@@ -341,14 +341,17 @@ while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients
     % LB_accCrit and UB_accCrit
     
     % compare model outputs to acceptance criteria
-    if ~isempty(model_outputs) && all(model_outputs>=LB_accCrit) && all(model_outputs<=UB_accCrit)
-        nPat = nPat+1; % if conditions are satisfied, tick up the number of virutal patients
-        Vpop(nPat,:) = param_candidate'; % store the parameter set
-    end    
+    if ~isempty(model_outputs) 
+        Vpop(nSim,:) = param_candidate'; % store the parameter set
+        isValid(nSim) = double(all(model_outputs>=LB_accCrit) && all(model_outputs<=UB_accCrit));
+        if isValid(nSim)
+            nPat = nPat+1; % if conditions are satisfied, tick up the number of virutal patients
+        end
+    end      
 end % while
 
 % in case nPat is less than the maximum number of virtual patients...
-Vpop = Vpop(1:nPat,:); % removes extra zeros in Vpop
+Vpop = Vpop(isValid==1,:); % removes extra zeros in Vpop
 
 %% Outputs
 
@@ -365,7 +368,7 @@ end
 if StatusOK
     
     SaveFlag = true;
-    Vpop = [paramNames'; num2cell(Vpop)];
+    Vpop = [[paramNames; 'PW']'; [num2cell(Vpop), num2cell(isValid)]];
     % save results
     SaveFilePath = fullfile(obj.Session.RootDirectory,obj.VPopResultsFolderName);
     if ~exist(SaveFilePath,'dir')
