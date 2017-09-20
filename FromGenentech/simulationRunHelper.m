@@ -105,7 +105,8 @@ for ii = 1:nItems
 
         % combine active variants in order into a new variant, add to the
         % model and activate
-        varObj_i = model_i.variant(ismember(tObj_i.VariantNames, tObj_i.ActiveVariantNames));
+        [~,tmp]=ismember(tObj_i.ActiveVariantNames, tObj_i.VariantNames);
+        varObj_i = model_i.variant(tmp);
         [model_i,varSpeciesObj_i] = CombineVariants(model_i,varObj_i);
     end % if
     

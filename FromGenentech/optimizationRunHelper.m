@@ -175,7 +175,8 @@ for ii = 1:nItems
     % apply the active variants (if specified)
     % combine active variants in order into a new variant, add to the
     % model and activate
-    ixActive = ismember(tObj_i.VariantNames, tObj_i.ActiveVariantNames);
+    
+    [~,ixActive] = ismember(tObj_i.ActiveVariantNames, tObj_i.VariantNames);
     [model_i,varSpeciesObj_i] = CombineVariants(model_i,model_i.variant(ixActive));
     
     % inactivate reactions (if specified)   
