@@ -105,7 +105,8 @@ for ii = 1:nItems
 
         % combine active variants in order into a new variant, add to the
         % model and activate
-        varObj_i = model_i.variant(ismember(tObj_i.VariantNames, tObj_i.ActiveVariantNames));
+        [~,tmp]=ismember(tObj_i.ActiveVariantNames, tObj_i.VariantNames);
+        varObj_i = model_i.variant(tmp);
         [model_i,varSpeciesObj_i] = CombineVariants(model_i,varObj_i);
     end % if
     
@@ -167,6 +168,8 @@ for ii = 1:nItems
         % select parameters that vary in the vpop
         if isempty(paramNames_i)
             pObj_i = []; 
+        else
+            clear pObj_i
         end
         for jj = 1 : length(paramNames_i)
             pObj_i(jj) = sbioselect(model_i, 'Name', paramNames_i{jj});             
@@ -210,7 +213,9 @@ for ii = 1:nItems
         % select parameters in Pin
         if isempty(paramNames_i)
             pObj_i = []; 
-        end
+        else
+            clear pObj_i
+        end 
         for jj = 1 : length(paramNames_i)
             pObj_i(jj) = sbioselect(model_i, 'Name', paramNames_i{jj});
         end % for
@@ -226,9 +231,11 @@ for ii = 1:nItems
         vPop_speciesNames_i = [];
                 
         % select parameters in Pin
-        if isempty(paramNames)
+        if isempty(paramNames_i)
             pObj_i = []; 
-        end
+        else
+            clear pObj_i
+        end       
         for jj = 1 : length(paramNames)
             pObj_i(jj) = sbioselect(model_i, 'Name', paramNames{jj});
         end % for

@@ -33,19 +33,30 @@ else
     accCritData = {};
 end
 
+%% Prepare species-data Mappings
+Mappings = cell(length(obj.SpeciesData),2);
+for ii = 1:length(obj.SpeciesData)
+    Mappings{ii,1} = obj.SpeciesData(ii).SpeciesName;
+    Mappings{ii,2} = obj.SpeciesData(ii).DataName;
+end
+
+
 if ~isempty(accCritHeader) && ~isempty(accCritData)
+    spIdx = ismember( accCritData(:,3), Mappings(:,2));
     % [Group, Species, Time, LB, UB]
-    Groups = cell2mat(accCritData(:,strcmp('Group',accCritHeader)));
-    Time = cell2mat(accCritData(:,strcmp('Time',accCritHeader)));
-    Species = accCritData(:,strcmp('Data',accCritHeader));
-    LB_accCrit = cell2mat(accCritData(:,strcmp('LB',accCritHeader)));
-    UB_accCrit = cell2mat(accCritData(:,strcmp('UB',accCritHeader)));
+    Groups = cell2mat(accCritData(spIdx,strcmp('Group',accCritHeader)));
+    Time = cell2mat(accCritData(spIdx,strcmp('Time',accCritHeader)));
+    Species = accCritData(spIdx,strcmp('Data',accCritHeader));
+    LB_accCrit = cell2mat(accCritData(spIdx,strcmp('LB',accCritHeader)));
+    UB_accCrit = cell2mat(accCritData(spIdx,strcmp('UB',accCritHeader)));
 else
     
     StatusOK = false;
     Message = 'The selected Acceptance Criteria file is empty.';
     return
 end
+
+
 
 %% Load Parameters
 Names = {obj.Settings.Parameters.Name};
@@ -88,12 +99,6 @@ end
 
 
 
-%% Prepare species-data Mappings
-Mappings = cell(length(obj.SpeciesData),2);
-for ii = 1:length(obj.SpeciesData)
-    Mappings{ii,1} = obj.SpeciesData(ii).SpeciesName;
-    Mappings{ii,2} = obj.SpeciesData(ii).DataName;
-end
 
 
 %% For each task/group, load models and prepare for simulations
@@ -241,7 +246,7 @@ end
 nSim = 0;
 nPat = 0;
 Vpop = zeros(obj.MaxNumVirtualPatients,length(LB_params));
-
+isValid = zeros(obj.MaxNumVirtualPatients,1);
 % while the total number of simulations and number of virtual patients are
 % less than their respective maximum values...
 while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients
@@ -253,6 +258,7 @@ while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients
     % generate a long vector of model outputs to compare to the acceptance
     % criteria
     model_outputs = [];
+    time_outputs = [];
     
     for grp = 1:nItems
         % grab the task object
@@ -320,6 +326,7 @@ while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients
                 
                 % save model outputs
                 model_outputs = [model_outputs;simData_spec];
+                time_outputs = [time_outputs;Time_grp_spec];
                 
             end % for spec
         catch ME2
@@ -334,15 +341,17 @@ while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients
     % LB_accCrit and UB_accCrit
     
     % compare model outputs to acceptance criteria
-    if ~isempty(model_outputs) && all(model_outputs>=LB_accCrit) && all(model_outputs<=UB_accCrit)
-        nPat = nPat+1; % if conditions are satisfied, tick up the number of virutal patients
-        Vpop(nPat,:) = param_candidate'; % store the parameter set
-    end
-    
+    if ~isempty(model_outputs) 
+        Vpop(nSim,:) = param_candidate'; % store the parameter set
+        isValid(nSim) = double(all(model_outputs>=LB_accCrit) && all(model_outputs<=UB_accCrit));
+        if isValid(nSim)
+            nPat = nPat+1; % if conditions are satisfied, tick up the number of virutal patients
+        end
+    end      
 end % while
 
 % in case nPat is less than the maximum number of virtual patients...
-Vpop = Vpop(1:nPat,:); % removes extra zeros in Vpop
+Vpop = Vpop(isValid==1,:); % removes extra zeros in Vpop
 
 %% Outputs
 
@@ -359,7 +368,7 @@ end
 if StatusOK
     
     SaveFlag = true;
-    Vpop = [paramNames'; num2cell(Vpop)];
+    Vpop = [[paramNames; 'PWeight']'; [num2cell(Vpop), num2cell(isValid)]];
     % save results
     SaveFilePath = fullfile(obj.Session.RootDirectory,obj.VPopResultsFolderName);
     if ~exist(SaveFilePath,'dir')

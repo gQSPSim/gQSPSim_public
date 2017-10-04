@@ -31,6 +31,7 @@ function plotSimulation(obj,hAxes)
 for index = 1:numel(hAxes)
     cla(hAxes(index));
     hold(hAxes(index),'on')    
+    set(hAxes(index), 'XTickLabel', '', 'XTickLabelMode', 'auto', 'XTickMode', 'auto')
 end
 
 
@@ -91,6 +92,7 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
             
             % Get the match in Sim 1 (Virtual Patient 1) in this VPop
             ColumnIdx = find(strcmp(Results(itemIdx).SpeciesNames,ThisName));
+            if isempty(ColumnIdx), continue, end
             
             % Update ColumnIdx to get species for ALL virtual patients
             NumSpecies = numel(Results(itemIdx).SpeciesNames);
