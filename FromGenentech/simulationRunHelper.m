@@ -7,6 +7,8 @@ function [StatusOK,Message,ResultFileNames,varargout] = simulationRunHelper(obj,
 
 StatusOK = true;
 Message = '';
+paramNames_i = {};
+
 if isempty(obj)
     nItems = 0;
 else

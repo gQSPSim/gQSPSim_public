@@ -338,6 +338,14 @@ classdef VirtualPopulationGeneration < uix.abstract.CardViewPane
             
         end %function
         
+        function onPlotParameterDistributionDiagnostics(vObj,h,e)
+            
+            % TODO: Genentech
+            hDlg = msgbox('TODO: Plot Parameter Distribution Diagnostics','Not Implemented','modal');
+            uiwait(hDlg);            
+            
+        end %function
+        
         function onSpeciesDataTablePlot(vObj,h,e)
             
             ThisData = get(h,'Data');
@@ -398,7 +406,30 @@ classdef VirtualPopulationGeneration < uix.abstract.CardViewPane
             
         end %function        
         
+        function onShowInvalidVirtualPatients(vObj,h,e)
+            
+            set(h,'Enable','off');
+            
+            vObj.Data.ShowInvalidVirtualPatients = logical(get(h,'Value'));
+            
+            % Plot
+            plotVirtualPopulationGeneration(vObj.Data,vObj.h.MainAxes);
+            
+            % Update the view
+            updateVisualizationView(vObj);
+            
+            set(h,'Enable','on');
+            
+        end %function
+        
         function onItemsTablePlot(vObj,h,e)
+            
+            % Temporarily disable column 1 to prevent quick clicking of
+            % 'Include'
+            OrigColumnEditable = get(h,'ColumnEditable');
+            ColumnEditable = OrigColumnEditable;
+            ColumnEditable(1) = false;
+            set(h,'ColumnEditable',ColumnEditable);            
             
             ThisData = get(h,'Data');
             Indices = e.Indices;
@@ -418,6 +449,9 @@ classdef VirtualPopulationGeneration < uix.abstract.CardViewPane
             
             % Update the view
             updateVisualizationView(vObj);
+            
+            % Enable column 1
+            set(h,'ColumnEditable',OrigColumnEditable);
             
         end %function
         

@@ -1,7 +1,7 @@
 function C = GetLineStyleMap(DefaultLineStyleMap,m)
 
 validateattributes(DefaultLineStyleMap,{'cell'},{});
-validateattributes(m,{'numeric'},{'scalar','integer','positive'});
+validateattributes(m,{'numeric'},{'scalar','integer','nonnegative'});
 
 DefaultLineStyleMap = DefaultLineStyleMap(:);
 if m/numel(DefaultLineStyleMap) > 1

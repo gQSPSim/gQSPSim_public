@@ -48,7 +48,9 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
         
         PlotType = 'Normal'
         
-        SelectedPlotLayout = '1x1'        
+        SelectedPlotLayout = '1x1'   
+        
+        ShowInvalidVirtualPatients = true
     end
     
     properties (SetAccess = 'private')
@@ -435,6 +437,11 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
         function set.PlotType(obj,Value)
             Value = validatestring(Value,obj.ValidPlotTypes);
             obj.PlotType = Value;
+        end
+        
+        function set.ShowInvalidVirtualPatients(obj,Value)
+            validateattributes(Value,{'logical'},{'scalar'});
+            obj.ShowInvalidVirtualPatients = Value;
         end
     end %methods
     

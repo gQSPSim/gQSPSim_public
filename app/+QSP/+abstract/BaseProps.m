@@ -201,6 +201,14 @@ classdef (Abstract) BaseProps < matlab.mixin.SetGet & matlab.mixin.Heterogeneous
                                 newObj(idx).(thisProp) = copy(thisPropObj,[]);
                             else
                                 % Otherwise, loop through
+                                % If there are more elements in the newObj
+                                % than the copy-from obj (thisPropObj),
+                                % delete from newObj
+                                if numel(newObj(idx).(thisProp)) > numel(thisPropObj) 
+                                    delete(newObj(idx).(thisProp)((numel(thisPropObj)+1):end));
+                                    newObj(idx).(thisProp)((numel(thisPropObj)+1):end) = [];
+                                end
+                                    
                                 for propIdx = 1:numel(thisPropObj)
                                     if numel(newObj(idx).(thisProp)) >= propIdx
                                         newObj(idx).(thisProp)(propIdx) = copy(thisPropObj(propIdx),newObj(idx).(thisProp)(propIdx));

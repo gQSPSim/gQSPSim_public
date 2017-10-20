@@ -498,6 +498,10 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
             end
             ThisSession.Deleted( MatchIdx ) = [];
             
+             % Update the name to include the timestamp
+            TimeStamp = datestr(now,'dd-mmm-yyyy_HH-MM-SS');
+            ThisObj.Name = sprintf('%s (%s)',ThisObj.Name,TimeStamp);
+            
             % Update the tree
             SelNode.Parent = hParentNode;
             SelNode.Tree.SelectedNodes = SelNode;

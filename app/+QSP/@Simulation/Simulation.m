@@ -204,6 +204,7 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 for index = 1:numel(obj.Item)
                     obj.Item(index).MATFileName = ResultFileNames{index};
                 end
+                
             end 
             
         end %function

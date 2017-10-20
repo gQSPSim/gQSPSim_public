@@ -279,17 +279,42 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                 'Parent', obj.h.ButtonLayout, ...
                 'Style', 'pushbutton', ...
                 'CData', uix.utility.loadIcon( 'play_24.png' ), ...
-                'TooltipString', 'Run the selected item.',...
+                'TooltipString', 'Run the selected item',...
                 'Callback', @(h,e)onNavigation(obj,'Run') );
+            uix.Empty('Parent',obj.h.ButtonLayout);
             obj.h.VisualizeButton = uicontrol( ...
                 'Parent', obj.h.ButtonLayout, ...
                 'Style', 'pushbutton', ...
                 'CData', uix.utility.loadIcon( 'visualize_24.png' ), ...
-                'TooltipString', 'Visualize the selected item.',...
+                'TooltipString', 'Visualize the selected item',...
                 'Callback', @(h,e)onNavigation(obj,'Visualize') );
+            CData = load('zoom.mat');
+            CData = CData.zoomCData;
+            obj.h.ZoomButton = uicontrol( ...
+                'Parent', obj.h.ButtonLayout, ...
+                'Style', 'togglebutton', ...
+                'CData', CData, ...
+                'TooltipString', 'Zoom',...
+                'Callback', @(h,e)onNavigation(obj,'Zoom') );
+            CData = load('pan.mat');
+            CData = CData.cdata;
+            obj.h.PanButton = uicontrol( ...
+                'Parent', obj.h.ButtonLayout, ...
+                'Style', 'togglebutton', ...
+                'CData', CData, ...
+                'TooltipString', 'Pan',...
+                'Callback', @(h,e)onNavigation(obj,'Pan') );
+            CData = load('datatip.mat');
+            CData = CData.cdata;
+            obj.h.DatacursorButton = uicontrol( ...
+                'Parent', obj.h.ButtonLayout, ...
+                'Style', 'togglebutton', ...
+                'CData', CData, ...
+                'TooltipString', 'Explore',...
+                'Callback', @(h,e)onNavigation(obj,'Datacursor') );
             uix.Empty('Parent',obj.h.ButtonLayout);
             
-            obj.h.ButtonLayout.Widths = [WidgetHeight WidgetHeight WidgetHeight WidgetHeight -1];
+            obj.h.ButtonLayout.Widths = [WidgetHeight WidgetHeight WidgetHeight WidgetHeight WidgetHeight WidgetHeight WidgetHeight WidgetHeight -1];
             
         end %function
         
@@ -482,12 +507,19 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                             obj.Selection = 1;
                             % Copy from Data into TempData, using obj.TempData as a
                             % starting point
-                            obj.TempData = copy(obj.Data,obj.TempData);
+                            obj.TempData = copy(obj.Data,obj.TempData);                            
                         end
                     else
                         obj.Selection = 1;
-                        set([obj.h.SummaryButton,obj.h.EditButton,obj.h.RunButton,obj.h.VisualizeButton],'Enable','on');
+                        set([obj.h.SummaryButton,obj.h.EditButton,obj.h.RunButton,obj.h.VisualizeButton],'Enable','on');                        
                     end
+                    
+                    % Update the view
+                    update(obj);
+                    
+                    % Notify
+                    EventData = uix.abstract.NavigationEventData('Name',View);
+                    notify(obj,'NavigationChanged',EventData);
                     
                 case 'Edit'
                     
@@ -500,7 +532,14 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                     [StatusOK, Message] = validate(obj.TempData,false);
             
                     obj.Selection = 2;
-                    set([obj.h.SummaryButton,obj.h.EditButton,obj.h.RunButton,obj.h.VisualizeButton],'Enable','off');
+                    set([obj.h.SummaryButton,obj.h.EditButton,obj.h.RunButton,obj.h.VisualizeButton,obj.h.ZoomButton,obj.h.PanButton,obj.h.DatacursorButton],'Enable','off');
+                    
+                    % Update the view
+                    update(obj);
+                    
+                    % Notify
+                    EventData = uix.abstract.NavigationEventData('Name',View);
+                    notify(obj,'NavigationChanged',EventData);
                     
                 case 'Run'
                     % Run
@@ -509,7 +548,7 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                     set(hFigure,'pointer','watch');
                     drawnow;
                     
-                    set([obj.h.SummaryButton,obj.h.EditButton,obj.h.RunButton,obj.h.VisualizeButton],'Enable','on');
+                    set([obj.h.SummaryButton,obj.h.EditButton,obj.h.RunButton,obj.h.VisualizeButton],'Enable','on');                    
                     
                     [StatusOK,Message,vpopObj] = run(obj.Data);
                     if ~StatusOK
@@ -525,6 +564,13 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                     set(hFigure,'pointer','arrow');
                     drawnow;
                     
+                    % Update the view
+                    update(obj);
+                    
+                    % Notify
+                    EventData = uix.abstract.NavigationEventData('Name',View);
+                    notify(obj,'NavigationChanged',EventData);
+                    
                 case 'Visualize'
                     if obj.Selection == 2
                         Prompt = sprintf('Do you want to continue without saving changes?');
@@ -537,14 +583,50 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                         obj.Selection = 3;
                         set([obj.h.SummaryButton,obj.h.EditButton,obj.h.RunButton,obj.h.VisualizeButton],'Enable','on');
                     end
+                    
+                    % Update the view
+                    update(obj);
+                    
+                    % Notify
+                    EventData = uix.abstract.NavigationEventData('Name',View);
+                    notify(obj,'NavigationChanged',EventData);
+                    
+                case 'Zoom'
+                    
+                    hFigure = ancestor(obj.UIContainer,'Figure');
+                    ThisValue = get(obj.h.ZoomButton,'Value');
+                    zoom(hFigure,uix.utility.tf2onoff(ThisValue));
+                    pan(hFigure,'off');
+                    datacursorObj = datacursormode(hFigure);
+                    datacursorObj.Enable = 'off';
+                    
+                    % Update toggle buttons
+                    updateToggleButtons(obj);
+                    
+                case 'Pan'
+                    
+                    hFigure = ancestor(obj.UIContainer,'Figure');
+                    ThisValue = get(obj.h.PanButton,'Value');
+                    pan(hFigure,uix.utility.tf2onoff(ThisValue));
+                    zoom(hFigure,'off');
+                    datacursorObj = datacursormode(hFigure);
+                    datacursorObj.Enable = 'off';
+                    
+                    % Update toggle buttons
+                    updateToggleButtons(obj);
+                    
+                case 'Datacursor'
+                    
+                    hFigure = ancestor(obj.UIContainer,'Figure');
+                    ThisValue = get(obj.h.DatacursorButton,'Value');
+                    datacursorObj = datacursormode(hFigure);
+                    datacursorObj.Enable = uix.utility.tf2onoff(ThisValue);
+                    zoom(hFigure,'off');
+                    pan(hFigure,'off');
+                    
+                    % Update toggle buttons
+                    updateToggleButtons(obj);
             end
-            
-            % Update the view
-            update(obj);
-            
-            % Notify
-            EventData = uix.abstract.NavigationEventData('Name',View);
-            notify(obj,'NavigationChanged',EventData);
             
         end %function
         
@@ -719,11 +801,47 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
             
         end %function
         
+        function updateToggleButtons(obj)
+            
+            hFigure = ancestor(obj.UIContainer,'Figure');
+            
+            if ~isempty(hFigure) && ishandle(hFigure)
+                zoomObj = zoom(hFigure);
+                panObj = pan(hFigure);
+                datacursorObj = datacursormode(hFigure);
+                if strcmpi(get(zoomObj,'Enable'),'on')
+                    set(obj.h.ZoomButton,'Value',true);
+                else
+                    set(obj.h.ZoomButton,'Value',false);
+                end
+                if strcmpi(get(panObj,'Enable'),'on')
+                    set(obj.h.PanButton,'Value',true);
+                else
+                    set(obj.h.PanButton,'Value',false);
+                end
+                if strcmpi(get(datacursorObj,'Enable'),'on')
+                    set(obj.h.DatacursorButton,'Value',true);
+                else
+                    set(obj.h.DatacursorButton,'Value',false);
+                end
+            end
+            
+        end %function
+        
         function update(obj)
             
             %%% Buttons
             % Toggle visibility
             set([obj.h.RunButton,obj.h.VisualizeButton],'Visible',uix.utility.tf2onoff(obj.UseRunVis));
+            set([obj.h.ZoomButton,obj.h.PanButton,obj.h.DatacursorButton],'Visible',uix.utility.tf2onoff(obj.UseRunVis));
+            if obj.Selection == 3
+                set([obj.h.ZoomButton,obj.h.PanButton,obj.h.DatacursorButton],'Enable','on');
+            else
+                set([obj.h.ZoomButton,obj.h.PanButton,obj.h.DatacursorButton],'Enable','off');
+            end
+            
+            %%% Update toggle buttons
+            updateToggleButtons(obj);
             
             %%% Summary (Use Data)
             if ~isempty(obj.Data)

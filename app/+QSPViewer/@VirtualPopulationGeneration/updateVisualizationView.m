@@ -158,9 +158,11 @@ if ~isempty(vObj.Data)
     % Only make the "valids" missing. Leave the invalids as is
     TableData = vObj.PlotItemAsInvalidTable;
     MissingIdx = setdiff(IsInvalidResultFile(:),vObj.PlotItemInvalidRowIndices(:));
-    for index = MissingIdx(:)'
-        TableData{index,3} = QSP.makeMissing(TableData{index,3});
-        TableData{index,4} = QSP.makeMissing(TableData{index,4});
+    if ~isempty(TableData)
+        for index = MissingIdx(:)'
+            TableData{index,3} = QSP.makeMissing(TableData{index,3});
+            TableData{index,4} = QSP.makeMissing(TableData{index,4});
+        end
     end
     
     % Update Colors column     
@@ -265,6 +267,8 @@ else
 end
 
 
+%% Refresh ShowInvalidVirtualPatients
 
-
-
+if ~isempty(vObj.Data)
+    set(vObj.h.ShowInvalidVirtualPatientsCheckbox,'Value',vObj.Data.ShowInvalidVirtualPatients);
+end

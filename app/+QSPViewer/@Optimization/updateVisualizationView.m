@@ -187,7 +187,9 @@ if ~isempty(vObj.Data)
     
     % If empty, populate
     if isempty(vObj.Data.PlotSpeciesTable)
+        % If empty, populate, but first update line styles
         vObj.Data.PlotSpeciesTable = cell(numel(SpeciesNames),3);
+        
         vObj.Data.PlotSpeciesTable(:,1) = {' '};
         vObj.Data.PlotSpeciesTable(:,2) = SpeciesNames;
         vObj.Data.PlotSpeciesTable(:,3) = DataNames;
@@ -196,13 +198,12 @@ if ~isempty(vObj.Data)
         vObj.PlotSpeciesInvalidRowIndices = [];
     else
         NewPlotTable = cell(numel(SpeciesNames),3);
-%         vObj.Data.PlotSpeciesTable(:,1) = {' '};
-        NewPlotTable(:,1) = vObj.Data.PlotSpeciesTable(:,1);
+        NewPlotTable(:,1) = {' '};
         NewPlotTable(:,2) = SpeciesNames;
         NewPlotTable(:,3) = DataNames;
         
         % Update Table
-        [vObj.Data.PlotSpeciesTable,vObj.PlotSpeciesAsInvalidTable,vObj.PlotSpeciesInvalidRowIndices] = QSPViewer.updateVisualizationTable(vObj.Data.PlotSpeciesTable,NewPlotTable,[2 3]);             
+        [vObj.Data.PlotSpeciesTable,vObj.PlotSpeciesAsInvalidTable,vObj.PlotSpeciesInvalidRowIndices] = QSPViewer.updateVisualizationTable(vObj.Data.PlotSpeciesTable,NewPlotTable,[2 3]);                     
     end
 
      % Species table

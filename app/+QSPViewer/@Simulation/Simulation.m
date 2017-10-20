@@ -255,6 +255,13 @@ classdef Simulation < uix.abstract.CardViewPane
         
         function onItemsTablePlot(vObj,h,e)
             
+            % Temporarily disable column 1 to prevent quick clicking of
+            % 'Include'
+            OrigColumnEditable = get(h,'ColumnEditable');
+            ColumnEditable = OrigColumnEditable;
+            ColumnEditable(1) = false;
+            set(h,'ColumnEditable',ColumnEditable);
+            
             ThisData = get(h,'Data');
             Indices = e.Indices;
             if isempty(Indices)
@@ -273,6 +280,9 @@ classdef Simulation < uix.abstract.CardViewPane
             
             % Update the view
             updateVisualizationView(vObj);
+            
+            % Enable column 1
+            set(h,'ColumnEditable',OrigColumnEditable);
             
         end %function
         
