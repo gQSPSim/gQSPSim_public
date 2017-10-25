@@ -145,6 +145,10 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
             % Plot the species from the simulation item in the appropriate
             % color
             
+            if isempty(Results{itemIdx})                
+                continue
+            end
+            
             % Get the match in Sim 1 (Virtual Patient 1) in this VPop
             ColumnIdx = find(strcmp(Results{itemIdx}.SpeciesNames,ThisName));
             

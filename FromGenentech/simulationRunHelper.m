@@ -65,10 +65,11 @@ end % if
 
 % Define a structure to contain exported models and other information
 % relevant to simulation
-ItemModels = struct('Task',zeros(nItems,1),'Vpop',zeros(nItems,1),...
-    'ExportedModel',zeros(nItems,1),'ICs',zeros(nItems,1),...
-    'Doses',zeros(nItems,1),'VPopParams',zeros(nItems,1),...
-    'VPopSpeciesICs',zeros(nItems,1),'VpopSpeciesInds',zeros(nItems,1), 'nPatients', zeros(nItems,1));
+ItemModels = [];
+% ItemModels = struct('Task',zeros(nItems,1),'Vpop',zeros(nItems,1),...
+%     'ExportedModel',zeros(nItems,1),'ICs',zeros(nItems,1),...
+%     'Doses',zeros(nItems,1),'VPopParams',zeros(nItems,1),...
+%     'VPopSpeciesICs',zeros(nItems,1),'VpopSpeciesInds',zeros(nItems,1), 'nPatients', zeros(nItems,1));
 
 % Initialize waitbar
 Title1 = sprintf('Configuring models...');
@@ -86,6 +87,12 @@ for ii = 1:nItems
     
     % find the relevant task and vpop objects in the settings object
     tObj_i = obj.Settings.Task(strcmp(taskName,allTaskNames));
+    
+    if isempty(tObj_i)
+        warning('Error loading task %s. Skipping...', taskName)
+        continue
+    end
+    
     ItemModels(ii).Task = tObj_i;
     vObj_i = [];
     if ~isempty(vpopName)
@@ -350,212 +357,220 @@ end
 Title2 = sprintf('Simulating tasks...');
 hWbar2 = uix.utility.CustomWaitbar(0,Title2,'',false);
 
-for ii = 1:nItems
-    % update waitbar
-    uix.utility.CustomWaitbar(ii/nItems,hWbar2,sprintf('Simulating task %d of %d',ii,nItems));
+if ~isempty(ItemModels)
     
-    % clear the results of the previous simulation
-    Results = [];
-    tObj_i = ItemModels(ii).Task;
+    for ii = 1:nItems
+        % update waitbar
+        uix.utility.CustomWaitbar(ii/nItems,hWbar2,sprintf('Simulating task %d of %d',ii,nItems));
 
-    % store the output times in Results
-    if ~isempty(tObj_i.OutputTimes)
-        Results.Time = tObj_i.OutputTimes;
-    else
-        Results.Time = tObj_i.DefaultOutputTimes;
-    end % if
-    
-    % preallocate a 'Data' field in Results structure
-    Results.Data = [];
-    
-    % species names
-    Results.SpeciesNames = [];
-    if ~isempty(tObj_i.ActiveSpeciesNames)
-        Results.SpeciesNames = tObj_i.ActiveSpeciesNames;
-    else
-        Results.SpeciesNames = tObj_i.SpeciesNames;
-    end
-    
-    % keep track of # of failed simulations
-    nFailedSims = 0;
-    
-    % For each virtual patient:
-    for jj = 1 : ItemModels(ii).nPatients
-        % check for user-input parameter values
-        if ~isempty(Pin)
-            params_ij = Pin(ItemModels(ii).VPopParamInds);
-        else
-            params_ij = ItemModels(ii).VPopParams(jj,:);
+        % clear the results of the previous simulation
+        Results = [];
+        tObj_i = ItemModels(ii).Task;
+
+        if isempty(tObj_i) % could not load the task
+            continue
         end
-        
-        exp_model_i = ItemModels(ii).ExportedModel;
-        exp_doses_i = ItemModels(ii).Doses;
 
-        %%%%%%% If running the simulation to steady state %%%%%%%%%%%%%%%%%%%%%%%%%
-        if tObj_i.RunToSteadyState
-            % Update initial conditions if species ICs vary in the Vpop by
-            % applying the values of the ICs from the Vpop
-            IC_ij = ItemModels(ii).ICs;
-            
-            if ~isempty(ItemModels(ii).VpopSpeciesInds)
-                IC_ij(ItemModels(ii).VpopSpeciesInds) = ItemModels(ii).VPopSpeciesICs(jj,:);
-            end % if
-            
-            % Set run time using the user-provided time to reach steady state
-            exp_model_i.SimulationOptions.OutputTimes = [];
-            exp_model_i.SimulationOptions.StopTime = tObj_i.TimeToSteadyState;
-            
-            % Grab doses
-            
-            % Simulate to steady state
-            try
-                % run to steady state without doses
-                [~,RTSSdata,~] = simulate(exp_model_i, [IC_ij, params_ij]);
-                
-            catch
-                RTSSdata = NaN;
-                nFailedSims = nFailedSims + 1;
-            end % try
-            
-            % Modify stop time/output times
-            if ~isempty(tObj_i.OutputTimes)
-                exp_model_i.SimulationOptions.OutputTimes = tObj_i.OutputTimes;
+        % store the output times in Results
+        if ~isempty(tObj_i.OutputTimes)
+            Results.Time = tObj_i.OutputTimes;
+        else
+            Results.Time = tObj_i.DefaultOutputTimes;
+        end % if
+
+        % preallocate a 'Data' field in Results structure
+        Results.Data = [];
+
+        % species names
+        Results.SpeciesNames = [];
+        if ~isempty(tObj_i.ActiveSpeciesNames)
+            Results.SpeciesNames = tObj_i.ActiveSpeciesNames;
+        else
+            Results.SpeciesNames = tObj_i.SpeciesNames;
+        end
+
+        % keep track of # of failed simulations
+        nFailedSims = 0;
+
+        % For each virtual patient:
+        for jj = 1 : ItemModels(ii).nPatients
+            % check for user-input parameter values
+            if ~isempty(Pin)
+                params_ij = Pin(ItemModels(ii).VPopParamInds);
             else
-                exp_model_i.SimulationOptions.OutputTimes = tObj_i.DefaultOutputTimes;
-            end % if
-            
-            % If simulation to steady state was successful, simulate with
-            % the steady state concentrations as initial conditions
-            if ~any(isnan(RTSSdata(:)))
-                RTSSdata(end,RTSSdata(end,:)<0)=0;
-                
-                % Simulate
-                try 
-                    simData_j = simulate(exp_model_i, [RTSSdata(end,1:length(tObj_i.SpeciesNames)), params_ij], exp_doses_i);
-                    
-                    % extract active species data, if specified
-                    if ~isempty(tObj_i.ActiveSpeciesNames)
-                        [~,activeSpec_j] = selectbyname(simData_j,tObj_i.ActiveSpeciesNames);
-                        %                         Results.SpeciesNames = [Results.SpeciesNames, tObj_i.ActiveSpeciesNames];
-                    else
-                        [~,activeSpec_j] = selectbyname(simData_j,tObj_i.SpeciesNames);
-                        %                         Results.SpeciesNames = [Results.SpeciesNames, tObj_i.SpeciesNames];
-                    end % if
-                    
-                    % Add results of the simulation to Results.Data
-                    Results.Data = [Results.Data,activeSpec_j];
-                    
-                catch % simulation
-                    % If the simulation fails, store NaNs
-                    
+                params_ij = ItemModels(ii).VPopParams(jj,:);
+            end
+
+            exp_model_i = ItemModels(ii).ExportedModel;
+            exp_doses_i = ItemModels(ii).Doses;
+
+            %%%%%%% If running the simulation to steady state %%%%%%%%%%%%%%%%%%%%%%%%%
+            if tObj_i.RunToSteadyState
+                % Update initial conditions if species ICs vary in the Vpop by
+                % applying the values of the ICs from the Vpop
+                IC_ij = ItemModels(ii).ICs;
+
+                if ~isempty(ItemModels(ii).VpopSpeciesInds)
+                    IC_ij(ItemModels(ii).VpopSpeciesInds) = ItemModels(ii).VPopSpeciesICs(jj,:);
+                end % if
+
+                % Set run time using the user-provided time to reach steady state
+                exp_model_i.SimulationOptions.OutputTimes = [];
+                exp_model_i.SimulationOptions.StopTime = tObj_i.TimeToSteadyState;
+
+                % Grab doses
+
+                % Simulate to steady state
+                try
+                    % run to steady state without doses
+                    [~,RTSSdata,~] = simulate(exp_model_i, [IC_ij, params_ij]);
+
+                catch
+                    RTSSdata = NaN;
+                    nFailedSims = nFailedSims + 1;
+                end % try
+
+                % Modify stop time/output times
+                if ~isempty(tObj_i.OutputTimes)
+                    exp_model_i.SimulationOptions.OutputTimes = tObj_i.OutputTimes;
+                else
+                    exp_model_i.SimulationOptions.OutputTimes = tObj_i.DefaultOutputTimes;
+                end % if
+
+                % If simulation to steady state was successful, simulate with
+                % the steady state concentrations as initial conditions
+                if ~any(isnan(RTSSdata(:)))
+                    RTSSdata(end,RTSSdata(end,:)<0)=0;
+
+                    % Simulate
+                    try 
+                        simData_j = simulate(exp_model_i, [RTSSdata(end,1:length(tObj_i.SpeciesNames)), params_ij], exp_doses_i);
+
+                        % extract active species data, if specified
+                        if ~isempty(tObj_i.ActiveSpeciesNames)
+                            [~,activeSpec_j] = selectbyname(simData_j,tObj_i.ActiveSpeciesNames);
+                            %                         Results.SpeciesNames = [Results.SpeciesNames, tObj_i.ActiveSpeciesNames];
+                        else
+                            [~,activeSpec_j] = selectbyname(simData_j,tObj_i.SpeciesNames);
+                            %                         Results.SpeciesNames = [Results.SpeciesNames, tObj_i.SpeciesNames];
+                        end % if
+
+                        % Add results of the simulation to Results.Data
+                        Results.Data = [Results.Data,activeSpec_j];
+
+                    catch % simulation
+                        % If the simulation fails, store NaNs
+
+                        % pad Results.Data with appropriate number of NaNs
+                        if ~isempty(tObj_i.ActiveSpeciesNames)
+                            Results.Data = [Results.Data,NaN*ones(length(Results.Time),length(tObj_i.ActiveSpeciesNames))];
+                            %                         Results.SpeciesNames = [Results.SpeciesNames, tObj_i.ActiveSpeciesNames];
+                        else
+                            Results.Data = [Results.Data,NaN*ones(length(Results.Time),length(tObj_i.SpeciesNames))];
+                            %                         Results.SpeciesNames = [Results.SpeciesNames, tObj_i.SpeciesNames];
+                        end % if
+
+                        nFailedSims = nFailedSims + 1;
+
+                    end % try
+
+                    % if run to steady state was unsuccessful, go straight to
+                    % padding Results with NaNs
+                else
                     % pad Results.Data with appropriate number of NaNs
                     if ~isempty(tObj_i.ActiveSpeciesNames)
                         Results.Data = [Results.Data,NaN*ones(length(Results.Time),length(tObj_i.ActiveSpeciesNames))];
-                        %                         Results.SpeciesNames = [Results.SpeciesNames, tObj_i.ActiveSpeciesNames];
+                        %                     Results.SpeciesNames = [Results.SpeciesNames, tObj_i.ActiveSpeciesNames];
                     else
                         Results.Data = [Results.Data,NaN*ones(length(Results.Time),length(tObj_i.SpeciesNames))];
-                        %                         Results.SpeciesNames = [Results.SpeciesNames, tObj_i.SpeciesNames];
+                        %                     Results.SpeciesNames = [Results.SpeciesNames, tObj_i.SpeciesNames];
                     end % if
-                    
-                    nFailedSims = nFailedSims + 1;
-                    
-                end % try
-                
-                % if run to steady state was unsuccessful, go straight to
-                % padding Results with NaNs
+
+                end % if
+
+
+                %%%%%%% If NOT running to steady state %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             else
-                % pad Results.Data with appropriate number of NaNs
-                if ~isempty(tObj_i.ActiveSpeciesNames)
-                    Results.Data = [Results.Data,NaN*ones(length(Results.Time),length(tObj_i.ActiveSpeciesNames))];
-                    %                     Results.SpeciesNames = [Results.SpeciesNames, tObj_i.ActiveSpeciesNames];
-                else
-                    Results.Data = [Results.Data,NaN*ones(length(Results.Time),length(tObj_i.SpeciesNames))];
-                    %                     Results.SpeciesNames = [Results.SpeciesNames, tObj_i.SpeciesNames];
-                end % if
-                
+                % Simulate
+                try
+                    if isempty(ItemModels(ii).VPopSpeciesICs)
+                        simData_j = simulate(exp_model_i, params_ij, exp_doses_i);
+                    else
+                        simData_j = simulate(exp_model_i, [ItemModels(ii).VPopSpeciesICs(jj,:), params_ij], exp_doses_i);
+                    end % if
+
+                    % extract active species data, if specified
+                    if ~isempty(tObj_i.ActiveSpeciesNames)
+                        [~,activeSpec_j] = selectbyname(simData_j,tObj_i.ActiveSpeciesNames);
+                        %                     Results.SpeciesNames = [Results.SpeciesNames, tObj_i.ActiveSpeciesNames];
+                    else
+                        [~,activeSpec_j] = selectbyname(simData_j,tObj_i.SpeciesNames);
+                        %                     Results.SpeciesNames = [Results.SpeciesNames, tObj_i.SpeciesNames];
+                    end % if
+
+                    % Add results of the simulation to Results.Data
+                    Results.Data = [Results.Data,activeSpec_j];
+
+                catch exception% simulation
+                    % If the simulation fails, store NaNs
+
+                    % pad Results.Data with appropriate number of NaNs
+                    if ~isempty(tObj_i.ActiveSpeciesNames)
+                        Results.Data = [Results.Data,NaN*ones(length(Results.Time),length(tObj_i.ActiveSpeciesNames))];
+                        %                     Results.SpeciesNames = [Results.SpeciesNames, tObj_i.ActiveSpeciesNames];
+                    else
+                        Results.Data = [Results.Data,NaN*ones(length(Results.Time),length(tObj_i.SpeciesNames))];
+                        %                     Results.SpeciesNames = [Results.SpeciesNames, tObj_i.SpeciesNames];
+                    end % if
+
+                    nFailedSims = nFailedSims + 1;
+
+                end % try
+
             end % if
-            
-            
-            %%%%%%% If NOT running to steady state %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        else
-            % Simulate
-            try
-                if isempty(ItemModels(ii).VPopSpeciesICs)
-                    simData_j = simulate(exp_model_i, params_ij, exp_doses_i);
-                else
-                    simData_j = simulate(exp_model_i, [ItemModels(ii).VPopSpeciesICs(jj,:), params_ij], exp_doses_i);
-                end % if
-                
-                % extract active species data, if specified
-                if ~isempty(tObj_i.ActiveSpeciesNames)
-                    [~,activeSpec_j] = selectbyname(simData_j,tObj_i.ActiveSpeciesNames);
-                    %                     Results.SpeciesNames = [Results.SpeciesNames, tObj_i.ActiveSpeciesNames];
-                else
-                    [~,activeSpec_j] = selectbyname(simData_j,tObj_i.SpeciesNames);
-                    %                     Results.SpeciesNames = [Results.SpeciesNames, tObj_i.SpeciesNames];
-                end % if
-                
-                % Add results of the simulation to Results.Data
-                Results.Data = [Results.Data,activeSpec_j];
-                
-            catch exception% simulation
-                % If the simulation fails, store NaNs
-                
-                % pad Results.Data with appropriate number of NaNs
-                if ~isempty(tObj_i.ActiveSpeciesNames)
-                    Results.Data = [Results.Data,NaN*ones(length(Results.Time),length(tObj_i.ActiveSpeciesNames))];
-                    %                     Results.SpeciesNames = [Results.SpeciesNames, tObj_i.ActiveSpeciesNames];
-                else
-                    Results.Data = [Results.Data,NaN*ones(length(Results.Time),length(tObj_i.SpeciesNames))];
-                    %                     Results.SpeciesNames = [Results.SpeciesNames, tObj_i.SpeciesNames];
-                end % if
-                
-                nFailedSims = nFailedSims + 1;
-                
-            end % try
-            
-        end % if
-    end % for jj = ...
-    
-%%% Save results of each simulation in different files %%%%%%%%%%%%%%%%%%%%
-    SaveFlag = true;
-    
-    % add results to output cell
-    output{ii} = Results;
-    
-    % don't save the data if Pin is provided
-    if ~isempty(Pin)
-        SaveFlag = false;
-    end
-        
-    SaveFilePath = fullfile(obj.Session.RootDirectory,obj.SimResultsFolderName);
-    if ~exist(SaveFilePath,'dir')
-        [ThisStatusOk,ThisMessage] = mkdir(SaveFilePath);
-        if ~ThisStatusOk
-            Message = sprintf('%s\n%s\n',Message,ThisMessage);
+        end % for jj = ...
+
+    %%% Save results of each simulation in different files %%%%%%%%%%%%%%%%%%%%
+        SaveFlag = true;
+
+        % add results to output cell
+        output{ii} = Results;
+
+        % don't save the data if Pin is provided
+        if ~isempty(Pin)
             SaveFlag = false;
         end
-    end
-            
-    if SaveFlag
-        % Update ResultFileNames
-        ResultFileNames{ii} = ['Results - Sim = ' simName ', Task = ' obj.Item(ii).TaskName ' - Vpop = ' obj.Item(ii).VPopName ' - Date = ' datestr(now,'dd-mmm-yyyy_HH-MM-SS') '.mat'];
-        
-        if isempty(VpopWeights)
-            save(fullfile(SaveFilePath,ResultFileNames{ii}), 'Results')
-        else
-            save(fullfile(SaveFilePath,ResultFileNames{ii}), 'Results', 'VpopWeights')
+
+        SaveFilePath = fullfile(obj.Session.RootDirectory,obj.SimResultsFolderName);
+        if ~exist(SaveFilePath,'dir')
+            [ThisStatusOk,ThisMessage] = mkdir(SaveFilePath);
+            if ~ThisStatusOk
+                Message = sprintf('%s\n%s\n',Message,ThisMessage);
+                SaveFlag = false;
+            end
         end
-        % right now it's one line of Message per Simulation Item
-        ThisMessage = [num2str(jj-nFailedSims) ' simulations were successful out of ' num2str(jj) '.'];
-        Message = sprintf('%s\n%s\n',Message,ThisMessage);        
-    elseif isempty(Pin)
-        StatusOK = false;
-        ThisMessage = 'Unable to save results to MAT file.';
-        Message = sprintf('%s\n%s\n',Message,ThisMessage);
-    end
-    
-end % for ii = ...
+
+        if SaveFlag
+            % Update ResultFileNames
+            ResultFileNames{ii} = ['Results - Sim = ' simName ', Task = ' obj.Item(ii).TaskName ' - Vpop = ' obj.Item(ii).VPopName ' - Date = ' datestr(now,'dd-mmm-yyyy_HH-MM-SS') '.mat'];
+
+            if isempty(VpopWeights)
+                save(fullfile(SaveFilePath,ResultFileNames{ii}), 'Results')
+            else
+                save(fullfile(SaveFilePath,ResultFileNames{ii}), 'Results', 'VpopWeights')
+            end
+            % right now it's one line of Message per Simulation Item
+            ThisMessage = [num2str(jj-nFailedSims) ' simulations were successful out of ' num2str(jj) '.'];
+            Message = sprintf('%s\n%s\n',Message,ThisMessage);        
+        elseif isempty(Pin)
+            StatusOK = false;
+            ThisMessage = 'Unable to save results to MAT file.';
+            Message = sprintf('%s\n%s\n',Message,ThisMessage);
+        end
+
+    end % for ii = ...
+
+end
 
 % close waitbar
 uix.utility.CustomWaitbar(1,hWbar2,'Done.');
