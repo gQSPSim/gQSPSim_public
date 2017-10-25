@@ -500,6 +500,14 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
             
              % Update the name to include the timestamp
             TimeStamp = datestr(now,'dd-mmm-yyyy_HH-MM-SS');
+            
+            % Strip out date
+            SplitName = regexp(ThisObj.Name,'\(\d\d-\D\D\D-\d\d\d\d_\d\d-\d\d-\d\d\)','split');
+            if ~isempty(SplitName) && iscell(SplitName)
+                SplitName = SplitName{1}; % Take first
+            end
+            ThisObj.Name = strtrim(SplitName);
+            
             ThisObj.Name = sprintf('%s (%s)',ThisObj.Name,TimeStamp);
             
             % Update the tree

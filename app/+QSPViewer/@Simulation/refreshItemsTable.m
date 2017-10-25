@@ -17,6 +17,7 @@ end
 
 if ~isempty(vObj.TempData)
     ValidItemVPops = getValidSelectedVPops(vObj.TempData.Settings,{vObj.TempData.Settings.VirtualPopulation.Name});
+    
     if ~isempty(ValidItemVPops)
         vObj.VPopPopupTableItems = {ValidItemVPops.Name};
     else

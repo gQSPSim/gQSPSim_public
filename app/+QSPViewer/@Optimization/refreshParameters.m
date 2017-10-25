@@ -44,6 +44,14 @@ if ~isempty(vObj.TempData) && ~isempty(vObj.TempData.RefParamName)
     end
 end
 
+ColumnEditable = false(1,numel(vObj.ParametersHeader));
+ColumnFormat = repmat({'char'},1,numel(vObj.ParametersHeader));
+if numel(vObj.ParametersHeader) >= 3
+    ColumnFormat = repmat({'float'},1,numel(vObj.ParametersHeader));
+    ColumnFormat(1:3) = {'char','char','char'};
+end
 set(vObj.h.ParametersTable,...
     'ColumnName',vObj.ParametersHeader,...
+    'ColumnEditable',ColumnEditable,...
+    'ColumnFormat',ColumnFormat,...
     'Data',vObj.ParametersData);

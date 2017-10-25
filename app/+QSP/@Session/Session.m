@@ -128,7 +128,12 @@ classdef Session < matlab.mixin.SetGet & uix.mixin.AssignPVPairs & uix.mixin.Has
       
         function set.RootDirectory(obj,Value)
             validateattributes(Value,{'char'},{});
-            obj.RootDirectory = Value;
+            obj.RootDirectory = fullfile(Value);
+        end %function
+        
+        function set.RelativeResultsPath(obj,Value)
+            validateattributes(Value,{'char'},{});
+            obj.RelativeResultsPath = fullfile(Value);
         end %function
         
         function value = get.ResultsDirectory(obj)

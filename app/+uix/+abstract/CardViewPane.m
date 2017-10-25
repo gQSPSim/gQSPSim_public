@@ -57,7 +57,7 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
     methods (Access=protected)
         function create(obj)
             
-            WidgetHeight = 30;
+            WidgetSize = 30;
             LabelWidth = 80;
             Pad = 2;
             VSpace = 4;
@@ -82,7 +82,7 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                 'Parent',obj.h.MainLayout);
             
             % Sizes
-            obj.h.MainLayout.Heights = [WidgetHeight -1];
+            obj.h.MainLayout.Heights = [WidgetSize -1];
             
             %%% Summary
             obj.h.SummaryPanel = uix.BoxPanel(...
@@ -118,7 +118,7 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                 'BorderType','none');
             obj.h.EditButtonLayout = uix.HBox(...
                 'Parent',obj.h.EditLayout);
-            obj.h.EditLayout.Heights = [WidgetHeight -1 WidgetHeight];
+            obj.h.EditLayout.Heights = [WidgetSize -1 WidgetSize];
             
             %%% Row 1
             obj.h.FileSelect(1) = uicontrol(...
@@ -254,9 +254,9 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                     'TooltipString','Remove Invalid Entries',...
                     'FontSize',10,...
                     'Callback',@(h,e)onRemoveInvalidVisualization(obj,h,e));
-                obj.h.RemoveInvalidVisualizationButtonLayout.ButtonSize = [125 WidgetHeight];
+                obj.h.RemoveInvalidVisualizationButtonLayout.ButtonSize = [125 WidgetSize];
                     
-                obj.h.PlotSettingsLayout.Heights = [WidgetHeight -1 WidgetHeight];
+                obj.h.PlotSettingsLayout.Heights = [WidgetSize -1 WidgetSize];
             end
             
             % Update selection
@@ -290,12 +290,20 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                 'Callback', @(h,e)onNavigation(obj,'Visualize') );
             CData = load('zoom.mat');
             CData = CData.zoomCData;
-            obj.h.ZoomButton = uicontrol( ...
+            obj.h.ZoomInButton = uicontrol( ...
                 'Parent', obj.h.ButtonLayout, ...
                 'Style', 'togglebutton', ...
                 'CData', CData, ...
-                'TooltipString', 'Zoom',...
-                'Callback', @(h,e)onNavigation(obj,'Zoom') );
+                'TooltipString', 'Zoom In',...
+                'Callback', @(h,e)onNavigation(obj,'ZoomIn') );
+            CData = load('zoomminus.mat');
+            CData = CData.cdata;
+            obj.h.ZoomOutButton = uicontrol( ...
+                'Parent', obj.h.ButtonLayout, ...
+                'Style', 'togglebutton', ...
+                'CData', CData, ...
+                'TooltipString', 'Zoom Out',...
+                'Callback', @(h,e)onNavigation(obj,'ZoomOut') );
             CData = load('pan.mat');
             CData = CData.cdata;
             obj.h.PanButton = uicontrol( ...
@@ -314,7 +322,7 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                 'Callback', @(h,e)onNavigation(obj,'Datacursor') );
             uix.Empty('Parent',obj.h.ButtonLayout);
             
-            obj.h.ButtonLayout.Widths = [WidgetHeight WidgetHeight WidgetHeight WidgetHeight WidgetHeight WidgetHeight WidgetHeight WidgetHeight -1];
+            obj.h.ButtonLayout.Widths = [WidgetSize WidgetSize WidgetSize WidgetSize WidgetSize WidgetSize WidgetSize WidgetSize WidgetSize -1];
             
         end %function
         
@@ -532,7 +540,7 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                     [StatusOK, Message] = validate(obj.TempData,false);
             
                     obj.Selection = 2;
-                    set([obj.h.SummaryButton,obj.h.EditButton,obj.h.RunButton,obj.h.VisualizeButton,obj.h.ZoomButton,obj.h.PanButton,obj.h.DatacursorButton],'Enable','off');
+                    set([obj.h.SummaryButton,obj.h.EditButton,obj.h.RunButton,obj.h.VisualizeButton,obj.h.ZoomInButton,obj.h.ZoomOutButton,obj.h.PanButton,obj.h.DatacursorButton],'Enable','off');
                     
                     % Update the view
                     update(obj);
@@ -591,11 +599,26 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                     EventData = uix.abstract.NavigationEventData('Name',View);
                     notify(obj,'NavigationChanged',EventData);
                     
-                case 'Zoom'
+                case 'ZoomIn'
                     
                     hFigure = ancestor(obj.UIContainer,'Figure');
-                    ThisValue = get(obj.h.ZoomButton,'Value');
-                    zoom(hFigure,uix.utility.tf2onoff(ThisValue));
+                    ThisValue = get(obj.h.ZoomInButton,'Value');
+                    zoomObj = zoom(hFigure);
+                    set(zoomObj,'Enable',uix.utility.tf2onoff(ThisValue),'Direction','in');
+                    pan(hFigure,'off');
+                    datacursorObj = datacursormode(hFigure);
+                    datacursorObj.Enable = 'off';
+                    
+                    % Update toggle buttons
+                    updateToggleButtons(obj);
+                    
+                case 'ZoomOut'
+                    
+                    hFigure = ancestor(obj.UIContainer,'Figure');
+                    ThisValue = get(obj.h.ZoomOutButton,'Value');
+                    zoomObj = zoom(hFigure);
+                    set(zoomObj,'Enable',uix.utility.tf2onoff(ThisValue),'Direction','out');
+                    set(zoomObj,'Direction','out');
                     pan(hFigure,'off');
                     datacursorObj = datacursormode(hFigure);
                     datacursorObj.Enable = 'off';
@@ -809,10 +832,16 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                 zoomObj = zoom(hFigure);
                 panObj = pan(hFigure);
                 datacursorObj = datacursormode(hFigure);
-                if strcmpi(get(zoomObj,'Enable'),'on')
-                    set(obj.h.ZoomButton,'Value',true);
+                Direction = get(zoomObj,'Direction');
+                if strcmpi(get(zoomObj,'Enable'),'on') && strcmpi(Direction,'in')
+                    set(obj.h.ZoomInButton,'Value',true);
                 else
-                    set(obj.h.ZoomButton,'Value',false);
+                    set(obj.h.ZoomInButton,'Value',false);
+                end
+                if strcmpi(get(zoomObj,'Enable'),'on') && strcmpi(Direction,'out')
+                    set(obj.h.ZoomOutButton,'Value',true);
+                else
+                    set(obj.h.ZoomOutButton,'Value',false);
                 end
                 if strcmpi(get(panObj,'Enable'),'on')
                     set(obj.h.PanButton,'Value',true);
@@ -833,11 +862,11 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
             %%% Buttons
             % Toggle visibility
             set([obj.h.RunButton,obj.h.VisualizeButton],'Visible',uix.utility.tf2onoff(obj.UseRunVis));
-            set([obj.h.ZoomButton,obj.h.PanButton,obj.h.DatacursorButton],'Visible',uix.utility.tf2onoff(obj.UseRunVis));
+            set([obj.h.ZoomInButton,obj.h.ZoomOutButton,obj.h.PanButton,obj.h.DatacursorButton],'Visible',uix.utility.tf2onoff(obj.UseRunVis));
             if obj.Selection == 3
-                set([obj.h.ZoomButton,obj.h.PanButton,obj.h.DatacursorButton],'Enable','on');
+                set([obj.h.ZoomInButton,obj.h.ZoomOutButton,obj.h.PanButton,obj.h.DatacursorButton],'Enable','on');
             else
-                set([obj.h.ZoomButton,obj.h.PanButton,obj.h.DatacursorButton],'Enable','off');
+                set([obj.h.ZoomInButton,obj.h.ZoomOutButton,obj.h.PanButton,obj.h.DatacursorButton],'Enable','off');
             end
             
             %%% Update toggle buttons
