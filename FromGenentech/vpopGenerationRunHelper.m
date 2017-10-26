@@ -111,6 +111,9 @@ Title1 = sprintf('Configuring models...');
 hWbar1 = uix.utility.CustomWaitbar(0,Title1,'',false);
 
 nItems = length(obj.Item);
+
+obj.SimResults = cell(1,nItems);
+
 for ii = 1:nItems
     % update waitbar
     uix.utility.CustomWaitbar(ii/nItems,hWbar1,sprintf('Configuring model for task %d of %d...',ii,nItems));
@@ -351,7 +354,7 @@ while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients
 end % while
 
 % in case nPat is less than the maximum number of virtual patients...
-Vpop = Vpop(isValid==1,:); % removes extra zeros in Vpop
+% Vpop = Vpop(isValid==1,:); % removes extra zeros in Vpop
 
 %% Outputs
 
@@ -378,6 +381,8 @@ if StatusOK
             SaveFlag = false;
         end
     end
+    
+    obj.SimFlag = isValid;
     
     if SaveFlag
         VpopName = ['Results - Vpop Generation = ' obj.Name ' - Date = ' datestr(now,'dd-mmm-yyyy_HH-MM-SS')];

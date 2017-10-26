@@ -41,10 +41,22 @@ IsSelected = obj.PlotItemTable(:,1);
 if iscell(IsSelected)
     IsSelected = cell2mat(IsSelected);
 end
-if any(IsSelected) && ~isempty(obj.VPopName)
+
+if isempty(obj.SimResults)
+    IsCached = false(size(obj.PlotItemTable(:,1)));
+else
+    IsCached = ~cellfun(@isempty, obj.SimResults)';
+end
+CachedInds = find(IsCached);
+RunInds = IsSelected & ~IsCached;    
+
+if any(RunInds) && ~isempty(obj.VPopName)
+        
+    SelectedInds = find(RunInds);
+
     % make Task-Vpop pairs for each selected task
-    nSelected = sum(IsSelected);
-    SelectedInds = find(IsSelected);
+    nSelected = nnz(RunInds);
+    
     simObj = QSP.Simulation;
     simObj.Settings = obj.Settings;
     simObj.Session = obj.Session;
@@ -57,17 +69,44 @@ else
     simObj = QSP.Simulation.empty(0,1);
 end
 
+% get the virtual population object
+allVpopNames = {obj.Settings.VirtualPopulation.Name};
+vObj = obj.Settings.VirtualPopulation(strcmp(obj.VPopName,allVpopNames));
 
-%% Run the simulations
+%% Run the simulations for those that are not cached
 if ~isempty(simObj)
     [StatusOK,Message,ResultFileNames,Results] = simulationRunHelper(simObj);
     
     if StatusOK == false
         error('plotVirtualPopulationGeneration: %s',Message);
     end
+    
+    % cache the result to avoid simulating again
+    for ii = 1:length(simObj.Item)
+        obj.SimResults{SelectedInds(ii)}.Time = Results{ii}.Time;
+        obj.SimResults{SelectedInds(ii)}.SpeciesNames = Results{ii}.SpeciesNames;        
+        obj.SimResults{SelectedInds(ii)}.Data = Results{ii}.Data;        
+    end
 else
     Results = [];    
 end
+
+%% add the cached results to get the complete simulation results
+
+% add cached results
+indCached = find(IsSelected & IsCached);
+newResults = [];
+
+for ii = 1:length(indCached)
+    newResults{indCached(ii)} = obj.SimResults{indCached(ii)};
+end
+
+indNotCached = find(IsSelected & ~IsCached);
+for ii = 1:length(indNotCached)
+    newResults{indNotCached(ii)} = Results{ii};
+end
+    
+Results = newResults; % combined cached & new simulations
 
 % Get the associated colors
 SelectedItemColors = cell2mat(obj.PlotItemTable(IsSelected,2));
@@ -102,6 +141,8 @@ TimeVec = cell2mat(accCritData(:,strcmp('Time', accCritHeader)));
 if strcmp(obj.PlotType, 'Normal')
     for sIdx = 1:size(obj.PlotSpeciesTable,1)
         allAxes = str2double(obj.PlotSpeciesTable{sIdx,1});
+%         cla(hAxes(allAxes))
+        set(hAxes(allAxes),'XTickMode','auto','XTickLabelMode','auto')
         ThisLineStyle = obj.PlotSpeciesTable{sIdx,2};
         ThisName = obj.PlotSpeciesTable{sIdx,3};
         
@@ -118,17 +159,43 @@ if strcmp(obj.PlotType, 'Normal')
                     % Update ColumnIdx to get species for ALL virtual patients
                     NumSpecies = numel(Results{itemIdx}.SpeciesNames);
                     ColumnIdx = ColumnIdx:NumSpecies:size(Results{1}.Data,2);
+                    ColumnIdx_invalid = find(strcmp(Results{itemIdx}.SpeciesNames,ThisName)) + (find(~obj.SimFlag)-1) * NumSpecies;
 
                     % Plot
                     % Normal plot type
+                    % plot over for just the invalid / rejected vpatients
+                    if ~isempty(ColumnIdx_invalid)
+                        plot(hAxes(allAxes),Results{itemIdx}.Time,Results{itemIdx}.Data(:,ColumnIdx_invalid),...
+                            'LineStyle',ThisLineStyle,...
+                            'Color',[0.5,0.5,0.5]);   
+                    end
+                    
                     plot(hAxes(allAxes),Results{itemIdx}.Time,Results{itemIdx}.Data(:,ColumnIdx),...
                         'LineStyle',ThisLineStyle,...
-                        'Color',SelectedItemColors(itemIdx,:));                    
+                        'Color',SelectedItemColors(itemIdx,:));             
+
+                    % add upper and lower bounds if applicable
+                    DataCol = find(strcmp(accCritHeader,'Data'));
+                    accName = obj.PlotSpeciesTable(strcmp(ThisName,obj.PlotSpeciesTable(:,3)),4);
+
+                    accDataRows = strcmp(accCritData(:,DataCol), accName) & ...
+                        cell2mat(accCritData(:,strcmp(accCritHeader,'Group'))) == str2num(obj.PlotItemTable{itemIdx,4}) ;
+                    LB = cell2mat(accCritData(accDataRows, strcmp(accCritHeader, 'LB')));
+                    UB = cell2mat(accCritData(accDataRows, strcmp(accCritHeader, 'UB')));
+                    accTime = cell2mat(accCritData(accDataRows, strcmp(accCritHeader, 'Time')));
+
+                    if any(accDataRows)
+                        plot(hAxes(allAxes), accTime, LB, 'Color', SelectedItemColors(itemIdx,:), ...
+                            'LineStyle', '--', 'LineWidth', 2, 'Marker', 'o')
+                        plot(hAxes(allAxes), accTime, UB, 'Color', SelectedItemColors(itemIdx,:), ...
+                            'LineStyle', '--', 'LineWidth', 2, 'Marker', 'o')
+
+                    end
                 end
             end
         end
     end
-elseif strcmp(obj.PlotType,'Diagnostic') & ~isempty(Results)
+elseif strcmp(obj.PlotType,'Diagnostic') && ~isempty(Results)
     allAxes = str2double(obj.PlotSpeciesTable(:,1)); % all axes with species assigned to them
     
     % get all unique time points that exist in the simulation output and
