@@ -341,8 +341,35 @@ classdef VirtualPopulationGeneration < uix.abstract.CardViewPane
         function onPlotParameterDistributionDiagnostics(vObj,h,e)
             
             % TODO: Genentech
-            hDlg = msgbox('TODO: Plot Parameter Distribution Diagnostics','Not Implemented','modal');
-            uiwait(hDlg);            
+%             hDlg = msgbox('TODO: Plot Parameter Distribution Diagnostics','Not Implemented','modal');
+%             uiwait(hDlg);            
+            if ~isempty(vObj.Data.VPopName)
+                h = figure('Name', 'Paramter Distribution Diagnostic') %('Units', 'pixels', 'Position', [0 0 1000 6000]);
+                p = uix.ScrollingPanel('Parent', h, 'Units', 'Normalized', 'Position', [0 0 1 1]) %,  'Units', 'pixels', 'Position', [0 0 1000 600]);
+                
+                vpopFile = fullfile(vObj.Data.FilePath, vObj.Data.VPopResultsFolderName, vObj.Data.ExcelResultFileName);                
+                [num,txt,Raw] = xlsread(vpopFile);                
+                nCol = size(Raw,2);
+                [dims,n] = numSubplots(nCol);
+                
+                g = uix.Grid('Parent', p) %,  'Units', 'pixels', 'Position', [0 0 200*dims(1) 200*dims(2)], 'Spacing', 1);
+                
+                for k=1:nCol
+                    ax=axes('Parent', g);
+                    hist(ax, num(:,k))
+                    title(ax, txt{k}, 'Interpreter', 'none')
+                    set(ax, 'TitleFontWeight', 'bold' )
+                end          
+                
+                set(g, 'Heights', 300*ones(dims(1),1), 'Widths', 300*ones(dims(2),1))
+                set(p, 'Widths', 1000, 'Heights', 600)
+%                 set(g, 'Heights', -ones(dims(1),1), 'Widths', -ones(dims(2),1))
+                
+                
+                
+            end
+            uiwait(h)
+            
             
         end %function
         
