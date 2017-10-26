@@ -172,7 +172,7 @@ if strcmp(obj.PlotType, 'Normal')
                     % Plot
                     % Normal plot type
                     % plot over for just the invalid / rejected vpatients
-                    if ~isempty(ColumnIdx_invalid)
+                    if ~isempty(ColumnIdx_invalid) && obj.ShowInvalidVirtualPatients
                         rej_lines = [rej_lines; plot(hAxes(allAxes),Results{itemIdx}.Time,Results{itemIdx}.Data(:,ColumnIdx_invalid),...
                             'LineStyle',ThisLineStyle,...
                             'Color',[0.5,0.5,0.5])];  
