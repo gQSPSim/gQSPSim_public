@@ -350,6 +350,9 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
             % Invoke helper
             if StatusOK
                 % Run helper
+                % clear cached results if any
+                obj.SimResults = {};
+                obj.SimFlag = [];
                 [StatusOK,Message,ResultsFileName,ThisVPopName] = vpopGenerationRunHelper(obj);
                 % Update MATFileName in the simulation items
                 obj.ExcelResultFileName = ResultsFileName;

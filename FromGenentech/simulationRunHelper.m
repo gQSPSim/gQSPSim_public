@@ -32,6 +32,14 @@ else
     paramNames = {};
 end
 
+% allow for manual specification of output times to be included on top of
+% the task-specific output times
+if nargin==4
+    extraOutputTimes = varargin{3};
+else
+    extraOutputTimes = [];
+end
+
 % Get the simulation object name
 simName = obj.Name;
 
@@ -288,9 +296,11 @@ for ii = 1:nItems
     
     % set the output times
     if ~isempty(tObj_i.OutputTimes)
-        exp_model_i.SimulationOptions.OutputTimes = tObj_i.OutputTimes;
+        outputTimes = union(extraOutputTimes, tObj_i.OutputTimes);
+        exp_model_i.SimulationOptions.OutputTimes = outputTimes;
     else
-        exp_model_i.SimulationOptions.OutputTimes = tObj_i.DefaultOutputTimes;
+        outputTimes = union(extraOutputTimes, tObj_i.DefaultOutputTimes);
+        exp_model_i.SimulationOptions.OutputTimes = outputTimes;
     end % if
     
     % select active doses (if specified)
@@ -373,9 +383,9 @@ if ~isempty(ItemModels)
 
         % store the output times in Results
         if ~isempty(tObj_i.OutputTimes)
-            Results.Time = tObj_i.OutputTimes;
+            Results.Time = union(tObj_i.OutputTimes, extraOutputTimes);
         else
-            Results.Time = tObj_i.DefaultOutputTimes;
+            Results.Time = union(tObj_i.DefaultOutputTimes, extraOutputTimes);
         end % if
 
         % preallocate a 'Data' field in Results structure

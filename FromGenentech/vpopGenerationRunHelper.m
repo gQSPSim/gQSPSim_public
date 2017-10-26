@@ -112,7 +112,7 @@ hWbar1 = uix.utility.CustomWaitbar(0,Title1,'',false);
 
 nItems = length(obj.Item);
 
-obj.SimResults = cell(1,nItems);
+obj.SimResults = {}; %cell(1,nItems);
 
 for ii = 1:nItems
     % update waitbar
@@ -262,6 +262,8 @@ while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients
     % criteria
     model_outputs = [];
     time_outputs = [];
+    LB_outputs = [];
+    UB_outputs = [];
     
     for grp = 1:nItems
         % grab the task object
@@ -273,6 +275,8 @@ while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients
         % get group information
         Species_grp = Species(grpInds);
         Time_grp = Time(grpInds);
+        LB_grp = LB_accCrit(grpInds);
+        UB_grp = UB_accCrit(grpInds);
         
         % change output times for the exported model
         ItemModels(grp).ExportedModel.SimulationOptions.OutputTimes = sort(unique(Time_grp));
@@ -321,21 +325,29 @@ while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients
                 end % try
                 
                 % grab all acceptance criteria time points for this species in this group
-                Time_grp_spec = Time_grp(strcmp(uniqueSpecies_grp(spec),Species_grp));
+                ix_grp_spec = strcmp(uniqueSpecies_grp(spec),Species_grp);
+                Time_grp_spec = Time_grp(ix_grp_spec);
+                LB_grp_spec = LB_grp(ix_grp_spec);
+                UB_grp_spec = UB_grp(ix_grp_spec);
                 
                 % select simulation time points for which there are acceptance criteria
-                [okInds,~] = ismember(simT,Time_grp_spec);
-                simData_spec = simData_spec(okInds);
+                [bSim,okInds] = ismember(simT,Time_grp_spec);
+                simData_spec = simData_spec(okInds(bSim));
                 
                 % save model outputs
                 model_outputs = [model_outputs;simData_spec];
                 time_outputs = [time_outputs;Time_grp_spec];
                 
+                LB_outputs = [LB_outputs; LB_grp_spec];
+                UB_outputs = [UB_outputs; UB_grp_spec];
+                
             end % for spec
         catch ME2
             % if the simulation fails, replace model outputs with Inf so
             % that the parameter set fails the acceptance criteria
-            model_outputs = Inf*ones(length(grpInds),1);
+            model_outputs = [model_outputs;Inf*ones(length(grpInds),1)];
+            LB_outputs = [LB_outputs;NaN(length(grpInds),1)];            
+            UB_outputs = [UB_outputs;NaN(length(grpInds),1)];
         end
         
     end % for grp
@@ -346,7 +358,7 @@ while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients
     % compare model outputs to acceptance criteria
     if ~isempty(model_outputs) 
         Vpop(nSim,:) = param_candidate'; % store the parameter set
-        isValid(nSim) = double(all(model_outputs>=LB_accCrit) && all(model_outputs<=UB_accCrit));
+        isValid(nSim) = double(all(model_outputs>=LB_outputs) && all(model_outputs<=UB_outputs));
         if isValid(nSim)
             nPat = nPat+1; % if conditions are satisfied, tick up the number of virutal patients
         end

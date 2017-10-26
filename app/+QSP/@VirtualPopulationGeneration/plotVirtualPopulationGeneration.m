@@ -33,6 +33,29 @@ for index = 1:numel(hAxes)
     hold(hAxes(index),'on')    
 end
 
+% load acceptance criteria
+Names = {obj.Settings.VirtualPopulationData.Name};
+MatchIdx = strcmpi(Names,obj.DatasetName);
+
+if any(MatchIdx)
+    vpopObj = obj.Settings.VirtualPopulationData(MatchIdx);
+
+    [ThisStatusOk,ThisMessage,accCritHeader,accCritData] = importData(vpopObj,vpopObj.FilePath);
+    if ~ThisStatusOk
+        StatusOK = false;
+        Message = sprintf('%s\n%s\n',Message,ThisMessage);        
+    end
+    else
+    accCritHeader = {};
+    accCritData = {};
+end
+
+grpVec = cell2mat(accCritData(:,strcmp('Group', accCritHeader)));
+LBVec = cell2mat(accCritData(:,strcmp('LB', accCritHeader)));
+UBVec = cell2mat(accCritData(:,strcmp('UB', accCritHeader)));
+DataVec = accCritData(:,strcmp('Data', accCritHeader));
+TimeVec = cell2mat(accCritData(:,strcmp('Time', accCritHeader)));
+
 
 %% Get the selections and Task-Vpop pairs
 
@@ -75,7 +98,7 @@ vObj = obj.Settings.VirtualPopulation(strcmp(obj.VPopName,allVpopNames));
 
 %% Run the simulations for those that are not cached
 if ~isempty(simObj)
-    [StatusOK,Message,ResultFileNames,Results] = simulationRunHelper(simObj);
+    [StatusOK,Message,ResultFileNames,Results] = simulationRunHelper(simObj, [], {}, TimeVec);
     
     if StatusOK == false
         error('plotVirtualPopulationGeneration: %s',Message);
@@ -105,46 +128,31 @@ indNotCached = find(IsSelected & ~IsCached);
 for ii = 1:length(indNotCached)
     newResults{indNotCached(ii)} = Results{ii};
 end
-    
-Results = newResults; % combined cached & new simulations
-
+   
+if ~isempty(newResults)
+    Results = newResults(~cellfun(@isempty,newResults)); % combined cached & new simulations
+end
 % Get the associated colors
 SelectedItemColors = cell2mat(obj.PlotItemTable(IsSelected,2));
 
 
 %% Plot Simulation Items
 
-% load acceptance criteria
-Names = {obj.Settings.VirtualPopulationData.Name};
-MatchIdx = strcmpi(Names,obj.DatasetName);
-
-if any(MatchIdx)
-    vpopObj = obj.Settings.VirtualPopulationData(MatchIdx);
-
-    [ThisStatusOk,ThisMessage,accCritHeader,accCritData] = importData(vpopObj,vpopObj.FilePath);
-    if ~ThisStatusOk
-        StatusOK = false;
-        Message = sprintf('%s\n%s\n',Message,ThisMessage);        
-    end
-    else
-    accCritHeader = {};
-    accCritData = {};
-end
-
-grpVec = cell2mat(accCritData(:,strcmp('Group', accCritHeader)));
-LBVec = cell2mat(accCritData(:,strcmp('LB', accCritHeader)));
-UBVec = cell2mat(accCritData(:,strcmp('UB', accCritHeader)));
-DataVec = accCritData(:,strcmp('Data', accCritHeader));
-TimeVec = cell2mat(accCritData(:,strcmp('Time', accCritHeader)));
 
 
 if strcmp(obj.PlotType, 'Normal')
     for sIdx = 1:size(obj.PlotSpeciesTable,1)
         allAxes = str2double(obj.PlotSpeciesTable{sIdx,1});
 %         cla(hAxes(allAxes))
-        set(hAxes(allAxes),'XTickMode','auto','XTickLabelMode','auto')
+        if ~isnan(allAxes)
+            set(hAxes(allAxes),'XTickMode','auto','XTickLabelMode','auto')
+        end
         ThisLineStyle = obj.PlotSpeciesTable{sIdx,2};
         ThisName = obj.PlotSpeciesTable{sIdx,3};
+        
+        acc_lines = [];
+        rej_lines = [];
+        ublb_lines = [];
         
         if ~isempty(allAxes) && ~isnan(allAxes)
             for itemIdx = 1:numel(Results)
@@ -165,14 +173,14 @@ if strcmp(obj.PlotType, 'Normal')
                     % Normal plot type
                     % plot over for just the invalid / rejected vpatients
                     if ~isempty(ColumnIdx_invalid)
-                        plot(hAxes(allAxes),Results{itemIdx}.Time,Results{itemIdx}.Data(:,ColumnIdx_invalid),...
+                        rej_lines = [rej_lines; plot(hAxes(allAxes),Results{itemIdx}.Time,Results{itemIdx}.Data(:,ColumnIdx_invalid),...
                             'LineStyle',ThisLineStyle,...
-                            'Color',[0.5,0.5,0.5]);   
+                            'Color',[0.5,0.5,0.5])];  
                     end
                     
-                    plot(hAxes(allAxes),Results{itemIdx}.Time,Results{itemIdx}.Data(:,ColumnIdx),...
+                    acc_lines = [acc_lines; plot(hAxes(allAxes),Results{itemIdx}.Time,Results{itemIdx}.Data(:,setdiff(ColumnIdx, ColumnIdx_invalid)),...
                         'LineStyle',ThisLineStyle,...
-                        'Color',SelectedItemColors(itemIdx,:));             
+                        'Color',SelectedItemColors(itemIdx,:))];             
 
                     % add upper and lower bounds if applicable
                     DataCol = find(strcmp(accCritHeader,'Data'));
@@ -185,14 +193,12 @@ if strcmp(obj.PlotType, 'Normal')
                     accTime = cell2mat(accCritData(accDataRows, strcmp(accCritHeader, 'Time')));
 
                     if any(accDataRows)
-                        plot(hAxes(allAxes), accTime, LB, 'Color', SelectedItemColors(itemIdx,:), ...
-                            'LineStyle', '--', 'LineWidth', 2, 'Marker', 'o')
-                        plot(hAxes(allAxes), accTime, UB, 'Color', SelectedItemColors(itemIdx,:), ...
-                            'LineStyle', '--', 'LineWidth', 2, 'Marker', 'o')
-
+                        ublb_lines = [ublb_lines; plot(hAxes(allAxes), accTime, LB, 'ko--', 'MarkerFaceColor', SelectedItemColors(itemIdx,:), 'MarkerEdgeColor', 'k', 'LineWidth', 2)];
+                        ublb_lines = [ublb_lines; plot(hAxes(allAxes), accTime, UB, 'ko--', 'MarkerFaceColor', SelectedItemColors(itemIdx,:), 'MarkerEdgeColor', 'k', 'LineWidth', 2)];
                     end
                 end
             end
+            set(hAxes(allAxes), 'Children', [ublb_lines;  acc_lines; rej_lines]) % move UB/LB to top of plotting stack
         end
     end
 elseif strcmp(obj.PlotType,'Diagnostic') && ~isempty(Results)
@@ -212,7 +218,7 @@ elseif strcmp(obj.PlotType,'Diagnostic') && ~isempty(Results)
         currentAxis = unqAxis(axIdx);
         % get all species on this axis
         axSpecies = find(allAxes==currentAxis);
-        dpTimes = [];
+        dpTimes = {};
         % get groups that contain species on the current axis
         for itemIdx = 1:numel(Results)
         
@@ -226,7 +232,7 @@ elseif strcmp(obj.PlotType,'Diagnostic') && ~isempty(Results)
             % loop over the species in the acceptance criteria
             for spIdx =1:numel(axSpecies)
                 dataName = obj.PlotSpeciesTable(axSpecies(spIdx), 4); % name of species in acc. crit.
-                accIdx = strcmp(dataName, DataVec); % indices of entries in acc. crit. for this species
+                accIdx = strcmp(dataName, DataVec) & grpVec == itemIdx; % indices of entries in acc. crit. for this species & group
                 
                 accTime = TimeVec(accIdx); % time points in acc. crit.
                 % get time points that are simulated for this group and also in
@@ -238,11 +244,11 @@ elseif strcmp(obj.PlotType,'Diagnostic') && ~isempty(Results)
                 % points
                 dpData{itemIdx,spIdx} = reshape(Results{itemIdx}.Data(timeIdx, ColumnIdx(spIdx,:)), [], 1);
                 [~,timeGroup] = ismember(Results{itemIdx}.Time(timeIdx), compareTime); % unique time group index
-                dpGroup{itemIdx,spIdx} = repmat(timeGroup', NumVpop, 1); 
+                dpGroup{itemIdx,spIdx} = repmat(timeGroup, NumVpop, 1); 
                 accGroup_lb{itemIdx,spIdx} = LBVec( grpVec==itemIdx & accIdx & ismember(TimeVec, Results{itemIdx}.Time) );
                 accGroup_ub{itemIdx,spIdx} = UBVec( grpVec==itemIdx & accIdx & ismember(TimeVec, Results{itemIdx}.Time) );
 
-                dpTimes = union(dpTimes, timeGroup);
+                dpTime{itemIdx,spIdx} = timeGroup;
             end
         end
         
@@ -251,11 +257,11 @@ elseif strcmp(obj.PlotType,'Diagnostic') && ~isempty(Results)
         for itemIdx = 1:size(dpData,1)
             for spIdx = 1:size(dpData,2)
                 h = distributionPlot(hAxes(currentAxis), dpData{itemIdx,spIdx}, 'groups', dpGroup{itemIdx,spIdx}, 'widthDiv', [numel(dpData), counter], ...
-                    'xNames', compareTime(dpTimes), 'color', SelectedItemColors(itemIdx,:), 'showMM', 0, 'histOpt', 1);
+                    'xNames', compareTime(dpTime{itemIdx,spIdx}), 'color', SelectedItemColors(itemIdx,:), 'showMM', 0, 'histOpt', 1);
                 % add lines to distinguish species
                 style = obj.PlotSpeciesTable{axSpecies(spIdx),2};
 
-                for timeIdx = 1:numel(dpTimes)
+                for timeIdx = 1:numel(dpTime{itemIdx,spIdx})
                     x = mean(get(h{1}(timeIdx), 'XData'));
                     y = (accGroup_ub{itemIdx,spIdx}(timeIdx) + accGroup_lb{itemIdx,spIdx}(timeIdx))/2;
                     d = (accGroup_ub{itemIdx,spIdx}(timeIdx) - accGroup_lb{itemIdx,spIdx}(timeIdx))/2;
