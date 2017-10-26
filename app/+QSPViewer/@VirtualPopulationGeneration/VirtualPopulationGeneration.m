@@ -344,15 +344,22 @@ classdef VirtualPopulationGeneration < uix.abstract.CardViewPane
 %             hDlg = msgbox('TODO: Plot Parameter Distribution Diagnostics','Not Implemented','modal');
 %             uiwait(hDlg);            
             if ~isempty(vObj.Data.VPopName)
-                h = figure('Name', 'Paramter Distribution Diagnostic') %('Units', 'pixels', 'Position', [0 0 1000 6000]);
-                p = uix.ScrollingPanel('Parent', h, 'Units', 'Normalized', 'Position', [0 0 1 1]) %,  'Units', 'pixels', 'Position', [0 0 1000 600]);
+                h = figure('Name', 'Paramter Distribution Diagnostic'); %('Units', 'pixels', 'Position', [0 0 1000 6000]);
+                p = uix.ScrollingPanel('Parent', h, 'Units', 'Normalized', 'Position', [0 0 1 1]); %,  'Units', 'pixels', 'Position', [0 0 1000 600]);
                 
                 vpopFile = fullfile(vObj.Data.FilePath, vObj.Data.VPopResultsFolderName, vObj.Data.ExcelResultFileName);                
-                [num,txt,Raw] = xlsread(vpopFile);                
+                try
+                    [num,txt,Raw] = xlsread(vpopFile);                
+                catch err
+                    warning('Could not open vpop xlsx file')
+                    disp(err)
+                    return
+                end
+                    
                 nCol = size(Raw,2);
                 [dims,n] = numSubplots(nCol);
                 
-                g = uix.Grid('Parent', p) %,  'Units', 'pixels', 'Position', [0 0 200*dims(1) 200*dims(2)], 'Spacing', 1);
+                g = uix.Grid('Parent', p); %,  'Units', 'pixels', 'Position', [0 0 200*dims(1) 200*dims(2)], 'Spacing', 1);
                 
                 for k=1:nCol
                     ax=axes('Parent', g);
