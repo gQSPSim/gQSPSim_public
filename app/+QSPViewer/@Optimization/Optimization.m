@@ -288,9 +288,9 @@ classdef Optimization < uix.abstract.CardViewPane
                 
             elseif strcmpi(TableTag,'SpeciesData')
                 if ColIdx == 1
-                    vObj.TempData.SpeciesData(RowIdx).SpeciesName = NewData{RowIdx,1};
-                elseif ColIdx == 3
-                    vObj.TempData.SpeciesData(RowIdx).DataName = NewData{RowIdx,3};
+                    vObj.TempData.SpeciesData(RowIdx).DataName = NewData{RowIdx,1};
+                elseif ColIdx == 2
+                    vObj.TempData.SpeciesData(RowIdx).SpeciesName = NewData{RowIdx,2};                    
                 elseif ColIdx == 4
                     vObj.TempData.SpeciesData(RowIdx).FunctionExpression = NewData{RowIdx,4};
                 elseif ColIdx == 5
