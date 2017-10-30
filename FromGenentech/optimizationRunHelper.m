@@ -281,7 +281,13 @@ switch obj.AlgorithmName
         end
         
     case 'ParticleSwarm'
-        
+        warning('Particle Swarm not yet implemented')
+        StatusOK = false;
+        return
+    case 'Local'
+        warning('Local optimization not yet implemented')
+        StatusOK = false;
+        return
         %     case 'Local'
         %         % parameter bounds
         %         LB = paramData(:,1);
@@ -451,11 +457,7 @@ if SaveFlag
     if ispc
         xlswrite(fullfile(SaveFilePath,ResultsFileNames{end}),Vpop);
     else
-<<<<<<< HEAD
         xlwrite(fullfile(SaveFilePath,ResultsFileNames{end}),Vpop);
-=======
-        xlswrite(fullfile(SaveFilePath,ResultsFileNames{end}),Vpop);
->>>>>>> ae20b00e9d41c0e7f909159ed60ec168cf7bd29b
     end
 else
     StatusOK = false;
