@@ -193,8 +193,8 @@ if strcmp(obj.PlotType, 'Normal')
                     accTime = cell2mat(accCritData(accDataRows, strcmp(accCritHeader, 'Time')));
 
                     if any(accDataRows)
-                        ublb_lines = [ublb_lines; plot(hAxes(allAxes), accTime, LB, 'ko--', 'MarkerFaceColor', SelectedItemColors(itemIdx,:), 'MarkerEdgeColor', 'k', 'LineWidth', 2)];
-                        ublb_lines = [ublb_lines; plot(hAxes(allAxes), accTime, UB, 'ko--', 'MarkerFaceColor', SelectedItemColors(itemIdx,:), 'MarkerEdgeColor', 'k', 'LineWidth', 2)];
+                        ublb_lines = [ublb_lines; plot(hAxes(allAxes), accTime, LB, 'ko', 'LineStyle', 'none', 'MarkerFaceColor', SelectedItemColors(itemIdx,:), 'MarkerEdgeColor', 'k', 'LineWidth', 2)];
+                        ublb_lines = [ublb_lines; plot(hAxes(allAxes), accTime, UB, 'ko', 'LineStyle', 'none', 'MarkerFaceColor', SelectedItemColors(itemIdx,:), 'MarkerEdgeColor', 'k', 'LineWidth', 2)];
                     end
                 end
             end
@@ -202,79 +202,77 @@ if strcmp(obj.PlotType, 'Normal')
         end
     end
 elseif strcmp(obj.PlotType,'Diagnostic') && ~isempty(Results)
-    allAxes = str2double(obj.PlotSpeciesTable(:,1)); % all axes with species assigned to them
-    
-    % get all unique time points that exist in the simulation output and
-    % acc. criteria
+   
+    % all axes with species assigned to them
+    allAxes = str2double(obj.PlotSpeciesTable(:,1));
 
-    % all simulated time points
-    allTime = cell2mat(horzcat(cellfun(@(X) X.Time, Results, 'UniformOutput', false)));
-    compareTime = intersect(allTime,TimeVec);
+    % all species names
     spNames = unique(obj.PlotSpeciesTable(:,3));
 
     % loop over axes
     unqAxis = unique(allAxes);
     for axIdx = 1:numel(unqAxis)
         currentAxis = unqAxis(axIdx);
-        % get all species on this axis
-        axSpecies = find(allAxes==currentAxis);
-        dpTimes = {};
-        % get groups that contain species on the current axis
-        for itemIdx = 1:numel(Results)
-        
-            [~,ColumnIdx] = ismember(spNames(axSpecies),Results{itemIdx}.SpeciesNames);
-            % columns within the results object containing data for these
-            % species
-            NumSpecies = numel(Results{itemIdx}.SpeciesNames);
-            NumVpop = size(Results{itemIdx}.Data,2) / NumSpecies;
-            ColumnIdx = ColumnIdx + repelem(0:NumVpop-1, length(ColumnIdx), 1)*NumSpecies;
-            
-            % loop over the species in the acceptance criteria
-            for spIdx =1:numel(axSpecies)
-                dataName = obj.PlotSpeciesTable(axSpecies(spIdx), 4); % name of species in acc. crit.
-                accIdx = strcmp(dataName, DataVec) & grpVec == itemIdx; % indices of entries in acc. crit. for this species & group
-                
-                accTime = TimeVec(accIdx); % time points in acc. crit.
-                % get time points that are simulated for this group and also in
-                % the acceptance criteria
-                [b_time,timeIdx] = ismember(accTime, Results{itemIdx}.Time);
-                timeIdx = timeIdx(b_time);
+%         cla(hAxes(unqAxis(axIdx)))
 
-                % get the data points for this species at the correct time
-                % points
-                dpData{itemIdx,spIdx} = reshape(Results{itemIdx}.Data(timeIdx, ColumnIdx(spIdx,:)), [], 1);
-                [~,timeGroup] = ismember(Results{itemIdx}.Time(timeIdx), compareTime); % unique time group index
-                dpGroup{itemIdx,spIdx} = repmat(timeGroup, NumVpop, 1); 
-                accGroup_lb{itemIdx,spIdx} = LBVec( grpVec==itemIdx & accIdx & ismember(TimeVec, Results{itemIdx}.Time) );
-                accGroup_ub{itemIdx,spIdx} = UBVec( grpVec==itemIdx & accIdx & ismember(TimeVec, Results{itemIdx}.Time) );
+        % get all species for this axis
+        axSpecies = spNames(allAxes==currentAxis);
 
-                dpTime{itemIdx,spIdx} = timeGroup;
-            end
-        end
-        
-        % show all species/groups for each unique time point in this axis        
-        counter = 1;
-        for itemIdx = 1:size(dpData,1)
-            for spIdx = 1:size(dpData,2)
-                h = distributionPlot(hAxes(currentAxis), dpData{itemIdx,spIdx}, 'groups', dpGroup{itemIdx,spIdx}, 'widthDiv', [numel(dpData), counter], ...
-                    'xNames', compareTime(dpTime{itemIdx,spIdx}), 'color', SelectedItemColors(itemIdx,:), 'showMM', 0, 'histOpt', 1);
-                % add lines to distinguish species
-                style = obj.PlotSpeciesTable{axSpecies(spIdx),2};
+        axDataArray = {};
+        xlabArray = {};
+        colorArray = {};
+        UBArray = [];
+        LBArray = [];
 
-                for timeIdx = 1:numel(dpTime{itemIdx,spIdx})
-                    x = mean(get(h{1}(timeIdx), 'XData'));
-                    y = (accGroup_ub{itemIdx,spIdx}(timeIdx) + accGroup_lb{itemIdx,spIdx}(timeIdx))/2;
-                    d = (accGroup_ub{itemIdx,spIdx}(timeIdx) - accGroup_lb{itemIdx,spIdx}(timeIdx))/2;
-                    eb = errorbar(hAxes(currentAxis), x(1), y, d, d, 'Marker', 'none', 'LineStyle', 'none',  ..., ...
-                        'Color', SelectedItemColors(itemIdx,:), 'CapSize', 18);
-                    
-                    line(hAxes(currentAxis), x(1)*ones(1,2), [y-d,y+d], 'LineStyle', style, ...
-                        'Color', SelectedItemColors(itemIdx,:), 'LineWidth', 2)
+        % loop over the species on this axis
+        for spIdx = 1:length(axSpecies)    
+            currentSpec = axSpecies(spIdx);
+
+            % loop over all tasks and get the data for this species  
+            for itemIdx = 1:numel(Results)
+                % species in this task 
+                NumSpecies = numel(Results{itemIdx}.SpeciesNames);
+                dataName = obj.PlotSpeciesTable( strcmp(obj.PlotSpeciesTable(:,3), currentSpec), 4);
+
+                % time points for this species in this group in the acc. crit.
+                thisTime = TimeVec(grpVec == itemIdx & strcmp(DataVec, dataName));
+
+                % ub/lb
+                thisUB = UBVec(grpVec == itemIdx & strcmp(DataVec, dataName));
+                thisLB = LBVec(grpVec == itemIdx & strcmp(DataVec, dataName));
+
+                % get times that are in the acceptance criteria for this task / species      
+                [b_time,timeIdx] = ismember(thisTime, Results{itemIdx}.Time);
+                timeIdx = timeIdx(b_time); % rows to subset for data distributions
+
+                % index of all columns for this species in this group 
+                ColumnIdx = find( strcmp(Results{itemIdx}.SpeciesNames, currentSpec)) + find(obj.SimFlag) - 1;
+                NumVpop = size(Results{itemIdx}.Data,2) / NumSpecies;
+
+                thisData = Results{itemIdx}.Data(timeIdx, ColumnIdx);
+
+                for tix = 1:length(timeIdx)
+                    axDataArray = [axDataArray, thisData(tix,:)];
                 end
-                counter =  counter + 1;
+
+                xlabArray = [xlabArray; num2cell(thisTime)]; % add labels to array
+                colorArray = [colorArray; repmat({SelectedItemColors(itemIdx,:)}, length(thisTime), 1)];
+                UBArray = [UBArray; thisUB];
+                LBArray = [LBArray; thisLB];
             end
         end
+
+        % plot distribution plots for this axis
+        distributionPlot(hAxes(currentAxis), axDataArray, 'color', colorArray, 'xNames', xlabArray, 'showMM', 0, 'histOpt', 1.1)
+
+        % add error bars
+        for k=1:length(UBArray)
+            errorbar(hAxes(currentAxis), k, (UBArray(k)+LBArray(k))/2, (UBArray(k)-LBArray(k))/2, 'Marker', 'none', 'LineStyle', 'none',  ..., ...
+                            'Color', colorArray{k})
+        end
+
     end
+
 end
 
 %% Plot Dataset
@@ -283,7 +281,7 @@ Names = {obj.Settings.VirtualPopulationData.Name};
 MatchIdx = strcmpi(Names,obj.DatasetName);
 
 % Continue if dataset exists
-if any(MatchIdx)
+if strcmp(obj.PlotType,'Normal') && any(MatchIdx)
     % Get dataset
     dObj = obj.Settings.VirtualPopulationData(MatchIdx);
     
