@@ -344,9 +344,10 @@ classdef VirtualPopulationGeneration < uix.abstract.CardViewPane
 %             hDlg = msgbox('TODO: Plot Parameter Distribution Diagnostics','Not Implemented','modal');
 %             uiwait(hDlg);            
             if ~isempty(vObj.Data.VPopName)
-                h = figure('Name', 'Paramter Distribution Diagnostic'); %('Units', 'pixels', 'Position', [0 0 1000 6000]);
+                h = figure('Name', 'Parameter Distribution Diagnostic'); %('Units', 'pixels', 'Position', [0 0 1000 6000]);
                 p = uix.ScrollingPanel('Parent', h, 'Units', 'Normalized', 'Position', [0 0 1 1]); %,  'Units', 'pixels', 'Position', [0 0 1000 600]);
-                
+%                 set(p, 'Widths', 900)
+
                 vpopFile = fullfile(vObj.Data.FilePath, vObj.Data.VPopResultsFolderName, vObj.Data.ExcelResultFileName);                
                 try
                     [num,txt,Raw] = xlsread(vpopFile);                
@@ -360,16 +361,38 @@ classdef VirtualPopulationGeneration < uix.abstract.CardViewPane
                 [dims,n] = numSubplots(nCol);
                 
                 g = uix.Grid('Parent', p); %,  'Units', 'pixels', 'Position', [0 0 200*dims(1) 200*dims(2)], 'Spacing', 1);
+                MatchIdx = find(strcmp(vObj.Data.RefParamName,vObj.Data.Settings.Parameters.Name));
+                
+                LB = [];
+                UB = [];
+                
+                if ~isempty(MatchIdx)
+                    lbub = xlsread(vObj.Data.Settings.Parameters(MatchIdx).FilePath);
+                    LB = lbub(:,1);
+                    UB = lbub(:,2);
+                end
                 
                 for k=1:nCol
                     ax=axes('Parent', g);
                     hist(ax, num(:,k))
+                    if k <= length(LB)
+                        h2(1)=line(LB(k)*ones(1,2), get(ax,'YLim'));
+                        h2(2)=line(UB(k)*ones(1,2), get(ax,'YLim'));
+                        set(h2,'LineStyle','--','Color','r')
+                    end
                     title(ax, txt{k}, 'Interpreter', 'none')
                     set(ax, 'TitleFontWeight', 'bold' )
                 end          
                 
-                set(g, 'Heights', 300*ones(dims(1),1), 'Widths', 300*ones(dims(2),1))
-                set(p, 'Widths', 1000, 'Heights', 600)
+                for k=(nCol+1):prod(dims)
+                    uix.Empty('Parent', g)
+                end
+%                 set(g, 'Heights', 300*ones(dims(1),1), 'Widths', 300*ones(dims(2),1))
+
+                set(g, 'Widths', 300*ones(1,dims(2)), 'Heights', 300*ones(1,dims(1)) )
+                set(p, 'Widths', 900, 'Heights', 900)
+
+                
 %                 set(g, 'Heights', -ones(dims(1),1), 'Widths', -ones(dims(2),1))
                 
                 
