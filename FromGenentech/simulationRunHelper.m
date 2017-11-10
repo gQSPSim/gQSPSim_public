@@ -200,7 +200,8 @@ for ii = 1:nItems
         
         % select parameters that vary in the vpop
         if isempty(paramNames_i)
-            pObj_i = []; 
+%             pObj_i = []; 
+            pObj_i = SimBiology.Parameter;          
         else
             clear pObj_i
         end
@@ -245,7 +246,9 @@ for ii = 1:nItems
         
         % select parameters in Pin
         if isempty(paramNames_i)
-            pObj_i = []; 
+%             pObj_i = []; 
+            pObj_i = SimBiology.Parameter;
+            
         else
             clear pObj_i
         end 
@@ -266,6 +269,9 @@ for ii = 1:nItems
         % select parameters in Pin
         if isempty(paramNames)
             pObj_i = []; 
+%         if isempty(paramNames_i)
+% %             pObj_i = []; 
+%             pObj_i = SimBiology.Parameter;
         else
             clear pObj_i
         end       
