@@ -291,9 +291,8 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 DataMappingIndex = ismember({obj.SpeciesData.DataName},OptimHeader(:)');
                  
                 % Check Objective Fcn
-                ObjectiveFunctionsPath = fullfile(obj.Session.RootDirectory,'Objective Functions');
-                if exist(ObjectiveFunctionsPath,'dir')
-                    FileList = dir(ObjectiveFunctionsPath);
+                if exist(obj.Session.FunctionsDirectory,'dir')
+                    FileList = dir(obj.Session.FunctionsDirectory);
                     IsDir = [FileList.isdir];
                     ObjectiveFcns = {FileList(~IsDir).name};
                     ObjectiveFcns = vertcat({'defaultObj'},ObjectiveFcns(:));

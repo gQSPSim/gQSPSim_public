@@ -33,6 +33,10 @@ for index = 1:numel(hAxes)
     hold(hAxes(index),'on')    
 end
 
+% TODO: These are not passed out
+StatusOK = true;
+Message = '';
+
 % load acceptance criteria
 Names = {obj.Settings.VirtualPopulationData.Name};
 MatchIdx = strcmpi(Names,obj.DatasetName);
@@ -85,7 +89,8 @@ if any(RunInds) && ~isempty(obj.VPopName)
     simObj.Session = obj.Session;
     for ii = 1:nSelected
         simObj.Item(ii) = QSP.TaskVirtualPopulation;
-        simObj.Item(ii).TaskName = obj.Item(SelectedInds(ii)).TaskName;
+        % NOTE: Indexing into Item may not be valid from PlotItemTable (Incorrect if there are/were invalids: simObj.Item(ii).TaskName = obj.Item(SelectedInds(ii)).TaskName;)
+        simObj.Item(ii).TaskName = obj.PlotItemTable{SelectedInds(ii),3};
         simObj.Item(ii).VPopName = obj.VPopName;
     end
 else
@@ -178,9 +183,11 @@ if strcmp(obj.PlotType, 'Normal')
                             'Color',[0.5,0.5,0.5])];  
                     end
                     
-                    acc_lines = [acc_lines; plot(hAxes(allAxes),Results{itemIdx}.Time,Results{itemIdx}.Data(:,setdiff(ColumnIdx, ColumnIdx_invalid)),...
-                        'LineStyle',ThisLineStyle,...
-                        'Color',SelectedItemColors(itemIdx,:))];             
+                    if ~isempty(Results{itemIdx}.Data(:,setdiff(ColumnIdx, ColumnIdx_invalid)))
+                        acc_lines = [acc_lines; plot(hAxes(allAxes),Results{itemIdx}.Time,Results{itemIdx}.Data(:,setdiff(ColumnIdx, ColumnIdx_invalid)),...
+                            'LineStyle',ThisLineStyle,...
+                            'Color',SelectedItemColors(itemIdx,:))];
+                    end
 
                     % add upper and lower bounds if applicable
                     DataCol = find(strcmp(accCritHeader,'Data'));

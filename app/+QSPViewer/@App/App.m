@@ -272,7 +272,8 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
             
             % Check the type
             % If either Simulation, Optimization, or Virtual Population Generation, re-plot            
-            if ~isempty(SelNode)
+            if ~isempty(SelNode) ...
+                    && ~isempty(obj.ActivePane) && isprop(obj.ActivePane,'h') && isfield(obj.ActivePane.h,'MainAxes')
                 thisObj = SelNode.Value;
                 switch class(thisObj)
                     case 'QSP.Simulation'
@@ -294,6 +295,22 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
                         obj.h.SessionTree.Enable = false;
                         obj.h.FileMenu.Menu.Enable = 'off';
                         obj.h.QSPMenu.Menu.Enable = 'off';
+                    case 'Visualize'
+                        SelNode = obj.h.SessionTree.SelectedNodes;
+                        % Check the type
+                        % If either Simulation, Optimization, or Virtual Population Generation, re-plot
+                        if ~isempty(SelNode) ...
+                                && ~isempty(obj.ActivePane) && isprop(obj.ActivePane,'h') && isfield(obj.ActivePane.h,'MainAxes')
+                            thisObj = SelNode.Value;
+                            switch class(thisObj)
+                                case 'QSP.Simulation'
+                                    plotSimulation(thisObj,obj.ActivePane.h.MainAxes);
+                                case 'QSP.Optimization'
+                                    plotOptimization(thisObj,obj.ActivePane.h.MainAxes);
+                                case 'QSP.VirtualPopulationGeneration'
+                                    plotVirtualPopulationGeneration(thisObj,obj.ActivePane.h.MainAxes);
+                            end
+                        end
                     otherwise
                         obj.h.SessionTree.Enable = true;
                         obj.h.FileMenu.Menu.Enable = 'on';

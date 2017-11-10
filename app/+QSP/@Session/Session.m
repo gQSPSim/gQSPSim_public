@@ -24,6 +24,10 @@ classdef Session < matlab.mixin.SetGet & uix.mixin.AssignPVPairs & uix.mixin.Has
     %
     %   ResultsDirectory -
     %
+    %   RelativeResultsPath -
+    %
+    %   RelativeFunctionsPath -
+    %
     % QSP.Session Methods:
     %
     %    
@@ -46,12 +50,14 @@ classdef Session < matlab.mixin.SetGet & uix.mixin.AssignPVPairs & uix.mixin.Has
         Deleted = QSP.abstract.BaseProps.empty(1,0)
         RootDirectory = pwd
         RelativeResultsPath = ''
+        RelativeFunctionsPath = ''
         ColorMap1
         ColorMap2
     end
     
     properties (Dependent=true, SetAccess='immutable')
         ResultsDirectory
+        FunctionsDirectory
     end
     
     
@@ -136,8 +142,17 @@ classdef Session < matlab.mixin.SetGet & uix.mixin.AssignPVPairs & uix.mixin.Has
             obj.RelativeResultsPath = fullfile(Value);
         end %function
         
+        function set.RelativeFunctionsPath(obj,Value)
+            validateattributes(Value,{'char'},{});
+            obj.RelativeFunctionsPath = fullfile(Value);
+        end %function
+        
         function value = get.ResultsDirectory(obj)
             value = fullfile(obj.RootDirectory, obj.RelativeResultsPath);
+        end
+        
+        function value = get.FunctionsDirectory(obj)
+            value = fullfile(obj.RootDirectory, obj.RelativeFunctionsPath);
         end
         
         function set.ColorMap1(obj,Value)

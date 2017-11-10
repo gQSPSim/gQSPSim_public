@@ -268,13 +268,42 @@ classdef (Abstract) AppWithSessionFiles < uix.abstract.AppWindow
                 
                 % Do we need to prompt for a filename?
                 if UseSaveAs || IsNewFile
-                    [FileName,PathName] = uiputfile(obj.FileSpec, ...
+                    
+                    % Need special handling for non-PC
+                    [PathName,FileName] = fileparts(ThisFile);
+                    FileName = regexp(FileName,'\.','split');
+                    if iscell(FileName)
+                        FileName = FileName{1};
+                    end
+                    ThisFile = fullfile(PathName,FileName);
+                    
+                    [FileName,PathName,FilterIndex] = uiputfile(obj.FileSpec, ...
                         'Save as',ThisFile);
                     if isequal(FileName,0)
                         return %user cancelled
                     end
+                    
+                    if iscell(obj.FileSpec)
+                        FileExt = obj.FileSpec{FilterIndex,1};
+                    else
+                        FileExt = obj.FileSpec;
+                    end
+                    
+                    % If it's missing the full FileExt (i.e. on Mac/Linux)
+                    if ~isempty(regexp(FileName,FileExt,'once'))
+                        FileName = regexp(FileName,'\.','split');
+                        if iscell(FileName)
+                            FileName = FileName{1};
+                        end
+                        if ~isempty(FileExt)
+                            FileExt = FileExt(2:end);
+                        end
+                        FileName = [FileName,FileExt]; %#ok<AGROW>
+                    end
+                    
                     ThisFile = fullfile(PathName,FileName);
                     obj.LastFolder = PathName;
+                    
                 end
                 
                 % Try save. If it returns ok, then update ui states.

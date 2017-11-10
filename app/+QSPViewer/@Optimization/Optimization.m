@@ -441,6 +441,9 @@ classdef Optimization < uix.abstract.CardViewPane
             if ~StatusOk
                 hDlg = errordlg(Message,'Cannot import','modal');
                 uiwait(hDlg);
+            else
+                % Plot
+                plotOptimization(vObj.Data,vObj.h.MainAxes);
             end
             
             % Update the view
