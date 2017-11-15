@@ -358,8 +358,7 @@ classdef VirtualPopulationGeneration < uix.abstract.CardViewPane
                 end
                     
                 nCol = size(Raw,2);
-                [dims,n] = numSubplots(nCol);
-                
+               
                 g = uix.Grid('Parent', p); %,  'Units', 'pixels', 'Position', [0 0 200*dims(1) 200*dims(2)], 'Spacing', 1);
                 MatchIdx = find(strcmp(vObj.Data.RefParamName,vObj.Data.Settings.Parameters.Name));
                 

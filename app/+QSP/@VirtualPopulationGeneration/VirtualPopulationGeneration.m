@@ -32,10 +32,7 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
         VPopResultsFolderName = 'VPopResults' 
         ExcelResultFileName = ''
         VPopName = '' % VPop name from running vpop gen
-        
-        SimResults = {} % cached simulation results
-        SimFlag = [] % valid/invalid flag for simulation
-        
+              
         DatasetName = '' % VirtualPopulationData Name
         RefParamName = '' % Parameters.Name
         GroupName = ''
@@ -66,6 +63,12 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
             'Normal'
             'Diagnostic'
             }
+    end
+    
+    %% Transient Properties
+    properties (Transient=true)
+        SimResults = {} % cached simulation results
+        SimFlag = [] % valid/invalid flag for simulation
     end
     
     
