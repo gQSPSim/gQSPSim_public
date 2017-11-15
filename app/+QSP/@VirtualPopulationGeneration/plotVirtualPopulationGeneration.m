@@ -143,8 +143,6 @@ SelectedItemColors = cell2mat(obj.PlotItemTable(IsSelected,2));
 
 %% Plot Simulation Items
 
-
-
 if strcmp(obj.PlotType, 'Normal')
     for sIdx = 1:size(obj.PlotSpeciesTable,1)
         allAxes = str2double(obj.PlotSpeciesTable{sIdx,1});
@@ -214,7 +212,7 @@ elseif strcmp(obj.PlotType,'Diagnostic') && ~isempty(Results)
     allAxes = str2double(obj.PlotSpeciesTable(:,1));
 
     % all species names
-    spNames = unique(obj.PlotSpeciesTable(:,3));
+    spNames = obj.PlotSpeciesTable(:,3);
 
     % loop over axes
     unqAxis = unique(allAxes);
@@ -253,8 +251,13 @@ elseif strcmp(obj.PlotType,'Diagnostic') && ~isempty(Results)
                 timeIdx = timeIdx(b_time); % rows to subset for data distributions
 
                 % index of all columns for this species in this group 
-                ColumnIdx = find( strcmp(Results{itemIdx}.SpeciesNames, currentSpec)) + find(obj.SimFlag) - 1;
                 NumVpop = size(Results{itemIdx}.Data,2) / NumSpecies;
+                
+                if ~obj.ShowInvalidVirtualPatients
+                    ColumnIdx = find( strcmp(Results{itemIdx}.SpeciesNames, currentSpec)) + (find(obj.SimFlag)-1)*NumSpecies ;
+                else
+                    ColumnIdx = find( strcmp(Results{itemIdx}.SpeciesNames, currentSpec)) + (0:NumVpop-1)*NumSpecies;
+                end
 
                 thisData = Results{itemIdx}.Data(timeIdx, ColumnIdx);
 
