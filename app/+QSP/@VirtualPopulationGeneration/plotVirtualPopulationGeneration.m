@@ -175,14 +175,19 @@ if strcmp(obj.PlotType, 'Normal')
                     % Plot
                     % Normal plot type
                     % plot over for just the invalid / rejected vpatients
+                    
+                    % transform data 
+                    thisData = obj.SpeciesData(sIdx).evaluate(Results{itemIdx}.Data);
+
                     if ~isempty(ColumnIdx_invalid) && obj.ShowInvalidVirtualPatients
-                        rej_lines = [rej_lines; plot(hAxes(allAxes),Results{itemIdx}.Time,Results{itemIdx}.Data(:,ColumnIdx_invalid),...
+                        
+                        rej_lines = [rej_lines; plot(hAxes(allAxes),Results{itemIdx}.Time,thisData(:,ColumnIdx_invalid),...
                             'LineStyle',ThisLineStyle,...
                             'Color',[0.5,0.5,0.5])];  
                     end
                     
                     if ~isempty(Results{itemIdx}.Data(:,setdiff(ColumnIdx, ColumnIdx_invalid)))
-                        acc_lines = [acc_lines; plot(hAxes(allAxes),Results{itemIdx}.Time,Results{itemIdx}.Data(:,setdiff(ColumnIdx, ColumnIdx_invalid)),...
+                        acc_lines = [acc_lines; plot(hAxes(allAxes),Results{itemIdx}.Time,thisData(:,setdiff(ColumnIdx, ColumnIdx_invalid)),...
                             'LineStyle',ThisLineStyle,...
                             'Color',SelectedItemColors(itemIdx,:))];
                     end
@@ -232,9 +237,10 @@ elseif strcmp(obj.PlotType,'Diagnostic') && ~isempty(Results)
         % loop over the species on this axis
         for spIdx = 1:length(axSpecies)    
             currentSpec = axSpecies(spIdx);
-
+            currentSpecIdx = find(strcmp(currentSpec, obj.PlotSpeciesTable(:,3)));
             % loop over all tasks and get the data for this species  
             for itemIdx = 1:numel(Results)
+
                 % species in this task 
                 NumSpecies = numel(Results{itemIdx}.SpeciesNames);
                 dataName = obj.PlotSpeciesTable( strcmp(obj.PlotSpeciesTable(:,3), currentSpec), 4);
@@ -259,7 +265,7 @@ elseif strcmp(obj.PlotType,'Diagnostic') && ~isempty(Results)
                     ColumnIdx = find( strcmp(Results{itemIdx}.SpeciesNames, currentSpec)) + (0:NumVpop-1)*NumSpecies;
                 end
 
-                thisData = Results{itemIdx}.Data(timeIdx, ColumnIdx);
+                thisData = obj.SpeciesData(currentSpecIdx).evaluate(Results{itemIdx}.Data(timeIdx, ColumnIdx));
 
                 for tix = 1:length(timeIdx)
                     axDataArray = [axDataArray, thisData(tix,:)];

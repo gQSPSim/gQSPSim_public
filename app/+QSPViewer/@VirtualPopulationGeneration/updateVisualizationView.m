@@ -163,7 +163,7 @@ if ~isempty(vObj.Data)
         for index = 1:size(vObj.Data.PlotItemTable,1)
             % If results file is missing and it's not already an invalid
             % row, then mark as missing
-            if FlagIsInvalidResultFile && ~ismember(vObj.PlotItemInvalidRowIndices,index)
+            if FlagIsInvalidResultFile && (isempty(vObj.PlotItemInvalidRowIndices) || ~ismember(vObj.PlotItemInvalidRowIndices,index))
                 TableData{index,3} = QSP.makeMissing(TableData{index,3});
                 TableData{index,4} = QSP.makeMissing(TableData{index,4});
             end %if
