@@ -42,6 +42,14 @@ end
 
 
 if ~isempty(accCritHeader) && ~isempty(accCritData)
+    
+    % filter out any acceptance criteria that are not included
+    includeIdx = accCritData(:,strcmp('Include',accCritHeader));
+    if ~isempty(includeIdx)
+        tmp = cell2mat(includeIdx);
+        accCritData = accCritData(tmp==1,:);
+    end
+    
     spIdx = ismember( accCritData(:,3), Mappings(:,2));
     % [Group, Species, Time, LB, UB]
     Groups = cell2mat(accCritData(spIdx,strcmp('Group',accCritHeader)));
