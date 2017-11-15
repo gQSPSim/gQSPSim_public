@@ -37,7 +37,7 @@ if ~isempty(vObj.TempData)
         end
     end
     
-    Data = [SpeciesNames(:) num2cell(NumTasksPerSpecies(:)) DataNames(:) FunctionExpressions(:)];
+    Data = [SpeciesNames(:) num2cell(NumTasksPerSpecies(:)) FunctionExpressions(:) DataNames(:)];
     
     % Mark any invalid entries
     if ~isempty(Data)
@@ -49,7 +49,7 @@ if ~isempty(vObj.TempData)
         % Data
         MatchIdx = find(~ismember(DataNames(:),vObj.DatasetDataColumn(:)));
         for index = 1:numel(MatchIdx)
-            Data{MatchIdx(index),3} = QSP.makeInvalid(Data{MatchIdx(index),3});
+            Data{MatchIdx(index),4} = QSP.makeInvalid(Data{MatchIdx(index),4});
         end        
     end
 else

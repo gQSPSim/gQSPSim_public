@@ -407,6 +407,12 @@ classdef Simulation < uix.abstract.CardViewPane
             
         end %function
         
+        function onNavigation(vObj,View)
+            
+            onNavigation@uix.abstract.CardViewPane(vObj,View);
+            
+        end %function
+        
     end
         
     

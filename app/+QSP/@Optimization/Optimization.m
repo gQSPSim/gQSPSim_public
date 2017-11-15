@@ -97,13 +97,32 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         
         function Summary = getSummary(obj)
             
-            % Items
             if ~isempty(obj.Item)
-                OptimizationItems = cellfun(@(x,y)sprintf('%s - %s',x,y),{obj.Item.TaskName},{obj.Item.GroupID},'UniformOutput',false);
+                OptimizationItems = {};
+                % Check what items are stale or invalid
+                [StaleFlag,ValidFlag] = getStaleItemIndices(obj);
+
+                for index = 1:numel(obj.Item)
+                    ThisResultFilePath = obj.ExcelResultFileName{index};
+                    if isempty(ThisResultFilePath)
+                        ThisResultFilePath = 'Results: N/A';
+                    end
+
+                    % Default
+                    ThisItem = sprintf('%s - %s (%s)',obj.Item(index).TaskName,obj.Item(index).GroupID,ThisResultFilePath);
+                    if StaleFlag(index)
+                        % Item may be out of date
+                        ThisItem = sprintf('***WARNING*** %s\n%s\n',ThisItem,'***Item may be out of date***');
+                    elseif ~ValidFlag(index)
+                        % Display invalid
+                        ThisItem = sprintf('***INVALID*** %s\n',ThisItem);
+                    end
+                    OptimizationItems = [OptimizationItems; ThisItem]; %#ok<AGROW>
+                end
             else
                 OptimizationItems = {};
-            end    
-            
+            end
+
             % Species-Data mapping
             if ~isempty(obj.SpeciesData)
                 SpeciesDataItems = cellfun(@(x,y)sprintf('%s - %s',x,y),{obj.SpeciesData.SpeciesName},{obj.SpeciesData.DataName},'UniformOutput',false);
@@ -497,7 +516,113 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             else
                 vpopObj = QSP.VirtualPopulation.empty(0,1);
             end
+        end %function
+        
+        function [StaleFlag,ValidFlag] = getStaleItemIndices(obj)
             
+            StaleFlag = false(1,numel(obj.Item));
+            ValidFlag = true(1,numel(obj.Item));
+            
+            % Check if OptimizationData is valid
+            ThisList = {obj.Settings.OptimizationData.Name};
+            MatchIdx = strcmpi(ThisList,obj.DatasetName);
+            if any(MatchIdx)
+                dObj = obj.Settings.OptimizationData(MatchIdx);
+                ThisStatusOk = validate(dObj);
+                ForceMarkAsInvalid = ~ThisStatusOk;
+                
+                if ThisStatusOk
+                    
+                    DestDatasetType = 'wide';
+                    [~,~,OptimHeader,OptimData] = importData(dObj,dObj.FilePath,DestDatasetType);
+                    
+                    MatchIdx = strcmp(OptimHeader,obj.GroupName);
+                    GroupIDs = OptimData(:,MatchIdx);
+                    
+                    if iscell(GroupIDs)
+                        GroupIDs = cell2mat(GroupIDs);
+                    end
+                    GroupIDs = unique(GroupIDs);
+                else
+                    GroupIDs = {};
+                end
+            else
+                ForceMarkAsInvalid = false;
+            end
+            
+            % ONLY if OptimizationData is valid, check Parameters
+            if ForceMarkAsInvalid
+                ThisList = {obj.Settings.Parameters.Name};
+                MatchIdx = strcmpi(ThisList,obj.RefParamName);
+                if any(MatchIdx)
+                    pObj = obj.Settings.Parameters(MatchIdx);
+                    ThisStatusOk = validate(pObj);
+                    ForceMarkAsInvalid = ~ThisStatusOk;
+                else
+                    ForceMarkAsInvalid = false;
+                end
+            end
+            
+            for index = 1:numel(obj.Item)
+                % Validate Task-Group and ExcelFilePath
+                ThisTask = getValidSelectedTasks(obj.Settings,obj.Item(index).TaskName);
+                % Validate groupID
+                MatchGroup = ismember(obj.Item(index).GroupID,GroupIDs);                
+               
+                if ~ForceMarkAsInvalid && ...
+                        ~isempty(ThisTask) && ...
+                        ~isempty(ThisTask.LastSavedTime) && ...
+                        any(MatchGroup) && ...
+                        ~isempty(obj.LastSavedTime)
+                    
+                    % Compare times
+                    
+                    % Optimization object (this)
+                    OptimLastSavedTime = datenum(obj.LastSavedTime);
+                    
+                    % Task object (item)
+                    TaskLastSavedTime = datenum(ThisTask.LastSavedTime);
+                    
+                    % SimBiology Project file from Task
+                    FileInfo = dir(ThisTask.FilePath);
+                    TaskProjectLastSavedTime = FileInfo.datenum;
+                    
+                    % OptimizationData object and file
+                    OptimizationDataLastSavedTime = dObj.LastSavedTime;
+                    FileInfo = dir(dObj.FilePath);
+                    OptimizationDataFileLastSavedTime = FileInfo.datenum;
+                    
+                    % Parameter object and file
+                    ParametersLastSavedTime = pObj.LastSavedTime;
+                    FileInfo = dir(pObj.FilePath);
+                    ParametersFileLastSavedTime = FileInfo.datenum;                    
+                    
+                    % Results file
+                    ThisFilePath = fullfile(obj.Session.RootDirectory,obj.OptimResultsFolderName,obj.ExcelResultFileName{index});
+                    if exist(ThisFilePath,'file') == 2
+                        FileInfo = dir(ThisFilePath);                        
+                        ResultLastSavedTime = FileInfo.datenum;
+                    else
+                        ResultLastSavedTime = '';
+                    end
+                    
+                    % Check
+                    if OptimLastSavedTime < TaskLastSavedTime || ...
+                            OptimLastSavedTime < TaskProjectLastSavedTime || ...   
+                            OptimLastSavedTime < OptimizationDataLastSavedTime || ...
+                            OptimLastSavedTime < OptimizationDataFileLastSavedTime || ...
+                            OptimLastSavedTime < ParametersLastSavedTime || ...
+                            OptimLastSavedTime < ParametersFileLastSavedTime || ...
+                            (~isempty(ResultLastSavedTime) && OptimLastSavedTime > ResultLastSavedTime)
+                        % Item may be out of date
+                        StaleFlag(index) = true;
+                    end
+                    
+                elseif ForceMarkAsInvalid || isempty(ThisTask) || ~any(MatchGroup)
+                    % Display invalid
+                    ValidFlag(index) = false;                    
+                end                
+            end 
         end %function
         
     end %methods

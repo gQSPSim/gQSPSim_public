@@ -275,13 +275,15 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
             if ~isempty(SelNode) ...
                     && ~isempty(obj.ActivePane) && isprop(obj.ActivePane,'h') && isfield(obj.ActivePane.h,'MainAxes')
                 thisObj = SelNode.Value;
-                switch class(thisObj)
-                    case 'QSP.Simulation'
-                        plotSimulation(thisObj,obj.ActivePane.h.MainAxes);
-                    case 'QSP.Optimization'                        
-                        plotOptimization(thisObj,obj.ActivePane.h.MainAxes);
-                    case 'QSP.VirtualPopulationGeneration'
-                        plotVirtualPopulationGeneration(thisObj,obj.ActivePane.h.MainAxes);
+                if obj.ActivePane.Selection == 3
+                    switch class(thisObj)
+                        case 'QSP.Simulation'
+                            plotSimulation(thisObj,obj.ActivePane.h.MainAxes);
+                        case 'QSP.Optimization'
+                            plotOptimization(thisObj,obj.ActivePane.h.MainAxes);
+                        case 'QSP.VirtualPopulationGeneration'
+                            plotVirtualPopulationGeneration(thisObj,obj.ActivePane.h.MainAxes);
+                    end
                 end
             end
             

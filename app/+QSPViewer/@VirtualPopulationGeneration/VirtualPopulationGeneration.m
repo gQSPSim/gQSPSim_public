@@ -248,9 +248,9 @@ classdef VirtualPopulationGeneration < uix.abstract.CardViewPane
                 if ColIdx == 1
                     vObj.TempData.SpeciesData(RowIdx).SpeciesName = NewData{RowIdx,1};
                 elseif ColIdx == 3
-                    vObj.TempData.SpeciesData(RowIdx).DataName = NewData{RowIdx,3};
+                    vObj.TempData.SpeciesData(RowIdx).FunctionExpression = NewData{RowIdx,3};
                 elseif ColIdx == 4
-                    vObj.TempData.SpeciesData(RowIdx).FunctionExpression = NewData{RowIdx,4};
+                    vObj.TempData.SpeciesData(RowIdx).DataName = NewData{RowIdx,4};
                 elseif ColIdx == 5
                     vObj.TempData.SpeciesData(RowIdx).ObjectiveName = NewData{RowIdx,5};
                 end
@@ -539,6 +539,12 @@ classdef VirtualPopulationGeneration < uix.abstract.CardViewPane
                 hDlg = errordlg('Please select a row first to set new color.','No row selected','modal');
                 uiwait(hDlg);
             end
+        end %function
+        
+        function onNavigation(vObj,View)
+            
+            onNavigation@uix.abstract.CardViewPane(vObj,View);
+            
         end %function
         
     end

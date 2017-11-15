@@ -512,6 +512,12 @@ classdef Optimization < uix.abstract.CardViewPane
             end
         end %function
         
+        function onNavigation(vObj,View)
+            
+            onNavigation@uix.abstract.CardViewPane(vObj,View);
+            
+        end %function
+        
     end
         
     

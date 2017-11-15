@@ -45,8 +45,8 @@ if ~isempty(vObj.Data)
         set(vObj.h.VisualizeButton,'Enable','on');
     else
         % Navigate to Summary view if not already on it
-        if vObj.Selection ~= 1
-            onNavigation@uix.abstract.CardViewPane(vObj,'Summary');
+        if vObj.Selection == 3
+            onNavigation(vObj,'Summary');
         end
         set(vObj.h.VisualizeButton,'Enable','off');        
     end
