@@ -148,7 +148,7 @@ if strcmp(obj.PlotType, 'Normal')
         allAxes = str2double(obj.PlotSpeciesTable{sIdx,1});
 %         cla(hAxes(allAxes))
         if ~isnan(allAxes)
-            set(hAxes(allAxes),'XTickMode','auto','XTickLabelMode','auto')
+            set(hAxes(allAxes),'XTickMode','auto','XTickLabelMode','auto','YTickMode','auto','YTickLabelMode','auto')
         end
         ThisLineStyle = obj.PlotSpeciesTable{sIdx,2};
         ThisName = obj.PlotSpeciesTable{sIdx,3};
