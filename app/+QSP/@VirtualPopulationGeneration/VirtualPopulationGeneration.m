@@ -43,6 +43,8 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
         MaxNumSimulations = 5000
         MaxNumVirtualPatients = 500
         
+        PrevalenceWeights = []
+        
         PlotSpeciesTable = cell(0,3)
         PlotItemTable = cell(0,4) 
         

@@ -400,7 +400,11 @@ end
 if StatusOK
     
     SaveFlag = true;
+    % add prevalence weight
     Vpop = [[paramNames; 'PWeight']'; [num2cell(Vpop), num2cell(isValid)]];
+    % save prevalence weight to object
+    obj.PrevalenceWeights = isValid;
+    
     % save results
     SaveFilePath = fullfile(obj.Session.RootDirectory,obj.VPopResultsFolderName);
     if ~exist(SaveFilePath,'dir')

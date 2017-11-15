@@ -156,6 +156,7 @@ if strcmp(obj.PlotType, 'Normal')
         acc_lines = [];
         rej_lines = [];
         ublb_lines = [];
+        mean_line = [];
         
         if ~isempty(allAxes) && ~isnan(allAxes)
             for itemIdx = 1:numel(Results)
@@ -179,18 +180,26 @@ if strcmp(obj.PlotType, 'Normal')
                     % transform data 
                     thisData = obj.SpeciesData(sIdx).evaluate(Results{itemIdx}.Data);
 
-                    if ~isempty(ColumnIdx_invalid) && obj.ShowInvalidVirtualPatients
-                        
+                    % invalid lines
+                    if ~isempty(ColumnIdx_invalid) && obj.ShowInvalidVirtualPatients                        
                         rej_lines = [rej_lines; plot(hAxes(allAxes),Results{itemIdx}.Time,thisData(:,ColumnIdx_invalid),...
                             'LineStyle',ThisLineStyle,...
                             'Color',[0.5,0.5,0.5])];  
                     end
                     
+                    % valid lines
                     if ~isempty(Results{itemIdx}.Data(:,setdiff(ColumnIdx, ColumnIdx_invalid)))
                         acc_lines = [acc_lines; plot(hAxes(allAxes),Results{itemIdx}.Time,thisData(:,setdiff(ColumnIdx, ColumnIdx_invalid)),...
                             'LineStyle',ThisLineStyle,...
                             'Color',SelectedItemColors(itemIdx,:))];
                     end
+                    
+                    % mean
+                    mean_line = plot(hAxes(allAxes), Results{itemIdx}.Time, thisData(:,ColumnIdx) * obj.PrevalenceWeights/sum(obj.PrevalenceWeights),...
+                        'LineStyle',ThisLineStyle,...
+                        'Color','k', ...SelectedItemColors(itemIdx,:), 
+                        'LineWidth', 3);
+
 
                     % add upper and lower bounds if applicable
                     DataCol = find(strcmp(accCritHeader,'Data'));
@@ -208,7 +217,7 @@ if strcmp(obj.PlotType, 'Normal')
                     end
                 end
             end
-            set(hAxes(allAxes), 'Children', [ublb_lines;  acc_lines; rej_lines]) % move UB/LB to top of plotting stack
+            set(hAxes(allAxes), 'Children', [ublb_lines; mean_line; acc_lines; rej_lines]) % move UB/LB to top of plotting stack
         end
     end
 elseif strcmp(obj.PlotType,'Diagnostic') && ~isempty(Results)
