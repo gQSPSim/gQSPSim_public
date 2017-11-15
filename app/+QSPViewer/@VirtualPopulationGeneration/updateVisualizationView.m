@@ -105,24 +105,25 @@ if ~isempty(vObj.Data)
     TaskNames = {vObj.Data.Item.TaskName};
     GroupIDNames = {vObj.Data.Item.GroupID};
     
-    RemoveIndices = false(size(TaskNames));
+    InvalidIndices = false(size(TaskNames));
     for idx = 1:numel(TaskNames)
         % Check if the task is valid
         ThisTask = getValidSelectedTasks(vObj.Data.Settings,TaskNames{idx});
         MissingGroup = ~ismember(GroupIDNames{idx},GroupIDs(:)');
         if isempty(ThisTask) || MissingGroup
-            RemoveIndices(idx) = true;
+            InvalidIndices(idx) = true;
         end
     end
    
-    if any(RemoveIndices)
-        % Then, prune
-        TaskNames(RemoveIndices) = [];
-        GroupIDNames(RemoveIndices) = [];
-    end
-    
     % If empty, populate
     if isempty(vObj.Data.PlotItemTable)
+        
+        if any(InvalidIndices)
+            % Then, prune
+            TaskNames(InvalidIndices) = [];
+            GroupIDNames(InvalidIndices) = [];
+        end
+        
         vObj.Data.PlotItemTable = cell(numel(TaskNames),4);
         vObj.Data.PlotItemTable(:,1) = {false};
         vObj.Data.PlotItemTable(:,3) = TaskNames;
@@ -144,26 +145,30 @@ if ~isempty(vObj.Data)
         NewPlotTable(:,2) = num2cell(NewColors,2);   
         
         % Update Table
-        [vObj.Data.PlotItemTable,vObj.PlotItemAsInvalidTable,vObj.PlotItemInvalidRowIndices] = QSPViewer.updateVisualizationTable(vObj.Data.PlotItemTable,NewPlotTable,[3 4]);
+        KeyColumn = [3 4];
+        [vObj.Data.PlotItemTable,vObj.PlotItemAsInvalidTable,vObj.PlotItemInvalidRowIndices] = QSPViewer.updateVisualizationTable(vObj.Data.PlotItemTable,NewPlotTable,InvalidIndices,KeyColumn);
     end
     
     % Check which results files are invalid
     ResultsDir = fullfile(vObj.Data.Session.RootDirectory,vObj.Data.VPopResultsFolderName);
     if exist(fullfile(ResultsDir,vObj.Data.ExcelResultFileName),'file') == 2
-        IsInvalidResultFile = [];
+        FlagIsInvalidResultFile = false; % Exists, not invalid
     else
-        IsInvalidResultFile = 1:size(vObj.PlotItemAsInvalidTable,1);
+        FlagIsInvalidResultFile = true;
     end
     
     % Only make the "valids" missing. Leave the invalids as is
-    TableData = vObj.PlotItemAsInvalidTable;
-    MissingIdx = setdiff(IsInvalidResultFile(:),vObj.PlotItemInvalidRowIndices(:));
+    TableData = vObj.PlotItemAsInvalidTable;    
     if ~isempty(TableData)
-        for index = MissingIdx(:)'
-            TableData{index,3} = QSP.makeMissing(TableData{index,3});
-            TableData{index,4} = QSP.makeMissing(TableData{index,4});
-        end
-    end
+        for index = 1:size(vObj.Data.PlotItemTable,1)
+            % If results file is missing and it's not already an invalid
+            % row, then mark as missing
+            if FlagIsInvalidResultFile && ~ismember(vObj.PlotItemInvalidRowIndices,index)
+                TableData{index,3} = QSP.makeMissing(TableData{index,3});
+                TableData{index,4} = QSP.makeMissing(TableData{index,4});
+            end %if
+        end %for
+    end %if
     
     % Update Colors column     
     TableData(:,2) = uix.utility.getHTMLColor(vObj.Data.PlotItemTable(:,2));
@@ -203,23 +208,24 @@ if ~isempty(vObj.Data)
     % Get the list of all active species from all valid selected tasks
     ValidSpeciesList = getSpeciesFromValidSelectedTasks(vObj.Data.Settings,TaskNames);
     
-    RemoveIndices = false(size(SpeciesNames));
+    InvalidIndices = false(size(SpeciesNames));
     for idx = 1:numel(SpeciesNames)
         % Check if the species is missing
         MissingSpecies = ~ismember(SpeciesNames{idx},ValidSpeciesList);        
         MissingData = ~ismember(DataNames{idx},UniqueDataVals);
         if MissingSpecies || MissingData
-            RemoveIndices(idx) = true;
+            InvalidIndices(idx) = true;
         end
     end
     
-    if any(RemoveIndices)
-        % Then, prune
-        SpeciesNames(RemoveIndices) = [];
-        DataNames(RemoveIndices) = [];
-    end
-    
     if isempty(vObj.Data.PlotSpeciesTable)
+        
+        if any(InvalidIndices)
+            % Then, prune
+            SpeciesNames(InvalidIndices) = [];
+            DataNames(InvalidIndices) = [];
+        end
+        
         % If empty, populate, but first update line styles
         vObj.Data.PlotSpeciesTable = cell(numel(SpeciesNames),3);
         updateSpeciesLineStyles(vObj.Data);
@@ -244,9 +250,10 @@ if ~isempty(vObj.Data)
             vObj.Data.PlotSpeciesTable(:,3) = vObj.Data.PlotSpeciesTable(:,2);
             vObj.Data.PlotSpeciesTable(:,2) = {'-'};  % TODO: !!
         end
-         % Update Table
-        [vObj.Data.PlotSpeciesTable,vObj.PlotSpeciesAsInvalidTable,vObj.PlotSpeciesInvalidRowIndices] = QSPViewer.updateVisualizationTable(vObj.Data.PlotSpeciesTable,NewPlotTable,[3 4]);   
-         % Update line styles
+        % Update Table
+        KeyColumn = [3 4];
+        [vObj.Data.PlotSpeciesTable,vObj.PlotSpeciesAsInvalidTable,vObj.PlotSpeciesInvalidRowIndices] = QSPViewer.updateVisualizationTable(vObj.Data.PlotSpeciesTable,NewPlotTable,InvalidIndices,KeyColumn);
+        % Update line styles
         updateSpeciesLineStyles(vObj.Data);
     end
 

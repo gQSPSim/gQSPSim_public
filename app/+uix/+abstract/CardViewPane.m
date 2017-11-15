@@ -586,10 +586,12 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                         if strcmpi(Result,'Yes')
                             obj.Selection = 3;
                             set([obj.h.SummaryButton,obj.h.EditButton,obj.h.RunButton,obj.h.VisualizeButton],'Enable','on');
+                            updateVisualizationView(obj);
                         end
                     else
                         obj.Selection = 3;
                         set([obj.h.SummaryButton,obj.h.EditButton,obj.h.RunButton,obj.h.VisualizeButton],'Enable','on');
+                        updateVisualizationView(obj);
                     end
                     
                     % Update the view

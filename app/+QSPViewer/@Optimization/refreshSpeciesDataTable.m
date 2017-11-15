@@ -4,9 +4,8 @@ function refreshSpeciesDataTable(vObj)
 %% Update ObjectiveFunctions
 
 if ~isempty(vObj.TempData)
-    ObjectiveFunctionsPath = fullfile(vObj.TempData.Session.RootDirectory,'Objective Functions');
-    if exist(ObjectiveFunctionsPath,'dir')
-        FileList = dir(ObjectiveFunctionsPath);
+    if exist(vObj.TempData.Session.FunctionsDirectory,'dir')
+        FileList = dir(vObj.TempData.Session.FunctionsDirectory);
         IsDir = [FileList.isdir];
         Names = {FileList(~IsDir).name};
         vObj.ObjectiveFunctions = vertcat('defaultObj',Names(:));

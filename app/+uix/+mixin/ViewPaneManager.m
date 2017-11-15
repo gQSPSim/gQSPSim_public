@@ -58,13 +58,15 @@ classdef (Abstract) ViewPaneManager < handle
             
             % Wait indicator is an animated gif that must be displayed on a
             % button using HTML to render correctly.
-            IconPath = uix.utility.findIcon('loading.gif');
-            IconHTMLString = sprintf('<html><img src="file:/%s"/></html>',IconPath);
+%             IconPath = uix.utility.findIcon('loading.gif');
+%             IconHTMLString = sprintf('<html><img src="file:/%s"/></html>',IconPath);
             obj.BusyIcon = matlab.ui.control.UIControl(...
                 'Parent',obj.NoParent_,...
                 'Style','pushbutton',...
                 'Enable','inactive',...
-                'String',IconHTMLString,...
+                'String','Loading...',...IconHTMLString,...
+                'FontSize',14,...
+                'ForegroundColor',[0 0 0],...
                 'Units','normalized',...
                 'Position',[0 0 1 1],...
                 'Visible','on');
@@ -153,7 +155,7 @@ classdef (Abstract) ViewPaneManager < handle
                 try
                     % Show wait indicator
                     % Iraj
-                    % set(obj.BusyIcon,'Parent',obj.ViewPaneParent); drawnow
+                    set(obj.BusyIcon,'Parent',obj.ViewPaneParent); drawnow
                     
                     fLaunch = str2func(PaneType);
                     hPane = fLaunch();
@@ -177,7 +179,7 @@ classdef (Abstract) ViewPaneManager < handle
                     
                     % Update wait indicator
                     % Iraj
-                    % set(obj.BusyIcon,'Parent',obj.NoParent_); drawnow
+                    set(obj.BusyIcon,'Parent',obj.NoParent_); drawnow
 
                     % Deactivate all and return
                     obj.deactivate();
@@ -190,7 +192,7 @@ classdef (Abstract) ViewPaneManager < handle
                 
                 % Update wait indicator
                 % Iraj
-                % set(obj.BusyIcon,'Parent',obj.NoParent_); drawnow
+                set(obj.BusyIcon,'Parent',obj.NoParent_); drawnow
                 
             else
                 % No view pane available
@@ -264,9 +266,9 @@ classdef (Abstract) ViewPaneManager < handle
             if ~isempty(value)
                 bgColor = get(obj.ViewPaneParent,'BackgroundColor');
                 % Iraj
-%                 set(obj.BusyIcon,...
-%                     'ForegroundColor',bgColor,...
-%                     'BackgroundColor',bgColor) %#ok<MCSUP>
+                set(obj.BusyIcon,...
+                    ...'ForegroundColor',bgColor,...
+                    'BackgroundColor',bgColor) %#ok<MCSUP>
             end
         end
 

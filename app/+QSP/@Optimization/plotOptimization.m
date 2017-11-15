@@ -51,9 +51,10 @@ if any(IsSelected)
     simObj = QSP.Simulation;
     simObj.Session = obj.Session;
     simObj.Settings = obj.Settings;
-    for ii = 1:nSelected        
+    for ii = 1:nSelected  
         simObj.Item(ii) = QSP.TaskVirtualPopulation;        
-        simObj.Item(ii).TaskName = obj.Item(SelectedInds(ii)).TaskName;
+        % NOTE: Indexing into Item may not be valid from PlotItemTable (Incorrect if there are/were invalids: obj.Item(SelectedInds(ii)).TaskName;)
+        simObj.Item(ii).TaskName = obj.PlotItemTable{SelectedInds(ii),3};
     end
     
     % If Vpop is selected, must provide names the of the Vpops associated
@@ -118,23 +119,6 @@ end
 SelectedItemColors = cell2mat(obj.PlotItemTable(IsSelected,2));
 
 
-%% Get the selections and MATResultFilePaths
-
-% Get the selected items
-IsSelected = obj.PlotItemTable(:,1);
-if iscell(IsSelected)
-    IsSelected = cell2mat(IsSelected);
-end
-if any(IsSelected)
-    ExcelResultFilePaths = fullfile(obj.Session.RootDirectory,obj.OptimResultsFolderName,obj.ExcelResultFileName);
-    if ~iscell(ExcelResultFilePaths)
-        ExcelResultFilePaths = {ExcelResultFilePaths};
-    end
-else
-    ExcelResultFilePaths = {};
-end
-
-
 %% Plot Simulation Items
 
 for sIdx = 1:size(obj.PlotSpeciesTable,1)
@@ -153,13 +137,15 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
             ColumnIdx = find(strcmp(Results{itemIdx}.SpeciesNames,ThisName));
             
             % since not all tasks will contain all species...
-            if ~isempty(ColumnIdx)
+            if ~isempty(ColumnIdx) && ~isempty(size(Results{1}.Data,2))
                 % Update ColumnIdx to get species for ALL virtual patients
                 NumSpecies = numel(Results{itemIdx}.SpeciesNames);
                 ColumnIdx = ColumnIdx:NumSpecies:size(Results{1}.Data,2);
                 
                 % Plot
-                plot(hAxes(axIdx),Results{itemIdx}.Time,Results{itemIdx}.Data(:,ColumnIdx),'Color',SelectedItemColors(itemIdx,:));
+                if ~isempty(ColumnIdx)
+                    plot(hAxes(axIdx),Results{itemIdx}.Time,Results{itemIdx}.Data(:,ColumnIdx),'Color',SelectedItemColors(itemIdx,:));
+                end
             end
         end
     end
@@ -183,7 +169,7 @@ if any(MatchIdx)
     if StatusOk
         
         if any(IsSelected)
-            SelectedGroupColors = getGroupColors(obj.Session,sum(IsSelected));
+            %SelectedGroupColors = getGroupColors(obj.Session,sum(IsSelected));
             SelectedGroupIDs = obj.PlotItemTable(IsSelected,4);
             
             % Get the Group Column from the imported dataset
@@ -206,7 +192,7 @@ if any(MatchIdx)
                         plot(hAxes(axIdx),TimeColumn(MatchIdx), cell2mat(OptimData(MatchIdx,ColumnIdx)),...
                             'LineStyle','none',...
                             'Marker','*',...
-                            'Color',SelectedGroupColors(gIdx,:));
+                            'Color',SelectedItemColors(gIdx,:)); %SelectedGroupColors(gIdx,:));
                     end
                 end
             end

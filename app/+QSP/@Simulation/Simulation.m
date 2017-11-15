@@ -36,7 +36,7 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         
         Item = QSP.TaskVirtualPopulation.empty(0,1)
         
-        PlotSpeciesTable = cell(0,2)
+        PlotSpeciesTable = cell(0,3)
         PlotItemTable = cell(0,4)
         PlotDataTable = cell(0,2)
         PlotGroupTable = cell(0,3)
@@ -80,14 +80,31 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         function Summary = getSummary(obj)
             
             if ~isempty(obj.Item)
-                MATFileNames = {obj.Item.MATFileName};
-                IsEmpty = cellfun(@isempty,MATFileNames);
-                MATFileNames(IsEmpty) = {'Results: N/A'};
-                SimulationItems = cellfun(@(x,y,z)sprintf('%s - %s (%s)',x,y,z),{obj.Item.TaskName},{obj.Item.VPopName},MATFileNames,'UniformOutput',false);
+                SimulationItems = {};
+                % Check what items are stale or invalid
+                [StaleFlag,ValidFlag] = getStaleItemIndices(obj);                
+                
+                for index = 1:numel(obj.Item)
+                    ThisMATFileName = obj.Item(index).MATFileName;
+                    if isempty(ThisMATFileName)
+                        ThisMATFileName = 'Results: N/A';
+                    end
+
+                    % Default
+                    ThisSimulationItem = sprintf('%s - %s (%s)',obj.Item(index).TaskName,obj.Item(index).VPopName,ThisMATFileName);
+                    if StaleFlag(index)
+                        % Item may be out of date
+                            ThisSimulationItem = sprintf('***WARNING*** %s\n%s\n',ThisSimulationItem,'***Item may be out of date***');
+                    elseif ~ValidFlag(index)
+                        % Display invalid
+                        ThisSimulationItem = sprintf('***INVALID*** %s\n',ThisSimulationItem);
+                    end
+                    SimulationItems = [SimulationItems; ThisSimulationItem]; %#ok<AGROW>
+                end
             else
                 SimulationItems = {};
             end
-            
+
             % Populate summary
             Summary = {...
                 'Name',obj.Name;
@@ -219,6 +236,42 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         function setSpeciesLineStyles(obj,Index,NewLineStyle)
             NewLineStyle = validatestring(NewLineStyle,obj.Settings.LineStyleMap);
             obj.SpeciesLineStyles{Index} = NewLineStyle;
+        end %function
+        
+        function [StaleFlag,ValidFlag] = getStaleItemIndices(obj)
+            
+            StaleFlag = false(1,numel(obj.Item));
+            ValidFlag = true(1,numel(obj.Item));
+            
+            for index = 1:numel(obj.Item)
+                ThisTask = getValidSelectedTasks(obj.Settings,obj.Item(index).TaskName);
+                ThisVPop = getValidSelectedVPops(obj.Settings,obj.Item(index).VPopName);
+                
+                if ~isempty(ThisTask) && ~isempty(ThisVPop) && ...
+                        ~isempty(ThisTask.LastSavedTime) && ~isempty(ThisVPop.LastSavedTime) && ...
+                        ~isempty(obj.LastSavedTime)
+                    
+                    % Compare times
+                    SimLastSavedTime = datenum(obj.LastSavedTime);
+                    TaskLastSavedTime = datenum(ThisTask.LastSavedTime);
+                    VPopLastSavedTime = datenum(ThisVPop.LastSavedTime);
+                    FileInfo = dir(ThisTask.FilePath);
+                    TaskProjectLastSavedTime = FileInfo.datenum;
+                    FileInfo = dir(ThisVPop.FilePath);
+                    VPopFileLastSavedTime = FileInfo.datenum;
+                    
+                    if SimLastSavedTime < TaskLastSavedTime || ...
+                            SimLastSavedTime < TaskProjectLastSavedTime || ...
+                            SimLastSavedTime < VPopLastSavedTime || ...
+                            SimLastSavedTime < VPopFileLastSavedTime
+                        % Item may be out of date
+                        StaleFlag(index) = true;
+                    end                    
+                elseif isempty(ThisTask) || isempty(ThisVPop)
+                    % Display invalid
+                    ValidFlag(index) = false;                    
+                end                
+            end 
         end %function
         
     end %methods

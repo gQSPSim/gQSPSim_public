@@ -1,10 +1,18 @@
-function [CurrTable,InvalidTable,InvalidRowIndices] = updateVisualizationTable(CurrPlotTable,NewPlotTable,KeyIndex)
+function [OutTable,OutTableWithInvalids,InvalidRowIndices] = updateVisualizationTable(InTable,InFullTable,InvalidRowIndices,KeyIndex)
 
-for index = 1:size(NewPlotTable,1)
-    MatchRow = true(size(CurrPlotTable,1),1);
+if islogical(InvalidRowIndices)
+    InvalidRowIndices = find(InvalidRowIndices);
+end
+
+% TODO: Handle the case where T1 was renamed, removed, and added back
+OutTable = InFullTable; 
+
+% Update OutTable according to InTable
+for index = 1:size(OutTable,1)
+    MatchRow = true(size(InTable,1),1);
     for kIndex = KeyIndex
-        % Find this row in the previous table
-        MatchRow = MatchRow & strcmp(NewPlotTable{index,kIndex},CurrPlotTable(:,kIndex));
+        % Find this row in the previous table (InTable)
+        MatchRow = MatchRow & strcmp(OutTable{index,kIndex},InTable(:,kIndex));
     end
     MatchRow = find(MatchRow);
     
@@ -13,33 +21,74 @@ for index = 1:size(NewPlotTable,1)
         % Take the first match
         MatchRow = MatchRow(1);
         % Update the NewPlotTable
-        NewPlotTable(index,:) = CurrPlotTable(MatchRow,:);
+        OutTable(index,:) = InTable(MatchRow,:);
     end
 end
 
-% Before assigning, get the non-members and highlight
-MissingIndices = false(size(CurrPlotTable,1),1);
-for kIndex = KeyIndex
-    IsEmpty = cellfun(@isempty,CurrPlotTable(:,kIndex));
-    CurrPlotTable(IsEmpty,kIndex) = {''};
-    MissingIndices = MissingIndices | ~ismember(CurrPlotTable(:,kIndex),NewPlotTable(:,kIndex));
+%% OutTable and OutTableWithInvalids - first pass to mark invalid
+
+% Go through each row of InFullTable (OutTable). If a row is marked as invalid and it
+% does not exist in InTable, delete it. Otherwise, if it's invalid and
+% exists in InTable, mark as invalid
+OutTableWithInvalids = OutTable;
+DeleteRowIndices = [];
+if ~isempty(InvalidRowIndices)
+    % If this row is invalid
+    for index = InvalidRowIndices(:)'        
+        % Check to see if the row is missing from InTable
+        MissingRow = false;
+        for kIndex = KeyIndex
+            MissingRow = MissingRow | ~ismember(InTable(:,kIndex),OutTable(index,kIndex));
+        end
+        % If it's missing, then delete it
+        if MissingRow
+            % Mark for deletion
+            DeleteRowIndices = [DeleteRowIndices index]; %#ok<AGROW>
+        else
+            % Mark row as invalid
+            for kIndex = KeyIndex
+                OutTableWithInvalids{index,kIndex} = QSP.makeInvalid(OutTableWithInvalids{index,kIndex});
+            end
+        end % Else, leave as is to mark as invalid
+    end
 end
-InvalidRows = CurrPlotTable(MissingIndices,:);
 
-% Update Data
-CurrTable = vertcat(NewPlotTable,InvalidRows);
+% Delete the appropriate rows
+OutTable(DeleteRowIndices,:) = [];
+OutTableWithInvalids(DeleteRowIndices,:) = [];
 
-% Highlight
-for index = 1:size(InvalidRows,1)
+%% Next, append all in InTable that don't exist in InFullTable (OutTable) 
+
+InvalidRowsFromInTable = [];
+for index = 1:size(InTable,1)
+    MissingRow = false;
     for kIndex = KeyIndex
-        InvalidRows{index,kIndex} = QSP.makeInvalid(InvalidRows{index,kIndex});
+        MissingRow = MissingRow | ~ismember(InTable(index,kIndex),OutTable(:,kIndex));
     end
+    if all(MissingRow)
+        InvalidRowsFromInTable = [InvalidRowsFromInTable; InTable(index,:)]; %#ok<AGROW>
+    end    
 end
-InvalidTable = vertcat(NewPlotTable,InvalidRows);
-if isempty(InvalidRows)
-    InvalidRowIndices = [];
-else
-    InvalidRowIndices = (size(NewPlotTable,1)+1):size(InvalidTable,1);
+
+% Append
+NumPrevRows = size(OutTable,1);
+OutTable = [OutTable;InvalidRowsFromInTable];
+OutTableWithInvalids = [OutTableWithInvalids;InvalidRowsFromInTable];
+
+% Next, mark as invalid and update InvalidRowIndices
+InvalidRowsFromInTableIndices = (NumPrevRows+1):size(OutTable,1);
+if ~isempty(InvalidRowsFromInTableIndices)
+    for index = InvalidRowsFromInTableIndices
+        for kIndex = KeyIndex            
+            OutTableWithInvalids{index,kIndex} = QSP.makeInvalid(OutTableWithInvalids{index,kIndex});
+        end
+    end
+    InvalidRowIndices = unique([InvalidRowIndices(:)' InvalidRowsFromInTableIndices]);
 end
+
+
+%% Update InvalidRowIndices (remove DeleteRowIndices)
+
+InvalidRowIndices = setdiff(InvalidRowIndices,DeleteRowIndices);
 
 

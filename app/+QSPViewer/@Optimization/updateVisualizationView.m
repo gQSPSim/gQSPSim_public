@@ -88,24 +88,25 @@ if ~isempty(vObj.Data)
     TaskNames = {vObj.Data.Item.TaskName};
     GroupIDNames = {vObj.Data.Item.GroupID};
     
-    RemoveIndices = false(size(TaskNames));
+    InvalidIndices = false(size(TaskNames));
     for idx = 1:numel(TaskNames)
         % Check if the task is valid
         ThisTask = getValidSelectedTasks(vObj.Data.Settings,TaskNames{idx});
         MissingGroup = ~ismember(GroupIDNames{idx},GroupIDs(:)');
         if isempty(ThisTask) || MissingGroup
-            RemoveIndices(idx) = true;
+            InvalidIndices(idx) = true;
         end
-    end
-    
-    if any(RemoveIndices)
-        % Then, prune
-        TaskNames(RemoveIndices) = [];
-        GroupIDNames(RemoveIndices) = [];
     end
     
     % If empty, populate
     if isempty(vObj.Data.PlotItemTable)
+        
+        if any(InvalidIndices)
+            % Then, prune
+            TaskNames(InvalidIndices) = [];
+            GroupIDNames(InvalidIndices) = [];
+        end
+        
         vObj.Data.PlotItemTable = cell(numel(TaskNames),4);
         vObj.Data.PlotItemTable(:,1) = {false};
         vObj.Data.PlotItemTable(:,3) = TaskNames;
@@ -127,7 +128,8 @@ if ~isempty(vObj.Data)
         NewPlotTable(:,2) = num2cell(NewColors,2);   
         
         % Update Table
-        [vObj.Data.PlotItemTable,vObj.PlotItemAsInvalidTable,vObj.PlotItemInvalidRowIndices] = QSPViewer.updateVisualizationTable(vObj.Data.PlotItemTable,NewPlotTable,[3 4]);        
+        KeyColumn = [3 4];
+        [vObj.Data.PlotItemTable,vObj.PlotItemAsInvalidTable,vObj.PlotItemInvalidRowIndices] = QSPViewer.updateVisualizationTable(vObj.Data.PlotItemTable,NewPlotTable,InvalidIndices,KeyColumn);        
     end
 
     % Update Colors column 
@@ -169,24 +171,25 @@ if ~isempty(vObj.Data)
     % Get the list of all active species from all valid selected tasks
     ValidSpeciesList = getSpeciesFromValidSelectedTasks(vObj.Data.Settings,TaskNames);
     
-    RemoveIndices = false(size(SpeciesNames));
+    InvalidIndices = false(size(SpeciesNames));
     for idx = 1:numel(SpeciesNames)
         % Check if the species is missing
         MissingSpecies = ~ismember(SpeciesNames{idx},ValidSpeciesList);        
         MissingData = ~ismember(DataNames{idx},OptimHeader);
         if MissingSpecies || MissingData
-            RemoveIndices(idx) = true;
+            InvalidIndices(idx) = true;
         end
-    end
-    
-    if any(RemoveIndices)
-        % Then, prune
-        SpeciesNames(RemoveIndices) = [];
-        DataNames(RemoveIndices) = [];
     end
     
     % If empty, populate
     if isempty(vObj.Data.PlotSpeciesTable)
+        
+        if any(InvalidIndices)
+            % Then, prune
+            SpeciesNames(InvalidIndices) = [];
+            DataNames(InvalidIndices) = [];
+        end
+        
         % If empty, populate, but first update line styles
         vObj.Data.PlotSpeciesTable = cell(numel(SpeciesNames),3);
         
@@ -203,7 +206,8 @@ if ~isempty(vObj.Data)
         NewPlotTable(:,3) = DataNames;
         
         % Update Table
-        [vObj.Data.PlotSpeciesTable,vObj.PlotSpeciesAsInvalidTable,vObj.PlotSpeciesInvalidRowIndices] = QSPViewer.updateVisualizationTable(vObj.Data.PlotSpeciesTable,NewPlotTable,[2 3]);                     
+        KeyColumn = [2 3];
+        [vObj.Data.PlotSpeciesTable,vObj.PlotSpeciesAsInvalidTable,vObj.PlotSpeciesInvalidRowIndices] = QSPViewer.updateVisualizationTable(vObj.Data.PlotSpeciesTable,NewPlotTable,InvalidIndices,KeyColumn);                     
     end
 
      % Species table
@@ -234,6 +238,10 @@ if ~isempty(vObj.Data)
     for idx = 1:numel(vObj.Data.ExcelResultFileName)
         [~,VPopNames{idx}] = fileparts(vObj.Data.ExcelResultFileName{idx}); %#ok<AGROW>
     end
+    
+    % Filter VPopNames list (only if name does not exist, not if invalid)
+    AllVPopNames = {vObj.Data.Session.Settings.VirtualPopulation.Name};
+    VPopNames = VPopNames(ismember(VPopNames,AllVPopNames));
     
     if any(MatchIdx)
         pObj = vObj.Data.Settings.Parameters(MatchIdx);        

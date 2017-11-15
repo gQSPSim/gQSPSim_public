@@ -160,6 +160,15 @@ for ii = 1:nItems
     tskInd = find(strcmp(obj.Item(ii).TaskName,{obj.Settings.Task.Name}));
     tObj_i = obj.Settings.Task(tskInd);
     
+    % Validate
+    [ThisStatusOk,ThisMessage] = validate(tObj_i,false);    
+    if isempty(tObj_i)
+        continue
+    elseif ~ThisStatusOk
+        warning('Error loading task %s. Skipping [%s]...', taskName,ThisMessage)
+        continue
+    end
+    
     % load the model in that task
 %     AllModels = sbioloadproject(tObj_i.RelativeFilePath);
     

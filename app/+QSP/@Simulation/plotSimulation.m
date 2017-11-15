@@ -42,12 +42,29 @@ IsSelected = obj.PlotItemTable(:,1);
 if iscell(IsSelected)
     IsSelected = cell2mat(IsSelected);
 end
-if any(IsSelected)
+IsSelected = find(IsSelected);
+
+TaskNames = {obj.Item.TaskName};
+VPopNames = {obj.Item.VPopName};
+if ~isempty(IsSelected)
+    MATFileNames = {};
+    for index = IsSelected(:)'
+        % Find the match of obj.PlotItemTable back in obj.Item
+        ThisTaskName = obj.PlotItemTable{index,3};
+        ThisVPopName = obj.PlotItemTable{index,4};
+        ThisTask = getValidSelectedTasks(obj.Settings,ThisTaskName);
+        ThisVPop = getValidSelectedVPops(obj.Settings,ThisVPopName);        
+        
+        if ~isempty(ThisTask) && ~isempty(ThisVPop)
+            MatchIdx = strcmp(ThisTaskName,TaskNames) & strcmp(ThisVPopName,VPopNames);
+            if any(MatchIdx)
+                ThisFileName = {obj.Item(MatchIdx).MATFileName};
+                MATFileNames = [MATFileNames,ThisFileName]; %#ok<AGROW>
+            end
+        end
+    end
     ResultsDir = fullfile(obj.Session.RootDirectory,obj.SimResultsFolderName);
-    MATResultFilePaths = cellfun(@(X) fullfile(ResultsDir,X), {obj.Item(IsSelected).MATFileName}, 'UniformOutput', false);
-    if ~iscell(MATResultFilePaths)
-        MATResultFilePaths = {MATResultFilePaths};
-    end    
+    MATResultFilePaths = cellfun(@(X) fullfile(ResultsDir,X), MATFileNames, 'UniformOutput', false);
 else
     MATResultFilePaths = {};
 end
@@ -71,7 +88,7 @@ for index = 1:numel(MATResultFilePaths)
             warning('plotSimulation: Data cannot be loaded from %s. File must contain Results structure with fields Time, Data, SpeciesNames.',MATResultFilePaths{index});
         end
     elseif ~isdir(MATResultFilePaths{index}) % Invalid file
-        fprintf('plotSimulation: Invalid file %s\n',MATResultFilePaths{index});
+        fprintf('plotSimulation: Missing results file %s\n',MATResultFilePaths{index});
     end
 end
 
