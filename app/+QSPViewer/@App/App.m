@@ -241,12 +241,12 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
                         for idx = 1:numel(NewVirtualPopulation)
                             onAddItem(obj,NewVirtualPopulation(idx))
                         end
+                        
+                        % Update the display
+                        obj.refresh();
                     end
                     
             end %switch e.InteractionType
-            
-            % Update the display
-            obj.refresh();
             
         end %function
         

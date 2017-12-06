@@ -273,6 +273,10 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                     if exist(ThisFilePath,'file') == 2
                         FileInfo = dir(ThisFilePath);
                         ResultLastSavedTime = FileInfo.datenum;
+                    elseif ~isempty(obj.Item(index).MATFileName)
+                        ResultLastSavedTime = '';
+                        % Display invalid
+                        ValidFlag(index) = false;
                     else
                         ResultLastSavedTime = '';
                     end

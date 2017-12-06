@@ -51,8 +51,8 @@ classdef Session < matlab.mixin.SetGet & uix.mixin.AssignPVPairs & uix.mixin.Has
         RootDirectory = pwd
         RelativeResultsPath = ''
         RelativeFunctionsPath = ''
-        ColorMap1
-        ColorMap2
+        ColorMap1 = jet(50)
+        ColorMap2 = jet(50)
     end
     
     properties (Dependent=true, SetAccess='immutable')
@@ -110,22 +110,18 @@ classdef Session < matlab.mixin.SetGet & uix.mixin.AssignPVPairs & uix.mixin.Has
     methods
         function Colors = getItemColors(obj,NumItems)
             ThisColorMap = obj.ColorMap1;
-            if ~isempty(ThisColorMap) && size(ThisColorMap,2) == 3
-                Colors = uix.utility.getColorMap(ThisColorMap,NumItems);
-            else
-                % Default
-                Colors = jet(NumItems);
+            if isempty(ThisColorMap) || size(ThisColorMap,2) ~= 3
+                ThisColorMap = jet(50);
             end
+            Colors = uix.utility.getColorMap(ThisColorMap,NumItems);
         end
             
         function Colors = getGroupColors(obj,NumGroups)
             ThisColorMap = obj.ColorMap2;
-            if ~isempty(ThisColorMap) && size(ThisColorMap,2) == 3
-                Colors = uix.utility.getColorMap(ThisColorMap,NumGroups);
-            else
-                % Default
-                Colors = jet(NumGroups);
+            if isempty(ThisColorMap) || size(ThisColorMap,2) ~= 3
+                ThisColorMap = jet(50);
             end
+            Colors = uix.utility.getColorMap(ThisColorMap,NumGroups);
         end
     end
     

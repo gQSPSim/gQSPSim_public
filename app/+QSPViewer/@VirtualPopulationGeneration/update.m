@@ -40,7 +40,7 @@ update@uix.abstract.CardViewPane(vObj);
 if ~isempty(vObj.Data)
     % Check what items are stale or invalid
     [~,ValidFlag] = getStaleItemIndices(vObj.Data);
-    if all(ValidFlag)
+    if all(ValidFlag) && vObj.Selection ~= 2
         set(vObj.h.VisualizeButton,'Enable','on');
     else
         % Navigate to Summary view if not already on it

@@ -38,28 +38,18 @@ end
 
 update@uix.abstract.CardViewPane(vObj);
 
-if ~isempty(vObj.Data)
-    % Check what items are stale or invalid
-    [~,ValidFlag] = getStaleItemIndices(vObj.Data);
-    if all(ValidFlag)
-        set(vObj.h.VisualizeButton,'Enable','on');
-    else
-        % Navigate to Summary view if not already on it
-        if vObj.Selection == 3
-            onNavigation(vObj,'Summary');
-        end
-        set(vObj.h.VisualizeButton,'Enable','off');        
-    end
-end
-
 
 %% Update Edit View
 
-updateEditView(vObj);
+if vObj.Selection == 2
+    updateEditView(vObj);
+end
 
 
 %% Update Visualization View
 
-updateVisualizationView(vObj);
+if vObj.Selection == 3
+    updateVisualizationView(vObj);
+end
 
 

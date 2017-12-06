@@ -601,9 +601,13 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                     ThisFilePath = fullfile(obj.Session.RootDirectory,obj.OptimResultsFolderName,obj.ExcelResultFileName{index});
                     if exist(ThisFilePath,'file') == 2
                         FileInfo = dir(ThisFilePath);                        
-                        ResultLastSavedTime = FileInfo.datenum;
-                    else
+                        ResultLastSavedTime = FileInfo.datenum;                        
+                    elseif ~isempty(obj.ExcelResultFileName{index})
                         ResultLastSavedTime = '';
+                        % Display invalid
+                        ValidFlag(index) = false;
+                    else
+                        ResultLastSavedTime = '';                        
                     end
                     
                     % Check

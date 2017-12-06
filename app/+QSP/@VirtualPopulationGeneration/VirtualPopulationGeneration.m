@@ -492,6 +492,10 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
                     if exist(ThisFilePath,'file') == 2
                         FileInfo = dir(ThisFilePath);                        
                         ResultLastSavedTime = FileInfo.datenum;
+                    elseif ~isempty(obj.ExcelResultFileName)
+                        ResultLastSavedTime = '';
+                        % Display invalid
+                        ValidFlag(index) = false;
                     else
                         ResultLastSavedTime = '';
                     end
