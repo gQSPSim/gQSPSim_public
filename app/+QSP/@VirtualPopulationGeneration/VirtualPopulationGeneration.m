@@ -440,12 +440,17 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
                 ForceMarkAsInvalid = false;
             end
             
-            % ONLY if VirtualPopulationData is valid, check Parameters
-            if ForceMarkAsInvalid
-                ThisList = {obj.Settings.Parameters.Name};
-                MatchIdx = strcmpi(ThisList,obj.RefParamName);
-                if any(MatchIdx)
-                    pObj = obj.Settings.Parameters(MatchIdx);
+            % ONLY if OptimizationData is valid, check Parameters
+            ThisList = {obj.Settings.Parameters.Name};
+            MatchIdx = strcmpi(ThisList,obj.RefParamName);
+            if any(MatchIdx)
+                pObj = obj.Settings.Parameters(MatchIdx);
+            else
+                pObj = QSP.Parameters.empty(0,1);
+            end
+                
+            if ForceMarkAsInvalid                
+                if ~isempty(pObj)
                     ThisStatusOk = validate(pObj);
                     ForceMarkAsInvalid = ~ThisStatusOk;
                 else
@@ -457,7 +462,11 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
                 % Validate Task-Group and ExcelFilePath
                 ThisTask = getValidSelectedTasks(obj.Settings,obj.Item(index).TaskName);
                 % Validate groupID
-                MatchGroup = ismember(obj.Item(index).GroupID,GroupIDs);                
+                 ThisID = obj.Item(index).GroupID;
+                if ischar(ThisID)
+                    ThisID = str2double(ThisID);
+                end
+                MatchGroup = ismember(ThisID,GroupIDs);                
                
                 if ~ForceMarkAsInvalid && ...
                         ~isempty(ThisTask) && ...
@@ -478,17 +487,17 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
                     TaskProjectLastSavedTime = FileInfo.datenum;
                     
                     % VirtualPopulationData object and file
-                    VirtualPopulationDataLastSavedTime = dObj.LastSavedTime;
+                    VirtualPopulationDataLastSavedTime = datenum(dObj.LastSavedTime);
                     FileInfo = dir(dObj.FilePath);
                     VirtualPopulationDataFileLastSavedTime = FileInfo.datenum;
                     
                     % Parameter object and file
-                    ParametersLastSavedTime = pObj.LastSavedTime;
+                    ParametersLastSavedTime = datenum(pObj.LastSavedTime);
                     FileInfo = dir(pObj.FilePath);
                     ParametersFileLastSavedTime = FileInfo.datenum;                    
                     
                     % Results file - ONE file
-                    ThisFilePath = fullfile(obj.Session.RootDirectory,obj.OptimResultsFolderName,obj.ExcelResultFileName);
+                    ThisFilePath = fullfile(obj.Session.RootDirectory,obj.VPopResultsFolderName,obj.ExcelResultFileName);
                     if exist(ThisFilePath,'file') == 2
                         FileInfo = dir(ThisFilePath);                        
                         ResultLastSavedTime = FileInfo.datenum;

@@ -551,11 +551,16 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             end
             
             % ONLY if OptimizationData is valid, check Parameters
-            if ForceMarkAsInvalid
-                ThisList = {obj.Settings.Parameters.Name};
-                MatchIdx = strcmpi(ThisList,obj.RefParamName);
-                if any(MatchIdx)
-                    pObj = obj.Settings.Parameters(MatchIdx);
+            ThisList = {obj.Settings.Parameters.Name};
+            MatchIdx = strcmpi(ThisList,obj.RefParamName);
+            if any(MatchIdx)
+                pObj = obj.Settings.Parameters(MatchIdx);
+            else
+                pObj = QSP.Parameters.empty(0,1);
+            end
+                
+            if ForceMarkAsInvalid                
+                if ~isempty(pObj)
                     ThisStatusOk = validate(pObj);
                     ForceMarkAsInvalid = ~ThisStatusOk;
                 else
@@ -567,7 +572,11 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 % Validate Task-Group and ExcelFilePath
                 ThisTask = getValidSelectedTasks(obj.Settings,obj.Item(index).TaskName);
                 % Validate groupID
-                MatchGroup = ismember(obj.Item(index).GroupID,GroupIDs);                
+                ThisID = obj.Item(index).GroupID;
+                if ischar(ThisID)
+                    ThisID = str2double(ThisID);
+                end
+                MatchGroup = ismember(ThisID,GroupIDs);                
                
                 if ~ForceMarkAsInvalid && ...
                         ~isempty(ThisTask) && ...
@@ -588,12 +597,12 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                     TaskProjectLastSavedTime = FileInfo.datenum;
                     
                     % OptimizationData object and file
-                    OptimizationDataLastSavedTime = dObj.LastSavedTime;
+                    OptimizationDataLastSavedTime = datenum(dObj.LastSavedTime);
                     FileInfo = dir(dObj.FilePath);
                     OptimizationDataFileLastSavedTime = FileInfo.datenum;
                     
                     % Parameter object and file
-                    ParametersLastSavedTime = pObj.LastSavedTime;
+                    ParametersLastSavedTime = datenum(pObj.LastSavedTime);
                     FileInfo = dir(pObj.FilePath);
                     ParametersFileLastSavedTime = FileInfo.datenum;                    
                     

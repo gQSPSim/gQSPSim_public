@@ -572,6 +572,9 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                     set(hFigure,'pointer','arrow');
                     drawnow;
                     
+                    % Switch to summary view
+                    obj.Selection = 1;
+                    
                     % Update the view
                     update(obj);
                     

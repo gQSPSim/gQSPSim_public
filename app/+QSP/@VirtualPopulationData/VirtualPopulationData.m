@@ -100,7 +100,8 @@ classdef VirtualPopulationData < QSP.abstract.BaseProps & uix.mixin.HasTreeRefer
             
             % Load from file
             try
-                [~,~,Raw] = xlsread(DataFilePath);                
+                Raw = readtable(DataFilePath);
+                Raw = [Raw.Properties.VariableNames;table2cell(Raw)];
             catch ME
                 Raw = {};
                 StatusOk = false;

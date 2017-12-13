@@ -48,6 +48,10 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         SpeciesLineStyles
     end
     
+    properties (Constant=true)
+        NullVPop = 'ModelDefault'
+    end
+    
     %% Constructor
     methods
         function obj = Simulation(varargin)
@@ -144,7 +148,8 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 % Remove the invalid task/vpop combos if any
                 [TaskItemIndex,MatchTaskIndex] = ismember({obj.Item.TaskName},{obj.Settings.Task.Name});
                 [VPopItemIndex,MatchVPopIndex] = ismember({obj.Item.VPopName},{obj.Settings.VirtualPopulation.Name});
-                RemoveIndices = ~TaskItemIndex | ~VPopItemIndex;
+                MatchNullVPopIndex = ismember({obj.Item.VPopName},obj.NullVPop);
+                RemoveIndices = ~TaskItemIndex | (~VPopItemIndex & ~MatchNullVPopIndex);
                 if any(RemoveIndices)
                     StatusOK = false;
                     ThisMessage = sprintf('Task-VPop rows %s are invalid.',num2str(find(RemoveIndices)));
@@ -165,7 +170,7 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 end
                 
                 % Check VPops
-                MatchVPopIndex(MatchVPopIndex == 0) = [];
+                MatchVPopIndex(MatchVPopIndex == 0) = [];                
                 for index = MatchVPopIndex
                     [ThisStatusOK,ThisMessage] = validate(obj.Settings.VirtualPopulation(index),FlagRemoveInvalid);
                     if ~ThisStatusOK

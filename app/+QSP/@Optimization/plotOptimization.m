@@ -1,4 +1,4 @@
-function plotOptimization(obj,hAxes)
+function [hSpeciesGroup,hDatasetGroup,hLegend,hLegendChildren] = plotOptimization(obj,hAxes)
 % plot - plots the analysis
 % -------------------------------------------------------------------------
 % Abstract: This plots the analysis based on the settings and data table.
@@ -29,9 +29,19 @@ function plotOptimization(obj,hAxes)
 %% Turn on hold
 
 for index = 1:numel(hAxes)
+    XLimMode{index} = get(hAxes(index),'XLimMode');
+    YLimMode{index} = get(hAxes(index),'YLimMode');
     cla(hAxes(index));
+    legend(hAxes(index),'off')
+    set(hAxes(index),'XLimMode',XLimMode{index},'YLimMode',YLimMode{index})
     hold(hAxes(index),'on')    
 end
+
+NumAxes = numel(hAxes);
+hSpeciesGroup = cell(1,NumAxes);
+hDatasetGroup = cell(1,NumAxes);
+hLegend = cell(1,NumAxes);
+hLegendChildren = cell(1,NumAxes);
 
 
 %% Get the selections and Task-Vpop pairs
@@ -144,12 +154,15 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
                 
                 % Plot
                 if ~isempty(ColumnIdx)
-                    plot(hAxes(axIdx),Results{itemIdx}.Time,Results{itemIdx}.Data(:,ColumnIdx),'Color',SelectedItemColors(itemIdx,:));
-                end
-            end
-        end
-    end
-end
+                    hSpeciesGroup{axIdx} = [hSpeciesGroup{axIdx} ...                        
+                        plot(hAxes(axIdx),Results{itemIdx}.Time,Results{itemIdx}.Data(:,ColumnIdx),...
+                        'Color',SelectedItemColors(itemIdx,:),...
+                        'DisplayName',regexprep(sprintf('%s Results (%d)',ThisName,itemIdx),'_','\\_'))];
+                end %if
+            end %if
+        end %for itemIdx
+    end %if
+end %for sIdx
         
 
 %% Plot Dataset
@@ -170,10 +183,20 @@ if any(MatchIdx)
         
         if any(IsSelected)
             %SelectedGroupColors = getGroupColors(obj.Session,sum(IsSelected));
-            SelectedGroupIDs = obj.PlotItemTable(IsSelected,4);
+            SelectedGroupIDs = categorical(obj.PlotItemTable(IsSelected,4));
             
             % Get the Group Column from the imported dataset
-            GroupColumn = cell2mat(OptimData(:,strcmp(OptimHeader,obj.GroupName)));
+            GroupColumn = OptimData(:,strcmp(OptimHeader,obj.GroupName));
+            if iscell(GroupColumn)
+                % If numeric column, convert to matrix to use categorical                
+                IsNumeric = cellfun(@(x)isnumeric(x),GroupColumn);
+                if all(IsNumeric)
+                    GroupColumn = cell2mat(GroupColumn);
+                else
+                    GroupColumn(IsNumeric) = cellfun(@(x)num2str(x),GroupColumn(IsNumeric),'UniformOutput',false);
+                end
+            end
+            GroupColumn = categorical(GroupColumn);
             
             % Get the Time Column from the imported dataset
             TimeColumn = cell2mat(OptimData(:,strcmp(OptimHeader,'Time')));
@@ -186,17 +209,38 @@ if any(MatchIdx)
                 if ~isempty(ColumnIdx) && ~isempty(axIdx) && ~isnan(axIdx)
                     for gIdx = 1:numel(SelectedGroupIDs)
                         % Find the GroupID match within the GroupColumn
-                        MatchIdx = (GroupColumn == str2double(SelectedGroupIDs{gIdx}));
+                        MatchIdx = (GroupColumn == SelectedGroupIDs(gIdx));
                         
                         % Plot the selected column by GroupID
-                        plot(hAxes(axIdx),TimeColumn(MatchIdx), cell2mat(OptimData(MatchIdx,ColumnIdx)),...
+                        hDatasetGroup{axIdx} = [hDatasetGroup{axIdx} ... 
+                            plot(hAxes(axIdx),TimeColumn(MatchIdx), cell2mat(OptimData(MatchIdx,ColumnIdx)),...
                             'LineStyle','none',...
                             'Marker','*',...
-                            'Color',SelectedItemColors(gIdx,:)); %SelectedGroupColors(gIdx,:));
-                    end
-                end
-            end
-        end
+                            'Color',SelectedItemColors(gIdx,:),... %SelectedGroupColors(gIdx,:));
+                            'DisplayName',regexprep(sprintf('%s %s',ThisName,SelectedGroupIDs(gIdx)),'_','\\_'))];
+                    end %for gIdx
+                end %if
+            end %for dIdx
+        end %if any
+    end %if StatusOk
+end %if any
+
+
+%% Legend
+
+hLegend = cell(1,NumAxes);
+hLegendChildren = cell(1,NumAxes);
+for axIndex = 1:NumAxes
+    
+    % Append
+    LegendItems = [horzcat(hSpeciesGroup{:,axIndex}) horzcat(hDatasetGroup{:,axIndex})];
+    
+    if ~isempty(LegendItems)
+        % Add legend
+        [hLegend{axIndex},hLegendChildren{axIndex}] = legend(hAxes(axIndex),LegendItems);
+    else
+        hLegend{axIndex} = [];
+        hLegendChildren{axIndex} = [];        
     end
 end
 
@@ -204,7 +248,15 @@ end
 %% Turn off hold
 
 for index = 1:numel(hAxes)
+    title(hAxes(index),sprintf('Plot %d',index));
     xlabel(hAxes(index),'Time');
     ylabel(hAxes(index),'States');
     hold(hAxes(index),'off')
+     % Reset zoom state
+    hFigure = ancestor(hAxes(index),'Figure');
+    if ~isempty(hFigure) && strcmpi(XLimMode{index},'auto') && strcmpi(YLimMode{index},'auto')
+        axes(hAxes(index));
+        zoom(hFigure,'out');
+        zoom(hFigure,'reset');        
+    end
 end
