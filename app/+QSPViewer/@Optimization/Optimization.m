@@ -433,17 +433,21 @@ classdef Optimization < uix.abstract.CardViewPane
             
         end %function
         
-        function onPlotSourcePopup(vObj,h,e)
+        function onPlotParameters(vObj,h,e)
+            
+            % Plot
+            plotOptimization(vObj.Data,vObj.h.MainAxes);
+            
+        end %function
+        
+        function onPlotParametersSourcePopup(vObj,h,e)
             
             NewSource = vObj.Data.PlotParametersSourceOptions{get(h,'Value')};
             
             [StatusOk,Message] = importParametersSource(vObj.Data,NewSource);
             if ~StatusOk
                 hDlg = errordlg(Message,'Cannot import','modal');
-                uiwait(hDlg);
-            else
-                % Plot
-                plotOptimization(vObj.Data,vObj.h.MainAxes);
+                uiwait(hDlg);           
             end
             
             % Update the view
@@ -464,15 +468,6 @@ classdef Optimization < uix.abstract.CardViewPane
             
             if ~isempty(ThisData{RowIdx,ColIdx}) && isnumeric(ThisData{RowIdx,ColIdx})
                 vObj.Data.PlotParametersData(RowIdx,ColIdx) = ThisData(RowIdx,ColIdx);
-                
-                %                 try
-                % Plot
-                plotOptimization(vObj.Data,vObj.h.MainAxes);
-                %                 catch ME
-                %                     hDlg = errordlg(sprintf('Cannot plot. %s',ME.message),'Invalid','modal');
-                %                     uiwait(hDlg);
-                %                 end
-                
             else
                 hDlg = errordlg('Invalid value specified for parameter. Values must be numeric','Invalid value','modal');
                 uiwait(hDlg);
@@ -482,6 +477,51 @@ classdef Optimization < uix.abstract.CardViewPane
             updateVisualizationView(vObj);
             
         end %function   
+        
+        function onSaveParametersAsVPopButton(vObj,h,e)
+            
+            Options.Resize = 'on';
+            Options.WindowStyle = 'modal';
+            Answer = inputdlg('Save Virtual Population as?','Save VPop',[1 50],{''},Options);
+            
+            if ~isempty(Answer)
+                AllVPops = vObj.Data.Settings.VirtualPopulation;
+                AllVPopNames = get(AllVPops,'Name');
+                AllVPopFilePaths = get(AllVPops,'FilePath');
+                
+                ThisVPopName = strtrim(Answer{1});
+                FileName = matlab.lang.makeValidName(ThisVPopName);
+                ThisFilePath = fullfile(vObj.Data.Session.RootDirectory,[FileName '.xlsx']);
+                
+                if isempty(ThisVPopName) || any(strcmpi(ThisVPopName,AllVPopNames)) || ...
+                        any(strcmpi(ThisFilePath,AllVPopFilePaths))
+                    Message = 'Please provide a valid, unique virtual population name.';
+                    Title = 'Invalid name';
+                    hDlg = errordlg(Message,Title,'modal');
+                    uiwait(hDlg);
+                else
+                    
+                    % Create a new virtual population
+                    vpopObj = QSP.VirtualPopulation;
+                    vpopObj.Session = vObj.Data.Session;
+                    vpopObj.Name = ThisVPopName;                    
+                    vpopObj.FilePath = ThisFilePath;                 
+                    
+                    xlswrite(vpopObj.FilePath,vObj.Data.PlotParametersData(:,1:2)'); % Take first 2 rows and transpose
+                    
+                    % Update last saved time
+                    updateLastSavedTime(vpopObj);
+                    % Validate
+                    validate(vpopObj,false);
+                    
+                    % Call the callback
+                    evt.InteractionType = sprintf('Updated %s',class(vpopObj));
+                    evt.Data = vpopObj;
+                    vObj.callCallback(evt);                    
+                end
+            end
+            
+        end %function
         
         function onPlotItemsTableContextMenu(vObj,h,e)
             

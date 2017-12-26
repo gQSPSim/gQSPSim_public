@@ -458,19 +458,21 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                         IsName = strcmpi(Header,'Name');
                         IsP0_1 = strcmpi(Header,'P0_1');
                         if any(IsName) && any(IsP0_1)
-                            obj.PlotParametersData = cell(size(Data,1),2);
+                            obj.PlotParametersData = cell(size(Data,1),3);
                             obj.PlotParametersData(:,1) = Data(:,IsName);
                             obj.PlotParametersData(:,2) = Data(:,IsP0_1);
+                            obj.PlotParametersData(:,3) = obj.PlotParametersData(:,2);
                         end
                     elseif strcmpi(class(thisObj),'QSP.VirtualPopulation')
                         % Virtual Population Data
-                        obj.PlotParametersData = cell(numel(Header),2);
+                        obj.PlotParametersData = cell(numel(Header),3);
                         obj.PlotParametersData(:,1) = Header(:);
                         if ~isempty(Data)
                             obj.PlotParametersData(:,2) = Data(1,:);
+                            obj.PlotParametersData(:,3) = obj.PlotParametersData(:,2);
                         end
                     else
-                        obj.PlotParametersData = cell(0,2);
+                        obj.PlotParametersData = cell(0,3);
                     end
                     
                     % Finally, set the new source
