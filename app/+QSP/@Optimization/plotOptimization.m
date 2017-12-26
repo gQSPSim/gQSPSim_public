@@ -38,8 +38,9 @@ for index = 1:numel(hAxes)
 end
 
 NumAxes = numel(hAxes);
-hSpeciesGroup = cell(1,NumAxes);
-hDatasetGroup = cell(1,NumAxes);
+hSpeciesGroup = cell(size(obj.PlotSpeciesTable,1),NumAxes);
+hDatasetGroup = cell(size(obj.PlotSpeciesTable,1),NumAxes);
+
 hLegend = cell(1,NumAxes);
 hLegendChildren = cell(1,NumAxes);
 
@@ -133,7 +134,10 @@ SelectedItemColors = cell2mat(obj.PlotItemTable(IsSelected,2));
 
 for sIdx = 1:size(obj.PlotSpeciesTable,1)
     axIdx = str2double(obj.PlotSpeciesTable{sIdx,1});
-    ThisName = obj.PlotSpeciesTable{sIdx,2};
+    ThisLineStyle = obj.PlotSpeciesTable{sIdx,2};
+    ThisName = obj.PlotSpeciesTable{sIdx,3};
+    
+    
     if ~isempty(axIdx) && ~isnan(axIdx) && ~isempty(Results)
         for itemIdx = 1:numel(Results)
             % Plot the species from the simulation item in the appropriate
@@ -154,10 +158,26 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
                 
                 % Plot
                 if ~isempty(ColumnIdx)
-                    hSpeciesGroup{axIdx} = [hSpeciesGroup{axIdx} ...                        
-                        plot(hAxes(axIdx),Results{itemIdx}.Time,Results{itemIdx}.Data(:,ColumnIdx),...
+                    if isempty(hSpeciesGroup{sIdx,axIdx})
+                        hSpeciesGroup{sIdx,axIdx} = hggroup(hAxes(axIdx),...
+                            'DisplayName',regexprep(ThisName,'_','\\_'));
+                        % Add dummy line for legend
+                        line(nan,nan,'Parent',hSpeciesGroup{sIdx,axIdx},...
+                            'LineStyle',ThisLineStyle,...
+                            'Color',[0 0 0]);
+                    end
+                    
+                    % Plot
+                    hThis = plot(hSpeciesGroup{sIdx,axIdx},Results{itemIdx}.Time,Results{itemIdx}.Data(:,ColumnIdx),...
                         'Color',SelectedItemColors(itemIdx,:),...
-                        'DisplayName',regexprep(sprintf('%s Results (%d)',ThisName,itemIdx),'_','\\_'))];
+                        'LineStyle',ThisLineStyle);
+                    set(get(get(hThis,'Annotation'),'LegendInformation'),'IconDisplayStyle','off');
+                    
+                    
+%                     hSpeciesGroup{axIdx} = [hSpeciesGroup{axIdx} ...                        
+%                         plot(hAxes(axIdx),Results{itemIdx}.Time,Results{itemIdx}.Data(:,ColumnIdx),...
+%                         'Color',SelectedItemColors(itemIdx,:),...
+%                         'DisplayName',regexprep(sprintf('%s Results (%d)',ThisName,itemIdx),'_','\\_'))];
                 end %if
             end %if
         end %for itemIdx
@@ -200,6 +220,7 @@ if any(MatchIdx)
             
             % Get the Time Column from the imported dataset
             TimeColumn = cell2mat(OptimData(:,strcmp(OptimHeader,'Time')));
+            ThisMarker = '*';
             
             for dIdx = 1:size(obj.PlotSpeciesTable,1)
                 axIdx = str2double(obj.PlotSpeciesTable{dIdx,1});
@@ -211,13 +232,32 @@ if any(MatchIdx)
                         % Find the GroupID match within the GroupColumn
                         MatchIdx = (GroupColumn == SelectedGroupIDs(gIdx));
                         
-                        % Plot the selected column by GroupID
-                        hDatasetGroup{axIdx} = [hDatasetGroup{axIdx} ... 
-                            plot(hAxes(axIdx),TimeColumn(MatchIdx), cell2mat(OptimData(MatchIdx,ColumnIdx)),...
+                        % Create a group
+                        if isempty(hDatasetGroup{dIdx,axIdx})
+                            hDatasetGroup{dIdx,axIdx} = hggroup(hAxes(axIdx),...
+                                'DisplayName',regexprep(ThisName,'_','\\_'));
+                            % Add dummy line for legend
+                            line(nan,nan,'Parent',hDatasetGroup{dIdx,axIdx},...
+                                'LineStyle','none',...
+                                'Marker',ThisMarker,...
+                                'Color',[0 0 0]);
+                        end
+                        
+                        % Plot but remove from the legend
+                        hThis = plot(hDatasetGroup{dIdx,axIdx},TimeColumn(MatchIdx),cell2mat(OptimData(MatchIdx,ColumnIdx)),...
+                            'Color',SelectedItemColors(gIdx,:),...
                             'LineStyle','none',...
-                            'Marker','*',...
-                            'Color',SelectedItemColors(gIdx,:),... %SelectedGroupColors(gIdx,:));
-                            'DisplayName',regexprep(sprintf('%s %s',ThisName,SelectedGroupIDs(gIdx)),'_','\\_'))];
+                            'Marker',ThisMarker,...
+                            'DisplayName',regexprep(ThisName,'_','\\_'));
+                        set(get(get(hThis,'Annotation'),'LegendInformation'),'IconDisplayStyle','off');
+                        
+%                         % Plot the selected column by GroupID
+%                         hDatasetGroup{axIdx} = [hDatasetGroup{axIdx} ... 
+%                             plot(hAxes(axIdx),TimeColumn(MatchIdx), cell2mat(OptimData(MatchIdx,ColumnIdx)),...
+%                             'LineStyle','none',...
+%                             'Marker','*',...
+%                             'Color',SelectedItemColors(gIdx,:),... %SelectedGroupColors(gIdx,:));
+%                             'DisplayName',regexprep(sprintf('%s %s',ThisName,SelectedGroupIDs(gIdx)),'_','\\_'))];
                     end %for gIdx
                 end %if
             end %for dIdx

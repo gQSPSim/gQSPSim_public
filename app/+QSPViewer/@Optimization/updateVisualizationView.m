@@ -191,38 +191,49 @@ if ~isempty(vObj.Data)
         end
         
         % If empty, populate, but first update line styles
-        vObj.Data.PlotSpeciesTable = cell(numel(SpeciesNames),3);
+        vObj.Data.PlotSpeciesTable = cell(numel(SpeciesNames),4);
         
         vObj.Data.PlotSpeciesTable(:,1) = {' '};
-        vObj.Data.PlotSpeciesTable(:,2) = SpeciesNames;
-        vObj.Data.PlotSpeciesTable(:,3) = DataNames;
+        vObj.Data.PlotSpeciesTable(:,2) = vObj.Data.SpeciesLineStyles(:);
+        vObj.Data.PlotSpeciesTable(:,3) = SpeciesNames;
+        vObj.Data.PlotSpeciesTable(:,4) = DataNames;
         
         vObj.PlotSpeciesAsInvalidTable = vObj.Data.PlotSpeciesTable;
         vObj.PlotSpeciesInvalidRowIndices = [];
     else
-        NewPlotTable = cell(numel(SpeciesNames),3);
+        NewPlotTable = cell(numel(SpeciesNames),4);
         NewPlotTable(:,1) = {' '};
-        NewPlotTable(:,2) = SpeciesNames;
-        NewPlotTable(:,3) = DataNames;
+        NewPlotTable(:,2) = {'-'}; % vObj.Data.SpeciesLineStyles(:); % TODO: !!
+        NewPlotTable(:,3) = SpeciesNames;
+        NewPlotTable(:,4) = DataNames;
+        
+        % Adjust size if from an old saved session
+        if size(vObj.Data.PlotSpeciesTable,2) == 3
+            vObj.Data.PlotSpeciesTable(:,4) = vObj.Data.PlotSpeciesTable(:,3);
+            vObj.Data.PlotSpeciesTable(:,3) = vObj.Data.PlotSpeciesTable(:,2);
+            vObj.Data.PlotSpeciesTable(:,2) = {'-'};  % TODO: !!
+        end
         
         % Update Table
-        KeyColumn = [2 3];
+        KeyColumn = [3 4];
         [vObj.Data.PlotSpeciesTable,vObj.PlotSpeciesAsInvalidTable,vObj.PlotSpeciesInvalidRowIndices] = QSPViewer.updateVisualizationTable(vObj.Data.PlotSpeciesTable,NewPlotTable,InvalidIndices,KeyColumn);                     
+        % Update line styles
+        updateSpeciesLineStyles(vObj.Data);
     end
 
      % Species table
     set(vObj.h.PlotSpeciesTable,...
         'Data',vObj.PlotSpeciesAsInvalidTable,...
-        'ColumnName',{'Plot','Species','Data'},...
-        'ColumnFormat',{AxesOptions,'char','char'},...
-        'ColumnEditable',[true,false,false]...
+        'ColumnName',{'Plot','Style','Species','Data'},...
+        'ColumnFormat',{AxesOptions,vObj.Data.Settings.LineStyleMap,'char','char'},...
+        'ColumnEditable',[true,true,false,false]...
         );    
 else
     set(vObj.h.PlotSpeciesTable,...
-        'Data',cell(0,3),...
-        'ColumnName',{'Plot','Species','Data'},...
-        'ColumnFormat',{AxesOptions,'char','char'},...
-        'ColumnEditable',[true,false,false]...
+        'Data',cell(0,4),...
+        'ColumnName',{'Plot','Style','Species','Data'},...
+        'ColumnFormat',{AxesOptions,'char','char','char'},...
+        'ColumnEditable',[true,true,false,false]...
         );
 end
 

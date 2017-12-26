@@ -227,7 +227,7 @@ if ~isempty(vObj.Data)
         end
         
         % If empty, populate, but first update line styles
-        vObj.Data.PlotSpeciesTable = cell(numel(SpeciesNames),3);
+        vObj.Data.PlotSpeciesTable = cell(numel(SpeciesNames),4);
         updateSpeciesLineStyles(vObj.Data);
         
         vObj.Data.PlotSpeciesTable(:,1) = {' '};
@@ -238,7 +238,7 @@ if ~isempty(vObj.Data)
         vObj.PlotSpeciesAsInvalidTable = vObj.Data.PlotSpeciesTable;
         vObj.PlotSpeciesInvalidRowIndices = [];
     else
-        NewPlotTable = cell(numel(SpeciesNames),3);
+        NewPlotTable = cell(numel(SpeciesNames),4);
         NewPlotTable(:,1) = {' '};
         NewPlotTable(:,2) = {'-'}; % vObj.Data.SpeciesLineStyles(:); % TODO: !!
         NewPlotTable(:,3) = SpeciesNames;

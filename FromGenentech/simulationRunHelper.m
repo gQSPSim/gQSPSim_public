@@ -551,6 +551,10 @@ if ~isempty(ItemModels)
                     catch exception% simulation
                         % If the simulation fails, store NaNs
                         
+                        % Store exception's message
+                        ThisMessage = exception.message;
+                        Message = sprintf('%s\n%s\n',Message,ThisMessage);
+                        
                         % pad Results.Data with appropriate number of NaNs
                         if ~isempty(tObj_i.ActiveSpeciesNames)
                             Results.Data = [Results.Data,NaN*ones(length(Results.Time),length(tObj_i.ActiveSpeciesNames))];

@@ -45,7 +45,7 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         SpeciesData = QSP.SpeciesData.empty(0,1)
         SpeciesIC = QSP.SpeciesData.empty(0,1) % Initial Conditions        
         
-        PlotSpeciesTable = cell(0,3)
+        PlotSpeciesTable = cell(0,4)
         PlotItemTable = cell(0,4)
         PlotParametersData = cell(0,2)
         
@@ -55,6 +55,10 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             }
         
         SelectedPlotLayout = '1x1'
+    end
+    
+    properties (SetAccess = 'private')
+        SpeciesLineStyles
     end
     
     %% Constant Properties
@@ -516,6 +520,18 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             else
                 vpopObj = QSP.VirtualPopulation.empty(0,1);
             end
+        end %function
+        
+        function updateSpeciesLineStyles(obj)
+            ThisMap = obj.Settings.LineStyleMap;
+            if ~isempty(ThisMap) && size(obj.PlotSpeciesTable,1) ~= numel(obj.SpeciesLineStyles)
+                obj.SpeciesLineStyles = uix.utility.GetLineStyleMap(ThisMap,size(obj.PlotSpeciesTable,1)); % Number of species
+            end
+        end %function
+        
+        function setSpeciesLineStyles(obj,Index,NewLineStyle)
+            NewLineStyle = validatestring(NewLineStyle,obj.Settings.LineStyleMap);
+            obj.SpeciesLineStyles{Index} = NewLineStyle;
         end %function
         
         function [StaleFlag,ValidFlag] = getStaleItemIndices(obj)
