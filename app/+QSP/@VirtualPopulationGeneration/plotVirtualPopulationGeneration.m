@@ -132,6 +132,7 @@ else
     Results = [];    
 end
 
+
 %% add the cached results to get the complete simulation results
 
 % add cached results
@@ -143,10 +144,12 @@ for ii = 1:length(indCached)
 end
 
 indNotCached = find(IsSelected & ~IsCached);
-for ii = 1:length(indNotCached)
-    newResults{indNotCached(ii)} = Results{ii};
+if ~isempty(Results)
+    for ii = 1:length(indNotCached)
+        newResults{indNotCached(ii)} = Results{ii};
+    end
 end
-   
+
 if ~isempty(newResults)
     Results = newResults(~cellfun(@isempty,newResults)); % combined cached & new simulations
 end
@@ -156,7 +159,7 @@ SelectedItemColors = cell2mat(obj.PlotItemTable(IsSelected,2));
 
 %% Plot Simulation Items
 
-if strcmp(obj.PlotType, 'Normal')
+if strcmp(obj.PlotType, 'Normal') && ~isempty(Results)
     for sIdx = 1:size(obj.PlotSpeciesTable,1)
         allAxes = str2double(obj.PlotSpeciesTable{sIdx,1});
 %         cla(hAxes(allAxes))
@@ -216,7 +219,8 @@ if strcmp(obj.PlotType, 'Normal')
                     end
                 end
             end
-            set(hAxes(allAxes), 'Children', [ublb_lines;  acc_lines; rej_lines]) % move UB/LB to top of plotting stack
+            %set(hAxes(allAxes), 'Children', [ublb_lines;  acc_lines; rej_lines]) % move UB/LB to top of plotting stack
+            uistack([ublb_lines;  acc_lines; rej_lines],'top');
         end
     end
 elseif strcmp(obj.PlotType,'Diagnostic') && ~isempty(Results)
