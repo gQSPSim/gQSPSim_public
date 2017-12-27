@@ -47,14 +47,18 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         
         PlotSpeciesTable = cell(0,4)
         PlotItemTable = cell(0,4)
-        PlotParametersData = cell(0,2)
         
-        PlotParametersSource = 'N/A'        
-        PlotParametersSourceOptions = {
+        PlotProfile = QSP.Profile.empty(0,1)
+        SelectedProfileRow = []
+        PlotParametersSourceOptions = { % Remove this
             'N/A'            
-            }
+            }        
+        
+        PlotParametersData = cell(0,2) % Remove this        
+        PlotParametersSource = 'N/A'  % Remove this        
         
         SelectedPlotLayout = '1x1'
+        KeepHistory = true
     end
     
     properties (SetAccess = 'private')
@@ -419,7 +423,12 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
     %% Methods    
     methods
         
-        function [StatusOk,Message] = importParametersSource(obj,NewSource)
+        function [StatusOk,Message,PlotParametersData] = importParametersSource(obj,NewSource)
+            
+            StatusOk = true;
+            Message = '';
+            PlotParametersData = cell(0,2);
+            
             % Check if parameter
             % Parameter File
             Names = {obj.Settings.Parameters.Name};
@@ -458,28 +467,27 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                         IsName = strcmpi(Header,'Name');
                         IsP0_1 = strcmpi(Header,'P0_1');
                         if any(IsName) && any(IsP0_1)
-                            obj.PlotParametersData = cell(size(Data,1),3);
-                            obj.PlotParametersData(:,1) = Data(:,IsName);
-                            obj.PlotParametersData(:,2) = Data(:,IsP0_1);
-                            obj.PlotParametersData(:,3) = obj.PlotParametersData(:,2);
+                            PlotParametersData = cell(size(Data,1),2);
+                            PlotParametersData(:,1) = Data(:,IsName);
+                            PlotParametersData(:,2) = Data(:,IsP0_1);                            
                         end
                     elseif strcmpi(class(thisObj),'QSP.VirtualPopulation')
                         % Virtual Population Data
-                        obj.PlotParametersData = cell(numel(Header),3);
-                        obj.PlotParametersData(:,1) = Header(:);
+                        PlotParametersData = cell(numel(Header),2);
+                        PlotParametersData(:,1) = Header(:);
                         if ~isempty(Data)
-                            obj.PlotParametersData(:,2) = Data(1,:);
-                            obj.PlotParametersData(:,3) = obj.PlotParametersData(:,2);
+                            PlotParametersData(:,2) = Data(1,:);                            
                         end
                     else
-                        obj.PlotParametersData = cell(0,3);
+                        PlotParametersData = cell(0,2);
                     end
-                    
-                    % Finally, set the new source
-                    obj.PlotParametersSource = NewSource;
+                    %obj.PlotParametersSource = NewSource;
                 else
                     Message = sprintf('Could not import from file. %s',Message);
                 end
+            else
+                StatusOk = false;
+                Message = sprintf('Could not import from file. Validate source''s filepath.');
             end
         end %function 
         
@@ -718,6 +726,17 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             validateattributes(Value,{'QSP.SpeciesData'},{});
             obj.SpeciesIC = Value;
         end
+        
+        function set.PlotProfile(obj,Value)
+            validateattributes(Value,{'QSP.Profile'},{});
+            obj.PlotProfile = Value;
+        end
+        
+        function set.SelectedProfileRow(obj,Value)
+            validateattributes(Value,{'numeric'},{});
+            obj.SelectedProfileRow = Value;
+        end
+        
     end %methods
     
 end %classdef

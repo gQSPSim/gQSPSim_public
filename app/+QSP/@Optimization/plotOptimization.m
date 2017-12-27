@@ -110,19 +110,32 @@ end
 
 
 %% Run the simulations
-ParamNames = obj.PlotParametersData(:,1);
-Pin = obj.PlotParametersData(:,2);
-if iscell(Pin)
-    Pin = cell2mat(Pin);
-end
 
 Results = [];
 
-if any(IsSelected)
-    [StatusOK,Message,~,Results] = simulationRunHelper(simObj,Pin,ParamNames);
+if any(IsSelected)    
     
-    if ~StatusOK
-        error('plotOptimization: %s',Message);
+    % Loop through all profiles to be shown
+    for index = 1:numel(obj.PlotProfile)
+    
+        % TODO: Plot all profiles
+        if ~isempty(obj.PlotProfile(index).Values)
+            ParamNames = obj.PlotProfile(index).Values(:,1);
+            Pin = obj.PlotProfile(index).Values(:,2);
+        else
+            ParamNames = {};
+            Pin = {};
+        end
+        if iscell(Pin)
+            Pin = cell2mat(Pin);
+        end
+        [StatusOK,Message,~,TheseResults] = simulationRunHelper(simObj,Pin,ParamNames);
+
+        if ~StatusOK
+            error('plotOptimization: %s',Message);
+        else
+            Results = [Results; TheseResults]; %#ok<AGROW>
+        end
     end
 end
 
@@ -132,55 +145,69 @@ SelectedItemColors = cell2mat(obj.PlotItemTable(IsSelected,2));
 
 %% Plot Simulation Items
 
+Show = [obj.PlotProfile.Show];
+HighlightIdx = find(Show) == obj.SelectedProfileRow;
+HighlightIdx = find(HighlightIdx);
+
 for sIdx = 1:size(obj.PlotSpeciesTable,1)
     axIdx = str2double(obj.PlotSpeciesTable{sIdx,1});
     ThisLineStyle = obj.PlotSpeciesTable{sIdx,2};
-    ThisName = obj.PlotSpeciesTable{sIdx,3};
-    
+    ThisName = obj.PlotSpeciesTable{sIdx,3};    
     
     if ~isempty(axIdx) && ~isnan(axIdx) && ~isempty(Results)
-        for itemIdx = 1:numel(Results)
-            % Plot the species from the simulation item in the appropriate
-            % color
-            
-            if isempty(Results{itemIdx})                
-                continue
-            end
-            
-            % Get the match in Sim 1 (Virtual Patient 1) in this VPop
-            ColumnIdx = find(strcmp(Results{itemIdx}.SpeciesNames,ThisName));
-            
-            % since not all tasks will contain all species...
-            if ~isempty(ColumnIdx) && ~isempty(size(Results{1}.Data,2))
-                % Update ColumnIdx to get species for ALL virtual patients
-                NumSpecies = numel(Results{itemIdx}.SpeciesNames);
-                ColumnIdx = ColumnIdx:NumSpecies:size(Results{1}.Data,2);
+        for runIdx = 1:size(Results,1)
+            for itemIdx = 1:size(Results,2)
+                % Plot the species from the simulation item in the appropriate
+                % color
                 
-                % Plot
-                if ~isempty(ColumnIdx)
-                    if isempty(hSpeciesGroup{sIdx,axIdx})
-                        hSpeciesGroup{sIdx,axIdx} = hggroup(hAxes(axIdx),...
-                            'DisplayName',regexprep(ThisName,'_','\\_'));
-                        % Add dummy line for legend
-                        line(nan,nan,'Parent',hSpeciesGroup{sIdx,axIdx},...
-                            'LineStyle',ThisLineStyle,...
-                            'Color',[0 0 0]);
-                    end
+                if isempty(Results{runIdx,itemIdx})
+                    continue
+                end
+                
+                % Get the match in Sim 1 (Virtual Patient 1) in this VPop
+                ColumnIdx = find(strcmp(Results{runIdx,itemIdx}.SpeciesNames,ThisName));
+                
+                % since not all tasks will contain all species...
+                if ~isempty(ColumnIdx) && ~isempty(size(Results{1,1}.Data,2))
+                    % Update ColumnIdx to get species for ALL virtual patients
+                    NumSpecies = numel(Results{runIdx,itemIdx}.SpeciesNames);
+                    ColumnIdx = ColumnIdx:NumSpecies:size(Results{runIdx,1}.Data,2);
                     
                     % Plot
-                    hThis = plot(hSpeciesGroup{sIdx,axIdx},Results{itemIdx}.Time,Results{itemIdx}.Data(:,ColumnIdx),...
-                        'Color',SelectedItemColors(itemIdx,:),...
-                        'LineStyle',ThisLineStyle);
-                    set(get(get(hThis,'Annotation'),'LegendInformation'),'IconDisplayStyle','off');
-                    
-                    
-%                     hSpeciesGroup{axIdx} = [hSpeciesGroup{axIdx} ...                        
-%                         plot(hAxes(axIdx),Results{itemIdx}.Time,Results{itemIdx}.Data(:,ColumnIdx),...
-%                         'Color',SelectedItemColors(itemIdx,:),...
-%                         'DisplayName',regexprep(sprintf('%s Results (%d)',ThisName,itemIdx),'_','\\_'))];
+                    if ~isempty(ColumnIdx)
+                        if isempty(hSpeciesGroup{sIdx,axIdx})
+                            hSpeciesGroup{sIdx,axIdx} = hggroup(hAxes(axIdx),...
+                                'DisplayName',regexprep(ThisName,'_','\\_'));
+                            % Add dummy line for legend
+                            line(nan,nan,'Parent',hSpeciesGroup{sIdx,axIdx},...
+                                'LineStyle',ThisLineStyle,...
+                                'Color',[0 0 0]);
+                        end
+                        
+                        % Apply thicker line width if needed
+                        if runIdx == HighlightIdx
+                            ThisLineWidth = 2;
+                        else
+                            ThisLineWidth = 0.5;
+                        end
+                        
+                        % Plot
+                        hThis = plot(hSpeciesGroup{sIdx,axIdx},Results{runIdx,itemIdx}.Time,Results{runIdx,itemIdx}.Data(:,ColumnIdx),...
+                            'Color',SelectedItemColors(itemIdx,:),...
+                            'Visible',uix.utility.tf2onoff(Show(runIdx)),...
+                            'LineStyle',ThisLineStyle,...
+                            'LineWidth',ThisLineWidth);
+                        set(get(get(hThis,'Annotation'),'LegendInformation'),'IconDisplayStyle','off');
+                        
+                        
+                        %                     hSpeciesGroup{axIdx} = [hSpeciesGroup{axIdx} ...
+                        %                         plot(hAxes(axIdx),Results{itemIdx}.Time,Results{itemIdx}.Data(:,ColumnIdx),...
+                        %                         'Color',SelectedItemColors(itemIdx,:),...
+                        %                         'DisplayName',regexprep(sprintf('%s Results (%d)',ThisName,itemIdx),'_','\\_'))];
+                    end %if
                 end %if
-            end %if
-        end %for itemIdx
+            end %for itemIdx
+        end %for runIdx
     end %if
 end %for sIdx
         
