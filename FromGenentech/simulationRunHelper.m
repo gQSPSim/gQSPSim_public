@@ -486,8 +486,10 @@ function [Results, nFailedSims, StatusOK, Message] = simulateVPatients(ItemModel
             % check for user-input parameter values
             if ~isempty(Pin)
                 params = Pin(ItemModel.VPopParamInds);
-            else
+            elseif ~isempty(ItemModel.VPopParams)
                 params = ItemModel.VPopParams(jj,:);
+            else
+                params = [];
             end
             
             model = ItemModel.ExportedModel;
@@ -575,7 +577,11 @@ function [Results, nFailedSims, StatusOK, Message] = simulateVPatients(ItemModel
                         params = cell2mat(params);
                     end
                     if isempty(ItemModel.VPopSpeciesICs)
-                        simData = simulate(model, params, doses);
+                        if ~isempty(params)
+                            simData = simulate(model, params, doses);
+                        else
+                            simData = simulate(model, doses);
+                        end
                     else
                         simData = simulate(model, [ItemModel.VPopSpeciesICs(jj,:), params], doses);
                     end % if
