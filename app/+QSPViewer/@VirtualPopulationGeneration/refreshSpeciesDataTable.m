@@ -37,19 +37,19 @@ if ~isempty(vObj.TempData)
         end
     end
     
-    Data = [SpeciesNames(:) num2cell(NumTasksPerSpecies(:)) DataNames(:) FunctionExpressions(:)];
+    Data = [DataNames(:) SpeciesNames(:) num2cell(NumTasksPerSpecies(:)) FunctionExpressions(:)];
     
     % Mark any invalid entries
     if ~isempty(Data)
         % Species
         MatchIdx = find(~ismember(SpeciesNames(:),vObj.SpeciesPopupTableItems(:)));
         for index = 1:numel(MatchIdx)
-            Data{MatchIdx(index),1} = QSP.makeInvalid(Data{MatchIdx(index),1});
+            Data{MatchIdx(index),2} = QSP.makeInvalid(Data{MatchIdx(index),1});
         end
         % Data
         MatchIdx = find(~ismember(DataNames(:),vObj.DatasetDataColumn(:)));
         for index = 1:numel(MatchIdx)
-            Data{MatchIdx(index),3} = QSP.makeInvalid(Data{MatchIdx(index),3});
+            Data{MatchIdx(index),1} = QSP.makeInvalid(Data{MatchIdx(index),4});
         end        
     end
 else

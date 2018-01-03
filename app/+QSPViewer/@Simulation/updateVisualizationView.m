@@ -27,6 +27,23 @@ function updateVisualizationView(vObj)
 % ---------------------------------------------------------------------
 
 
+if ~isempty(vObj.Data)
+    % Check what items are stale or invalid
+    [StaleFlag,ValidFlag] = getStaleItemIndices(vObj.Data);
+    InvalidItemIndices = ~ValidFlag;    
+        
+    if all(ValidFlag) && vObj.Selection ~= 2
+        set(vObj.h.VisualizeButton,'Enable','on');
+    else
+        % Navigate to Summary view if not already on it
+        if vObj.Selection == 3
+            onNavigation(vObj,'Summary');
+        end
+        set(vObj.h.VisualizeButton,'Enable','off');        
+    end
+end
+
+
 %% Update table contextmenus
 
 hFigure = ancestor(vObj.UIContainer,'figure');
@@ -115,27 +132,23 @@ if ~isempty(vObj.Data)
     TaskNames = {vObj.Data.Item.TaskName};
     VPopNames = {vObj.Data.Item.VPopName};
     
-    % Check what items are stale or invalid
-    [StaleFlag,ValidFlag] = getStaleItemIndices(vObj.Data);
-    InvalidIndices = ~ValidFlag;
-    
-%     InvalidIndices = false(size(TaskNames));
+%       InvalidItemIndices = false(size(TaskNames));
 %     for idx = 1:numel(TaskNames)
 %         % Check if the task is valid
 %         ThisTask = getValidSelectedTasks(vObj.Data.Settings,TaskNames{idx});
 %         ThisVPop = getValidSelectedVPops(vObj.Data.Settings,VPopNames{idx});
 %         if isempty(ThisTask) || isempty(ThisVPop)
-%             InvalidIndices(idx) = true;
+%             InvalidItemIndices(idx) = true;
 %         end
 %     end
     
     % If empty, populate
     if isempty(vObj.Data.PlotItemTable)
         
-        if any(InvalidIndices)
+        if any(InvalidItemIndices)
             % Then, prune
-            TaskNames(InvalidIndices) = [];
-            VPopNames(InvalidIndices) = [];
+            TaskNames(InvalidItemIndices) = [];
+            VPopNames(InvalidItemIndices) = [];
         end
         
         vObj.Data.PlotItemTable = cell(numel(TaskNames),4);
@@ -160,7 +173,7 @@ if ~isempty(vObj.Data)
         
         % Update Table
         KeyColumn = [3 4];
-        [vObj.Data.PlotItemTable,vObj.PlotItemAsInvalidTable,vObj.PlotItemInvalidRowIndices] = QSPViewer.updateVisualizationTable(vObj.Data.PlotItemTable,NewPlotTable,InvalidIndices,KeyColumn);
+        [vObj.Data.PlotItemTable,vObj.PlotItemAsInvalidTable,vObj.PlotItemInvalidRowIndices] = QSPViewer.updateVisualizationTable(vObj.Data.PlotItemTable,NewPlotTable,InvalidItemIndices,KeyColumn);
     end
     
     % Check which results files are invalid

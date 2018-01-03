@@ -45,16 +45,24 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         SpeciesData = QSP.SpeciesData.empty(0,1)
         SpeciesIC = QSP.SpeciesData.empty(0,1) % Initial Conditions        
         
-        PlotSpeciesTable = cell(0,3)
+        PlotSpeciesTable = cell(0,4)
         PlotItemTable = cell(0,4)
-        PlotParametersData = cell(0,2)
         
-        PlotParametersSource = 'N/A'        
-        PlotParametersSourceOptions = {
+        PlotProfile = QSP.Profile.empty(0,1)
+        SelectedProfileRow = []
+        PlotParametersSourceOptions = { % Remove this
             'N/A'            
-            }
+            }        
+        
+        PlotParametersData = cell(0,2) % Remove this        
+        PlotParametersSource = 'N/A'  % Remove this        
         
         SelectedPlotLayout = '1x1'
+        KeepHistory = true
+    end
+    
+    properties (SetAccess = 'private')
+        SpeciesLineStyles
     end
     
     %% Constant Properties
@@ -97,13 +105,32 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         
         function Summary = getSummary(obj)
             
-            % Items
             if ~isempty(obj.Item)
-                OptimizationItems = cellfun(@(x,y)sprintf('%s - %s',x,y),{obj.Item.TaskName},{obj.Item.GroupID},'UniformOutput',false);
+                OptimizationItems = {};
+                % Check what items are stale or invalid
+                [StaleFlag,ValidFlag] = getStaleItemIndices(obj);
+
+                for index = 1:numel(obj.Item)
+                    ThisResultFilePath = obj.ExcelResultFileName{index};
+                    if isempty(ThisResultFilePath)
+                        ThisResultFilePath = 'Results: N/A';
+                    end
+
+                    % Default
+                    ThisItem = sprintf('%s - %s (%s)',obj.Item(index).TaskName,obj.Item(index).GroupID,ThisResultFilePath);
+                    if StaleFlag(index)
+                        % Item may be out of date
+                        ThisItem = sprintf('***WARNING*** %s\n%s\n',ThisItem,'***Item may be out of date***');
+                    elseif ~ValidFlag(index)
+                        % Display invalid
+                        ThisItem = sprintf('***INVALID*** %s\n',ThisItem);
+                    end
+                    OptimizationItems = [OptimizationItems; ThisItem]; %#ok<AGROW>
+                end
             else
                 OptimizationItems = {};
-            end    
-            
+            end
+
             % Species-Data mapping
             if ~isempty(obj.SpeciesData)
                 SpeciesDataItems = cellfun(@(x,y)sprintf('%s - %s',x,y),{obj.SpeciesData.SpeciesName},{obj.SpeciesData.DataName},'UniformOutput',false);
@@ -396,7 +423,12 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
     %% Methods    
     methods
         
-        function [StatusOk,Message] = importParametersSource(obj,NewSource)
+        function [StatusOk,Message,PlotParametersData] = importParametersSource(obj,NewSource)
+            
+            StatusOk = true;
+            Message = '';
+            PlotParametersData = cell(0,2);
+            
             % Check if parameter
             % Parameter File
             Names = {obj.Settings.Parameters.Name};
@@ -435,26 +467,27 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                         IsName = strcmpi(Header,'Name');
                         IsP0_1 = strcmpi(Header,'P0_1');
                         if any(IsName) && any(IsP0_1)
-                            obj.PlotParametersData = cell(size(Data,1),2);
-                            obj.PlotParametersData(:,1) = Data(:,IsName);
-                            obj.PlotParametersData(:,2) = Data(:,IsP0_1);
+                            PlotParametersData = cell(size(Data,1),2);
+                            PlotParametersData(:,1) = Data(:,IsName);
+                            PlotParametersData(:,2) = Data(:,IsP0_1);                            
                         end
                     elseif strcmpi(class(thisObj),'QSP.VirtualPopulation')
                         % Virtual Population Data
-                        obj.PlotParametersData = cell(numel(Header),2);
-                        obj.PlotParametersData(:,1) = Header(:);
+                        PlotParametersData = cell(numel(Header),2);
+                        PlotParametersData(:,1) = Header(:);
                         if ~isempty(Data)
-                            obj.PlotParametersData(:,2) = Data(1,:);
+                            PlotParametersData(:,2) = Data(1,:);                            
                         end
                     else
-                        obj.PlotParametersData = cell(0,2);
+                        PlotParametersData = cell(0,2);
                     end
-                    
-                    % Finally, set the new source
-                    obj.PlotParametersSource = NewSource;
+                    %obj.PlotParametersSource = NewSource;
                 else
                     Message = sprintf('Could not import from file. %s',Message);
                 end
+            else
+                StatusOk = false;
+                Message = sprintf('Could not import from file. Validate source''s filepath.');
             end
         end %function 
         
@@ -497,7 +530,138 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             else
                 vpopObj = QSP.VirtualPopulation.empty(0,1);
             end
+        end %function
+        
+        function updateSpeciesLineStyles(obj)
+            ThisMap = obj.Settings.LineStyleMap;
+            if ~isempty(ThisMap) && size(obj.PlotSpeciesTable,1) ~= numel(obj.SpeciesLineStyles)
+                obj.SpeciesLineStyles = uix.utility.GetLineStyleMap(ThisMap,size(obj.PlotSpeciesTable,1)); % Number of species
+            end
+        end %function
+        
+        function setSpeciesLineStyles(obj,Index,NewLineStyle)
+            NewLineStyle = validatestring(NewLineStyle,obj.Settings.LineStyleMap);
+            obj.SpeciesLineStyles{Index} = NewLineStyle;
+        end %function
+        
+        function [StaleFlag,ValidFlag] = getStaleItemIndices(obj)
             
+            StaleFlag = false(1,numel(obj.Item));
+            ValidFlag = true(1,numel(obj.Item));
+            
+            % Check if OptimizationData is valid
+            ThisList = {obj.Settings.OptimizationData.Name};
+            MatchIdx = strcmpi(ThisList,obj.DatasetName);
+            if any(MatchIdx)
+                dObj = obj.Settings.OptimizationData(MatchIdx);
+                ThisStatusOk = validate(dObj);
+                ForceMarkAsInvalid = ~ThisStatusOk;
+                
+                if ThisStatusOk
+                    
+                    DestDatasetType = 'wide';
+                    [~,~,OptimHeader,OptimData] = importData(dObj,dObj.FilePath,DestDatasetType);
+                    
+                    MatchIdx = strcmp(OptimHeader,obj.GroupName);
+                    GroupIDs = OptimData(:,MatchIdx);
+                    
+                    if iscell(GroupIDs)
+                        GroupIDs = cell2mat(GroupIDs);
+                    end
+                    GroupIDs = unique(GroupIDs);
+                else
+                    GroupIDs = {};
+                end
+            else
+                ForceMarkAsInvalid = false;
+            end
+            
+            % ONLY if OptimizationData is valid, check Parameters
+            ThisList = {obj.Settings.Parameters.Name};
+            MatchIdx = strcmpi(ThisList,obj.RefParamName);
+            if any(MatchIdx)
+                pObj = obj.Settings.Parameters(MatchIdx);
+            else
+                pObj = QSP.Parameters.empty(0,1);
+            end
+                
+            if ForceMarkAsInvalid                
+                if ~isempty(pObj)
+                    ThisStatusOk = validate(pObj);
+                    ForceMarkAsInvalid = ~ThisStatusOk;
+                else
+                    ForceMarkAsInvalid = false;
+                end
+            end
+            
+            for index = 1:numel(obj.Item)
+                % Validate Task-Group and ExcelFilePath
+                ThisTask = getValidSelectedTasks(obj.Settings,obj.Item(index).TaskName);
+                % Validate groupID
+                ThisID = obj.Item(index).GroupID;
+                if ischar(ThisID)
+                    ThisID = str2double(ThisID);
+                end
+                MatchGroup = ismember(ThisID,GroupIDs);                
+               
+                if ~ForceMarkAsInvalid && ...
+                        ~isempty(ThisTask) && ...
+                        ~isempty(ThisTask.LastSavedTime) && ...
+                        any(MatchGroup) && ...
+                        ~isempty(obj.LastSavedTime)
+                    
+                    % Compare times
+                    
+                    % Optimization object (this)
+                    OptimLastSavedTime = datenum(obj.LastSavedTime);
+                    
+                    % Task object (item)
+                    TaskLastSavedTime = datenum(ThisTask.LastSavedTime);
+                    
+                    % SimBiology Project file from Task
+                    FileInfo = dir(ThisTask.FilePath);
+                    TaskProjectLastSavedTime = FileInfo.datenum;
+                    
+                    % OptimizationData object and file
+                    OptimizationDataLastSavedTime = datenum(dObj.LastSavedTime);
+                    FileInfo = dir(dObj.FilePath);
+                    OptimizationDataFileLastSavedTime = FileInfo.datenum;
+                    
+                    % Parameter object and file
+                    ParametersLastSavedTime = datenum(pObj.LastSavedTime);
+                    FileInfo = dir(pObj.FilePath);
+                    ParametersFileLastSavedTime = FileInfo.datenum;                    
+                    
+                    % Results file
+                    ThisFilePath = fullfile(obj.Session.RootDirectory,obj.OptimResultsFolderName,obj.ExcelResultFileName{index});
+                    if exist(ThisFilePath,'file') == 2
+                        FileInfo = dir(ThisFilePath);                        
+                        ResultLastSavedTime = FileInfo.datenum;                        
+                    elseif ~isempty(obj.ExcelResultFileName{index})
+                        ResultLastSavedTime = '';
+                        % Display invalid
+                        ValidFlag(index) = false;
+                    else
+                        ResultLastSavedTime = '';                        
+                    end
+                    
+                    % Check
+                    if OptimLastSavedTime < TaskLastSavedTime || ...
+                            OptimLastSavedTime < TaskProjectLastSavedTime || ...   
+                            OptimLastSavedTime < OptimizationDataLastSavedTime || ...
+                            OptimLastSavedTime < OptimizationDataFileLastSavedTime || ...
+                            OptimLastSavedTime < ParametersLastSavedTime || ...
+                            OptimLastSavedTime < ParametersFileLastSavedTime || ...
+                            (~isempty(ResultLastSavedTime) && OptimLastSavedTime > ResultLastSavedTime)
+                        % Item may be out of date
+                        StaleFlag(index) = true;
+                    end
+                    
+                elseif ForceMarkAsInvalid || isempty(ThisTask) || ~any(MatchGroup)
+                    % Display invalid
+                    ValidFlag(index) = false;                    
+                end                
+            end 
         end %function
         
     end %methods
@@ -562,6 +726,17 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             validateattributes(Value,{'QSP.SpeciesData'},{});
             obj.SpeciesIC = Value;
         end
+        
+        function set.PlotProfile(obj,Value)
+            validateattributes(Value,{'QSP.Profile'},{});
+            obj.PlotProfile = Value;
+        end
+        
+        function set.SelectedProfileRow(obj,Value)
+            validateattributes(Value,{'numeric'},{});
+            obj.SelectedProfileRow = Value;
+        end
+        
     end %methods
     
 end %classdef

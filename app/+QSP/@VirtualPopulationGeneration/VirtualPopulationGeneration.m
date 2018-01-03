@@ -43,9 +43,7 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
         MaxNumSimulations = 5000
         MaxNumVirtualPatients = 500
         
-        PrevalenceWeights = []
-        
-        PlotSpeciesTable = cell(0,3)
+        PlotSpeciesTable = cell(0,4)
         PlotItemTable = cell(0,4) 
         
         PlotType = 'Normal'
@@ -104,13 +102,33 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
     methods
         
         function Summary = getSummary(obj)
-            
-            % Items
+           
             if ~isempty(obj.Item)
-                VPopGenItems = cellfun(@(x,y)sprintf('%s - %s',x,y),{obj.Item.TaskName},{obj.Item.GroupID},'UniformOutput',false);
+                VPopGenItems = {};
+                % Check what items are stale or invalid
+                [StaleFlag,ValidFlag] = getStaleItemIndices(obj);
+
+                for index = 1:numel(obj.Item)
+                    % ONE file
+                    ThisResultFilePath = obj.ExcelResultFileName;
+                    if isempty(ThisResultFilePath)
+                        ThisResultFilePath = 'Results: N/A';
+                    end
+
+                    % Default
+                    ThisItem = sprintf('%s - %s (%s)',obj.Item(index).TaskName,obj.Item(index).GroupID,ThisResultFilePath);
+                    if StaleFlag(index)
+                        % Item may be out of date
+                        ThisItem = sprintf('***WARNING*** %s\n%s\n',ThisItem,'***Item may be out of date***');
+                    elseif ~ValidFlag(index)
+                        % Display invalid
+                        ThisItem = sprintf('***INVALID*** %s\n',ThisItem);
+                    end
+                    VPopGenItems = [VPopGenItems; ThisItem]; %#ok<AGROW>
+                end
             else
                 VPopGenItems = {};
-            end    
+            end
             
             % Species-Data mapping
             if ~isempty(obj.SpeciesData)
@@ -392,6 +410,125 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
         function setSpeciesLineStyles(obj,Index,NewLineStyle)
             NewLineStyle = validatestring(NewLineStyle,obj.Settings.LineStyleMap);
             obj.SpeciesLineStyles{Index} = NewLineStyle;
+        end %function
+        
+        function [StaleFlag,ValidFlag] = getStaleItemIndices(obj)
+            
+            StaleFlag = false(1,numel(obj.Item));
+            ValidFlag = true(1,numel(obj.Item));
+            
+            % Check if VirtualPopulationData is valid
+            ThisList = {obj.Settings.VirtualPopulationData.Name};
+            MatchIdx = strcmpi(ThisList,obj.DatasetName);
+            if any(MatchIdx)
+                dObj = obj.Settings.VirtualPopulationData(MatchIdx);
+                ThisStatusOk = validate(dObj);
+                ForceMarkAsInvalid = ~ThisStatusOk;
+                
+                if ThisStatusOk
+                    
+                    [~,~,VPopHeader,VPopData] = importData(dObj,dObj.FilePath);
+                    
+                    MatchIdx = strcmp(VPopHeader,obj.GroupName);
+                    GroupIDs = VPopData(:,MatchIdx);
+                    
+                    if iscell(GroupIDs)
+                        GroupIDs = cell2mat(GroupIDs);
+                    end
+                    GroupIDs = unique(GroupIDs);
+                else
+                    GroupIDs = {};
+                end
+            else
+                ForceMarkAsInvalid = false;
+            end
+            
+            % ONLY if OptimizationData is valid, check Parameters
+            ThisList = {obj.Settings.Parameters.Name};
+            MatchIdx = strcmpi(ThisList,obj.RefParamName);
+            if any(MatchIdx)
+                pObj = obj.Settings.Parameters(MatchIdx);
+            else
+                pObj = QSP.Parameters.empty(0,1);
+            end
+                
+            if ForceMarkAsInvalid                
+                if ~isempty(pObj)
+                    ThisStatusOk = validate(pObj);
+                    ForceMarkAsInvalid = ~ThisStatusOk;
+                else
+                    ForceMarkAsInvalid = false;
+                end
+            end
+            
+            for index = 1:numel(obj.Item)
+                % Validate Task-Group and ExcelFilePath
+                ThisTask = getValidSelectedTasks(obj.Settings,obj.Item(index).TaskName);
+                % Validate groupID
+                 ThisID = obj.Item(index).GroupID;
+                if ischar(ThisID)
+                    ThisID = str2double(ThisID);
+                end
+                MatchGroup = ismember(ThisID,GroupIDs);                
+               
+                if ~ForceMarkAsInvalid && ...
+                        ~isempty(ThisTask) && ...
+                        ~isempty(ThisTask.LastSavedTime) && ...
+                        any(MatchGroup) && ...
+                        ~isempty(obj.LastSavedTime)
+                    
+                    % Compare times
+                    
+                    % Optimization object (this)
+                    OptimLastSavedTime = datenum(obj.LastSavedTime);
+                    
+                    % Task object (item)
+                    TaskLastSavedTime = datenum(ThisTask.LastSavedTime);
+                    
+                    % SimBiology Project file from Task
+                    FileInfo = dir(ThisTask.FilePath);
+                    TaskProjectLastSavedTime = FileInfo.datenum;
+                    
+                    % VirtualPopulationData object and file
+                    VirtualPopulationDataLastSavedTime = datenum(dObj.LastSavedTime);
+                    FileInfo = dir(dObj.FilePath);
+                    VirtualPopulationDataFileLastSavedTime = FileInfo.datenum;
+                    
+                    % Parameter object and file
+                    ParametersLastSavedTime = datenum(pObj.LastSavedTime);
+                    FileInfo = dir(pObj.FilePath);
+                    ParametersFileLastSavedTime = FileInfo.datenum;                    
+                    
+                    % Results file - ONE file
+                    ThisFilePath = fullfile(obj.Session.RootDirectory,obj.VPopResultsFolderName,obj.ExcelResultFileName);
+                    if exist(ThisFilePath,'file') == 2
+                        FileInfo = dir(ThisFilePath);                        
+                        ResultLastSavedTime = FileInfo.datenum;
+                    elseif ~isempty(obj.ExcelResultFileName)
+                        ResultLastSavedTime = '';
+                        % Display invalid
+                        ValidFlag(index) = false;
+                    else
+                        ResultLastSavedTime = '';
+                    end
+                    
+                    % Check
+                    if OptimLastSavedTime < TaskLastSavedTime || ...
+                            OptimLastSavedTime < TaskProjectLastSavedTime || ...   
+                            OptimLastSavedTime < VirtualPopulationDataLastSavedTime || ...
+                            OptimLastSavedTime < VirtualPopulationDataFileLastSavedTime || ...
+                            OptimLastSavedTime < ParametersLastSavedTime || ...
+                            OptimLastSavedTime < ParametersFileLastSavedTime || ...
+                            (~isempty(ResultLastSavedTime) && OptimLastSavedTime > ResultLastSavedTime)
+                        % Item may be out of date
+                        StaleFlag(index) = true;
+                    end
+                    
+                elseif ForceMarkAsInvalid || isempty(ThisTask) || ~any(MatchGroup)
+                    % Display invalid
+                    ValidFlag(index) = false;                    
+                end                
+            end 
         end %function
         
     end %methods

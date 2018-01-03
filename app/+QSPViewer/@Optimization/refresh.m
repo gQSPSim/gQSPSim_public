@@ -32,14 +32,6 @@ function refresh(vObj)
 refresh@uix.abstract.CardViewPane(vObj);
 
 
-%% Clear the visualization source and parameters table
-
-if ~isempty(vObj.Data)
-    vObj.Data.PlotParametersSource = 'N/A';
-    vObj.Data.PlotParametersData = cell(0,2);
-end
-
-
 %% Invoke update
 
 update(vObj);

@@ -48,6 +48,10 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         SpeciesLineStyles
     end
     
+    properties (Constant=true)
+        NullVPop = 'ModelDefault'
+    end
+    
     %% Constructor
     methods
         function obj = Simulation(varargin)
@@ -85,13 +89,13 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 [StaleFlag,ValidFlag] = getStaleItemIndices(obj);                
                 
                 for index = 1:numel(obj.Item)
-                    ThisMATFileName = obj.Item(index).MATFileName;
-                    if isempty(ThisMATFileName)
-                        ThisMATFileName = 'Results: N/A';
+                    ThisResultFilePath = obj.Item(index).MATFileName;
+                    if isempty(ThisResultFilePath)
+                        ThisResultFilePath = 'Results: N/A';
                     end
 
                     % Default
-                    ThisSimulationItem = sprintf('%s - %s (%s)',obj.Item(index).TaskName,obj.Item(index).VPopName,ThisMATFileName);
+                    ThisSimulationItem = sprintf('%s - %s (%s)',obj.Item(index).TaskName,obj.Item(index).VPopName,ThisResultFilePath);
                     if StaleFlag(index)
                         % Item may be out of date
                             ThisSimulationItem = sprintf('***WARNING*** %s\n%s\n',ThisSimulationItem,'***Item may be out of date***');
@@ -144,7 +148,8 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 % Remove the invalid task/vpop combos if any
                 [TaskItemIndex,MatchTaskIndex] = ismember({obj.Item.TaskName},{obj.Settings.Task.Name});
                 [VPopItemIndex,MatchVPopIndex] = ismember({obj.Item.VPopName},{obj.Settings.VirtualPopulation.Name});
-                RemoveIndices = ~TaskItemIndex | ~VPopItemIndex;
+                MatchNullVPopIndex = ismember({obj.Item.VPopName},obj.NullVPop);
+                RemoveIndices = ~TaskItemIndex | (~VPopItemIndex & ~MatchNullVPopIndex);
                 if any(RemoveIndices)
                     StatusOK = false;
                     ThisMessage = sprintf('Task-VPop rows %s are invalid.',num2str(find(RemoveIndices)));
@@ -165,7 +170,7 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 end
                 
                 % Check VPops
-                MatchVPopIndex(MatchVPopIndex == 0) = [];
+                MatchVPopIndex(MatchVPopIndex == 0) = [];                
                 for index = MatchVPopIndex
                     [ThisStatusOK,ThisMessage] = validate(obj.Settings.VirtualPopulation(index),FlagRemoveInvalid);
                     if ~ThisStatusOK
@@ -252,18 +257,41 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                         ~isempty(obj.LastSavedTime)
                     
                     % Compare times
-                    SimLastSavedTime = datenum(obj.LastSavedTime);
-                    TaskLastSavedTime = datenum(ThisTask.LastSavedTime);
-                    VPopLastSavedTime = datenum(ThisVPop.LastSavedTime);
-                    FileInfo = dir(ThisTask.FilePath);
-                    TaskProjectLastSavedTime = FileInfo.datenum;
-                    FileInfo = dir(ThisVPop.FilePath);
-                    VPopFileLastSavedTime = FileInfo.datenum;
                     
+                    % Simulation object (this)
+                    SimLastSavedTime = datenum(obj.LastSavedTime);
+                    
+                    % Task object (item)
+                    TaskLastSavedTime = datenum(ThisTask.LastSavedTime);
+                    
+                    % SimBiology Project file from Task
+                    FileInfo = dir(ThisTask.FilePath);                    
+                    TaskProjectLastSavedTime = FileInfo.datenum;
+                    
+                    % VPop object (item) and file
+                    VPopLastSavedTime = datenum(ThisVPop.LastSavedTime);                    
+                    FileInfo = dir(ThisVPop.FilePath);
+                    VPopFileLastSavedTime = FileInfo.datenum; 
+                    
+                    % Results file
+                    ThisFilePath = fullfile(obj.Session.RootDirectory,obj.SimResultsFolderName,obj.Item(index).MATFileName);
+                    if exist(ThisFilePath,'file') == 2
+                        FileInfo = dir(ThisFilePath);
+                        ResultLastSavedTime = FileInfo.datenum;
+                    elseif ~isempty(obj.Item(index).MATFileName)
+                        ResultLastSavedTime = '';
+                        % Display invalid
+                        ValidFlag(index) = false;
+                    else
+                        ResultLastSavedTime = '';
+                    end
+                    
+                    % Check
                     if SimLastSavedTime < TaskLastSavedTime || ...
                             SimLastSavedTime < TaskProjectLastSavedTime || ...
                             SimLastSavedTime < VPopLastSavedTime || ...
-                            SimLastSavedTime < VPopFileLastSavedTime
+                            SimLastSavedTime < VPopFileLastSavedTime || ...
+                            (~isempty(ResultLastSavedTime) && ResultLastSavedTime < SimLastSavedTime)
                         % Item may be out of date
                         StaleFlag(index) = true;
                     end                    

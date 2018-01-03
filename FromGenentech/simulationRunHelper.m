@@ -174,7 +174,7 @@ for ii = 1:nItems
     if isempty(Pin) && ~isempty(vObj_i) % AG: TODO: added ~isempty(vObj_i) for function-call from plotOptimization. Need to verify with Genentech
         % case 1)
         T_i = readtable(vObj_i.FilePath);
-        vPop_params_i = T_i{1:end,1:end};
+        vPop_params_i = table2cell(T_i);         
         paramNames_i = T_i.Properties.VariableNames;
         % check whether the last column is PWeight
         if strcmp('PWeight',paramNames_i{end})
@@ -527,6 +527,9 @@ if ~isempty(ItemModels)
                 else
                     % Simulate
                     try
+                        if iscell(params_ij)
+                            params_ij = cell2mat(params_ij);
+                        end
                         if isempty(ItemModels(ii).VPopSpeciesICs)
                             simData_j = simulate(exp_model_i, params_ij, exp_doses_i);
                         else
@@ -547,6 +550,10 @@ if ~isempty(ItemModels)
                         
                     catch exception% simulation
                         % If the simulation fails, store NaNs
+                        
+                        % Store exception's message
+                        ThisMessage = exception.message;
+                        Message = sprintf('%s\n%s\n',Message,ThisMessage);
                         
                         % pad Results.Data with appropriate number of NaNs
                         if ~isempty(tObj_i.ActiveSpeciesNames)

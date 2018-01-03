@@ -572,6 +572,9 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                     set(hFigure,'pointer','arrow');
                     drawnow;
                     
+                    % Switch to summary view
+                    obj.Selection = 1;
+                    
                     % Update the view
                     update(obj);
                     
@@ -863,7 +866,7 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
             
             %%% Buttons
             % Toggle visibility
-            set([obj.h.RunButton,obj.h.VisualizeButton],'Visible',uix.utility.tf2onoff(obj.UseRunVis));
+            set([obj.h.RunButton,obj.h.VisualizeButton],'Visible',uix.utility.tf2onoff(obj.UseRunVis));            
             set([obj.h.ZoomInButton,obj.h.ZoomOutButton,obj.h.PanButton,obj.h.DatacursorButton],'Visible',uix.utility.tf2onoff(obj.UseRunVis));
             if obj.Selection == 3
                 set([obj.h.ZoomInButton,obj.h.ZoomOutButton,obj.h.PanButton,obj.h.DatacursorButton],'Enable','on');

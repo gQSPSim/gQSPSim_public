@@ -110,8 +110,9 @@ classdef Parameters < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             Message = '';
             
             % Load from file
-            try
-                [~,~,Raw] = xlsread(DataFilePath);                
+            try            
+                Raw = readtable(DataFilePath);
+                Raw = [Raw.Properties.VariableNames;table2cell(Raw)];
             catch ME
                 Raw = {};
                 StatusOk = false;

@@ -112,7 +112,7 @@ classdef Settings < matlab.mixin.SetGet & uix.mixin.AssignPVPairs & uix.mixin.Ha
             Loc(Loc == 0) = [];
             
             vObj = QSP.VirtualPopulation.empty(0,1);
-            if ~isempty(Loc)
+            if ~isempty(Loc)                
                 for idx = Loc
                     ThisStatusOk = validate(obj.VirtualPopulation(idx),false);
                     if ThisStatusOk

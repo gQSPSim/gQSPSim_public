@@ -369,7 +369,7 @@ classdef Optimization < uix.abstract.CardViewPane
             
 %             try
                 % Plot
-                plotOptimization(vObj.Data,vObj.h.MainAxes);
+                [vObj.h.SpeciesGroup,vObj.h.DatasetGroup] = plotOptimization(vObj.Data,vObj.h.MainAxes);
 %             catch ME
 %                 hDlg = errordlg(sprintf('Cannot plot. %s',ME.message),'Invalid','modal');
 %                 uiwait(hDlg);
@@ -393,6 +393,7 @@ classdef Optimization < uix.abstract.CardViewPane
             
             % Update the view
             updateVisualizationView(vObj);
+            
         end %function  
         
         function onItemsTablePlot(vObj,h,e)
@@ -419,7 +420,7 @@ classdef Optimization < uix.abstract.CardViewPane
             
 %             try
                 % Plot
-                plotOptimization(vObj.Data,vObj.h.MainAxes);
+                [vObj.h.SpeciesGroup,vObj.h.DatasetGroup] = plotOptimization(vObj.Data,vObj.h.MainAxes);
 %             catch ME
 %                 hDlg = errordlg(sprintf('Cannot plot. %s',ME.message),'Invalid','modal');
 %                 uiwait(hDlg);
@@ -433,17 +434,109 @@ classdef Optimization < uix.abstract.CardViewPane
             
         end %function
         
-        function onPlotSourcePopup(vObj,h,e)
+        function onPlotParameters(vObj,h,e)
             
-            NewSource = vObj.Data.PlotParametersSourceOptions{get(h,'Value')};
+            % Plot
+            [vObj.h.SpeciesGroup,vObj.h.DatasetGroup] = plotOptimization(vObj.Data,vObj.h.MainAxes);
             
-            [StatusOk,Message] = importParametersSource(vObj.Data,NewSource);
-            if ~StatusOk
-                hDlg = errordlg(Message,'Cannot import','modal');
-                uiwait(hDlg);
+        end %function
+        
+        function onKeepHistoryPlotCheckbox(vObj,h,e)
+            
+            vObj.Data.KeepHistory = logical(get(h,'Value'));
+            
+            % Update the view
+            updateVisualizationView(vObj);
+            
+        end %function
+        
+        function onHistoryTableButtonPlot(vObj,h,e)
+            
+            Interaction = e.Interaction;
+            Indices = e.Indices;
+            
+            switch Interaction
+                case 'Add'
+                    vObj.Data.PlotProfile(end+1) = QSP.Profile;
+                    
+                case 'Remove'
+                    if numel(vObj.Data.PlotProfile) > 1
+                        vObj.Data.PlotProfile(Indices) = [];
+                    else
+                        vObj.Data.PlotProfile = QSP.Profile.empty(0,1);
+                    end
+                    vObj.Data.SelectedProfileRow = [];
+            end
+            
+            % Update the view
+            updateVisualizationView(vObj);
+            
+        end %function
+        
+        function onHistoryTableSelectionPlot(vObj,h,e)
+            
+            if ~isempty(e) && (isfield(e,'Indices') || isprop(e,'Indices'))
+                if numel(e.Indices) >= 1
+                    vObj.Data.SelectedProfileRow = e.Indices(1); % Temporary
+                else
+                    vObj.Data.SelectedProfileRow = [];
+                end
+            end
+            
+            % Update the view
+            updateVisualizationView(vObj);
+            
+        end %function
+        
+        function onHistoryTableEditPlot(vObj,h,e)
+            
+            ThisData = get(h,'Data');
+            Indices = e.Indices;
+            if isempty(Indices)
+                return;
+            end
+            RowIdx = Indices(1,1);
+            ColIdx = Indices(1,2);            
+            
+            if ~isempty(RowIdx)
+                ThisProfile = vObj.Data.PlotProfile(RowIdx);
+                switch ColIdx
+                    case 2 
+                        % LineStyle
+                        ThisProfile.LineStyle = ThisData{RowIdx,ColIdx};
+                    case 3
+                        % Show
+                        ThisProfile.Show = ThisData{RowIdx,ColIdx};
+                    case 5
+                        % Description
+                        ThisProfile.Description = ThisData{RowIdx,ColIdx};
+                end
+            end
+            
+            % Update the view
+            updateVisualizationView(vObj);
+            
+        end %function
+        
+        function onPlotParametersSourcePopup(vObj,h,e)
+            
+            Options = get(h,'String');
+            NewSource = Options{get(h,'Value')};
+            ThisProfile = vObj.Data.PlotProfile(vObj.Data.SelectedProfileRow);
+            
+            if isempty(NewSource) || strcmpi(NewSource,'N/A')
+                ThisProfile.Source = '';
+                ThisProfile.Values = cell(0,2);
             else
-                % Plot
-                plotOptimization(vObj.Data,vObj.h.MainAxes);
+                [StatusOk,Message,PlotParametersData] = importParametersSource(vObj.Data,NewSource);
+                if ~StatusOk
+                    hDlg = errordlg(Message,'Cannot import','modal');
+                    uiwait(hDlg);
+                else
+                    % Finally, set the new source                    
+                    ThisProfile.Source = NewSource;
+                    ThisProfile.Values = PlotParametersData;
+                end
             end
             
             % Update the view
@@ -463,16 +556,8 @@ classdef Optimization < uix.abstract.CardViewPane
             ColIdx = Indices(1,2);
             
             if ~isempty(ThisData{RowIdx,ColIdx}) && isnumeric(ThisData{RowIdx,ColIdx})
-                vObj.Data.PlotParametersData(RowIdx,ColIdx) = ThisData(RowIdx,ColIdx);
-                
-                %                 try
-                % Plot
-                plotOptimization(vObj.Data,vObj.h.MainAxes);
-                %                 catch ME
-                %                     hDlg = errordlg(sprintf('Cannot plot. %s',ME.message),'Invalid','modal');
-                %                     uiwait(hDlg);
-                %                 end
-                
+                ThisProfile = vObj.Data.PlotProfile(vObj.Data.SelectedProfileRow);                
+                ThisProfile.Values(RowIdx,ColIdx) = ThisData(RowIdx,ColIdx);
             else
                 hDlg = errordlg('Invalid value specified for parameter. Values must be numeric','Invalid value','modal');
                 uiwait(hDlg);
@@ -482,6 +567,56 @@ classdef Optimization < uix.abstract.CardViewPane
             updateVisualizationView(vObj);
             
         end %function   
+        
+        function onSaveParametersAsVPopButton(vObj,h,e)
+            
+            Options.Resize = 'on';
+            Options.WindowStyle = 'modal';
+            Answer = inputdlg('Save Virtual Population as?','Save VPop',[1 50],{''},Options);
+            
+            if ~isempty(Answer)
+                AllVPops = vObj.Data.Settings.VirtualPopulation;
+                AllVPopNames = get(AllVPops,'Name');
+                AllVPopFilePaths = get(AllVPops,'FilePath');
+                
+                ThisVPopName = strtrim(Answer{1});
+                FileName = matlab.lang.makeValidName(ThisVPopName);
+                ThisFilePath = fullfile(vObj.Data.Session.RootDirectory,[FileName '.xlsx']);
+                
+                if isempty(ThisVPopName) || any(strcmpi(ThisVPopName,AllVPopNames)) || ...
+                        any(strcmpi(ThisFilePath,AllVPopFilePaths))
+                    Message = 'Please provide a valid, unique virtual population name.';
+                    Title = 'Invalid name';
+                    hDlg = errordlg(Message,Title,'modal');
+                    uiwait(hDlg);
+                else
+                    
+                    % Create a new virtual population
+                    vpopObj = QSP.VirtualPopulation;
+                    vpopObj.Session = vObj.Data.Session;
+                    vpopObj.Name = ThisVPopName;                    
+                    vpopObj.FilePath = ThisFilePath;                 
+                    
+                    ThisProfile = vObj.Data.PlotProfile(vObj.Data.SelectedProfileRow);
+                    Values = ThisProfile.Values'; % Take first 2 rows and transpose
+                    xlswrite(vpopObj.FilePath,Values); 
+                    
+                    % Update last saved time
+                    updateLastSavedTime(vpopObj);
+                    % Validate
+                    validate(vpopObj,false);
+                    
+                    % Call the callback
+                    evt.InteractionType = sprintf('Updated %s',class(vpopObj));
+                    evt.Data = vpopObj;
+                    vObj.callCallback(evt);           
+                    
+                    % Update the view
+                    updateVisualizationView(vObj);
+                end
+            end
+            
+        end %function
         
         function onPlotItemsTableContextMenu(vObj,h,e)
             
@@ -496,7 +631,7 @@ classdef Optimization < uix.abstract.CardViewPane
                     
                     %                 try
                     % Plot
-                    plotOptimization(vObj.Data,vObj.h.MainAxes);
+                    [vObj.h.SpeciesGroup,vObj.h.DatasetGroup] = plotOptimization(vObj.Data,vObj.h.MainAxes);
                     %                 catch ME
                     %                     hDlg = errordlg(sprintf('Cannot plot. %s',ME.message),'Invalid','modal');
                     %                     uiwait(hDlg);
@@ -510,6 +645,12 @@ classdef Optimization < uix.abstract.CardViewPane
                 hDlg = errordlg('Please select a row first to set new color.','No row selected','modal');
                 uiwait(hDlg);
             end
+        end %function
+        
+        function onNavigation(vObj,View)
+            
+            onNavigation@uix.abstract.CardViewPane(vObj,View);
+            
         end %function
         
     end

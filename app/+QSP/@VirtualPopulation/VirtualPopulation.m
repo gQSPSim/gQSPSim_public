@@ -86,7 +86,7 @@ classdef VirtualPopulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 StatusOK = false;
                 Message = sprintf('%s\n* Virtual Population file "%s" is invalid or does not exist',Message,obj.FilePath);
             else
-                % Import data
+                % Import data                
                 [ThisStatusOk,ThisMessage] = importData(obj,obj.FilePath);
                 if ~ThisStatusOk
                     Message = sprintf('%s\n* Error loading data "%s". %s\n',Message,obj.FilePath,ThisMessage);
@@ -126,7 +126,8 @@ classdef VirtualPopulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             
             % Load from file
             try
-                [~,~,Raw] = xlsread(DataFilePath);
+                Raw = readtable(DataFilePath);
+                Raw = [Raw.Properties.VariableNames;table2cell(Raw)];
             catch ME
                 Raw = {};
                 StatusOk = false;

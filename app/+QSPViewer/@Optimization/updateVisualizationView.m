@@ -191,46 +191,101 @@ if ~isempty(vObj.Data)
         end
         
         % If empty, populate, but first update line styles
-        vObj.Data.PlotSpeciesTable = cell(numel(SpeciesNames),3);
+        vObj.Data.PlotSpeciesTable = cell(numel(SpeciesNames),4);
         
         vObj.Data.PlotSpeciesTable(:,1) = {' '};
-        vObj.Data.PlotSpeciesTable(:,2) = SpeciesNames;
-        vObj.Data.PlotSpeciesTable(:,3) = DataNames;
+        vObj.Data.PlotSpeciesTable(:,2) = vObj.Data.SpeciesLineStyles(:);
+        vObj.Data.PlotSpeciesTable(:,3) = SpeciesNames;
+        vObj.Data.PlotSpeciesTable(:,4) = DataNames;
         
         vObj.PlotSpeciesAsInvalidTable = vObj.Data.PlotSpeciesTable;
         vObj.PlotSpeciesInvalidRowIndices = [];
     else
-        NewPlotTable = cell(numel(SpeciesNames),3);
+        NewPlotTable = cell(numel(SpeciesNames),4);
         NewPlotTable(:,1) = {' '};
-        NewPlotTable(:,2) = SpeciesNames;
-        NewPlotTable(:,3) = DataNames;
+        NewPlotTable(:,2) = {'-'}; % vObj.Data.SpeciesLineStyles(:); % TODO: !!
+        NewPlotTable(:,3) = SpeciesNames;
+        NewPlotTable(:,4) = DataNames;
+        
+        % Adjust size if from an old saved session
+        if size(vObj.Data.PlotSpeciesTable,2) == 3
+            vObj.Data.PlotSpeciesTable(:,4) = vObj.Data.PlotSpeciesTable(:,3);
+            vObj.Data.PlotSpeciesTable(:,3) = vObj.Data.PlotSpeciesTable(:,2);
+            vObj.Data.PlotSpeciesTable(:,2) = {'-'};  % TODO: !!
+        end
         
         % Update Table
-        KeyColumn = [2 3];
+        KeyColumn = [3 4];
         [vObj.Data.PlotSpeciesTable,vObj.PlotSpeciesAsInvalidTable,vObj.PlotSpeciesInvalidRowIndices] = QSPViewer.updateVisualizationTable(vObj.Data.PlotSpeciesTable,NewPlotTable,InvalidIndices,KeyColumn);                     
+        % Update line styles
+        updateSpeciesLineStyles(vObj.Data);
     end
 
      % Species table
     set(vObj.h.PlotSpeciesTable,...
         'Data',vObj.PlotSpeciesAsInvalidTable,...
-        'ColumnName',{'Plot','Species','Data'},...
-        'ColumnFormat',{AxesOptions,'char','char'},...
-        'ColumnEditable',[true,false,false]...
+        'ColumnName',{'Plot','Style','Species','Data'},...
+        'ColumnFormat',{AxesOptions,vObj.Data.Settings.LineStyleMap,'char','char'},...
+        'ColumnEditable',[true,true,false,false]...
         );    
 else
     set(vObj.h.PlotSpeciesTable,...
-        'Data',cell(0,3),...
-        'ColumnName',{'Plot','Species','Data'},...
-        'ColumnFormat',{AxesOptions,'char','char'},...
-        'ColumnEditable',[true,false,false]...
+        'Data',cell(0,4),...
+        'ColumnName',{'Plot','Style','Species','Data'},...
+        'ColumnFormat',{AxesOptions,'char','char','char'},...
+        'ColumnEditable',[true,true,false,false]...
         );
 end
 
 
 %% Refresh Parameters
 
-% Update PlotParametersSourceOptions
+% History checkbox
 if ~isempty(vObj.Data)
+    set(vObj.h.PlotHistoryCheckbox,'Value',vObj.Data.KeepHistory);
+end
+
+% History table
+if ~isempty(vObj.Data)
+    Summary = horzcat(...
+        num2cell(1:numel(vObj.Data.PlotProfile))',...
+        {vObj.Data.PlotProfile.LineStyle}',...
+        {vObj.Data.PlotProfile.Show}',...
+        {vObj.Data.PlotProfile.Source}',...
+        {vObj.Data.PlotProfile.Description}');
+    
+    set(vObj.h.PlotHistoryTable,...
+        'Data',Summary,...        
+        'ColumnName',{'Run','Line Style','Show','Source','Description'},...
+        'ColumnFormat',{'numeric','char','logical','char','char'},...
+        'ColumnEditable',[false,false,true,false,true]...
+        );    
+    if ~isempty(Summary)
+        set(vObj.h.PlotHistoryTable,'SelectedRows',vObj.Data.SelectedProfileRow);
+    end
+else
+    set(vObj.h.PlotHistoryTable,...
+        'Data',cell(0,5),...
+        'ColumnName',{'Run','Line Style','Show','Source','Description'},...
+        'ColumnFormat',{'numeric','char','logical','char','char'},...
+        'ColumnEditable',[false,false,true,false,true]...
+        );
+end
+    
+% Selection
+if ~isempty(vObj.Data)
+    if ~isempty(vObj.Data.SelectedProfileRow)
+        ThisProfile = vObj.Data.PlotProfile(vObj.Data.SelectedProfileRow);
+    else
+        ThisProfile = QSP.Profile.empty(0,1);
+    end
+else
+    ThisProfile = QSP.Profile.empty(0,1);
+end
+
+% Source popup
+if ~isempty(ThisProfile)
+    % Update PlotParametersSourceOptions
     Names = {vObj.Data.Settings.Parameters.Name};
     MatchIdx = strcmpi(Names,vObj.Data.RefParamName);
     
@@ -245,51 +300,156 @@ if ~isempty(vObj.Data)
     
     if any(MatchIdx)
         pObj = vObj.Data.Settings.Parameters(MatchIdx);        
-        vObj.Data.PlotParametersSourceOptions = vertcat({pObj.Name},VPopNames(:));
+        PlotParametersSourceOptions = vertcat('N/A',{pObj.Name},VPopNames(:));
     else
-        vObj.Data.PlotParametersSourceOptions = VPopNames;
+        PlotParametersSourceOptions = vertcat('N/A',VPopNames(:));
     end
     
-    % Source
-    MatchIdx = find(strcmpi(vObj.Data.PlotParametersSource,vObj.Data.PlotParametersSourceOptions));
-    
-    if isempty(MatchIdx) && ~isempty(vObj.Data.PlotParametersSourceOptions)
-        MatchIdx = 1;
-        vObj.Data.PlotParametersSource = vObj.Data.PlotParametersSourceOptions{1};
-        % Re-import
-        [StatusOk,Message] = importParametersSource(vObj.Data,vObj.Data.PlotParametersSource);                
+    % Get Index
+    SourceIdx = find(strcmpi(ThisProfile.Source,PlotParametersSourceOptions));
+    if isempty(SourceIdx)
+        ThisProfile.Source = '';
+        SourceIdx = 1;
     end
-    
-    if isempty(vObj.Data.PlotParametersSourceOptions)
-        vObj.Data.PlotParametersSourceOptions = {
-            'N/A'
-            };
-    end
-    
-    if isempty(MatchIdx)
-        MatchIdx = 1;
-    end
-    set(vObj.h.PlotSourcePopup,...
-        'String',vObj.Data.PlotParametersSourceOptions,...
-        'Value',MatchIdx);
+    set(vObj.h.PlotParametersSourcePopup,...
+        'String',PlotParametersSourceOptions,...
+        'Value',SourceIdx);
 else
-    set(vObj.h.PlotSourcePopup,...
+    set(vObj.h.PlotParametersSourcePopup,...
         'String',{'N/A'},...
         'Value',1);
-end    
+end
 
+% Enable
+if ~isempty(ThisProfile)
+    set(vObj.h.PlotParametersSourcePopup,'Enable','on');
+    set(vObj.h.SaveAsVPopButton,'Enable','on');
+    set(vObj.h.PlotParametersTable,'Enable','on');
+else
+    set(vObj.h.PlotParametersSourcePopup,'Enable','off');
+    set(vObj.h.SaveAsVPopButton,'Enable','off');
+    set(vObj.h.PlotParametersTable,'Enable','off');
+end
 
 % Parameters Table
-if ~isempty(vObj.Data)
+if ~isempty(ThisProfile)
+    % Get values
+    [StatusOk,Message,SourceData] = importParametersSource(vObj.Data,ThisProfile.Source);
+    if StatusOk
+        ThisProfile.Values = sortrows(ThisProfile.Values,1);
+        SourceData = sortrows(SourceData,1);
+        if ~isequal(ThisProfile.Values(:,1),SourceData(:,1))
+            % Reset
+            ThisProfile.Values = SourceData;            
+        end
+        % Merge
+        ParameterData = [ThisProfile.Values SourceData(:,end)];
+    else
+        % Could not import source
+        ParameterData = cell(0,3);        
+    end
+    
     set(vObj.h.PlotParametersTable,...
-        'Data',vObj.Data.PlotParametersData,...
-        'ColumnName',{'Parameter','Value'},...
-        'ColumnFormat',{'char','float'},...
-        'ColumnEditable',[false,true]);
+        'Data',ParameterData,...
+        'ColumnName',{'Parameter','Value','Source Value'},...
+        'ColumnFormat',{'char','float','float'},...
+        'ColumnEditable',[false,true,false]);
 else
     set(vObj.h.PlotParametersTable,...
-        'Data',cell(0,2),...
-        'ColumnName',{'Parameter','Value'},...
-        'ColumnFormat',{'char','float'},...
-        'ColumnEditable',[false,true]);
+        'Data',cell(0,3),...
+        'ColumnName',{'Parameter','Value','Source Value'},...
+        'ColumnFormat',{'char','float','float'},...
+        'ColumnEditable',[false,true,false]);
 end
+
+
+%% Update plot
+
+if ~isempty(vObj.Data) && isfield(vObj.h,'SpeciesGroup')
+    Show = [vObj.Data.PlotProfile.Show];
+    
+    for index = 1:numel(vObj.h.SpeciesGroup)
+        if ~isempty(vObj.h.SpeciesGroup{index})
+            Ch = vObj.h.SpeciesGroup{index}.Children;
+            Ch = flip(Ch);
+            if numel(Ch) > 1
+                % Skip first (dummy line)
+                Ch = Ch(2:end);
+                set(Ch,'LineWidth',0.5);
+                set(Ch(vObj.Data.SelectedProfileRow),'LineWidth',2);
+                
+                % Show
+                set(Ch(Show),'Visible','on');
+                set(Ch(~Show),'Visible','off');
+            end %if
+        end %if
+    end %for
+end %if
+
+
+%%
+
+% % Update PlotParametersSourceOptions
+% if ~isempty(vObj.Data)
+%     Names = {vObj.Data.Settings.Parameters.Name};
+%     MatchIdx = strcmpi(Names,vObj.Data.RefParamName);
+%     
+%     VPopNames = {};
+%     for idx = 1:numel(vObj.Data.ExcelResultFileName)
+%         [~,VPopNames{idx}] = fileparts(vObj.Data.ExcelResultFileName{idx}); %#ok<AGROW>
+%     end
+%     
+%     % Filter VPopNames list (only if name does not exist, not if invalid)
+%     AllVPopNames = {vObj.Data.Session.Settings.VirtualPopulation.Name};
+%     VPopNames = VPopNames(ismember(VPopNames,AllVPopNames));
+%     
+%     if any(MatchIdx)
+%         pObj = vObj.Data.Settings.Parameters(MatchIdx);        
+%         vObj.Data.PlotParametersSourceOptions = vertcat({pObj.Name},VPopNames(:));
+%     else
+%         vObj.Data.PlotParametersSourceOptions = VPopNames;
+%     end
+%     
+%     % Source
+%     MatchIdx = find(strcmpi(vObj.Data.PlotParametersSource,vObj.Data.PlotParametersSourceOptions));
+%     
+%     if isempty(MatchIdx) && ~isempty(vObj.Data.PlotParametersSourceOptions)
+%         MatchIdx = 1;
+%         vObj.Data.PlotParametersSource = vObj.Data.PlotParametersSourceOptions{1};
+%         % Re-import
+%         [StatusOk,Message] = importParametersSource(vObj.Data,vObj.Data.PlotParametersSource);                
+%     end
+%     
+%     if isempty(vObj.Data.PlotParametersSourceOptions)
+%         vObj.Data.PlotParametersSourceOptions = {
+%             'N/A'
+%             };
+%     end
+%     
+%     if isempty(MatchIdx)
+%         MatchIdx = 1;
+%     end
+%     set(vObj.h.PlotParametersSourcePopup,...
+%         'String',vObj.Data.PlotParametersSourceOptions,...
+%         'Value',MatchIdx);
+% else
+%     set(vObj.h.PlotParametersSourcePopup,...
+%         'String',{'N/A'},...
+%         'Value',1);
+% end    
+
+
+% % Parameters Table
+% if ~isempty(vObj.Data)
+%     set(vObj.h.PlotParametersTable,...
+%         'Data',vObj.Data.PlotParametersData,...
+%         'ColumnName',{'Parameter','Value','Source Value'},...
+%         'ColumnFormat',{'char','float','float'},...
+%         'ColumnEditable',[false,true,false]);
+% else
+%     set(vObj.h.PlotParametersTable,...
+%         'Data',cell(0,3),...
+%         'ColumnName',{'Parameter','Value','Source Value'},...
+%         'ColumnFormat',{'char','float','float'},...
+%         'ColumnEditable',[false,true,false]);
+% end

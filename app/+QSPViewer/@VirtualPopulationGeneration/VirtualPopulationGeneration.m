@@ -245,12 +245,12 @@ classdef VirtualPopulationGeneration < uix.abstract.CardViewPane
                 end
                 
             elseif strcmpi(TableTag,'SpeciesData')
-                if ColIdx == 1
-                    vObj.TempData.SpeciesData(RowIdx).SpeciesName = NewData{RowIdx,1};
-                elseif ColIdx == 3
-                    vObj.TempData.SpeciesData(RowIdx).DataName = NewData{RowIdx,3};
+                if ColIdx == 2
+                    vObj.TempData.SpeciesData(RowIdx).SpeciesName = NewData{RowIdx,2};
                 elseif ColIdx == 4
                     vObj.TempData.SpeciesData(RowIdx).FunctionExpression = NewData{RowIdx,4};
+                elseif ColIdx == 1
+                    vObj.TempData.SpeciesData(RowIdx).DataName = NewData{RowIdx,1};
                 elseif ColIdx == 5
                     vObj.TempData.SpeciesData(RowIdx).ObjectiveName = NewData{RowIdx,5};
                 end
@@ -346,11 +346,20 @@ classdef VirtualPopulationGeneration < uix.abstract.CardViewPane
 
                 vpopFile = fullfile(vObj.Data.FilePath, vObj.Data.VPopResultsFolderName, vObj.Data.ExcelResultFileName);                
                 try
-                    [num,txt,Raw] = xlsread(vpopFile);                
+                    Raw = readtable(vpopFile);
+                    ParamNames = Raw.Properties.VariableNames;
+                    Raw = [ParamNames;table2cell(Raw)];                    
                 catch err
-                    warning('Could not open vpop xlsx file')
+                    warning('Could not open vpop xlsx file.')
                     disp(err)
                     return
+                end
+                
+                % Get the parameter values (everything but the header)
+                if size(Raw,1) > 1
+                    ParamValues = cell2mat(Raw(2:end,:));
+                else
+                    ParamValues = [];
                 end
                     
                 nCol = size(Raw,2);
@@ -359,23 +368,27 @@ classdef VirtualPopulationGeneration < uix.abstract.CardViewPane
                 MatchIdx = find(strcmp(vObj.Data.RefParamName,vObj.Data.Settings.Parameters.Name));
                 
                 LB = [];
-                UB = [];
-                
+                UB = [];                
                 if ~isempty(MatchIdx)
-                    lbub = xlsread(vObj.Data.Settings.Parameters(MatchIdx).FilePath);
-                    LB = lbub(:,1);
-                    UB = lbub(:,2);
+                    try
+                        Raw = readtable(vObj.Data.Settings.Parameters(MatchIdx).FilePath);
+                        LB = Raw.LB;
+                        UB = Raw.UB;
+                    catch err
+                        warning('Could not open parameters xlsx file or LB and/or UB column headers are missing. Setting lower and upper bounds to empty.')
+                        disp(err)                       
+                    end
                 end
                 
                 for k=1:nCol
                     ax=axes('Parent', g);
-                    hist(ax, num(:,k))
+                    hist(ax, ParamValues(:,k))
                     if k <= length(LB)
                         h2(1)=line(LB(k)*ones(1,2), get(ax,'YLim'));
                         h2(2)=line(UB(k)*ones(1,2), get(ax,'YLim'));
                         set(h2,'LineStyle','--','Color','r')
                     end
-                    title(ax, txt{k}, 'Interpreter', 'none')
+                    title(ax, ParamNames{k}, 'Interpreter', 'none')
                     set(ax, 'TitleFontWeight', 'bold' )
                 end          
                 
@@ -529,6 +542,12 @@ classdef VirtualPopulationGeneration < uix.abstract.CardViewPane
                 hDlg = errordlg('Please select a row first to set new color.','No row selected','modal');
                 uiwait(hDlg);
             end
+        end %function
+        
+        function onNavigation(vObj,View)
+            
+            onNavigation@uix.abstract.CardViewPane(vObj,View);
+            
         end %function
         
     end

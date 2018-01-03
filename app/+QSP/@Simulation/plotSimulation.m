@@ -1,4 +1,4 @@
-function plotSimulation(obj,hAxes)
+function [hSpeciesGroup,hDatasetGroup,hLegend,hLegendChildren] = plotSimulation(obj,hAxes)
 % plot - plots the analysis
 % -------------------------------------------------------------------------
 % Abstract: This plots the analysis based on the settings and data table.
@@ -29,10 +29,20 @@ function plotSimulation(obj,hAxes)
 %% Turn on hold
 
 for index = 1:numel(hAxes)
+    XLimMode{index} = get(hAxes(index),'XLimMode');
+    YLimMode{index} = get(hAxes(index),'YLimMode');
     cla(hAxes(index));
-    hold(hAxes(index),'on')    
-    set(hAxes(index), 'XTickLabel', '', 'XTickLabelMode', 'auto', 'XTickMode', 'auto')
+    legend(hAxes(index),'off')
+    set(hAxes(index),'XLimMode',XLimMode{index},'YLimMode',YLimMode{index})
+    hold(hAxes(index),'on')        
 end
+
+NumAxes = numel(hAxes);
+hSpeciesGroup = cell(size(obj.PlotSpeciesTable,1),NumAxes);
+hDatasetGroup = cell(size(obj.PlotDataTable,1),NumAxes);
+
+hLegend = cell(1,NumAxes);
+hLegendChildren = cell(1,NumAxes);
 
 
 %% Get the selections and MATResultFilePaths
@@ -97,7 +107,7 @@ SelectedItemColors = cell2mat(obj.PlotItemTable(IsSelected,2));
 
 
 %% Plot Simulation Items
-
+     
 for sIdx = 1:size(obj.PlotSpeciesTable,1)
     axIdx = str2double(obj.PlotSpeciesTable{sIdx,1});
     ThisLineStyle = obj.PlotSpeciesTable{sIdx,2};
@@ -114,16 +124,26 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
             % Update ColumnIdx to get species for ALL virtual patients
             NumSpecies = numel(Results(itemIdx).SpeciesNames);
             ColumnIdx = ColumnIdx:NumSpecies:size(Results(itemIdx).Data,2);
-
+            
+            if isempty(hSpeciesGroup{sIdx,axIdx})
+                hSpeciesGroup{sIdx,axIdx} = hggroup(hAxes(axIdx),...
+                    'DisplayName',regexprep(ThisName,'_','\\_')); 
+                % Add dummy line for legend
+                line(nan,nan,'Parent',hSpeciesGroup{sIdx,axIdx},...
+                    'LineStyle',ThisLineStyle,...
+                    'Color',[0 0 0]);
+            end
             
             % Plot
-            plot(hAxes(axIdx),Results(itemIdx).Time,Results(itemIdx).Data(:,ColumnIdx),...
+            hThis = plot(hSpeciesGroup{sIdx,axIdx},Results(itemIdx).Time,Results(itemIdx).Data(:,ColumnIdx),...
                 'Color',SelectedItemColors(itemIdx,:),...
                 'LineStyle',ThisLineStyle);
+            set(get(get(hThis,'Annotation'),'LegendInformation'),'IconDisplayStyle','off'); 
+            
         end
     end
 end
-        
+
 
 %% Plot Dataset
 
@@ -151,9 +171,14 @@ if any(MatchIdx)
             
             % Get the Group Column from the imported dataset
             GroupColumn = OptimData(:,strcmp(OptimHeader,obj.GroupName));
-            if all(cellfun(@isnumeric,GroupColumn))
-                % If numeric column, convert to matrix to use categorical
-                GroupColumn = cell2mat(GroupColumn);
+            if iscell(GroupColumn)
+                % If numeric column, convert to matrix to use categorical                
+                IsNumeric = cellfun(@(x)isnumeric(x),GroupColumn);
+                if all(IsNumeric)
+                    GroupColumn = cell2mat(GroupColumn);
+                else
+                    GroupColumn(IsNumeric) = cellfun(@(x)num2str(x),GroupColumn(IsNumeric),'UniformOutput',false);
+                end
             end
             GroupColumn = categorical(GroupColumn);
             
@@ -172,15 +197,48 @@ if any(MatchIdx)
                         % Find the GroupID match within the GroupColumn
                         MatchIdx = (GroupColumn == SelectedGroupIDs(gIdx));
                         
-                        % Plot the selected column by GroupID
-                        plot(hAxes(axIdx),cell2mat(Time(MatchIdx)),cell2mat(OptimData(MatchIdx,ColumnIdx)),...
+                        % Create a group
+                        if isempty(hDatasetGroup{dIdx,axIdx})
+                            hDatasetGroup{dIdx,axIdx} = hggroup(hAxes(axIdx),...
+                                'DisplayName',regexprep(ThisName,'_','\\_'));
+                            % Add dummy line for legend
+                            line(nan,nan,'Parent',hDatasetGroup{dIdx,axIdx},...
+                                'LineStyle','none',...
+                                'Marker',ThisMarker,...
+                                'Color',[0 0 0]);
+                        end
+
+                        % Plot but remove from the legend
+                        hThis = plot(hDatasetGroup{dIdx,axIdx},cell2mat(Time(MatchIdx)),cell2mat(OptimData(MatchIdx,ColumnIdx)),...
+                            'Color',SelectedGroupColors(gIdx,:),...
                             'LineStyle','none',...
                             'Marker',ThisMarker,...
-                            'Color',SelectedGroupColors(gIdx,:));
-                    end
-                end
-            end
-        end
+                            'DisplayName',regexprep(sprintf('%s %s',ThisName,SelectedGroupIDs(gIdx)),'_','\\_'));
+                        set(get(get(hThis,'Annotation'),'LegendInformation'),'IconDisplayStyle','off');
+                            
+                    end %for gIdx
+                end %if
+            end %for dIdx
+        end %if any(IsSelected)
+    end %if StatusOk
+end %if any(MatchIdx)
+
+
+%% Legend
+
+hLegend = cell(1,NumAxes);
+hLegendChildren = cell(1,NumAxes);
+for axIndex = 1:NumAxes
+    
+    % Append
+    LegendItems = [horzcat(hSpeciesGroup{:,axIndex}) horzcat(hDatasetGroup{:,axIndex})];
+    
+    if ~isempty(LegendItems)
+        % Add legend
+        [hLegend{axIndex},hLegendChildren{axIndex}] = legend(hAxes(axIndex),LegendItems);
+    else
+        hLegend{axIndex} = [];
+        hLegendChildren{axIndex} = [];        
     end
 end
 
@@ -188,7 +246,15 @@ end
 %% Turn off hold
 
 for index = 1:numel(hAxes)
+    title(hAxes(index),sprintf('Plot %d',index));
     xlabel(hAxes(index),'Time');
     ylabel(hAxes(index),'States');
     hold(hAxes(index),'off')
+     % Reset zoom state
+    hFigure = ancestor(hAxes(index),'Figure');
+    if ~isempty(hFigure) && strcmpi(XLimMode{index},'auto') && strcmpi(YLimMode{index},'auto')
+        axes(hAxes(index));
+        zoom(hFigure,'out');
+        zoom(hFigure,'reset');        
+    end
 end

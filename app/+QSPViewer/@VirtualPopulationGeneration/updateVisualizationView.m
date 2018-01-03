@@ -163,7 +163,9 @@ if ~isempty(vObj.Data)
         for index = 1:size(vObj.Data.PlotItemTable,1)
             % If results file is missing and it's not already an invalid
             % row, then mark as missing
-            if FlagIsInvalidResultFile && (isempty(vObj.PlotItemInvalidRowIndices) || ~ismember(vObj.PlotItemInvalidRowIndices,index))
+
+%             if FlagIsInvalidResultFile && (isempty(vObj.PlotItemInvalidRowIndices) || ~ismember(vObj.PlotItemInvalidRowIndices,index))
+            if FlagIsInvalidResultFile && any(~ismember(vObj.PlotItemInvalidRowIndices,index))
                 TableData{index,3} = QSP.makeMissing(TableData{index,3});
                 TableData{index,4} = QSP.makeMissing(TableData{index,4});
             end %if
@@ -227,7 +229,7 @@ if ~isempty(vObj.Data)
         end
         
         % If empty, populate, but first update line styles
-        vObj.Data.PlotSpeciesTable = cell(numel(SpeciesNames),3);
+        vObj.Data.PlotSpeciesTable = cell(numel(SpeciesNames),4);
         updateSpeciesLineStyles(vObj.Data);
         
         vObj.Data.PlotSpeciesTable(:,1) = {' '};
@@ -238,7 +240,7 @@ if ~isempty(vObj.Data)
         vObj.PlotSpeciesAsInvalidTable = vObj.Data.PlotSpeciesTable;
         vObj.PlotSpeciesInvalidRowIndices = [];
     else
-        NewPlotTable = cell(numel(SpeciesNames),3);
+        NewPlotTable = cell(numel(SpeciesNames),4);
         NewPlotTable(:,1) = {' '};
         NewPlotTable(:,2) = {'-'}; % vObj.Data.SpeciesLineStyles(:); % TODO: !!
         NewPlotTable(:,3) = SpeciesNames;
