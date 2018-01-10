@@ -35,7 +35,7 @@ classdef MultiPlatformTable < uix.abstract.Widget & uix.mixin.HasLabel
         HTable = []
     end
     properties (SetAccess=protected, GetAccess=protected)
-        ButtonVis = true(1,2)
+        ButtonVis = true(1,3)
     end
     
     
@@ -77,8 +77,9 @@ classdef MultiPlatformTable < uix.abstract.Widget & uix.mixin.HasLabel
             
             % Icons
             ButtonInfo = {
-                uix.utility.loadIcon( 'add_24.png' ), @(h,e)onAddButtonPressed(obj,h,e), 'Add a new item to the list.'
-                uix.utility.loadIcon( 'delete_24.png' ), @(h,e)onRemoveButtonPressed(obj,h,e), 'Delete the highlighted item from the list.'                
+                uix.utility.loadIcon( 'add_24.png' ), @(h,e)onAddButtonPressed(obj,h,e), 'Add a new row.'
+                uix.utility.loadIcon( 'delete_24.png' ), @(h,e)onRemoveButtonPressed(obj,h,e), 'Delete the highlighted row.'                
+                uix.utility.loadIcon( 'copy_24.png' ), @(h,e)onDuplicateButtonPressed(obj,h,e), 'Duplicate the highlighted row.'                
                 };
             
             % Buttons
@@ -127,6 +128,15 @@ classdef MultiPlatformTable < uix.abstract.Widget & uix.mixin.HasLabel
             % Ensure the construction is complete
             if obj.IsConstructed
                 
+                % UseButtons
+                if isscalar(obj.UseButtons)
+                    obj.ButtonVis = obj.UseButtons * ones(1,numel(obj.h.Button));
+                elseif numel(obj.UseButtons) == numel(obj.h.Button)
+                    obj.ButtonVis = obj.UseButtons;
+                else
+                    obj.ButtonVis = false;
+                end
+                    
                 % Label height
                 if ~isempty(obj.LabelString)
                     LabelHeight = obj.LabelHeight; %#ok<*PROP>
@@ -201,7 +211,7 @@ classdef MultiPlatformTable < uix.abstract.Widget & uix.mixin.HasLabel
                 
                 % Position table
                 if Button_LHS
-                    if obj.UseButtons
+                    if any(obj.ButtonVis) %obj.UseButtons
                         if strcmpi(obj.LabelLocation,'left')
                             % left label
                             tableX = 1+obj.Padding+obj.Spacing+butW+LabelWidth;
@@ -236,7 +246,7 @@ classdef MultiPlatformTable < uix.abstract.Widget & uix.mixin.HasLabel
                         % top label
                         tableX = 1+obj.Padding;
                     end
-                    if obj.UseButtons
+                    if any(obj.ButtonVis) %obj.UseButtons
                         tableY = 1+obj.Padding+obj.Spacing+butH;
                     else
                         tableY = 1+obj.Padding+obj.Spacing;
@@ -261,7 +271,11 @@ classdef MultiPlatformTable < uix.abstract.Widget & uix.mixin.HasLabel
                     
                     % Button 2 - Delete
                     ThisEnable = ~isempty(obj.Data);
-                    set(obj.h.Button(2), 'Enable', uix.utility.tf2onoff(ThisEnable) );                                        
+                    set(obj.h.Button(2), 'Enable', uix.utility.tf2onoff(ThisEnable) );  
+                    
+                    % Button 3 - Duplicate
+                    ThisEnable = ~isempty(obj.Data);
+                    set(obj.h.Button(3), 'Enable', uix.utility.tf2onoff(ThisEnable) );  
                     
                 else
                     % Whole widget disabled                    
@@ -269,7 +283,9 @@ classdef MultiPlatformTable < uix.abstract.Widget & uix.mixin.HasLabel
                 end
                 
                 % Visibility
-                set(obj.h.Button, 'Visible', uix.utility.tf2onoff(obj.UseButtons));
+                for index = 1:numel(obj.h.Button)
+                    set(obj.h.Button(index), 'Visible', uix.utility.tf2onoff(obj.ButtonVis(index)));
+                end
                 
             end %if ~isempty(obj.h)
             
@@ -322,6 +338,19 @@ classdef MultiPlatformTable < uix.abstract.Widget & uix.mixin.HasLabel
             obj.redraw();
             
         end %function onRemoveButtonPressed
+        
+        function onDuplicateButtonPressed(obj,~,~)
+            
+            evt = struct( 'Source', obj, ...
+                'Interaction', 'Duplicate', ...                
+                'Indices', obj.SelectedRows );
+            uix.utility.callCallback(obj.ButtonCallback,obj,evt);
+            
+            % Redraw the component
+            obj.redraw();
+            
+        end %function onRemoveButtonPressed       
+        
     end
     
     %% Get/Set methods
@@ -460,7 +489,7 @@ classdef MultiPlatformTable < uix.abstract.Widget & uix.mixin.HasLabel
         
         % UseButtons
         function set.UseButtons(obj,value)
-            validateattributes(value,{'logical'},{'scalar'});
+            validateattributes(value,{'logical'},{});
             obj.UseButtons = value;
         end
         

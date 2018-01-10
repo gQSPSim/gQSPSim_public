@@ -339,8 +339,9 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
                 else
                     % Check that the function is only a function of x
                     tmp = cellfun(@symvar, {obj.SpeciesData.FunctionExpression}, 'UniformOutput', false);
-                    StatusOK = all(cellfun(@(x) length(x) == 1 && strcmp(x,'x'), tmp));
-                    if ~StatusOK
+                    ThisStatusOK = all(cellfun(@(x) length(x) == 1 && strcmp(x,'x'), tmp));
+                    if ~ThisStatusOK
+                        StatusOK = false;
                         ThisMessage = 'Data mappings must be a function of x only';
                         Message = sprintf('%s\n* %s\n',Message,ThisMessage);
                     end
@@ -422,6 +423,7 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
             % Check if VirtualPopulationData is valid
             ThisList = {obj.Settings.VirtualPopulationData.Name};
             MatchIdx = strcmpi(ThisList,obj.DatasetName);
+            GroupIDs = {};
             if any(MatchIdx)
                 dObj = obj.Settings.VirtualPopulationData(MatchIdx);
                 ThisStatusOk = validate(dObj);
@@ -467,7 +469,7 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
                 % Validate Task-Group and ExcelFilePath
                 ThisTask = getValidSelectedTasks(obj.Settings,obj.Item(index).TaskName);
                 % Validate groupID
-                 ThisID = obj.Item(index).GroupID;
+                ThisID = obj.Item(index).GroupID;
                 if ischar(ThisID)
                     ThisID = str2double(ThisID);
                 end

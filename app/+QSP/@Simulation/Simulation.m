@@ -252,8 +252,8 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 ThisTask = getValidSelectedTasks(obj.Settings,obj.Item(index).TaskName);
                 ThisVPop = getValidSelectedVPops(obj.Settings,obj.Item(index).VPopName);
                 
-                if ~isempty(ThisTask) && ~isempty(ThisVPop) && ...
-                        ~isempty(ThisTask.LastSavedTime) && ~isempty(ThisVPop.LastSavedTime) && ...
+                if ~isempty(ThisTask) && ~isempty(ThisTask.LastSavedTime) && ...
+                        ((~isempty(ThisVPop) && ~isempty(ThisVPop.LastSavedTime)) || strcmpi(obj.Item(index).VPopName,QSP.Simulation.NullVPop)) && ...
                         ~isempty(obj.LastSavedTime)
                     
                     % Compare times
@@ -269,9 +269,11 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                     TaskProjectLastSavedTime = FileInfo.datenum;
                     
                     % VPop object (item) and file
-                    VPopLastSavedTime = datenum(ThisVPop.LastSavedTime);                    
-                    FileInfo = dir(ThisVPop.FilePath);
-                    VPopFileLastSavedTime = FileInfo.datenum; 
+                    if ~isempty(ThisVPop) % Guard for NullVPop
+                        VPopLastSavedTime = datenum(ThisVPop.LastSavedTime);
+                        FileInfo = dir(ThisVPop.FilePath);
+                        VPopFileLastSavedTime = FileInfo.datenum;
+                    end
                     
                     % Results file
                     ThisFilePath = fullfile(obj.Session.RootDirectory,obj.SimResultsFolderName,obj.Item(index).MATFileName);
@@ -289,8 +291,8 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                     % Check
                     if SimLastSavedTime < TaskLastSavedTime || ...
                             SimLastSavedTime < TaskProjectLastSavedTime || ...
-                            SimLastSavedTime < VPopLastSavedTime || ...
-                            SimLastSavedTime < VPopFileLastSavedTime || ...
+                            (~isempty(ThisVPop) && SimLastSavedTime < VPopLastSavedTime) || ... % Guard for NullVPop
+                            (~isempty(ThisVPop) && SimLastSavedTime < VPopFileLastSavedTime) || ... % Guard for NullVPop
                             (~isempty(ResultLastSavedTime) && ResultLastSavedTime < SimLastSavedTime)
                         % Item may be out of date
                         StaleFlag(index) = true;

@@ -441,15 +441,6 @@ classdef Optimization < uix.abstract.CardViewPane
             
         end %function
         
-        function onKeepHistoryPlotCheckbox(vObj,h,e)
-            
-            vObj.Data.KeepHistory = logical(get(h,'Value'));
-            
-            % Update the view
-            updateVisualizationView(vObj);
-            
-        end %function
-        
         function onHistoryTableButtonPlot(vObj,h,e)
             
             Interaction = e.Interaction;
@@ -458,6 +449,7 @@ classdef Optimization < uix.abstract.CardViewPane
             switch Interaction
                 case 'Add'
                     vObj.Data.PlotProfile(end+1) = QSP.Profile;
+                    vObj.Data.SelectedProfileRow = numel(vObj.Data.PlotProfile);
                     
                 case 'Remove'
                     if numel(vObj.Data.PlotProfile) > 1
@@ -466,6 +458,14 @@ classdef Optimization < uix.abstract.CardViewPane
                         vObj.Data.PlotProfile = QSP.Profile.empty(0,1);
                     end
                     vObj.Data.SelectedProfileRow = [];
+                    
+                case 'Duplicate'
+                    vObj.Data.PlotProfile(end+1) = QSP.Profile;
+                    vObj.Data.PlotProfile(end).Source = vObj.Data.PlotProfile(Indices).Source;
+                    vObj.Data.PlotProfile(end).Description = vObj.Data.PlotProfile(Indices).Description;
+                    vObj.Data.PlotProfile(end).Show = vObj.Data.PlotProfile(Indices).Show;
+                    vObj.Data.PlotProfile(end).Values = vObj.Data.PlotProfile(Indices).Values;
+                    vObj.Data.SelectedProfileRow = numel(vObj.Data.PlotProfile);
             end
             
             % Update the view
@@ -507,6 +507,55 @@ classdef Optimization < uix.abstract.CardViewPane
                     case 3
                         % Show
                         ThisProfile.Show = ThisData{RowIdx,ColIdx};
+                    case 4
+                        % Source
+                              
+                        % Re-import the source values for
+                        % ThisProfile.Source (before changing)
+                        ThisSourceData = {};
+                        if ~isempty(ThisProfile.Source) && ~strcmpi(ThisProfile.Source,'N/A')
+                            [~,~,ThisSourceData] = importParametersSource(vObj.Data,ThisProfile.Source);
+                        end
+                        % Get the name of the new source                        
+                        NewSource = ThisData{RowIdx,ColIdx};
+                        
+                        % First check if values have been changed. If so,
+                        % then alert the user
+                        Result = 'Yes';
+                        if ~isequal(sortrows(ThisProfile.Values),sortrows(ThisSourceData)) && ...
+                                ~strcmpi(ThisProfile.Source,'N/A') && ~strcmpi(NewSource,'N/A')
+                            
+                            % Has the source changed?
+                            if ~strcmpi(ThisProfile.Source,NewSource)
+                                % Confirm with user
+                                Prompt = 'Changing the source will clear overriden source parameters. Do you want to continue?';                                
+                            else
+                                % Source did not change but reset the parameter values
+                                Prompt = 'This action will clear overriden source parameters. Do you want to continue? Press Cancel to save.';                                         
+                            end
+                            Result = questdlg(Prompt,'Continue?','Yes','Cancel','Cancel');                                
+                        end
+                        
+                        % Set the source and values
+                        if isempty(NewSource) || strcmpi(NewSource,'N/A')
+                            ThisProfile.Source = '';
+                            ThisProfile.Values = cell(0,2);
+                        elseif strcmpi(Result,'Yes')
+                            
+                            % Get NewSource Data
+                            NewSourceData = {};
+                            if ~isempty(NewSource) && ~strcmpi(NewSource,'N/A')
+                                [StatusOk,Message,NewSourceData] = importParametersSource(vObj.Data,NewSource);
+                                if ~StatusOk
+                                    hDlg = errordlg(Message,'Cannot import','modal');
+                                    uiwait(hDlg);
+                                end
+                            end
+                            
+                            ThisProfile.Source = NewSource;
+                            ThisProfile.Values = NewSourceData;
+                        end
+                        
                     case 5
                         % Description
                         ThisProfile.Description = ThisData{RowIdx,ColIdx};
@@ -518,31 +567,31 @@ classdef Optimization < uix.abstract.CardViewPane
             
         end %function
         
-        function onPlotParametersSourcePopup(vObj,h,e)
-            
-            Options = get(h,'String');
-            NewSource = Options{get(h,'Value')};
-            ThisProfile = vObj.Data.PlotProfile(vObj.Data.SelectedProfileRow);
-            
-            if isempty(NewSource) || strcmpi(NewSource,'N/A')
-                ThisProfile.Source = '';
-                ThisProfile.Values = cell(0,2);
-            else
-                [StatusOk,Message,PlotParametersData] = importParametersSource(vObj.Data,NewSource);
-                if ~StatusOk
-                    hDlg = errordlg(Message,'Cannot import','modal');
-                    uiwait(hDlg);
-                else
-                    % Finally, set the new source                    
-                    ThisProfile.Source = NewSource;
-                    ThisProfile.Values = PlotParametersData;
-                end
-            end
-            
-            % Update the view
-            updateVisualizationView(vObj);
-            update(vObj);
-        end %function
+%         function onPlotParametersSourcePopup(vObj,h,e)
+%             
+%             Options = get(h,'String');
+%             NewSource = Options{get(h,'Value')};
+%             ThisProfile = vObj.Data.PlotProfile(vObj.Data.SelectedProfileRow);
+%             
+%             if isempty(NewSource) || strcmpi(NewSource,'N/A')
+%                 ThisProfile.Source = '';
+%                 ThisProfile.Values = cell(0,2);
+%             else
+%                 [StatusOk,Message,PlotParametersData] = importParametersSource(vObj.Data,NewSource);
+%                 if ~StatusOk
+%                     hDlg = errordlg(Message,'Cannot import','modal');
+%                     uiwait(hDlg);
+%                 else
+%                     % Finally, set the new source                    
+%                     ThisProfile.Source = NewSource;
+%                     ThisProfile.Values = PlotParametersData;
+%                 end
+%             end
+%             
+%             % Update the view
+%             updateVisualizationView(vObj);
+%             update(vObj);
+%         end %function
                 
         function onParametersTablePlot(vObj,h,e)
             

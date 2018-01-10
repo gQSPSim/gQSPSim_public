@@ -125,13 +125,13 @@ classdef Simulation < uix.abstract.CardViewPane
                 
                 case 'Add'
                     
-                    if ~isempty(vObj.TaskPopupTableItems) && ~isempty(vObj.VPopPopupTableItems)
+                    if ~isempty(vObj.TaskPopupTableItems)
                         NewTaskVPop = QSP.TaskVirtualPopulation;
                         NewTaskVPop.TaskName = vObj.TaskPopupTableItems{1};
                         NewTaskVPop.VPopName = vObj.VPopPopupTableItems{1};
                         vObj.TempData.Item(end+1) = NewTaskVPop;
                     else
-                        hDlg = errordlg('At least one task and virtual population must be defined in order to add a simulation item.','Cannot Add','modal');
+                        hDlg = errordlg('At least one task must be defined in order to add a simulation item.','Cannot Add','modal');
                         uiwait(hDlg);
                     end
                     

@@ -46,7 +46,7 @@ for ii = 1:nItems
     % find the relevant task and vpop objects in the settings object
     vpopObj = [];
     ThisMessage = '';
-    if ~isempty(vpopName) && ~strcmp(vpopName,'ModelDefault')
+    if ~isempty(vpopName) && ~strcmp(vpopName,QSP.Simulation.NullVPop)
         vpopObj = obj.Settings.VirtualPopulation(strcmp(vpopName,options.allVpopNames));
         [StatusOK,ThisMessage] = validate(vpopObj,false);    
     end   
@@ -204,7 +204,7 @@ nItems = options.nItems;
 if isempty(Pin)
     for ii = 1:nItems
         vpopName = obj.Item(ii).VPopName;
-        if strcmp(vpopName,'ModelDefault')
+        if strcmp(vpopName,QSP.Simulation.NullVPop)
             % do not create a vpopObj for the model default virtual population
             continue
         end
