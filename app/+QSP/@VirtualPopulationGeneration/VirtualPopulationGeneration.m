@@ -421,6 +421,7 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
             % Check if VirtualPopulationData is valid
             ThisList = {obj.Settings.VirtualPopulationData.Name};
             MatchIdx = strcmpi(ThisList,obj.DatasetName);
+            GroupIDs = {};
             if any(MatchIdx)
                 dObj = obj.Settings.VirtualPopulationData(MatchIdx);
                 ThisStatusOk = validate(dObj);
@@ -466,7 +467,7 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
                 % Validate Task-Group and ExcelFilePath
                 ThisTask = getValidSelectedTasks(obj.Settings,obj.Item(index).TaskName);
                 % Validate groupID
-                 ThisID = obj.Item(index).GroupID;
+                ThisID = obj.Item(index).GroupID;
                 if ischar(ThisID)
                     ThisID = str2double(ThisID);
                 end
