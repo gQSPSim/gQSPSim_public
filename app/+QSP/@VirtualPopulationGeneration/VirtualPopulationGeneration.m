@@ -337,8 +337,9 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
                 else
                     % Check that the function is only a function of x
                     tmp = cellfun(@symvar, {obj.SpeciesData.FunctionExpression}, 'UniformOutput', false);
-                    StatusOK = all(cellfun(@(x) length(x) == 1 && strcmp(x,'x'), tmp));
-                    if ~StatusOK
+                    ThisStatusOK = all(cellfun(@(x) length(x) == 1 && strcmp(x,'x'), tmp));
+                    if ~ThisStatusOK
+                        StatusOK = false;
                         ThisMessage = 'Data mappings must be a function of x only';
                         Message = sprintf('%s\n* %s\n',Message,ThisMessage);
                     end

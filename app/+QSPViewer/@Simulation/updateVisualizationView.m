@@ -197,8 +197,8 @@ if ~isempty(vObj.Data)
                     ThisFileName = vObj.Data.Item(MatchIdx).MATFileName;
                     % Mark results file as missing
                     if ~isequal(exist(fullfile(ResultsDir,ThisFileName),'file'),2)
-                        TableData{index,3} = QSP.makeMissing(TableData{index,3});
-                        TableData{index,4} = QSP.makeMissing(TableData{index,4});
+                        TableData{index,3} = QSP.makeItalicized(TableData{index,3});
+                        TableData{index,4} = QSP.makeItalicized(TableData{index,4});
                     end
                 end %if
             end %if

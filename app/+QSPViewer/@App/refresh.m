@@ -120,6 +120,14 @@ if isscalar(SelNode)
     if ~isempty(obj.ActivePane) && any(strcmpi(events(obj.ActivePane),'NavigationChanged'))
         obj.NavigationChangedListener = event.listener(obj.ActivePane,'NavigationChanged',@(h,e)onNavigationChanged(obj,h,e));
     end
+    
+    % Assign mark dirty listener
+    if ~isempty(obj.MarkDirtyListener)
+        delete(obj.MarkDirtyListener);
+    end
+    if ~isempty(obj.ActivePane) && any(strcmpi(events(obj.ActivePane),'MarkDirty'))
+        obj.MarkDirtyListener = event.listener(obj.ActivePane,'MarkDirty',@(h,e)onMarkDirty(obj,h,e));
+    end
 else
     
     % Clear the pane - it's empty

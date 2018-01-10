@@ -240,9 +240,29 @@ end
 
 %% Refresh Parameters
 
-% History checkbox
+% Source popup
 if ~isempty(vObj.Data)
-    set(vObj.h.PlotHistoryCheckbox,'Value',vObj.Data.KeepHistory);
+    % Update PlotParametersSourceOptions
+    Names = {vObj.Data.Settings.Parameters.Name};
+    MatchIdx = strcmpi(Names,vObj.Data.RefParamName);
+    
+    VPopNames = {};
+    for idx = 1:numel(vObj.Data.ExcelResultFileName)
+        [~,VPopNames{idx}] = fileparts(vObj.Data.ExcelResultFileName{idx}); %#ok<AGROW>
+    end
+    
+    % Filter VPopNames list (only if name does not exist, not if invalid)
+    AllVPopNames = {vObj.Data.Session.Settings.VirtualPopulation.Name};
+    VPopNames = VPopNames(ismember(VPopNames,AllVPopNames));
+    
+    if any(MatchIdx)
+        pObj = vObj.Data.Settings.Parameters(MatchIdx);        
+        PlotParametersSourceOptions = vertcat('N/A',{pObj.Name},VPopNames(:));
+    else
+        PlotParametersSourceOptions = vertcat('N/A',VPopNames(:));
+    end
+else
+    PlotParametersSourceOptions = {'N/A'};
 end
 
 % History table
@@ -257,8 +277,8 @@ if ~isempty(vObj.Data)
     set(vObj.h.PlotHistoryTable,...
         'Data',Summary,...        
         'ColumnName',{'Run','Line Style','Show','Source','Description'},...
-        'ColumnFormat',{'numeric','char','logical','char','char'},...
-        'ColumnEditable',[false,false,true,false,true]...
+        'ColumnFormat',{'numeric','char','logical',PlotParametersSourceOptions(:),'char'},...
+        'ColumnEditable',[false,false,true,true,true]...
         );    
     if ~isempty(Summary)
         set(vObj.h.PlotHistoryTable,'SelectedRows',vObj.Data.SelectedProfileRow);
@@ -283,50 +303,13 @@ else
     ThisProfile = QSP.Profile.empty(0,1);
 end
 
-% Source popup
-if ~isempty(ThisProfile)
-    % Update PlotParametersSourceOptions
-    Names = {vObj.Data.Settings.Parameters.Name};
-    MatchIdx = strcmpi(Names,vObj.Data.RefParamName);
-    
-    VPopNames = {};
-    for idx = 1:numel(vObj.Data.ExcelResultFileName)
-        [~,VPopNames{idx}] = fileparts(vObj.Data.ExcelResultFileName{idx}); %#ok<AGROW>
-    end
-    
-    % Filter VPopNames list (only if name does not exist, not if invalid)
-    AllVPopNames = {vObj.Data.Session.Settings.VirtualPopulation.Name};
-    VPopNames = VPopNames(ismember(VPopNames,AllVPopNames));
-    
-    if any(MatchIdx)
-        pObj = vObj.Data.Settings.Parameters(MatchIdx);        
-        PlotParametersSourceOptions = vertcat('N/A',{pObj.Name},VPopNames(:));
-    else
-        PlotParametersSourceOptions = vertcat('N/A',VPopNames(:));
-    end
-    
-    % Get Index
-    SourceIdx = find(strcmpi(ThisProfile.Source,PlotParametersSourceOptions));
-    if isempty(SourceIdx)
-        ThisProfile.Source = '';
-        SourceIdx = 1;
-    end
-    set(vObj.h.PlotParametersSourcePopup,...
-        'String',PlotParametersSourceOptions,...
-        'Value',SourceIdx);
-else
-    set(vObj.h.PlotParametersSourcePopup,...
-        'String',{'N/A'},...
-        'Value',1);
-end
-
 % Enable
 if ~isempty(ThisProfile)
-    set(vObj.h.PlotParametersSourcePopup,'Enable','on');
+%     set(vObj.h.PlotParametersSourcePopup,'Enable','on');
     set(vObj.h.SaveAsVPopButton,'Enable','on');
     set(vObj.h.PlotParametersTable,'Enable','on');
 else
-    set(vObj.h.PlotParametersSourcePopup,'Enable','off');
+%     set(vObj.h.PlotParametersSourcePopup,'Enable','off');
     set(vObj.h.SaveAsVPopButton,'Enable','off');
     set(vObj.h.PlotParametersTable,'Enable','off');
 end
@@ -347,6 +330,15 @@ if ~isempty(ThisProfile)
     else
         % Could not import source
         ParameterData = cell(0,3);        
+    end
+    
+    % Mark the rows that are edited (column 2 does not equal column 3)
+    for rowIdx = 1:size(ParameterData,1)
+        if ParameterData{rowIdx,2} ~= ParameterData{rowIdx,3}
+            for colIdx = 1:size(ParameterData,2)
+                ParameterData{rowIdx,colIdx} = QSP.makeItalicized(ParameterData{rowIdx,colIdx});
+            end
+        end
     end
     
     set(vObj.h.PlotParametersTable,...
@@ -387,69 +379,3 @@ if ~isempty(vObj.Data) && isfield(vObj.h,'SpeciesGroup')
 end %if
 
 
-%%
-
-% % Update PlotParametersSourceOptions
-% if ~isempty(vObj.Data)
-%     Names = {vObj.Data.Settings.Parameters.Name};
-%     MatchIdx = strcmpi(Names,vObj.Data.RefParamName);
-%     
-%     VPopNames = {};
-%     for idx = 1:numel(vObj.Data.ExcelResultFileName)
-%         [~,VPopNames{idx}] = fileparts(vObj.Data.ExcelResultFileName{idx}); %#ok<AGROW>
-%     end
-%     
-%     % Filter VPopNames list (only if name does not exist, not if invalid)
-%     AllVPopNames = {vObj.Data.Session.Settings.VirtualPopulation.Name};
-%     VPopNames = VPopNames(ismember(VPopNames,AllVPopNames));
-%     
-%     if any(MatchIdx)
-%         pObj = vObj.Data.Settings.Parameters(MatchIdx);        
-%         vObj.Data.PlotParametersSourceOptions = vertcat({pObj.Name},VPopNames(:));
-%     else
-%         vObj.Data.PlotParametersSourceOptions = VPopNames;
-%     end
-%     
-%     % Source
-%     MatchIdx = find(strcmpi(vObj.Data.PlotParametersSource,vObj.Data.PlotParametersSourceOptions));
-%     
-%     if isempty(MatchIdx) && ~isempty(vObj.Data.PlotParametersSourceOptions)
-%         MatchIdx = 1;
-%         vObj.Data.PlotParametersSource = vObj.Data.PlotParametersSourceOptions{1};
-%         % Re-import
-%         [StatusOk,Message] = importParametersSource(vObj.Data,vObj.Data.PlotParametersSource);                
-%     end
-%     
-%     if isempty(vObj.Data.PlotParametersSourceOptions)
-%         vObj.Data.PlotParametersSourceOptions = {
-%             'N/A'
-%             };
-%     end
-%     
-%     if isempty(MatchIdx)
-%         MatchIdx = 1;
-%     end
-%     set(vObj.h.PlotParametersSourcePopup,...
-%         'String',vObj.Data.PlotParametersSourceOptions,...
-%         'Value',MatchIdx);
-% else
-%     set(vObj.h.PlotParametersSourcePopup,...
-%         'String',{'N/A'},...
-%         'Value',1);
-% end    
-
-
-% % Parameters Table
-% if ~isempty(vObj.Data)
-%     set(vObj.h.PlotParametersTable,...
-%         'Data',vObj.Data.PlotParametersData,...
-%         'ColumnName',{'Parameter','Value','Source Value'},...
-%         'ColumnFormat',{'char','float','float'},...
-%         'ColumnEditable',[false,true,false]);
-% else
-%     set(vObj.h.PlotParametersTable,...
-%         'Data',cell(0,3),...
-%         'ColumnName',{'Parameter','Value','Source Value'},...
-%         'ColumnFormat',{'char','float','float'},...
-%         'ColumnEditable',[false,true,false]);
-% end

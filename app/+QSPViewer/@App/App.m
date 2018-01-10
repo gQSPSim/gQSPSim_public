@@ -164,6 +164,7 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
     
     properties( Access = private )
         NavigationChangedListener = event.listener.empty(0,1)
+        MarkDirtyListener = event.listener.empty(0,1)
     end
         
     %% Methods in separate files with custom permissions
@@ -225,6 +226,13 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
     
     %% Callbacks
     methods (Access=protected)
+        
+        function onMarkDirty(obj,h,e)
+            
+            % Mark the current session dirty
+            obj.markDirty();
+            
+        end %function
         
         function onDataChanged(obj,h,e)
             

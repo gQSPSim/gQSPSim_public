@@ -166,8 +166,8 @@ if ~isempty(vObj.Data)
 
 %             if FlagIsInvalidResultFile && (isempty(vObj.PlotItemInvalidRowIndices) || ~ismember(vObj.PlotItemInvalidRowIndices,index))
             if FlagIsInvalidResultFile && any(~ismember(vObj.PlotItemInvalidRowIndices,index))
-                TableData{index,3} = QSP.makeMissing(TableData{index,3});
-                TableData{index,4} = QSP.makeMissing(TableData{index,4});
+                TableData{index,3} = QSP.makeItalicized(TableData{index,3});
+                TableData{index,4} = QSP.makeItalicized(TableData{index,4});
             end %if
         end %for
     end %if

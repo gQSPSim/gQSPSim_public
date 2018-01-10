@@ -57,8 +57,7 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         PlotParametersData = cell(0,2) % Remove this        
         PlotParametersSource = 'N/A'  % Remove this        
         
-        SelectedPlotLayout = '1x1'
-        KeepHistory = true
+        SelectedPlotLayout = '1x1'        
     end
     
     properties (SetAccess = 'private')

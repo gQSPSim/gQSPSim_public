@@ -35,6 +35,7 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
     events( NotifyAccess = protected )
         TempDataEdited
         NavigationChanged
+        MarkDirty
     end
     
     %% Constructor and Destructor
@@ -382,11 +383,14 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                         View = 'Summary';
                         EventData = uix.abstract.NavigationEventData('Name',View);
                         notify(obj,'NavigationChanged',EventData);
-                        
+                   
                         % Call the callback
                         evt.InteractionType = sprintf('Updated %s',class(obj.Data));
                         evt.Name = obj.Data.Name;
                         obj.callCallback(evt);
+                        
+                        % Mark Dirty
+                        notify(obj,'MarkDirty');
                     else
                         hDlg = errordlg(sprintf('Cannot save changes. Please review invalid entries:\n\n%s',Message),'Cannot Save','modal');
                         uiwait(hDlg);
@@ -420,6 +424,9 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                                 View = 'Summary';
                                 EventData = uix.abstract.NavigationEventData('Name',View);
                                 notify(obj,'NavigationChanged',EventData);
+                                
+                                % Mark Dirty
+                                notify(obj,'MarkDirty');
                             else
                                 hDlg = errordlg(sprintf('Cannot save changes. Please review invalid entries:\n\n%s',Message),'Cannot Save','modal');
                                 uiwait(hDlg);
@@ -567,6 +574,11 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                         evt.InteractionType = sprintf('Updated %s',class(vpopObj));
                         evt.Data = vpopObj;
                         obj.callCallback(evt);
+                    end
+                        
+                    if StatusOK
+                        % Mark Dirty
+                        notify(obj,'MarkDirty');
                     end
                     
                     set(hFigure,'pointer','arrow');
