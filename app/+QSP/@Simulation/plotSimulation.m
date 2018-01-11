@@ -65,7 +65,7 @@ if ~isempty(IsSelected)
         ThisTask = getValidSelectedTasks(obj.Settings,ThisTaskName);
         ThisVPop = getValidSelectedVPops(obj.Settings,ThisVPopName);        
         
-        if ~isempty(ThisTask) && ~isempty(ThisVPop)
+        if ~isempty(ThisTask) && (~isempty(ThisVPop) || strcmp(ThisVPopName,'ModelDefault'))
             MatchIdx = strcmp(ThisTaskName,TaskNames) & strcmp(ThisVPopName,VPopNames);
             if any(MatchIdx)
                 ThisFileName = {obj.Item(MatchIdx).MATFileName};
@@ -138,7 +138,22 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
             hThis = plot(hSpeciesGroup{sIdx,axIdx},Results(itemIdx).Time,Results(itemIdx).Data(:,ColumnIdx),...
                 'Color',SelectedItemColors(itemIdx,:),...
                 'LineStyle',ThisLineStyle);
-            set(get(get(hThis,'Annotation'),'LegendInformation'),'IconDisplayStyle','off'); 
+           thisAnnotation = get(hThis,'Annotation');
+
+           if iscell(thisAnnotation)
+               thisLegendInformation = get([thisAnnotation{:}],'LegendInformation');
+           else
+               thisLegendInformation = get(thisAnnotation,'LegendInformation');
+           end
+           
+           if iscell(thisLegendInformation)
+               set([thisLegendInformation{:}],'IconDisplayStyle','off'); 
+           else
+               set(thisLegendInformation,'IconDisplayStyle','off'); 
+           end
+
+       
+           
             
         end
     end
