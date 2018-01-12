@@ -266,6 +266,7 @@ else
 end
 
 % History table
+ThisProfileData = {}; % Initialize
 if ~isempty(vObj.Data)
     Summary = horzcat(...
         num2cell(1:numel(vObj.Data.PlotProfile))',...
@@ -273,6 +274,16 @@ if ~isempty(vObj.Data)
         {vObj.Data.PlotProfile.Show}',...
         {vObj.Data.PlotProfile.Source}',...
         {vObj.Data.PlotProfile.Description}');
+    
+    % Loop over and italicize non-matches
+    [IsMatch,ThisProfileData] = i_importParametersSourceHelper(vObj);    
+    for rowIdx = 1:size(Summary,1)
+        if ~IsMatch(rowIdx)
+            for colIdx = [1,4,5]
+                Summary{rowIdx,colIdx} = QSP.makeItalicized(Summary{rowIdx,colIdx});
+            end
+        end
+    end
     
     set(vObj.h.PlotHistoryTable,...
         'Data',Summary,...        
@@ -315,34 +326,19 @@ else
 end
 
 % Parameters Table
-if ~isempty(ThisProfile)
-    % Get values
-    [StatusOk,Message,SourceData] = importParametersSource(vObj.Data,ThisProfile.Source);
-    if StatusOk
-        ThisProfile.Values = sortrows(ThisProfile.Values,1);
-        SourceData = sortrows(SourceData,1);
-        if ~isequal(ThisProfile.Values(:,1),SourceData(:,1))
-            % Reset
-            ThisProfile.Values = SourceData;            
-        end
-        % Merge
-        ParameterData = [ThisProfile.Values SourceData(:,end)];
-    else
-        % Could not import source
-        ParameterData = cell(0,3);        
-    end
+if ~isempty(ThisProfileData)
     
     % Mark the rows that are edited (column 2 does not equal column 3)
-    for rowIdx = 1:size(ParameterData,1)
-        if ParameterData{rowIdx,2} ~= ParameterData{rowIdx,3}
-            for colIdx = 1:size(ParameterData,2)
-                ParameterData{rowIdx,colIdx} = QSP.makeItalicized(ParameterData{rowIdx,colIdx});
+    for rowIdx = 1:size(ThisProfileData,1)
+        if ThisProfileData{rowIdx,2} ~= ThisProfileData{rowIdx,3}
+            for colIdx = 1:size(ThisProfileData,2)
+                ThisProfileData{rowIdx,colIdx} = QSP.makeItalicized(ThisProfileData{rowIdx,colIdx});
             end
         end
     end
     
     set(vObj.h.PlotParametersTable,...
-        'Data',ParameterData,...
+        'Data',ThisProfileData,...
         'ColumnName',{'Parameter','Value','Source Value'},...
         'ColumnFormat',{'char','float','float'},...
         'ColumnEditable',[false,true,false]);
@@ -355,13 +351,14 @@ else
 end
 
 
+
 %% Update plot
 
 if ~isempty(vObj.Data) && isfield(vObj.h,'SpeciesGroup')
     Show = [vObj.Data.PlotProfile.Show];
     
     for index = 1:numel(vObj.h.SpeciesGroup)
-        if ~isempty(vObj.h.SpeciesGroup{index})
+        if ~isempty(vObj.h.SpeciesGroup{index}) && ishandle(vObj.h.SpeciesGroup{index})
             Ch = vObj.h.SpeciesGroup{index}.Children;
             Ch = flip(Ch);
             if numel(Ch) > 1
@@ -379,3 +376,48 @@ if ~isempty(vObj.Data) && isfield(vObj.h,'SpeciesGroup')
 end %if
 
 
+
+
+%--------------------------------------------------------------------------
+function [IsMatch,SelectedProfileData] = i_importParametersSourceHelper(vObj)
+
+UniqueSourceNames = unique({vObj.Data.PlotProfile.Source});
+UniqueSourceData = cell(1,numel(UniqueSourceNames));
+
+% First import just the unique sources
+for index = 1:numel(UniqueSourceNames)
+    % Get values
+    [StatusOk,~,SourceData] = importParametersSource(vObj.Data,UniqueSourceNames{index});
+    if StatusOk
+        UniqueSourceData{index} = sortrows(SourceData,1);
+    else
+        UniqueSourceData{index} = cell(0,2);
+    end
+end
+
+% Return which profile rows are different and return the selected profile
+% row's data
+nProfiles = numel(vObj.Data.PlotProfile);
+IsMatch = true(1,nProfiles);
+for index = 1:nProfiles
+    ThisProfile = vObj.Data.PlotProfile(index);
+    ThisProfileValues = ThisProfile.Values; % Already sorted
+    uIdx = ismember(UniqueSourceNames,ThisProfile.Source);
+    
+    if ~isequal(ThisProfileValues,UniqueSourceData{uIdx})
+        IsMatch(index) = false;
+    end
+end
+
+if ~isempty(vObj.Data.SelectedProfileRow)
+    SelectedProfile = vObj.Data.PlotProfile(vObj.Data.SelectedProfileRow);
+    Values = SelectedProfile.Values; % Already sorted
+    uIdx = ismember(UniqueSourceNames,SelectedProfile.Source);
+    
+    % Store - names, user's values, source values
+    SelectedProfileData = cell(size(UniqueSourceData{uIdx},1),3);
+    SelectedProfileData(1:size(SelectedProfile.Values,1),1:2) = Values;
+    SelectedProfileData(:,end) = UniqueSourceData{uIdx}(:,end);
+else
+    SelectedProfileData = cell(0,3);
+end
