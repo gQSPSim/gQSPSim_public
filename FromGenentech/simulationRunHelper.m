@@ -229,7 +229,7 @@ end % if
 
 end
 
-function [model] = constructModel(taskObj)
+function [model, varSpeciesObj_i] = constructModel(taskObj)
 
     % load the model in that task
     AllModels = sbioloadproject(taskObj.FilePath);
@@ -289,7 +289,7 @@ function [ItemModel, VpopWeights, StatusOK, Message] = constructVpopItem(taskObj
 
 
     % construct model using variants, reactions, species, etc.
-    thisModel = constructModel(taskObj);
+    [thisModel,varSpeciesObj_i] = constructModel(taskObj);
     
     if ~isempty(vpopObj) % AG: TODO: added ~isempty(vpopObj) for function-call from plotOptimization. Need to verify with Genentech
         T_i             = readtable(vpopObj.FilePath);

@@ -46,6 +46,8 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
         PlotSpeciesTable = cell(0,4)
         PlotItemTable = cell(0,4) 
         
+        PrevalenceWeights = [];
+        
         PlotType = 'Normal'
         
         SelectedPlotLayout = '1x1'   
