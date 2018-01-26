@@ -50,12 +50,6 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         
         PlotProfile = QSP.Profile.empty(0,1)
         SelectedProfileRow = []
-        PlotParametersSourceOptions = { % Remove this
-            'N/A'            
-            }        
-        
-        PlotParametersData = cell(0,2) % Remove this        
-        PlotParametersSource = 'N/A'  % Remove this        
         
         SelectedPlotLayout = '1x1'        
     end

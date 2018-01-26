@@ -72,7 +72,9 @@ if any(IsSelected)
     % with each Task-Group
     VPopNames = {obj.Settings.VirtualPopulation.Name};
     
-    if any(strcmp(obj.PlotParametersSource,VPopNames)) 
+%     if any(strcmp(obj.PlotParametersSource,VPopNames)) 
+        % TODO: Review with Justin - how should this change for multiple
+        % parameter sources (history table)
         if ~isempty(obj.SpeciesIC)
             for ii = 1:nSelected
                 % find the group associated with this task
@@ -103,7 +105,7 @@ if any(IsSelected)
             
         end
 
-    end
+%     end
     
     % If Parameter is selected, then leave the Vpop names empty
 end
@@ -128,7 +130,7 @@ if any(IsSelected)
         end
         if iscell(Pin)
             Pin = cell2mat(Pin);
-        end
+        end        
         [StatusOK,Message,~,TheseResults] = simulationRunHelper(simObj,Pin,ParamNames);
 
         if ~StatusOK
@@ -196,7 +198,8 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
                             'Color',SelectedItemColors(itemIdx,:),...
                             'Visible',uix.utility.tf2onoff(Show(runIdx)),...
                             'LineStyle',ThisLineStyle,...
-                            'LineWidth',ThisLineWidth);
+                            'LineWidth',ThisLineWidth,...
+                            'Tag',runIdx);
                         set(get(get(hThis,'Annotation'),'LegendInformation'),'IconDisplayStyle','off');
                         
                         

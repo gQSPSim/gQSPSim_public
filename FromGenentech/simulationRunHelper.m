@@ -7,6 +7,10 @@ function [StatusOK,Message,ResultFileNames,varargout] = simulationRunHelper(obj,
 
 StatusOK = true;
 Message = '';
+ResultFileNames = {};
+if nargout > 3
+    varargout{1} = {};
+end
 
 %% update path to include everything in subdirectories of the root folder
 myPath = path;
@@ -16,9 +20,15 @@ addpath(genpath(obj.Session.RootDirectory));
 %% parse inputs and initialize
 % [nItems, ResultFileNames, output, Pin, paramNames, extraOutputTimes, simName, allTaskNames, allVpopNames] = parseInputs(obj,varargin);
 
-[options, StatusOK, Message] = parseInputs(obj,varargin);
+[options, ThisStatusOK, ThisMessage] = parseInputs(obj,varargin{:});
+[ThisStatusOK,ThisMessage] = validatePin(obj, options, ThisStatusOK, ThisMessage);
 
-[StatusOK,Message] = validatePIn(obj, options, StatusOK, Message);
+if ~ThisStatusOK
+    StatusOK = false;
+    Message = ThisMessage;
+    return;
+end
+
 
 VpopWeights = [];
 
@@ -39,31 +49,35 @@ for ii = 1:nItems
     
     % Validate
     taskObj = obj.Settings.Task(strcmp(taskName,options.allTaskNames));
-    [StatusOK,ThisMessage] = validate(taskObj,false);        
+    [ThisStatusOK,ThisMessage] = validate(taskObj,false);        
     if isempty(taskObj)
         continue
-    elseif ~StatusOK
+    elseif ~ThisStatusOK
+        StatusOK = false;
         warning('Error loading task %s. Skipping [%s]...', taskName,ThisMessage)
         Message = sprintf('%s\n%s\n',Message,ThisMessage);
         continue
     end
     
     % find the relevant task and vpop objects in the settings object
-    vpopObj = [];
-    ThisMessage = '';
+    vpopObj = [];    
     if ~isempty(vpopName) && ~strcmp(vpopName,QSP.Simulation.NullVPop)
         vpopObj = obj.Settings.VirtualPopulation(strcmp(vpopName,options.allVpopNames));
-        [StatusOK,ThisMessage] = validate(vpopObj,false);    
+        [ThisStatusOK,ThisMessage] = validate(vpopObj,false);    
+        if ~ThisStatusOK
+            StatusOK = false;
+            warning('Error loading vpop %s. Skipping [%s]...', vpopName,ThisMessage)
+            Message = sprintf('%s\n%s\n',Message,ThisMessage);
+            continue
+        end
     end   
     
-    if ~StatusOK
-        warning('Error loading task %s. Skipping [%s]...', taskName,ThisMessage)
-        Message = sprintf('%s\n%s\n',Message,ThisMessage);
-        continue
-    end
-    
     % Load the Vpop and parse contents 
-   [ItemModels(ii), VpopWeights, StatusOK, Message] = constructVpopItem(taskObj, vpopObj, options, Message);
+   [ItemModels(ii), VpopWeights, ThisStatusOK, ThisMessage] = constructVpopItem(taskObj, vpopObj, options, Message);
+   if ~ThisStatusOK
+       StatusOK = false;
+       Message = sprintf('%s\n%s\n',Message,ThisMessage);
+   end
 
 end % for ii...
 
@@ -92,8 +106,10 @@ if ~isempty(ItemModels)
         uix.utility.CustomWaitbar(ii/nItems,hWbar2,sprintf('Simulating task %d of %d',ii,nItems));
 
         % simulate virtual patients
-        [Results, nFailedSims, StatusOK, Message] = simulateVPatients(ItemModel, options, Message);
-        if ~StatusOK
+        [Results, nFailedSims, ThisStatusOK, ThisMessage] = simulateVPatients(ItemModel, options, Message);
+        if ~ThisStatusOK
+            StatusOK = false;
+            Message = sprintf('%s\n%s\n',Message,ThisMessage);
             continue
         end
         
@@ -128,7 +144,7 @@ if ~isempty(ItemModels)
                 ThisMessage = [num2str(ItemModel.nPatients-nFailedSims) ' simulations were successful out of ' num2str(ItemModel.nPatients) '.'];
             end
             Message = sprintf('%s\n%s\n',Message,ThisMessage);        
-        elseif isempty(Pin)
+        elseif isfield(options,'Pin') && isempty(options.Pin)
             StatusOK = false;
             ThisMessage = 'Unable to save results to MAT file.';
             Message = sprintf('%s\n%s\n',Message,ThisMessage);
@@ -205,7 +221,7 @@ options.allVpopNames = allVpopNames;
 
 end
 
-function [StatusOK,Message] = validatePIn(obj, options, StatusOK, Message)
+function [StatusOK,Message] = validatePin(obj, options, StatusOK, Message)
 Pin = options.Pin;
 nItems = options.nItems;
 
@@ -587,7 +603,7 @@ function [Results, nFailedSims, StatusOK, Message] = simulateVPatients(ItemModel
                         params = cell2mat(params);
                     end
                     if isempty(ItemModel.VPopSpeciesICs)
-                        if ~isempty(params)
+                        if ~isempty(params)                            
                             simData = simulate(model, params, doses);
                         else
                             simData = simulate(model, doses);

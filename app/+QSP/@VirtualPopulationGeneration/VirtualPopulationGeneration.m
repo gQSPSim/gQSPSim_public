@@ -440,6 +440,7 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
                         GroupIDs = cell2mat(GroupIDs);
                     end
                     GroupIDs = unique(GroupIDs);
+                    GroupIDs = cellfun(@(x)num2str(x),num2cell(GroupIDs),'UniformOutput',false);
                 else
                     GroupIDs = {};
                 end
@@ -469,11 +470,7 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
                 % Validate Task-Group and ExcelFilePath
                 ThisTask = getValidSelectedTasks(obj.Settings,obj.Item(index).TaskName);
                 % Validate groupID
-                ThisID = obj.Item(index).GroupID;
-                if ischar(ThisID)
-                    ThisID = str2double(ThisID);
-                end
-                MatchGroup = ismember(ThisID,GroupIDs);                
+                MatchGroup = ismember(obj.Item(index).GroupID,GroupIDs);                
                
                 if ~ForceMarkAsInvalid && ...
                         ~isempty(ThisTask) && ...

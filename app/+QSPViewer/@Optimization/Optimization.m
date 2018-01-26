@@ -464,7 +464,7 @@ classdef Optimization < uix.abstract.CardViewPane
                     vObj.Data.PlotProfile(end).Source = vObj.Data.PlotProfile(Indices).Source;
                     vObj.Data.PlotProfile(end).Description = vObj.Data.PlotProfile(Indices).Description;
                     vObj.Data.PlotProfile(end).Show = vObj.Data.PlotProfile(Indices).Show;
-                    vObj.Data.PlotProfile(end).Values = vObj.Data.PlotProfile(Indices).Values;
+                    vObj.Data.PlotProfile(end).Values = sortrows(vObj.Data.PlotProfile(Indices).Values,1);
                     vObj.Data.SelectedProfileRow = numel(vObj.Data.PlotProfile);
             end
             
@@ -513,7 +513,7 @@ classdef Optimization < uix.abstract.CardViewPane
                         % Re-import the source values for
                         % ThisProfile.Source (before changing)
                         ThisSourceData = {};
-                        if ~isempty(ThisProfile.Source) && ~strcmpi(ThisProfile.Source,'N/A')
+                        if ~isempty(ThisProfile.Source) && ~any(strcmpi(ThisProfile.Source,{'','N/A'}))
                             [~,~,ThisSourceData] = importParametersSource(vObj.Data,ThisProfile.Source);
                         end
                         % Get the name of the new source                        
@@ -523,7 +523,7 @@ classdef Optimization < uix.abstract.CardViewPane
                         % then alert the user
                         Result = 'Yes';
                         if ~isequal(sortrows(ThisProfile.Values),sortrows(ThisSourceData)) && ...
-                                ~strcmpi(ThisProfile.Source,'N/A') && ~strcmpi(NewSource,'N/A')
+                                ~any(strcmpi(ThisProfile.Source,{'','N/A'})) && ~any(strcmpi(NewSource,{'','N/A'}))
                             
                             % Has the source changed?
                             if ~strcmpi(ThisProfile.Source,NewSource)
@@ -537,14 +537,14 @@ classdef Optimization < uix.abstract.CardViewPane
                         end
                         
                         % Set the source and values
-                        if isempty(NewSource) || strcmpi(NewSource,'N/A')
+                        if isempty(NewSource) || any(strcmpi(NewSource,{'','N/A'}))
                             ThisProfile.Source = '';
                             ThisProfile.Values = cell(0,2);
                         elseif strcmpi(Result,'Yes')
                             
                             % Get NewSource Data
                             NewSourceData = {};
-                            if ~isempty(NewSource) && ~strcmpi(NewSource,'N/A')
+                            if ~isempty(NewSource) && ~any(strcmpi(NewSource,{'','N/A'}))
                                 [StatusOk,Message,NewSourceData] = importParametersSource(vObj.Data,NewSource);
                                 if ~StatusOk
                                     hDlg = errordlg(Message,'Cannot import','modal');
@@ -553,7 +553,7 @@ classdef Optimization < uix.abstract.CardViewPane
                             end
                             
                             ThisProfile.Source = NewSource;
-                            ThisProfile.Values = NewSourceData;
+                            ThisProfile.Values = sortrows(NewSourceData,1);
                         end
                         
                     case 5
