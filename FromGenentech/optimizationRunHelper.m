@@ -5,6 +5,11 @@ function [StatusOK,Message,ResultsFileNames,VpopNames] = optimizationRunHelper(o
 StatusOK = true;
 Message = '';
 
+% store path & add all subdirectories of root directory
+myPath = path;
+addpath(genpath(obj.Session.RootDirectory));
+
+
 if isempty(obj.SpeciesIC)
     ResultsFileNames = cell(1,1);
     VpopNames = cell(1,1);
@@ -22,6 +27,7 @@ if any(MatchIdx)
     if ~ThisStatusOk
         StatusOK = false;
         Message = sprintf('%s\n%s\n',Message,ThisMessage);
+        path(myPath);
         return
     end
 else
@@ -40,11 +46,13 @@ if ~isempty(paramData)
     StatusOK = false;
         ThisMessage = 'No initial guess for the parameter values was given. Make sure sure the P0_1 column of the selected parameter file is filled out.';
         Message = sprintf('%s\n%s\n',Message,ThisMessage);
+        path(myPath);
         return
     elseif any(any(isnan(cell2mat(paramData(:,6:end)))))
         StatusOK = false;
         ThisMessage = 'Parameter file is missing information.';
         Message = sprintf('%s\n%s\n',Message,ThisMessage);
+        path(myPath);
         return
     end
     
@@ -55,6 +63,7 @@ if ~isempty(paramData)
         StatusOK = false;
         ThisMessage = 'No parameters included in optimization.';
         Message = sprintf('%s\n%s\n',Message,ThisMessage);
+        path(myPath);
         return
     end
     
@@ -74,6 +83,7 @@ else
     StatusOK = false;
     ThisMessage = 'The selected Parameter file is empty.';
     Message = sprintf('%s\n%s\n',Message,ThisMessage);
+    path(myPath);
     return
 end
 
@@ -286,16 +296,19 @@ switch obj.AlgorithmName
         Message = sprintf('%s\n%s\n',Message,ThisMessage);
         
         if ~StatusOK
+            path(myPath);
             return
         end
         
     case 'ParticleSwarm'
         warning('Particle Swarm not yet implemented')
         StatusOK = false;
+        path(myPath);
         return
     case 'Local'
         warning('Local optimization not yet implemented')
         StatusOK = false;
+        path(myPath);
         return
         %     case 'Local'
         %         % parameter bounds
@@ -388,6 +401,7 @@ else
                         StatusOK = false;
                         ThisMessage = sprintf('There is an error in one of the function expressions in the SpeciesInitialConditions mapping. %s', ME.message);
                         Message = sprintf('%s\n%s\n',Message,ThisMessage);
+                        path(myPath);
                         return
                     end % try
                     
@@ -544,6 +558,7 @@ end
                                 varargout{1} = tempStatusOK;
                                 varargout{2} = tempMessage;
                             end
+                            path(myPath);
                             return
                         end % try
                         
@@ -592,6 +607,7 @@ end
                                 varargout{1} = tempStatusOK;
                                 varargout{2} = tempMessage;
                             end
+                            path(myPath);
                             return                    
                         end % try
                         
@@ -677,6 +693,7 @@ end
         
     end % function
 
+path(myPath);
 
 end % function
 

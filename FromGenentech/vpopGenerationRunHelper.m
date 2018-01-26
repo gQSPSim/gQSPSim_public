@@ -7,11 +7,18 @@ Message = '';
 ResultsFileName = '';
 VpopName = '';
 
+%% update path to include everything in subdirectories of the root folder
+myPath = path;
+addpath(genpath(obj.Session.RootDirectory));
+
+
+
 %% Check number of items
 
 if numel(obj.Item) == 0
     StatusOK = false;
     Message = 'The number of items is 0.';
+    path(myPath);
     return
 end
 
@@ -61,6 +68,7 @@ else
     
     StatusOK = false;
     Message = 'The selected Acceptance Criteria file is empty.';
+    path(myPath);
     return
 end
 
@@ -102,6 +110,7 @@ else
     %     UB_params = [];
     StatusOK = false;
     Message = 'The selected Parameter file is empty.';
+    path(myPath);
     return
 end
 
@@ -337,7 +346,7 @@ while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients
                     StatusOK = false;
                     ThisMessage = sprintf('There is an error in one of the function expressions in the SpeciesData mapping. Validate that all Mappings have been specified for each unique species in dataset. %s', ME.message);
                     Message = sprintf('%s\n%s\n',Message,ThisMessage);
-                    
+                    path(myPath);
                     return                    
                 end % try
                 
@@ -437,7 +446,7 @@ if StatusOK
         
 end
 
-
-
+% restore path
+path(myPath);
 end
 

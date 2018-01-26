@@ -8,6 +8,11 @@ function [StatusOK,Message,ResultFileNames,varargout] = simulationRunHelper(obj,
 StatusOK = true;
 Message = '';
 
+%% update path to include everything in subdirectories of the root folder
+myPath = path;
+addpath(genpath(obj.Session.RootDirectory));
+
+
 %% parse inputs and initialize
 % [nItems, ResultFileNames, output, Pin, paramNames, extraOutputTimes, simName, allTaskNames, allVpopNames] = parseInputs(obj,varargin);
 
@@ -143,6 +148,9 @@ end
 if nargout == 4
     varargout{1} = output;
 end
+
+% restore path
+path(myPath);
 
 end
 
@@ -458,6 +466,8 @@ function [Results, nFailedSims, StatusOK, Message] = simulateVPatients(ItemModel
     if isempty(taskObj) % could not load the task
         StatusOK = false;
         Message = sprintf('%s\n\n%s', 'Failed to run simulation', Message);
+        
+        path(myPath);
         return
     end
 
@@ -619,4 +629,7 @@ function [Results, nFailedSims, StatusOK, Message] = simulateVPatients(ItemModel
             end % if
         end % for jj = ...
     end % if
+    
+
+    
 end
