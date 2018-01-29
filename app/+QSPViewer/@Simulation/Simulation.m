@@ -170,10 +170,21 @@ classdef Simulation < uix.abstract.CardViewPane
             h.SelectedRows = RowIdx;
             
             % Update entry
+            HasChanged = false;
             if ColIdx == 1
-                vObj.TempData.Item(RowIdx).TaskName = NewData{RowIdx,1};            
+                if ~isequal(vObj.TempData.Item(RowIdx).TaskName,NewData{RowIdx,ColIdx})
+                    HasChanged = true;                    
+                end
+                vObj.TempData.Item(RowIdx).TaskName = NewData{RowIdx,ColIdx};
             elseif ColIdx == 2
-                vObj.TempData.Item(RowIdx).VPopName = NewData{RowIdx,2};
+                if ~isequal(vObj.TempData.Item(RowIdx).VPopName,NewData{RowIdx,ColIdx})
+                    HasChanged = true;                    
+                end
+                vObj.TempData.Item(RowIdx).VPopName = NewData{RowIdx,ColIdx};
+            end
+            % Clear the MAT file name
+            if HasChanged
+                vObj.TempData.Item(RowIdx).MATFileName = '';
             end
             
             Title = 'Refreshing view';

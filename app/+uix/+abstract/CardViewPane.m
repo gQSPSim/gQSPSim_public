@@ -374,9 +374,10 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                     if StatusOK
                         % Copy from TempData into Data, using obj.Data as a
                         % starting point
-                        obj.Data = copy(obj.TempData,obj.Data);
+                        
                         % Update time
-                        updateLastSavedTime(obj.Data);
+                        updateLastSavedTime(obj.TempData);
+                        obj.Data = copy(obj.TempData,obj.Data); % This triggers a refresh                        
                         
                         obj.Selection = 1;
                         set([obj.h.SummaryButton,obj.h.EditButton,obj.h.RunButton,obj.h.VisualizeButton],'Enable','on');
@@ -413,9 +414,10 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                                 set([obj.h.SummaryButton,obj.h.EditButton,obj.h.RunButton,obj.h.VisualizeButton],'Enable','on');
                                 % Copy from TempData into Data, using obj.Data as a
                                 % starting point
-                                obj.Data = copy(obj.TempData,obj.Data);
                                 % Update time
-                                updateLastSavedTime(obj.Data);
+                                updateLastSavedTime(obj.TempData);
+                                obj.Data = copy(obj.TempData,obj.Data); % This triggers a refresh
+                        
                                 % Call the callback
                                 evt.InteractionType = sprintf('Updated %s',class(obj.Data));
                                 evt.Name = obj.Data.Name;

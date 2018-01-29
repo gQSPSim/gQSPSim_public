@@ -65,7 +65,7 @@ if ~isempty(IsSelected)
         ThisTask = getValidSelectedTasks(obj.Settings,ThisTaskName);
         ThisVPop = getValidSelectedVPops(obj.Settings,ThisVPopName);        
         
-        if ~isempty(ThisTask) && (~isempty(ThisVPop) || strcmp(ThisVPopName,'ModelDefault'))
+        if ~isempty(ThisTask) && (~isempty(ThisVPop) || strcmp(ThisVPopName,QSP.Simulation.NullVPop))
             MatchIdx = strcmp(ThisTaskName,TaskNames) & strcmp(ThisVPopName,VPopNames);
             if any(MatchIdx)
                 ThisFileName = {obj.Item(MatchIdx).MATFileName};
