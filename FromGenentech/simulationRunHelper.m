@@ -104,11 +104,11 @@ end
 Title2 = sprintf('Simulating tasks...');
 hWbar2 = uix.utility.CustomWaitbar(0,Title2,'',false);
 
+%% Cell containing all results
+output = cell(1,nItems);
+ResultFileNames = cell(nItems,1);
+
 if ~isempty(ItemModels)
-    
-    %% Cell containing all results
-    output = cell(1,nItems);
-    ResultFileNames = cell(nItems,1);
     
     for ii = 1:nItems
         ItemModel = ItemModels(ii);

@@ -621,16 +621,20 @@ classdef Optimization < uix.abstract.CardViewPane
             
             Options.Resize = 'on';
             Options.WindowStyle = 'modal';
-            Answer = inputdlg('Save Virtual Population as?','Save VPop',[1 50],{''},Options);
+            DefaultAnswer = {datestr(now,'dd-mmm-yyyy_HH-MM-SS')};
+            Answer = inputdlg('Save Virtual Population as?','Save VPop',[1 50],DefaultAnswer,Options);
             
             if ~isempty(Answer)
                 AllVPops = vObj.Data.Settings.VirtualPopulation;
                 AllVPopNames = get(AllVPops,'Name');
                 AllVPopFilePaths = get(AllVPops,'FilePath');
                 
-                ThisVPopName = strtrim(Answer{1});
-                FileName = matlab.lang.makeValidName(ThisVPopName);
-                ThisFilePath = fullfile(vObj.Data.Session.RootDirectory,[FileName '.xlsx']);
+                % Append the source with the postfix appender
+                ThisProfile = vObj.Data.PlotProfile(vObj.Data.SelectedProfileRow);
+                ThisVPopName = matlab.lang.makeValidName(strtrim(Answer{1}));
+                ThisVPopName = sprintf('%s - %s',ThisProfile.Source,ThisVPopName);
+                
+                ThisFilePath = fullfile(vObj.Data.Session.RootDirectory,[ThisVPopName '.xlsx']);
                 
                 if isempty(ThisVPopName) || any(strcmpi(ThisVPopName,AllVPopNames)) || ...
                         any(strcmpi(ThisFilePath,AllVPopFilePaths))

@@ -253,7 +253,11 @@ if ~isempty(vObj.Data)
     
     % Filter VPopNames list (only if name does not exist, not if invalid)
     AllVPopNames = {vObj.Data.Session.Settings.VirtualPopulation.Name};
-    VPopNames = VPopNames(ismember(VPopNames,AllVPopNames));
+    MatchVPopIdx = false(1,numel(AllVPopNames));
+    for idx = 1:numel(VPopNames)
+        MatchVPopIdx = MatchVPopIdx | ~cellfun(@isempty,regexp(AllVPopNames,VPopNames{idx}));
+    end
+    VPopNames = AllVPopNames(MatchVPopIdx);
     
     if any(MatchIdx)
         pObj = vObj.Data.Settings.Parameters(MatchIdx);        
