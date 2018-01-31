@@ -276,9 +276,13 @@ if ~isempty(vObj.Data)
         {vObj.Data.PlotProfile.Description}');
     
     % Loop over and italicize non-matches
-    [IsMatch,ThisProfileData] = i_importParametersSourceHelper(vObj);    
+    [IsSourceMatch,IsRowEmpty,ThisProfileData] = i_importParametersSourceHelper(vObj);    
     for rowIdx = 1:size(Summary,1)
-        if ~IsMatch(rowIdx)
+        % Mark invalid if source parameters cannot be loaded
+        if IsRowEmpty(rowIdx)
+            Summary{rowIdx,4} = QSP.makeInvalid(Summary{rowIdx,4});
+        elseif ~IsSourceMatch(rowIdx)
+            % If parameters don't match the source, italicize
             for colIdx = [1,4,5]
                 Summary{rowIdx,colIdx} = QSP.makeItalicized(Summary{rowIdx,colIdx});
             end
@@ -379,7 +383,7 @@ end %if
 
 
 %--------------------------------------------------------------------------
-function [IsMatch,SelectedProfileData] = i_importParametersSourceHelper(vObj)
+function [IsSourceMatch,IsRowEmpty,SelectedProfileData] = i_importParametersSourceHelper(vObj)
 
 UniqueSourceNames = unique({vObj.Data.PlotProfile.Source});
 UniqueSourceData = cell(1,numel(UniqueSourceNames));
@@ -398,14 +402,18 @@ end
 % Return which profile rows are different and return the selected profile
 % row's data
 nProfiles = numel(vObj.Data.PlotProfile);
-IsMatch = true(1,nProfiles);
+IsSourceMatch = true(1,nProfiles);
+IsRowEmpty = false(1,nProfiles);
 for index = 1:nProfiles
     ThisProfile = vObj.Data.PlotProfile(index);
     ThisProfileValues = ThisProfile.Values; % Already sorted
     uIdx = ismember(UniqueSourceNames,ThisProfile.Source);
     
     if ~isequal(ThisProfileValues,UniqueSourceData{uIdx})
-        IsMatch(index) = false;
+        IsSourceMatch(index) = false;
+    end
+    if isempty(UniqueSourceData{uIdx})
+        IsRowEmpty(index) = true;
     end
 end
 
@@ -417,7 +425,9 @@ if ~isempty(vObj.Data.SelectedProfileRow)
     % Store - names, user's values, source values
     SelectedProfileData = cell(size(UniqueSourceData{uIdx},1),3);
     SelectedProfileData(1:size(SelectedProfile.Values,1),1:2) = Values;
-    SelectedProfileData(:,end) = UniqueSourceData{uIdx}(:,end);
+    if ~isempty(UniqueSourceData{uIdx})
+        SelectedProfileData(:,end) = UniqueSourceData{uIdx}(:,end);
+    end
 else
     SelectedProfileData = cell(0,3);
 end

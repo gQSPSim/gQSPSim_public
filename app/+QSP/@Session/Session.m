@@ -113,7 +113,11 @@ classdef Session < matlab.mixin.SetGet & uix.mixin.AssignPVPairs & uix.mixin.Has
             if isempty(ThisColorMap) || size(ThisColorMap,2) ~= 3
                 ThisColorMap = jet(50);
             end
-            Colors = uix.utility.getColorMap(ThisColorMap,NumItems);
+            if NumItems ~= 0
+                Colors = uix.utility.getColorMap(ThisColorMap,NumItems);
+            else
+                Colors = [];
+            end
         end
             
         function Colors = getGroupColors(obj,NumGroups)
@@ -121,7 +125,11 @@ classdef Session < matlab.mixin.SetGet & uix.mixin.AssignPVPairs & uix.mixin.Has
             if isempty(ThisColorMap) || size(ThisColorMap,2) ~= 3
                 ThisColorMap = jet(50);
             end
-            Colors = uix.utility.getColorMap(ThisColorMap,NumGroups);
+            if NumGroups ~= 0
+                Colors = uix.utility.getColorMap(ThisColorMap,NumGroups);
+            else
+                Colors = [];
+            end
         end
     end
     

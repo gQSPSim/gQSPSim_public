@@ -31,6 +31,7 @@ end
 
 
 VpopWeights = [];
+ItemModels = [];
 
 % Initialize waitbar
 Title1 = sprintf('Configuring models...');
@@ -54,7 +55,7 @@ for ii = 1:nItems
         continue
     elseif ~ThisStatusOK
         StatusOK = false;
-        warning('Error loading task %s. Skipping [%s]...', taskName,ThisMessage)
+        warning('Error loading task "%s". Skipping [%s]...', taskName,ThisMessage)
         Message = sprintf('%s\n%s\n',Message,ThisMessage);
         continue
     end
@@ -63,17 +64,27 @@ for ii = 1:nItems
     vpopObj = [];    
     if ~isempty(vpopName) && ~strcmp(vpopName,QSP.Simulation.NullVPop)
         vpopObj = obj.Settings.VirtualPopulation(strcmp(vpopName,options.allVpopNames));
-        [ThisStatusOK,ThisMessage] = validate(vpopObj,false);    
+        if isempty(vpopObj)
+            ThisStatusOK = false;
+            ThisMessage = sprintf('Invalid vpop "%s". VPop does not exist.',vpopName);
+        else
+            [ThisStatusOK,ThisMessage] = validate(vpopObj,false);
+        end
         if ~ThisStatusOK
             StatusOK = false;
-            warning('Error loading vpop %s. Skipping [%s]...', vpopName,ThisMessage)
+            warning('Error loading vpop "%s". Skipping [%s]...', vpopName,ThisMessage)
             Message = sprintf('%s\n%s\n',Message,ThisMessage);
             continue
         end
     end   
     
     % Load the Vpop and parse contents 
-   [ItemModels(ii), VpopWeights, ThisStatusOK, ThisMessage] = constructVpopItem(taskObj, vpopObj, options, Message);
+   [ThisItemModel, VpopWeights, ThisStatusOK, ThisMessage] = constructVpopItem(taskObj, vpopObj, options, Message);
+   if ii == 1
+       ItemModels = ThisItemModel;
+   else
+       ItemModels(ii) = ThisItemModel;
+   end
    if ~ThisStatusOK
        StatusOK = false;
        Message = sprintf('%s\n%s\n',Message,ThisMessage);
