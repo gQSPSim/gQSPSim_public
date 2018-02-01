@@ -93,8 +93,7 @@ classdef VirtualPopulationGeneration < uix.abstract.CardViewPane
             obj.Data.SelectedPlotLayout = obj.PlotLayoutOptions{Value};
             
             % Update the view
-            updateVisualizationView(obj);
-            update(obj);
+            updateVisualizationView(obj);            
         end 
     end
     

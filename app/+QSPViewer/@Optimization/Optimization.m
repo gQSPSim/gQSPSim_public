@@ -1,4 +1,4 @@
-classdef Optimization < uix.abstract.CardViewPane
+classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
     % Optimization - View Pane for the object
     % ---------------------------------------------------------------------
     % Display a viewer/editor for the object
@@ -98,9 +98,18 @@ classdef Optimization < uix.abstract.CardViewPane
             obj.Data.SelectedPlotLayout = obj.PlotLayoutOptions{Value};
             
             % Update the view
-            updateVisualizationView(obj);
-            update(obj);
+            updateVisualizationView(obj);            
         end 
+    end
+    
+    
+    %% Methods from AxesMouseHandler
+    methods (Access=protected)
+        function onMousePress(vObj, evt)
+            disp('onMousePress');
+            % Update
+            updateVisualizationView(vObj);
+        end %function
     end
     
     
@@ -434,10 +443,21 @@ classdef Optimization < uix.abstract.CardViewPane
             
         end %function
         
+        function onSelectedLinePlot(vObj,h,e)
+            
+            disp('onSelectedLinePlot');
+            % Update
+            updateVisualizationView(vObj);
+            
+        end %function
+        
         function onPlotParameters(vObj,h,e)
             
             % Plot
             [vObj.h.SpeciesGroup,vObj.h.DatasetGroup] = plotOptimization(vObj.Data,vObj.h.MainAxes);
+            
+            % Update
+            updateVisualizationView(vObj);
             
         end %function
         

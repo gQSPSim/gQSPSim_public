@@ -39,6 +39,16 @@ uimenu(vObj.h.PlotItemsTableContextMenu,...
 set(vObj.h.PlotItemsTable,'TableContextMenu',vObj.h.PlotItemsTableContextMenu);
 
 
+% %% Attach buttondownfcn
+% 
+% if ~isempty(vObj.Data) && isfield(vObj.h,'SpeciesGroup') && ~isempty(vObj.h.SpeciesGroup)
+%     hGroups = horzcat(vObj.h.SpeciesGroup{:});
+%     if ~isempty(hGroups)
+%         set(hGroups,'ButtonDownFcn',@(h,e)onSelectedLinePlot(vObj,h,e));
+%     end
+% end
+
+
 %% Get Axes Options for Plot column
 
 AxesOptions = getAxesOptions(vObj);
@@ -246,6 +256,8 @@ if ~isempty(vObj.Data)
     Names = {vObj.Data.Settings.Parameters.Name};
     MatchIdx = strcmpi(Names,vObj.Data.RefParamName);
     
+    % TODO: Confirm - is this an issue if the Vpop name is renamed so it no
+    % longer matches the ExcelResultFileName?
     VPopNames = {};
     for idx = 1:numel(vObj.Data.ExcelResultFileName)
         [~,VPopNames{idx}] = fileparts(vObj.Data.ExcelResultFileName{idx}); %#ok<AGROW>

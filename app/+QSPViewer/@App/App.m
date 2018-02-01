@@ -239,22 +239,33 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
             % Mark the current session dirty
             obj.markDirty();
             
-            switch e.InteractionType
+            % Refresh if name changed
+            if e.NameChanged
                 
-                case 'Updated QSP.VirtualPopulation'
+                SelNode = obj.h.SessionTree.SelectedNodes;                
+                SelNode.Name = e.Name;
+                
+                % Update the display
+                obj.refresh();
+            else
+                
+                switch e.InteractionType
                     
-                    if isfield(e,'Data')
-                        % Add the new VirtualPopulation to the session
-                        NewVirtualPopulation = e.Data;
-                        for idx = 1:numel(NewVirtualPopulation)
-                            onAddItem(obj,NewVirtualPopulation(idx))
+                    case 'Updated QSP.VirtualPopulation'
+                        
+                        if isfield(e,'Data')
+                            % Add the new VirtualPopulation to the session
+                            NewVirtualPopulation = e.Data;
+                            for idx = 1:numel(NewVirtualPopulation)
+                                onAddItem(obj,NewVirtualPopulation(idx))
+                            end
+                            
+                            % Update the display
+                            obj.refresh();
                         end
                         
-                        % Update the display
-                        obj.refresh();
-                    end
-                    
-            end %switch e.InteractionType
+                end %switch e.InteractionType
+            end
             
         end %function
         
@@ -283,16 +294,26 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
             if ~isempty(SelNode) ...
                     && ~isempty(obj.ActivePane) && isprop(obj.ActivePane,'h') && isfield(obj.ActivePane.h,'MainAxes')
                 thisObj = SelNode.Value;
-                if obj.ActivePane.Selection == 3
+                if any(ismember(obj.ActivePane.Selection,[1 3]))
+                    % Call updateVisualizationView to disable Visualization button if invalid items                    
                     switch class(thisObj)
                         case 'QSP.Simulation'
-                            plotSimulation(thisObj,obj.ActivePane.h.MainAxes);
-                        case 'QSP.Optimization'
-                            plotOptimization(thisObj,obj.ActivePane.h.MainAxes);
+                            if obj.ActivePane.Selection == 3
+                                plotSimulation(thisObj,obj.ActivePane.h.MainAxes);
+                            end
+                            updateVisualizationView(obj.ActivePane);
+                        case 'QSP.Optimization'                            
+                            if obj.ActivePane.Selection == 3
+                                [obj.ActivePane.h.SpeciesGroup,obj.ActivePane.h.DatasetGroup] = plotOptimization(thisObj,obj.ActivePane.h.MainAxes);
+                            end
+                            updateVisualizationView(obj.ActivePane);
                         case 'QSP.VirtualPopulationGeneration'
-                            plotVirtualPopulationGeneration(thisObj,obj.ActivePane.h.MainAxes);
-                    end
-                end
+                            if obj.ActivePane.Selection == 3
+                                plotVirtualPopulationGeneration(thisObj,obj.ActivePane.h.MainAxes);
+                            end
+                            updateVisualizationView(obj.ActivePane);                            
+                    end                    
+                end                
             end
             
         end %function
@@ -300,28 +321,44 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
         function onNavigationChanged(obj,h,e)
             
             if ~isempty(e) && isprop(e,'Name')
+                
+                SelNode = obj.h.SessionTree.SelectedNodes;
+                if ~isempty(SelNode) ...
+                        && ~isempty(obj.ActivePane) && isprop(obj.ActivePane,'h') && isfield(obj.ActivePane.h,'MainAxes')
+                    thisObj = SelNode.Value;
+                else
+                    thisObj = [];
+                end
+                            
                 switch e.Name
+                    case 'Summary'
+                        % Need to disable Visualization button if invalid
+                        % items
+                        if any(ismember(class(thisObj),{...
+                                'QSP.Simulation',...
+                                'QSP.Optimization',...
+                                'QSP.VirtualPopulationGeneration',...
+                                }))                        
+                            updateVisualizationView(obj.ActivePane);
+                        end
+                        obj.h.SessionTree.Enable = true;
+                        obj.h.FileMenu.Menu.Enable = 'on';
+                        obj.h.QSPMenu.Menu.Enable = 'on';
                     case 'Edit'
                         obj.h.SessionTree.Enable = false;
                         obj.h.FileMenu.Menu.Enable = 'off';
                         obj.h.QSPMenu.Menu.Enable = 'off';
-                    case 'Visualize'
-                        SelNode = obj.h.SessionTree.SelectedNodes;
+                    case 'Visualize'  
                         % Check the type
-                        % If either Simulation, Optimization, or Virtual Population Generation, re-plot
-                        if ~isempty(SelNode) ...
-                                && ~isempty(obj.ActivePane) && isprop(obj.ActivePane,'h') && isfield(obj.ActivePane.h,'MainAxes')
-                            thisObj = SelNode.Value;
-                            switch class(thisObj)
-                                case 'QSP.Simulation'
-                                    plotSimulation(thisObj,obj.ActivePane.h.MainAxes);
-                                case 'QSP.Optimization'
-                                    plotOptimization(thisObj,obj.ActivePane.h.MainAxes);
-                                case 'QSP.VirtualPopulationGeneration'
-                                    plotVirtualPopulationGeneration(thisObj,obj.ActivePane.h.MainAxes);
-                            end
+                        % If either Simulation, Optimization, or Virtual Population Generation, re-plot                        
+                        switch class(thisObj)
+                            case 'QSP.Simulation'
+                                plotSimulation(thisObj,obj.ActivePane.h.MainAxes);
+                            case 'QSP.Optimization'
+                                [obj.ActivePane.h.SpeciesGroup,obj.ActivePane.h.DatasetGroup] = plotOptimization(thisObj,obj.ActivePane.h.MainAxes);
+                            case 'QSP.VirtualPopulationGeneration'
+                                plotVirtualPopulationGeneration(thisObj,obj.ActivePane.h.MainAxes);
                         end
-                    otherwise
                         obj.h.SessionTree.Enable = true;
                         obj.h.FileMenu.Menu.Enable = 'on';
                         obj.h.QSPMenu.Menu.Enable = 'on';

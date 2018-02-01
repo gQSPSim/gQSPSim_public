@@ -108,7 +108,7 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
             if ~isempty(obj.Item)
                 VPopGenItems = {};
                 % Check what items are stale or invalid
-                [StaleFlag,ValidFlag] = getStaleItemIndices(obj);
+                [StaleFlag,ValidFlag,InvalidMessages] = getStaleItemIndices(obj);
 
                 for index = 1:numel(obj.Item)
                     % ONE file
@@ -124,7 +124,9 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
                         ThisItem = sprintf('***WARNING*** %s\n%s\n',ThisItem,'***Item may be out of date***');
                     elseif ~ValidFlag(index)
                         % Display invalid
-                        ThisItem = sprintf('***INVALID*** %s\n',ThisItem);
+                        ThisItem = sprintf('***ERROR*** %s\n***%s***\n',ThisItem,InvalidMessages{index});
+                    else
+                        ThisItem = sprintf('%s\n',ThisItem);
                     end
                     VPopGenItems = [VPopGenItems; ThisItem]; %#ok<AGROW>
                 end
@@ -415,10 +417,11 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
             obj.SpeciesLineStyles{Index} = NewLineStyle;
         end %function
         
-        function [StaleFlag,ValidFlag] = getStaleItemIndices(obj)
+        function [StaleFlag,ValidFlag,InvalidMessages] = getStaleItemIndices(obj)
             
             StaleFlag = false(1,numel(obj.Item));
             ValidFlag = true(1,numel(obj.Item));
+            InvalidMessages = cell(1,numel(obj.Item));
             
             % Check if VirtualPopulationData is valid
             ThisList = {obj.Settings.VirtualPopulationData.Name};
@@ -509,6 +512,7 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
                         ResultLastSavedTime = '';
                         % Display invalid
                         ValidFlag(index) = false;
+                        InvalidMessages{index} = 'Excel file cannot be found';
                     else
                         ResultLastSavedTime = '';
                     end
@@ -525,10 +529,15 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
                         StaleFlag(index) = true;
                     end
                     
-                elseif ForceMarkAsInvalid || isempty(ThisTask) || ~any(MatchGroup)
+                elseif ForceMarkAsInvalid
                     % Display invalid
                     ValidFlag(index) = false;                    
-                end                
+                    InvalidMessages{index} = 'Invalid reference parameter set';
+                elseif isempty(ThisTask) || ~any(MatchGroup)
+                    % Display invalid
+                    ValidFlag(index) = false;                    
+                    InvalidMessages{index} = 'Invalid Task and/or Group ID';
+                end          
             end 
         end %function
         

@@ -86,7 +86,7 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             if ~isempty(obj.Item)
                 SimulationItems = {};
                 % Check what items are stale or invalid
-                [StaleFlag,ValidFlag] = getStaleItemIndices(obj);                
+                [StaleFlag,ValidFlag,InvalidMessages] = getStaleItemIndices(obj);                
                 
                 for index = 1:numel(obj.Item)
                     ThisResultFilePath = obj.Item(index).MATFileName;
@@ -101,7 +101,9 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                             ThisSimulationItem = sprintf('***WARNING*** %s\n%s\n',ThisSimulationItem,'***Item may be out of date***');
                     elseif ~ValidFlag(index)
                         % Display invalid
-                        ThisSimulationItem = sprintf('***INVALID*** %s\n',ThisSimulationItem);
+                        ThisSimulationItem = sprintf('***ERROR*** %s\n***%s***\n',ThisSimulationItem,InvalidMessages{index});
+                    else
+                        ThisSimulationItem = sprintf('%s\n',ThisSimulationItem);
                     end
                     SimulationItems = [SimulationItems; ThisSimulationItem]; %#ok<AGROW>
                 end
@@ -243,10 +245,11 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             obj.SpeciesLineStyles{Index} = NewLineStyle;
         end %function
         
-        function [StaleFlag,ValidFlag] = getStaleItemIndices(obj)
+        function [StaleFlag,ValidFlag,InvalidMessages] = getStaleItemIndices(obj)
             
             StaleFlag = false(1,numel(obj.Item));
             ValidFlag = true(1,numel(obj.Item));
+            InvalidMessages = cell(1,numel(obj.Item));
             
             for index = 1:numel(obj.Item)
                 ThisTask = getValidSelectedTasks(obj.Settings,obj.Item(index).TaskName);
@@ -284,6 +287,7 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                         ResultLastSavedTime = '';
                         % Display invalid
                         ValidFlag(index) = false;
+                        InvalidMessages{index} = 'MAT file cannot be found';
                     else
                         ResultLastSavedTime = '';
                     end
@@ -299,7 +303,8 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                     end                    
                 elseif isempty(ThisTask) || isempty(ThisVPop)
                     % Display invalid
-                    ValidFlag(index) = false;                    
+                    ValidFlag(index) = false;      
+                    InvalidMessages{index} = 'Invalid Task and/or VPop';
                 end                
             end 
         end %function

@@ -377,6 +377,8 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                         
                         % Update time
                         updateLastSavedTime(obj.TempData);
+                        PreviousName = obj.Data.Name;
+                        NewName = obj.TempData.Name;
                         obj.Data = copy(obj.TempData,obj.Data); % This triggers a refresh                        
                         
                         obj.Selection = 1;
@@ -389,6 +391,7 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                         % Call the callback
                         evt.InteractionType = sprintf('Updated %s',class(obj.Data));
                         evt.Name = obj.Data.Name;
+                        evt.NameChanged = ~isequal(NewName,PreviousName);
                         obj.callCallback(evt);
                         
                         % Mark Dirty
@@ -416,11 +419,14 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                                 % starting point
                                 % Update time
                                 updateLastSavedTime(obj.TempData);
+                                PreviousName = obj.Data.Name;
+                                NewName = obj.TempData.Name;
                                 obj.Data = copy(obj.TempData,obj.Data); % This triggers a refresh
                         
                                 % Call the callback
                                 evt.InteractionType = sprintf('Updated %s',class(obj.Data));
                                 evt.Name = obj.Data.Name;
+                                evt.NameChanged = ~isequal(NewName,PreviousName);
                                 obj.callCallback(evt);
                                 
                                 % Notify

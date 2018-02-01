@@ -245,7 +245,11 @@ if isempty(Pin)
         end
         if ~isempty(vpopName) 
             tmpObj = obj.Settings.VirtualPopulation(strcmp(vpopName,options.allVpopNames));
-            if isempty(tmpObj.FilePath)
+            if isempty(tmpObj) 
+                StatusOK = false;
+                error('The virtual population named %s is invalid.', vpopName)
+                break
+            elseif isempty(tmpObj.FilePath)
                 StatusOK = false;
 %                 ThisMessage = sprintf('The virtual population named %s is incomplete.',vpopName);
 %                 Message = sprintf('%s\n%s\n',Message,ThisMessage);
