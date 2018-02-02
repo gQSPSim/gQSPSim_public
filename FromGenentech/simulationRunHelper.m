@@ -620,8 +620,10 @@ function [Results, nFailedSims, StatusOK, Message] = simulateVPatients(ItemModel
                     if isempty(ItemModel.VPopSpeciesICs)
                         if ~isempty(params)                            
                             simData = simulate(model, params, doses);
-                        else
+                        elseif ~isempty(doses)
                             simData = simulate(model, doses);
+                        else
+                            simData = simulate(model);
                         end
                     else
                         simData = simulate(model, [ItemModel.VPopSpeciesICs(jj,:), params], doses);
