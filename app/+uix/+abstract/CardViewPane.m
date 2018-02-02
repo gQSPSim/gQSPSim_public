@@ -473,11 +473,7 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
             end
             
             % Update the view
-            if obj.UseRunVis            
-                updateEditView(obj);
-            else
-                update(obj);
-            end
+            update(obj);
             
             set(hFigure,'pointer','arrow');
             drawnow;

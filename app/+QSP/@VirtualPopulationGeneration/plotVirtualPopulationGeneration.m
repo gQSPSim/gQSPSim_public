@@ -165,8 +165,8 @@ if strcmp(obj.PlotType, 'Normal') && ~isempty(Results)
     for sIdx = 1:size(obj.PlotSpeciesTable,1)
         axIdx = str2double(obj.PlotSpeciesTable{sIdx,1});
 %         cla(hAxes(allAxes))
-        if ~isnan(allAxes)
-            set(hAxes(allAxes),'XTickMode','auto','XTickLabelMode','auto','YTickMode','auto','YTickLabelMode','auto')
+        if ~isnan(axIdx)
+            set(hAxes(axIdx),'XTickMode','auto','XTickLabelMode','auto','YTickMode','auto','YTickLabelMode','auto')
         end
         ThisLineStyle = obj.PlotSpeciesTable{sIdx,2};
         ThisName = obj.PlotSpeciesTable{sIdx,3};
@@ -177,6 +177,7 @@ if strcmp(obj.PlotType, 'Normal') && ~isempty(Results)
         mean_line = [];
         
         if ~isempty(axIdx) && ~isnan(axIdx)
+            
             for itemIdx = 1:numel(Results)
                 % Plot the species from the simulation item in the appropriate
                 % color
@@ -254,7 +255,7 @@ if strcmp(obj.PlotType, 'Normal') && ~isempty(Results)
                     end
                     
                     % mean
-                    mean_line = plot(hAxes(allAxes), Results{itemIdx}.Time, thisData(:,ColumnIdx) * obj.PrevalenceWeights/sum(obj.PrevalenceWeights),...
+                    mean_line = plot(hAxes(axIdx), Results{itemIdx}.Time, thisData(:,ColumnIdx) * obj.PrevalenceWeights/sum(obj.PrevalenceWeights),...
                         'LineStyle',ThisLineStyle,...
                         'Color','k', ...SelectedItemColors(itemIdx,:), 
                         'LineWidth', 3);
