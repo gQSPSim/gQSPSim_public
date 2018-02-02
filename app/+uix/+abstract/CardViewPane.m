@@ -359,13 +359,19 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
             
             ThisTag = get(h,'Tag');
             
+            hFigure = ancestor(obj.h.MainLayout,'figure');
+            set(hFigure,'pointer','watch');
+            drawnow;
+            
             switch ThisTag
                 case 'RemoveInvalid'
+                    
                     FlagRemoveInvalid = true;
                     % Remove the invalid entries
                     validate(obj.TempData,FlagRemoveInvalid);
-                    
+                   
                 case 'Save'
+                    
                     FlagRemoveInvalid = false;
                     [StatusOK,Message] = validate(obj.TempData,FlagRemoveInvalid);
                     
@@ -400,12 +406,13 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                         hDlg = errordlg(sprintf('Cannot save changes. Please review invalid entries:\n\n%s',Message),'Cannot Save','modal');
                         uiwait(hDlg);
                     end
-                    
+                   
                 case 'Cancel'
                     if ~isPublicPropsEqual(obj.Data,obj.TempData)
                         Prompt = sprintf('Changes have not been saved. How would you like to continue?');
                         Result = questdlg(Prompt,'Continue?','Save','Don''t Save','Cancel','Cancel');
                         if strcmpi(Result,'Save')
+                            
                             FlagRemoveInvalid = false;
                             [StatusOK,Message] = validate(obj.TempData,FlagRemoveInvalid);
                             
@@ -471,6 +478,9 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
             else
                 update(obj);
             end
+            
+            set(hFigure,'pointer','arrow');
+            drawnow;
             
         end %function
         

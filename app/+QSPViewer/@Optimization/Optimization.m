@@ -544,13 +544,10 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
             if ~isempty(RowIdx)
                 ThisProfile = vObj.Data.PlotProfile(RowIdx);
                 switch ColIdx
-                    case 2 
-                        % LineStyle
-                        ThisProfile.LineStyle = ThisData{RowIdx,ColIdx};
-                    case 3
+                    case 2
                         % Show
                         ThisProfile.Show = ThisData{RowIdx,ColIdx};
-                    case 4
+                    case 3
                         % Source
                               
                         % Re-import the source values for
@@ -599,7 +596,7 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
                             ThisProfile.Values = sortrows(NewSourceData,1);
                         end
                         
-                    case 5
+                    case 4
                         % Description
                         ThisProfile.Description = ThisData{RowIdx,ColIdx};
                 end

@@ -14,8 +14,6 @@ classdef Profile < uix.mixin.AssignPVPairs
     %
     %    Description - Description of item
     %
-    %    LineStyle - Linestyle for profile item
-    %
     %    Show - Flag to toggle visibility on/off
     %
     %
@@ -35,8 +33,7 @@ classdef Profile < uix.mixin.AssignPVPairs
     %% Properties
     properties        
         Source = ''
-        Description = ''
-        LineStyle = '-'
+        Description = ''        
         Show = true
         Values = cell(0,2)
     end
@@ -74,8 +71,7 @@ classdef Profile < uix.mixin.AssignPVPairs
         
         function Summary = getSummary(obj)
             
-            Summary = {
-                obj.LineStyle,...
+            Summary = {                
                 obj.Show,...
                 obj.Source,...
                 obj.Description,...
@@ -92,11 +88,6 @@ classdef Profile < uix.mixin.AssignPVPairs
         function set.Source(obj,Value)
             validateattributes(Value,{'char'},{})
             obj.Source = Value;
-        end
-        
-        function set.LineStyle(obj,Value)
-            Value = validatestring(Value,{'-','--',':','-.'});
-            obj.LineStyle = Value;
         end
         
         function set.Show(obj,Value)

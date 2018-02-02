@@ -274,6 +274,9 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                     GroupIDs = {};
                 end                
                 
+                % ID Column - Validate?
+                
+                
                 %%% Remove the invalid task/group combos if any
                 [TaskItemIndex,MatchTaskIndex] = ismember({obj.Item.TaskName},{obj.Settings.Task.Name});
                 GroupItemIndex = ismember({obj.Item.GroupID},GroupIDs(:)');
@@ -344,15 +347,14 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 else
                     % Check that the function is only a function of x
                     tmp = cellfun(@symvar, {obj.SpeciesData.FunctionExpression}, 'UniformOutput', false);
-                    StatusOK = all(cellfun(@(x) length(x) == 1 && strcmp(x,'x'), tmp));
-                    if ~StatusOK
+                    ThisStatusOK = all(cellfun(@(x) length(x) == 1 && strcmp(x,'x'), tmp));
+                    if ~ThisStatusOK
+                        StatusOK = false;
                         ThisMessage = 'Data mappings must be a function of x only';
                         Message = sprintf('%s\n* %s\n',Message,ThisMessage);
                     end
 
                 end
-                
-                
                 
                 % Check ObjectiveFcn
                 if any(ObjectiveFcnMappingIndex == 0)
