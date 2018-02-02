@@ -2,6 +2,8 @@ function refreshDataset(vObj)
 
 %% Update DatasetPopup
 
+OptimHeader = {};
+
 if ~isempty(vObj.TempData)
     ThisRawList = {vObj.TempData.Settings.OptimizationData.Name};
     % Dataset is optional, so add an 'Unspecified'
@@ -14,7 +16,7 @@ if ~isempty(vObj.TempData)
     % Force as invalid if validate fails
     MatchIdx = find(strcmpi(ThisRawList,Selection));
     if any(MatchIdx)
-        ThisStatusOk = validate(vObj.TempData.Settings.OptimizationData(MatchIdx));
+        [ThisStatusOk,~,OptimHeader] = validate(vObj.TempData.Settings.OptimizationData(MatchIdx));
         ForceMarkAsInvalid = ~ThisStatusOk;
     else
         ForceMarkAsInvalid = false;
@@ -46,26 +48,6 @@ end
 
 %% Update GroupNamePopup
 
-if ~isempty(vObj.TempData)
-    
-    if ~isempty(vObj.TempData.DatasetName)
-        Names = {vObj.TempData.Settings.OptimizationData.Name};
-        MatchIdx = strcmpi(Names,vObj.TempData.DatasetName);
-        
-        if any(MatchIdx)
-            dObj = vObj.TempData.Settings.OptimizationData(MatchIdx);
-            
-            DestDatasetType = 'wide';
-            [~,~,OptimHeader] = importData(dObj,dObj.FilePath,DestDatasetType);
-        else
-            OptimHeader = {};
-        end
-    else
-        OptimHeader = {};
-    end
-else
-    OptimHeader = {};    
-end
 vObj.DatasetHeader = OptimHeader;
 
 

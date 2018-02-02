@@ -35,6 +35,7 @@ WidgetHeight = 30;
 %% Invoke super class's create
 
 create@uix.abstract.CardViewPane(vObj);
+vObj.ClickableAxes = vObj.h.MainAxes;
 
 
 %% Edit Content

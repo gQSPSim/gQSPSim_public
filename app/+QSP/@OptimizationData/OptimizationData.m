@@ -73,10 +73,11 @@ classdef OptimizationData < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 };
         end
         
-        function [StatusOK, Message] = validate(obj,FlagRemoveInvalid) %#ok<INUSD>
+        function [StatusOK, Message,OptimHeader] = validate(obj,FlagRemoveInvalid) %#ok<INUSD>
             
             StatusOK = true;
             Message = sprintf('Optimization Data: %s\n%s\n',obj.Name,repmat('-',1,75));
+            OptimHeader = {};
             
             if isdir(obj.FilePath) || ~exist(obj.FilePath,'file')
                 StatusOK = false;
@@ -84,7 +85,7 @@ classdef OptimizationData < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             else
                 DestFormat = 'wide';
                 % Import data
-                [ThisStatusOk,ThisMessage] = importData(obj,obj.FilePath,DestFormat);
+                [ThisStatusOk,ThisMessage,OptimHeader] = importData(obj,obj.FilePath,DestFormat);
                 if ~ThisStatusOk
                     Message = sprintf('%s\n* Error loading data "%s". %s\n',Message,obj.FilePath,ThisMessage);
                 end

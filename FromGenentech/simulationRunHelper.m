@@ -55,7 +55,7 @@ for ii = 1:nItems
         continue
     elseif ~ThisStatusOK
         StatusOK = false;
-        warning('Error loading task "%s". Skipping [%s]...', taskName,ThisMessage)
+        ThisMessage = sprintf('Error loading task "%s". Skipping [%s]...', taskName,ThisMessage);
         Message = sprintf('%s\n%s\n',Message,ThisMessage);
         continue
     end
@@ -72,7 +72,7 @@ for ii = 1:nItems
         end
         if ~ThisStatusOK
             StatusOK = false;
-            warning('Error loading vpop "%s". Skipping [%s]...', vpopName,ThisMessage)
+            ThisMessage = sprintf('Error loading vpop "%s". Skipping [%s]...', vpopName,ThisMessage);            
             Message = sprintf('%s\n%s\n',Message,ThisMessage);
             continue
         end
@@ -247,13 +247,13 @@ if isempty(Pin)
             tmpObj = obj.Settings.VirtualPopulation(strcmp(vpopName,options.allVpopNames));
             if isempty(tmpObj) 
                 StatusOK = false;
-                error('The virtual population named %s is invalid.', vpopName)
+                error('The virtual population named %s is invalid.', vpopName) % TODO: Replace with ThisMessage/Message?
                 break
             elseif isempty(tmpObj.FilePath)
                 StatusOK = false;
 %                 ThisMessage = sprintf('The virtual population named %s is incomplete.',vpopName);
 %                 Message = sprintf('%s\n%s\n',Message,ThisMessage);
-                error('The virtual population named %s is incomplete.', vpopName)
+                error('The virtual population named %s is incomplete.', vpopName) % TODO: Replace with ThisMessage/Message?
                 break
             end % if
         else

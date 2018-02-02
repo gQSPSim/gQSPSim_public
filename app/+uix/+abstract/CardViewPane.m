@@ -553,7 +553,10 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                     obj.TempData = copy(obj.Data,obj.TempData);
                     
                     % Validate when switching to 'Edit'
-                    [StatusOK, Message] = validate(obj.TempData,false);
+%                     [StatusOK, Message] = validate(obj.TempData,false); %
+%                     TODO: Do we need to validate here? Don't think it is
+%                     needed here. Only on save. UpdateEditView will take
+%                     care of updating the editing panel
             
                     obj.Selection = 2;
                     set([obj.h.SummaryButton,obj.h.EditButton,obj.h.RunButton,obj.h.VisualizeButton,obj.h.ZoomInButton,obj.h.ZoomOutButton,obj.h.PanButton,obj.h.DatacursorButton],'Enable','off');

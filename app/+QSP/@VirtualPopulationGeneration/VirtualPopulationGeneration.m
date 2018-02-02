@@ -121,11 +121,15 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
                     ThisItem = sprintf('%s - %s (%s)',obj.Item(index).TaskName,obj.Item(index).GroupID,ThisResultFilePath);
                     if StaleFlag(index)
                         % Item may be out of date
-                        ThisItem = sprintf('***WARNING*** %s\n%s\n',ThisItem,'***Item may be out of date***');
+                        ThisItem = sprintf('***WARNING*** %s\n%s',ThisItem,'***Item may be out of date***');
                     elseif ~ValidFlag(index)
                         % Display invalid
-                        ThisItem = sprintf('***ERROR*** %s\n***%s***\n',ThisItem,InvalidMessages{index});
+                        ThisItem = sprintf('***ERROR*** %s\n***%s***',ThisItem,InvalidMessages{index});
                     else
+                        ThisItem = sprintf('%s',ThisItem);
+                    end
+                    % Append \n
+                    if index < numel(obj.Item)
                         ThisItem = sprintf('%s\n',ThisItem);
                     end
                     VPopGenItems = [VPopGenItems; ThisItem]; %#ok<AGROW>

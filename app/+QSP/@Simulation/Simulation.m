@@ -95,17 +95,21 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                     end
 
                     % Default
-                    ThisSimulationItem = sprintf('%s - %s (%s)',obj.Item(index).TaskName,obj.Item(index).VPopName,ThisResultFilePath);
+                    ThisItem = sprintf('%s - %s (%s)',obj.Item(index).TaskName,obj.Item(index).VPopName,ThisResultFilePath);
                     if StaleFlag(index)
                         % Item may be out of date
-                            ThisSimulationItem = sprintf('***WARNING*** %s\n%s\n',ThisSimulationItem,'***Item may be out of date***');
+                            ThisItem = sprintf('***WARNING*** %s\n%s',ThisItem,'***Item may be out of date***');
                     elseif ~ValidFlag(index)
                         % Display invalid
-                        ThisSimulationItem = sprintf('***ERROR*** %s\n***%s***\n',ThisSimulationItem,InvalidMessages{index});
+                        ThisItem = sprintf('***ERROR*** %s\n***%s***',ThisItem,InvalidMessages{index});
                     else
-                        ThisSimulationItem = sprintf('%s\n',ThisSimulationItem);
+                        ThisItem = sprintf('%s',ThisItem);
                     end
-                    SimulationItems = [SimulationItems; ThisSimulationItem]; %#ok<AGROW>
+                    % Append \n
+                    if index < numel(obj.Item)
+                        ThisItem = sprintf('%s\n',ThisItem);
+                    end
+                    SimulationItems = [SimulationItems; ThisItem]; %#ok<AGROW>
                 end
             else
                 SimulationItems = {};
@@ -223,7 +227,11 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             % Invoke helper
             if StatusOK
                 % Run helper
-                [StatusOK,Message,ResultFileNames] = simulationRunHelper(obj);
+                [ThisStatusOK,Message,ResultFileNames] = simulationRunHelper(obj);
+                if ~ThisStatusOK
+                    error('run: %s',Message);
+                end
+                
                 % Update MATFileName in the simulation items
                 for index = 1:numel(obj.Item)
                     obj.Item(index).MATFileName = ResultFileNames{index};

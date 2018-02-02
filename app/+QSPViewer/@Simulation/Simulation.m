@@ -239,7 +239,7 @@ classdef Simulation < uix.abstract.CardViewPane
                 vObj.Data.PlotSpeciesTable(RowIdx,ColIdx) = ThisData(RowIdx,ColIdx);
                 
                 % Plot
-                plotSimulation(vObj.Data,vObj.h.MainAxes);
+                plotData(vObj);
                 
                 % Update the view
                 updateVisualizationView(vObj);
@@ -286,7 +286,7 @@ classdef Simulation < uix.abstract.CardViewPane
             vObj.Data.PlotItemTable(RowIdx,ColIdx) = ThisData(RowIdx,ColIdx);
             
             % Plot
-            plotSimulation(vObj.Data,vObj.h.MainAxes);
+            plotData(vObj);
             
             % Update the view
             updateVisualizationView(vObj);
@@ -312,7 +312,7 @@ classdef Simulation < uix.abstract.CardViewPane
             vObj.Data.PlotDataTable(RowIdx,ColIdx) = ThisData(RowIdx,ColIdx);
             
             % Plot
-            plotSimulation(vObj.Data,vObj.h.MainAxes);
+            plotData(vObj);
             
             % Update the view
             updateVisualizationView(vObj);
@@ -350,7 +350,7 @@ classdef Simulation < uix.abstract.CardViewPane
             vObj.Data.PlotGroupTable(RowIdx,ColIdx) = ThisData(RowIdx,ColIdx);
             
             % Plot
-            plotSimulation(vObj.Data,vObj.h.MainAxes);
+            plotData(vObj);
             
             % Update the view
             updateVisualizationView(vObj);
@@ -368,13 +368,8 @@ classdef Simulation < uix.abstract.CardViewPane
                 if ~isequal(NewColor,0)
                     vObj.Data.PlotItemTable{SelectedRow,2} = NewColor;
                     
-                    %                 try
                     % Plot
-                    plotSimulation(vObj.Data,vObj.h.MainAxes);
-                    %                 catch ME
-                    %                     hDlg = errordlg(sprintf('Cannot plot. %s',ME.message),'Invalid','modal');
-                    %                     uiwait(hDlg);
-                    %                 end
+                    plotData(vObj);
                     
                     % Update the view
                     updateVisualizationView(vObj);
@@ -398,13 +393,8 @@ classdef Simulation < uix.abstract.CardViewPane
                 if ~isequal(NewColor,0)
                     vObj.Data.PlotGroupTable{SelectedRow,2} = NewColor;
                     
-                    %                 try
                     % Plot
-                    plotSimulation(vObj.Data,vObj.h.MainAxes);
-                    %                 catch ME
-                    %                     hDlg = errordlg(sprintf('Cannot plot. %s',ME.message),'Invalid','modal');
-                    %                     uiwait(hDlg);
-                    %                 end
+                    plotData(vObj);
                     
                     % Update the view
                     updateVisualizationView(vObj);

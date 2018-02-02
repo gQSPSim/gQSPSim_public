@@ -429,7 +429,7 @@ classdef VirtualPopulationGeneration < uix.abstract.CardViewPane
                 vObj.Data.PlotSpeciesTable(RowIdx,ColIdx) = ThisData(RowIdx,ColIdx);
                 
                 % Plot
-                plotVirtualPopulationGeneration(vObj.Data,vObj.h.MainAxes);
+                plotData(vObj);
                 
                 % Update the view
                 updateVisualizationView(vObj);
@@ -458,7 +458,7 @@ classdef VirtualPopulationGeneration < uix.abstract.CardViewPane
             vObj.Data.PlotType = get(get(h,'SelectedObject'),'Tag');
             
             % Plot
-            plotVirtualPopulationGeneration(vObj.Data,vObj.h.MainAxes);
+            plotData(vObj);
             
             % Update the view
             updateVisualizationView(vObj);
@@ -472,7 +472,7 @@ classdef VirtualPopulationGeneration < uix.abstract.CardViewPane
             vObj.Data.ShowInvalidVirtualPatients = logical(get(h,'Value'));
             
             % Plot
-            plotVirtualPopulationGeneration(vObj.Data,vObj.h.MainAxes);
+            plotData(vObj);
             
             % Update the view
             updateVisualizationView(vObj);
@@ -504,7 +504,7 @@ classdef VirtualPopulationGeneration < uix.abstract.CardViewPane
             vObj.Data.PlotItemTable(RowIdx,ColIdx) = ThisData(RowIdx,ColIdx);
             
             % Plot
-            plotVirtualPopulationGeneration(vObj.Data,vObj.h.MainAxes);
+            plotData(vObj);
             
             % Update the view
             updateVisualizationView(vObj);
@@ -525,13 +525,8 @@ classdef VirtualPopulationGeneration < uix.abstract.CardViewPane
                 if ~isequal(NewColor,0)
                     vObj.Data.PlotItemTable{SelectedRow,2} = NewColor;
                     
-                    %                 try
                     % Plot
-                    plotVirtualPopulationGeneration(vObj.Data,vObj.h.MainAxes);
-                    %                 catch ME
-                    %                     hDlg = errordlg(sprintf('Cannot plot. %s',ME.message),'Invalid','modal');
-                    %                     uiwait(hDlg);
-                    %                 end
+                    plotData(vObj);
                     
                     % Update the view
                     updateVisualizationView(vObj);

@@ -105,10 +105,31 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
     
     %% Methods from AxesMouseHandler
     methods (Access=protected)
-        function onMousePress(vObj, evt)
-            disp('onMousePress');
-            % Update
-            updateVisualizationView(vObj);
+        function onMousePress(vObj, e)
+            
+            hFigure = ancestor(vObj.h.MainLayout,'Figure');
+            set(hFigure,'pointer','watch');
+            drawnow;
+            
+            if isa(e.HitObject.Parent,'matlab.graphics.primitive.Group')
+                % Find the matching group by species / axes
+                [speciesIdx,axIdx] = find(cellfun(@(x)ismember(e.HitObject.Parent,x),vObj.h.SpeciesGroup));
+                
+                % Use the group to get the line index or profile row
+                if ~isempty(speciesIdx)
+                    ThisSpeciesGroup = vObj.h.SpeciesGroup{speciesIdx,axIdx};
+                    Ch = flip(ThisSpeciesGroup.Children);
+                    Ch = Ch(2:end); % Ignore first for legend
+                    vObj.Data.SelectedProfileRow = find(ismember(Ch,e.HitObject));
+                end
+                
+                % Update the view
+                updateVisualizationView(vObj);
+            end
+            
+            set(hFigure,'pointer','arrow');
+            drawnow;
+            
         end %function
     end
     
@@ -376,13 +397,8 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
             
             vObj.Data.PlotSpeciesTable(RowIdx,ColIdx) = ThisData(RowIdx,ColIdx);
             
-%             try
-                % Plot
-                [vObj.h.SpeciesGroup,vObj.h.DatasetGroup] = plotOptimization(vObj.Data,vObj.h.MainAxes);
-%             catch ME
-%                 hDlg = errordlg(sprintf('Cannot plot. %s',ME.message),'Invalid','modal');
-%                 uiwait(hDlg);
-%             end
+            % Plot
+            plotData(vObj);
                 
             % Update the view
             updateVisualizationView(vObj);
@@ -427,13 +443,8 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
             
             vObj.Data.PlotItemTable(RowIdx,ColIdx) = ThisData(RowIdx,ColIdx);
             
-%             try
-                % Plot
-                [vObj.h.SpeciesGroup,vObj.h.DatasetGroup] = plotOptimization(vObj.Data,vObj.h.MainAxes);
-%             catch ME
-%                 hDlg = errordlg(sprintf('Cannot plot. %s',ME.message),'Invalid','modal');
-%                 uiwait(hDlg);
-%             end
+            % Plot
+            plotData(vObj);
             
             % Update the view
             updateVisualizationView(vObj);
@@ -454,7 +465,7 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
         function onPlotParameters(vObj,h,e)
             
             % Plot
-            [vObj.h.SpeciesGroup,vObj.h.DatasetGroup] = plotOptimization(vObj.Data,vObj.h.MainAxes);
+            plotData(vObj);
             
             % Update
             updateVisualizationView(vObj);
@@ -495,6 +506,10 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
         
         function onHistoryTableSelectionPlot(vObj,h,e)
             
+            hFigure = ancestor(vObj.h.MainLayout,'Figure');
+            set(hFigure,'pointer','watch');
+            drawnow;
+            
             if ~isempty(e) && (isfield(e,'Indices') || isprop(e,'Indices'))
                 if numel(e.Indices) >= 1
                     vObj.Data.SelectedProfileRow = e.Indices(1); % Temporary
@@ -506,9 +521,17 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
             % Update the view
             updateVisualizationView(vObj);
             
+            set(hFigure,'pointer','arrow');
+            drawnow;
+            
+            
         end %function
         
         function onHistoryTableEditPlot(vObj,h,e)
+            
+            hFigure = ancestor(vObj.h.MainLayout,'Figure');
+            set(hFigure,'pointer','watch');
+            drawnow;
             
             ThisData = get(h,'Data');
             Indices = e.Indices;
@@ -585,6 +608,9 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
             % Update the view
             updateVisualizationView(vObj);
             
+            set(hFigure,'pointer','arrow');
+            drawnow;
+                        
         end %function
         
 %         function onPlotParametersSourcePopup(vObj,h,e)
@@ -702,13 +728,8 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
                 if ~isequal(NewColor,0)
                     vObj.Data.PlotItemTable{SelectedRow,2} = NewColor;
                     
-                    %                 try
                     % Plot
-                    [vObj.h.SpeciesGroup,vObj.h.DatasetGroup] = plotOptimization(vObj.Data,vObj.h.MainAxes);
-                    %                 catch ME
-                    %                     hDlg = errordlg(sprintf('Cannot plot. %s',ME.message),'Invalid','modal');
-                    %                     uiwait(hDlg);
-                    %                 end
+                    plotData(vObj);
                     
                     % Update the view
                     updateVisualizationView(vObj);

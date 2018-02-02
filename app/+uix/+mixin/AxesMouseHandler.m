@@ -74,9 +74,12 @@ classdef AxesMouseHandler < handle
                 
                 % What axes does it belong to?
                 hitAxes = ancestor(hitObject,'axes');
+                if isempty(hitAxes)
+                    hitAxes = matlab.graphics.axis.Axes.empty(0,0);
+                end
                 
                 % Is it a monitored axes?
-                if any( hitAxes == obj.ClickableAxes )
+                if any( ismember(hitAxes, obj.ClickableAxes) )
                     
                     % Get the figure and graphics root
                     hitFigure = e.Source;
@@ -180,7 +183,7 @@ classdef AxesMouseHandler < handle
                 hitAxes = ancestor(hitObject,'axes');
                 
                 % Is it the current axes?
-                if any( hitAxes == obj.MouseAxes )
+                if any( ismember(hitAxes, obj.MouseAxes) )
                     
                     % Get the figure and graphics root
                     hitFigure = e.Source;
@@ -220,7 +223,8 @@ classdef AxesMouseHandler < handle
         
         function onAxesFigureChanged(obj)
             
-            hFigure = obj.AxesFigureObserver.Figure;
+            % Use first axes
+            hFigure = obj.AxesFigureObserver(1).Figure;
             
             if obj.EnableMouseHandler && ~isempty(hFigure)
                 obj.MousePressListener = event.listener( hFigure, ...
@@ -240,11 +244,16 @@ classdef AxesMouseHandler < handle
         
         function onClickableAxesChanged(obj)
             
+            delete(obj.AxesFigureObserver);
+            delete(obj.AxesFigureListener);
+            
             % Listen to figure changes for the ClickableAxes
             if obj.EnableMouseHandler
-                obj.AxesFigureObserver = uix.FigureObserver( obj.ClickableAxes );
-                obj.AxesFigureListener = event.listener(obj.AxesFigureObserver, ...
-                    'FigureChanged',@(h,e)onAxesFigureChanged(obj) );
+                for index = 1:numel(obj.ClickableAxes)
+                    obj.AxesFigureObserver(index) = uix.FigureObserver( obj.ClickableAxes(index) );
+                    obj.AxesFigureListener(index) = event.listener(obj.AxesFigureObserver(index), ...
+                        'FigureChanged',@(h,e)onAxesFigureChanged(obj) );
+                end
             else
                 obj.AxesFigureObserver = uix.FigureObserver.empty(0,0);
                 obj.AxesFigureListener = event.listener.empty(0,0);
