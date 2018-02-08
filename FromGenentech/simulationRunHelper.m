@@ -626,7 +626,13 @@ function [Results, nFailedSims, StatusOK, Message] = simulateVPatients(ItemModel
                             simData = simulate(model);
                         end
                     else
-                        simData = simulate(model, [ItemModel.VPopSpeciesICs(jj,:), params], doses);
+                        tmp = ItemModel.VPopSpeciesICs(jj,:);
+                        tmp = horzcat(tmp{:});
+                        if ~isempty(doses)
+                            simData = simulate(model, [tmp, params]);
+                        else
+                            simData = simulate(model, [tmp, params], doses);
+                        end
                     end % if
 
                     % extract active species data, if specified
