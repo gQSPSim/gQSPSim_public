@@ -385,8 +385,11 @@ if ~isempty(vObj.Data) && isfield(vObj.h,'SpeciesGroup')
                             set(Ch,'LineWidth',2);
                         end
                         % Show
-                        set(Ch(Show),'Visible','on');
-                        set(Ch(~Show),'Visible','off');
+                        if Show(k)
+                            set(Ch,'Visible','on');
+                        else
+                            set(Ch,'Visible','off');
+                        end
                     end %if
                 end %if
             end % for
