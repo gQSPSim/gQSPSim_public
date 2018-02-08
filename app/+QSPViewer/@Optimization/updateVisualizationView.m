@@ -194,7 +194,12 @@ if ~isempty(vObj.Data)
         vObj.Data.PlotSpeciesTable = cell(numel(SpeciesNames),4);
         
         vObj.Data.PlotSpeciesTable(:,1) = {' '};
-        vObj.Data.PlotSpeciesTable(:,2) = vObj.Data.SpeciesLineStyles(:);
+        if ~isempty(vObj.Data.SpeciesLineStyles(:))
+            vObj.Data.PlotSpeciesTable(:,2) = vObj.Data.SpeciesLineStyles(:);
+        else
+            vObj.Data.PlotSpeciesTable(:,2) = {'-'};
+        end
+            
         vObj.Data.PlotSpeciesTable(:,3) = SpeciesNames;
         vObj.Data.PlotSpeciesTable(:,4) = DataNames;
         
@@ -366,22 +371,28 @@ end
 if ~isempty(vObj.Data) && isfield(vObj.h,'SpeciesGroup')
     Show = [vObj.Data.PlotProfile.Show];
     
-    for index = 1:numel(vObj.h.SpeciesGroup)
-        if ~isempty(vObj.h.SpeciesGroup{index}) && ishandle(vObj.h.SpeciesGroup{index})
-            Ch = vObj.h.SpeciesGroup{index}.Children;
-            Ch = flip(Ch);
-            if numel(Ch) > 1
-                % Skip first (dummy line)
-                Ch = Ch(2:end);
-                set(Ch,'LineWidth',0.5);
-                set(Ch(vObj.Data.SelectedProfileRow),'LineWidth',2);
-                
-                % Show
-                set(Ch(Show),'Visible','on');
-                set(Ch(~Show),'Visible','off');
-            end %if
-        end %if
+    for i=1:size(vObj.h.SpeciesGroup,1)
+        for j=1:size(vObj.h.SpeciesGroup,2)
+            for k=1:size(vObj.h.SpeciesGroup,3)
+                if ~isempty(vObj.h.SpeciesGroup{i,j,k}) && ishandle(vObj.h.SpeciesGroup{i,j,k})
+                    Ch = vObj.h.SpeciesGroup{i,j,k}.Children;
+                    Ch = flip(Ch);
+                    if numel(Ch) > 1
+                        % Skip first (dummy line)
+                        Ch = Ch(2:end);
+                        set(Ch,'LineWidth',0.5);
+                        if (k==vObj.Data.SelectedProfileRow)
+                            set(Ch,'LineWidth',2);
+                        end
+                        % Show
+                        set(Ch(Show),'Visible','on');
+                        set(Ch(~Show),'Visible','off');
+                    end %if
+                end %if
+            end % for
+        end %for
     end %for
+    
 end %if
 
 

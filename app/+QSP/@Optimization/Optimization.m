@@ -104,7 +104,10 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 [StaleFlag,ValidFlag,InvalidMessages] = getStaleItemIndices(obj);
 
                 for index = 1:numel(obj.Item)
-                    ThisResultFilePath = obj.ExcelResultFileName{index};
+                    ThisResultFilePath = '';
+                    if length(obj.ExcelResultFileName) >= numel(obj.Item) && ~isempty(obj.ExcelResultFileName{index})
+                        ThisResultFilePath = obj.ExcelResultFileName{index};
+                    end
                     if isempty(ThisResultFilePath)
                         ThisResultFilePath = 'Results: N/A';
                     end
@@ -635,17 +638,22 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                     ParametersFileLastSavedTime = FileInfo.datenum;                    
                     
                     % Results file
-                    ThisFilePath = fullfile(obj.Session.RootDirectory,obj.OptimResultsFolderName,obj.ExcelResultFileName{index});
-                    if exist(ThisFilePath,'file') == 2
-                        FileInfo = dir(ThisFilePath);                        
-                        ResultLastSavedTime = FileInfo.datenum;                        
-                    elseif ~isempty(obj.ExcelResultFileName{index})
-                        ResultLastSavedTime = '';
-                        % Display invalid
-                        ValidFlag(index) = false;
-                        InvalidMessages{index} = 'Excel file cannot be found';
+                    if length(obj.ExcelResultFileName) < numel(obj.Item) ... % missing some items
+                            || isempty(obj.ExcelResultFileName{index}) % no excel file available for this index
+                        ResultLastSavedTime = '';        
                     else
-                        ResultLastSavedTime = '';                        
+                        ThisFilePath = fullfile(obj.Session.RootDirectory,obj.OptimResultsFolderName,obj.ExcelResultFileName{index});
+                        if exist(ThisFilePath,'file') == 2
+                            FileInfo = dir(ThisFilePath);                        
+                            ResultLastSavedTime = FileInfo.datenum;                        
+                        elseif ~isempty(obj.ExcelResultFileName{index})
+                            ResultLastSavedTime = '';
+                            % Display invalid
+                            ValidFlag(index) = false;
+                            InvalidMessages{index} = 'Excel file cannot be found';
+                        else
+                            ResultLastSavedTime = '';                        
+                        end
                     end
                     
                     % Check

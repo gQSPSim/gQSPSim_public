@@ -38,8 +38,7 @@ for index = 1:numel(hAxes)
 end
 
 NumAxes = numel(hAxes);
-hSpeciesGroup = cell(size(obj.PlotSpeciesTable,1),NumAxes);
-hDatasetGroup = cell(size(obj.PlotSpeciesTable,1),NumAxes);
+
 
 hLegend = cell(1,NumAxes);
 hLegendChildren = cell(1,NumAxes);
@@ -94,13 +93,13 @@ if any(IsSelected)
                 
         else
             % in this case, there should only be one Vpop produced
-            if length(obj.VPopNames)~=1
+            if length(obj.VPopName)~=1
                 Message = 'Expected there to be one Vpop produced by this optimization, but instead found 0 or more than 1.';
                 error('plotOptimization: %s',Message);
             end
             % each task is assigned the same vpop
             for ii = 1:nSelected
-                simObj.Item(ii).VPopName = obj.VPopNames;
+                simObj.Item(ii).VPopName = obj.VPopName{1};
             end
             
         end
@@ -141,6 +140,12 @@ if any(IsSelected)
     end
 end
 
+NumRuns = size(Results,1);
+hSpeciesGroup = cell(size(obj.PlotSpeciesTable,1),NumAxes, NumRuns);
+hDatasetGroup = cell(size(obj.PlotSpeciesTable,1),NumAxes);
+
+
+
 % Get the associated colors
 SelectedItemColors = cell2mat(obj.PlotItemTable(IsSelected,2));
 
@@ -177,12 +182,12 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
                     
                     % Plot
                     if ~isempty(ColumnIdx)
-                        if isempty(hSpeciesGroup{sIdx,axIdx})
-                            hSpeciesGroup{sIdx,axIdx} = hggroup(hAxes(axIdx),...
+                        if isempty(hSpeciesGroup{sIdx,axIdx,runIdx})
+                            hSpeciesGroup{sIdx,axIdx,runIdx} = hggroup(hAxes(axIdx),...
                                 'DisplayName',regexprep(ThisName,'_','\\_'),...
                                 'HitTest','off');
                             % Add dummy line for legend
-                            line(nan,nan,'Parent',hSpeciesGroup{sIdx,axIdx},...
+                            line(nan,nan,'Parent',hSpeciesGroup{sIdx,axIdx,runIdx},...
                                 'LineStyle',ThisLineStyle,...
                                 'Color',[0 0 0]);
                         end
@@ -195,7 +200,7 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
                         end
                         
                         % Plot
-                        hThis = plot(hSpeciesGroup{sIdx,axIdx},Results{runIdx,itemIdx}.Time,Results{runIdx,itemIdx}.Data(:,ColumnIdx),...
+                        hThis = plot(hSpeciesGroup{sIdx,axIdx,runIdx},Results{runIdx,itemIdx}.Time,Results{runIdx,itemIdx}.Data(:,ColumnIdx),...
                             'Color',SelectedItemColors(itemIdx,:),...
                             'Visible',uix.utility.tf2onoff(Show(runIdx)),...
                             'LineStyle',ThisLineStyle,...
@@ -307,7 +312,7 @@ hLegendChildren = cell(1,NumAxes);
 for axIndex = 1:NumAxes
     
     % Append
-    LegendItems = [horzcat(hSpeciesGroup{:,axIndex}) horzcat(hDatasetGroup{:,axIndex})];
+    LegendItems = [horzcat(hSpeciesGroup{:,axIndex,:}) horzcat(hDatasetGroup{:,axIndex})];
     
     if ~isempty(LegendItems)
         % Add legend
