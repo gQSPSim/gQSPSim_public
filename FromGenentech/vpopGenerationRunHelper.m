@@ -246,7 +246,7 @@ for ii = 1:nItems
         
         ItemModels(ii).ICs = IC_i;
         
-    elseif ~isempty(obj.ICFileName)
+    elseif ~isempty(ICTable) 
         % an initial conditions file has been specified
         % use this file to extract initial conditions and allow those
         % species to be specified for the exported model
@@ -321,7 +321,7 @@ isValid = zeros(obj.MaxNumVirtualPatients,1);
 % set up the loop for different initial conditions
 if isempty(ICTable )
     % no initial conditions specified
-    groupVec = 1:length(nItem);
+    groupVec = 1:length(nItems);
 else
     % initial conditions exist
     groupVec = ICTable.data(:,groupCol);
@@ -475,9 +475,18 @@ if StatusOK
     
     SaveFlag = true;
     % add prevalence weight
-    Vpop = [[paramNames; 'PWeight']'; [num2cell(Vpop), num2cell(isValid)]];
-    % save prevalence weight to object
-    obj.PrevalenceWeights = isValid;
+    VpopHeader = [paramNames; 'PWeight']';
+    % replicate the vpops if multiple initial conditions were specified
+    VpopData = [num2cell(Vpop), num2cell(isValid)];
+    if ~isempty(ICTable)
+        Vpop=[ICTable.colheaders, VpopHeader];
+        for k=1:size(ICTable.data,1) % loop over initial conditions
+            Vpop = [Vpop; [num2cell(repmat(ICTable.data(k,:), size(VpopData,1),1)), VpopData] ];
+        end
+    else
+        Vpop = [VpopHeader; VpopData ];
+    end
+    obj.PrevalenceWeights = cell2mat(Vpop(2:end,end));     % save prevalence weight to object
     
     % save results
     SaveFilePath = fullfile(obj.Session.RootDirectory,obj.VPopResultsFolderName);

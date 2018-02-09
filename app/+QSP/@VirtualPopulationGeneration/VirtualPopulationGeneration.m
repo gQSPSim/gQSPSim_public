@@ -171,9 +171,9 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
             end
             
             if isempty(obj.ICFileName)
-                ICFileName = 'N/A';
+                obj.ICFileName = 'N/A';
             else
-                ICFileName = obj.ICFileName;
+                obj.ICFileName = obj.ICFileName;
             end
             
             % Populate summary
@@ -188,7 +188,7 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
                 'Parameter file',obj.RefParamName;
                 'Parameters used for virtual population generation',UsedParamNames;
                 'Species-data mapping',SpeciesDataItems;
-                'Initial conditions file',ICFileName;
+                'Initial conditions file',obj.ICFileName;
                 'Max No of Simulations',num2str(obj.MaxNumSimulations);
                 'Max No of Virtual Patients',num2str(obj.MaxNumVirtualPatients);
                 'Results',obj.ExcelResultFileName;
@@ -371,7 +371,13 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
                 if FlagRemoveInvalid
                     obj.SpeciesData(RemoveIndices) = [];
                 end
-            end
+                
+                % remove any cached simulation results when an update has
+                % taken place
+                obj.SimResults = {}; % cached simulation results
+
+                
+            end %if
             
         end %function
               

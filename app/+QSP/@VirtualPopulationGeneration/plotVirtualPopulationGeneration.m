@@ -106,7 +106,7 @@ if any(RunInds) && ~isempty(obj.VPopName)
         % NOTE: Indexing into Item may not be valid from PlotItemTable (Incorrect if there are/were invalids: simObj.Item(ii).TaskName = obj.Item(SelectedInds(ii)).TaskName;)
         simObj.Item(ii).TaskName = obj.PlotItemTable{SelectedInds(ii),3};
         simObj.Item(ii).VPopName = obj.VPopName;
-%         simObj.
+        simObj.Item(ii).Group = obj.PlotItemTable{SelectedInds(ii),4};
     end
 else
     simObj = QSP.Simulation.empty(0,1);
@@ -128,7 +128,8 @@ if ~isempty(simObj)
     for ii = 1:length(simObj.Item)
         obj.SimResults{SelectedInds(ii)}.Time = Results{ii}.Time;
         obj.SimResults{SelectedInds(ii)}.SpeciesNames = Results{ii}.SpeciesNames;        
-        obj.SimResults{SelectedInds(ii)}.Data = Results{ii}.Data;        
+        obj.SimResults{SelectedInds(ii)}.Data = Results{ii}.Data;    
+        obj.SimResults{SelectedInds(ii)}.VpopWeights = Results{ii}.VpopWeights;
     end
 else
     Results = [];    
@@ -260,9 +261,11 @@ if strcmp(obj.PlotType, 'Normal') && ~isempty(Results)
                     
                     % mean
 %                     mean_line = plot(hAxes(axIdx), Results{itemIdx}.Time, thisData(:,ColumnIdx) * obj.PrevalenceWeights/sum(obj.PrevalenceWeights),...
-                    mean_line = plot(hSpeciesGroup{sIdx,axIdx}, Results{itemIdx}.Time, thisData(:,ColumnIdx) * obj.PrevalenceWeights/sum(obj.PrevalenceWeights),...
+                    vpopWeights = cell2mat(Results{itemIdx}.VpopWeights);
+                    mean_line = plot(hSpeciesGroup{sIdx,axIdx}, Results{itemIdx}.Time, thisData(:,ColumnIdx) * ...
+                            vpopWeights/sum(vpopWeights),...
                         'LineStyle',ThisLineStyle,...
-                        'Color','k', ...SelectedItemColors(itemIdx,:), 
+                        'Color',SelectedItemColors(itemIdx,:), ...
                         'LineWidth', 3);
 
 

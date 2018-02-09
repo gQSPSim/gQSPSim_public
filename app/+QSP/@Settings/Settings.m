@@ -143,7 +143,7 @@ classdef Settings < matlab.mixin.SetGet & uix.mixin.AssignPVPairs & uix.mixin.Ha
                     end
                 end
             end
-        end %function
+        end %function  
         
         function SpeciesList = getSpeciesFromValidSelectedTasks(obj,ItemTaskNames)
             % Get union species list from all selected tasks that are valid

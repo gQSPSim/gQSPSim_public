@@ -248,7 +248,7 @@ for axIndex = 1:NumAxes
     % Append
     LegendItems = [horzcat(hSpeciesGroup{:,axIndex}) horzcat(hDatasetGroup{:,axIndex})];
     
-    if ~isempty(LegendItems)
+    if ~isempty(LegendItems) && isvalid(LegendItems)
         % Add legend
         [hLegend{axIndex},hLegendChildren{axIndex}] = legend(hAxes(axIndex),LegendItems);
     else

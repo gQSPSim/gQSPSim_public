@@ -76,10 +76,13 @@ for ii = 1:nItems
             Message = sprintf('%s\n%s\n',Message,ThisMessage);
             continue
         end
-    end   
+    end
+    
+    % group of the task-vpop item
+    groupObj = obj.Item(ii).Group;
     
     % Load the Vpop and parse contents 
-   [ThisItemModel, VpopWeights, ThisStatusOK, ThisMessage] = constructVpopItem(taskObj, vpopObj, options, Message);
+   [ThisItemModel, VpopWeights, ThisStatusOK, ThisMessage] = constructVpopItem(taskObj, vpopObj, groupObj, options, Message);
    if ii == 1
        ItemModels = ThisItemModel;
    else
@@ -127,6 +130,9 @@ if ~isempty(ItemModels)
         %%% Save results of each simulation in different files %%%%%%%%%%%%%%%%%%%%
         SaveFlag = isempty(options.Pin); % don't save if PIn is provided
 
+        % keep the VpopWeights for this group
+        Results.VpopWeights = VpopWeights;
+        
         % add results to output cell
         output{ii} = Results;
 
@@ -306,7 +312,7 @@ function [model, varSpeciesObj_i] = constructModel(taskObj)
     end % if
 end
 
-function [ItemModel, VpopWeights, StatusOK, Message] = constructVpopItem(taskObj, vpopObj, options, Message)
+function [ItemModel, VpopWeights, StatusOK, Message] = constructVpopItem(taskObj, vpopObj, groupObj, options, Message)
     % they are 1) all full and Pin is empty or 2) all full and Pin is not
     % empty or 3) all empty and Pin is not empty
     % case 1) only need to export model with parameters in the Vpop
@@ -325,6 +331,7 @@ function [ItemModel, VpopWeights, StatusOK, Message] = constructVpopItem(taskObj
     
     ItemModel.Vpop = vpopObj;
     ItemModel.Task = taskObj;
+    ItemModel.Group = groupObj;
 
 
     % construct model using variants, reactions, species, etc.
@@ -333,7 +340,16 @@ function [ItemModel, VpopWeights, StatusOK, Message] = constructVpopItem(taskObj
     if ~isempty(vpopObj) % AG: TODO: added ~isempty(vpopObj) for function-call from plotOptimization. Need to verify with Genentech
         T_i             = readtable(vpopObj.FilePath);
         vPop_params_i   = table2cell(T_i);         
-        paramNames_i    = T_i.Properties.VariableNames;
+        paramNames_i    = T_i.Properties.VariableNames;    
+        
+        % subset the vpop to the relevant group if it is defined in the
+        % vpop
+        [hasGroupCol, groupCol] = ismember('Group', paramNames_i);
+        if hasGroupCol
+            groupVec = cell2mat(vPop_params_i(:,groupCol));
+            vPop_params_i = vPop_params_i(str2num(groupObj)==groupVec,:); % filter
+        end
+
 
         % check whether the last column is PWeight
         if strcmp('PWeight',paramNames_i{end})
@@ -352,7 +368,7 @@ function [ItemModel, VpopWeights, StatusOK, Message] = constructVpopItem(taskObj
         vPop_speciesIC_i = vPop_params_i(:,tmp);
         [~,vPop_param_inds] = setdiff(paramNames_i,taskObj.SpeciesNames); % indices of parameters
         
-        [paramNames_i,tmp] = setdiff(paramNames_i, vPop_speciesNames_i);
+        [paramNames_i,tmp] = setdiff(paramNames_i, [vPop_speciesNames_i;'Group']);
         vPop_params_i = vPop_params_i(:,tmp);
         
         % select parameters that vary in the vpop

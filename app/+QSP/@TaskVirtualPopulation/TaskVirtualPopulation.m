@@ -30,6 +30,7 @@ classdef TaskVirtualPopulation < QSP.abstract.BaseProps
     properties
         TaskName = ''
         VPopName = ''
+        Group=''
         MATFileName = ''
     end
         

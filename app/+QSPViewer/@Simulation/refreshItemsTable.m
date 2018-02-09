@@ -26,13 +26,17 @@ else
     vObj.VPopPopupTableItems = {};
 end
 
+%% Refresh GroupPopupTableItems
+vObj.GroupPopupTableItems = sprintfc('%d',1:length(vObj.TempData.Settings.Task));
+
 
 %% Update ItemsTable
 
 if ~isempty(vObj.TempData)
     TaskNames = {vObj.TempData.Item.TaskName};
     VPopNames = {vObj.TempData.Item.VPopName};
-    Data = [TaskNames(:) VPopNames(:)];
+    Groups = {vObj.TempData.Item.Group};
+    Data = [TaskNames(:) Groups(:) VPopNames(:)];
     
     % Mark any invalid entries
     if ~isempty(Data)
@@ -40,7 +44,7 @@ if ~isempty(vObj.TempData)
         MatchIdx = find(~ismember(TaskNames(:),vObj.TaskPopupTableItems(:)));
         for index = MatchIdx(:)'
             Data{index,1} = QSP.makeInvalid(Data{index,1});
-        end
+        end        
         % VPop
         MatchIdx = find(~ismember(VPopNames(:),vObj.VPopPopupTableItems(:)));
         for index = MatchIdx(:)'
