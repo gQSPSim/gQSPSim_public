@@ -111,6 +111,15 @@ classdef VirtualPopulationGeneration < uix.abstract.CardViewPane
             
         end %function
         
+        function onICFileSelection(vObj,h,e)
+            % Update IC value
+            vObj.TempData.ICFileName = e.NewValue;
+            
+            % Update the view
+            updateICFile(vObj);
+            
+        end
+        
         function onDatasetPopup(vObj,h,e)
             
             vObj.TempData.DatasetName = vObj.DatasetPopupItems{get(h,'Value')};

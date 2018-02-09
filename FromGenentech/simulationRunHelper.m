@@ -57,7 +57,7 @@ for ii = 1:nItems
         StatusOK = false;
         ThisMessage = sprintf('Error loading task "%s". Skipping [%s]...', taskName,ThisMessage);
         Message = sprintf('%s\n%s\n',Message,ThisMessage);
-        continue
+%         continuesim
     end
     
     % find the relevant task and vpop objects in the settings object

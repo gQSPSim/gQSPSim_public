@@ -115,6 +115,23 @@ else
 end
 
 
+%% Deal with initial conditions file if it is specified and exists
+
+if ~isempty(obj.ICFileName) && exist(obj.ICFileName, 'file')
+ % get names from the IC file
+    ICTable = importdata(obj.ICFileName);
+  % validate the column names
+    [hasGroupCol, groupCol] = ismember('Group', ICTable.colheaders);
+    if ~hasGroupCol
+        StatusOK = false;
+        ThisMessage = 'Initial conditions file does not contain Group column';
+        Message = sprintf('%s\n%s\n',Message,ThisMessage);
+        return
+    end
+    
+else 
+    ICTable = [];
+end
 
 
 
@@ -229,6 +246,30 @@ for ii = 1:nItems
         
         ItemModels(ii).ICs = IC_i;
         
+    elseif ~isempty(obj.ICFileName)
+        % an initial conditions file has been specified
+        % use this file to extract initial conditions and allow those
+        % species to be specified for the exported model
+    
+        % all species names in the model
+        allSpecNames = get(model_i.Species,'Name');
+        ixSpecies = setdiff(1:numel(ICTable.colheaders), groupCol);
+
+        if any(~ismember(ICTable.colheaders(ixSpecies), allSpecNames))
+            StatusOK = false;
+            ThisMessage = 'Initial conditions contains invalid species names as columns';
+            Message = sprintf('%s\n%s\n',Message,ThisMessage);
+            return
+        end
+        
+        for jj = 1:length(model_i.Species)
+            sObj_i(jj) = sbioselect(model_i,'Name',model_i.Species(jj).Name);
+        end % for
+
+        
+               
+        exp_model_i = export(model_i, [sObj_i, pObj_i]);
+        
     else
         % otherwise export model with just the parameters editable
         exp_model_i = export(model_i, pObj_i);
@@ -276,6 +317,20 @@ nSim = 0;
 nPat = 0;
 Vpop = zeros(obj.MaxNumVirtualPatients,length(LB_params));
 isValid = zeros(obj.MaxNumVirtualPatients,1);
+
+% set up the loop for different initial conditions
+if isempty(ICTable )
+    % no initial conditions specified
+    groupVec = 1:length(nItem);
+else
+    % initial conditions exist
+    groupVec = ICTable.data(:,groupCol);
+    ixSpecies = setdiff(1:numel(ICTable.colheaders), groupCol); % columns of species in IC table
+    allSpecName = get(model_i.Species,'Name'); % all species as they appear in the model file
+    [~,ICColMapping] = ismember(ICTable.colheaders(ixSpecies), allSpecName); % mapping of columns to species indices   
+
+end
+
 % while the total number of simulations and number of virtual patients are
 % less than their respective maximum values...
 while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients
@@ -290,8 +345,9 @@ while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients
     time_outputs = [];
     LB_outputs = [];
     UB_outputs = [];
-    
-    for grp = 1:nItems
+        
+    for grpIdx = 1:length(groupVec) %nItems
+        grp = groupVec(grpIdx);
         % grab the task object
         tskInd = find(strcmp(obj.Item(grp).TaskName,{obj.Settings.Task.Name}));
         tObj_grp = obj.Settings.Task(tskInd);
@@ -307,6 +363,13 @@ while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients
         % change output times for the exported model
         ItemModels(grp).ExportedModel.SimulationOptions.OutputTimes = sort(unique(Time_grp));
         
+        % set the initial conditions to the value in the IC file if specified
+        grpICs = ItemModels(grp).ICs; % IC value after variants have been applied
+        if ~isempty(ICTable)
+            grpICs = ICTable.data(grpIdx, ixSpecies(ICColMapping)); % set the initial condition from the IC file
+        end
+        
+        
         % simulate
         try
             % if running to steady state
@@ -315,16 +378,18 @@ while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients
                 ItemModels(grp).ExportedModel.SimulationOptions.OutputTimes = [];
                 ItemModels(grp).ExportedModel.SimulationOptions.StopTime = tObj_grp.TimeToSteadyState;
                 % simulate model
-                [~,RTSSdata] = simulate(ItemModels(grp).ExportedModel,[ItemModels(grp).ICs', param_candidate']);
+                [~,RTSSdata] = simulate(ItemModels(grp).ExportedModel,[grpICs', param_candidate']);
                 % record steady state values
-                IC_ss = RTSSdata(end,1:length(ItemModels(grp).ICs));
+                IC_ss = RTSSdata(end,1:length(grpICs));
                 % update output times
                 ItemModels(grp).ExportedModel.SimulationOptions.OutputTimes = sort(unique(Time_grp));
                 ItemModels(grp).ExportedModel.SimulationOptions.StopTime = max(Time_grp);
                 
                 simData_grp = simulate(ItemModels(grp).ExportedModel,[IC_ss, param_candidate'],ItemModels(grp).Doses);
                 
-            else
+            elseif ~isempty(ICTable) % initial conditions file has been specified
+                simData_grp = simulate(ItemModels(grp).ExportedModel,[grpICs, param_candidate'],ItemModels(grp).Doses);
+            else % not run-to-steady-state and no initial conditions file; use model defaults
                 simData_grp = simulate(ItemModels(grp).ExportedModel,param_candidate',ItemModels(grp).Doses);
                 
             end % end

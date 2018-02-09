@@ -30,6 +30,7 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
     properties
         Settings = QSP.Settings.empty(0,1)
         VPopResultsFolderName = 'VPopResults' 
+        ICFileName = ''
         ExcelResultFileName = ''
         VPopName = '' % VPop name from running vpop gen
               
@@ -169,6 +170,12 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
                 UsedParamNames = {};
             end
             
+            if isempty(obj.ICFileName)
+                ICFileName = 'N/A';
+            else
+                ICFileName = obj.ICFileName;
+            end
+            
             % Populate summary
             Summary = {...
                 'Name',obj.Name;
@@ -181,6 +188,7 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
                 'Parameter file',obj.RefParamName;
                 'Parameters used for virtual population generation',UsedParamNames;
                 'Species-data mapping',SpeciesDataItems;
+                'Initial conditions file',ICFileName;
                 'Max No of Simulations',num2str(obj.MaxNumSimulations);
                 'Max No of Virtual Patients',num2str(obj.MaxNumVirtualPatients);
                 'Results',obj.ExcelResultFileName;
@@ -366,8 +374,7 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
             end
             
         end %function
-       
-        
+              
     end
     
     
