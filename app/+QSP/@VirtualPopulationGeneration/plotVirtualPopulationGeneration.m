@@ -85,8 +85,9 @@ end
 
 if isempty(obj.SimResults)
     IsCached = false(size(obj.PlotItemTable(:,1)));
+    obj.SimResults = cell(size(obj.PlotItemTable(:,1)));
 else
-    IsCached = ~cellfun(@isempty, obj.SimResults)';
+    IsCached = ~cellfun(@isempty, obj.SimResults);
 end
 CachedInds = find(IsCached);
 RunInds = IsSelected & ~IsCached;    
