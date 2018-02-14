@@ -76,7 +76,7 @@ if ~isempty(OptimHeader) && ~isempty(OptimData)
     GroupIDs = unique(GroupIDs);
     GroupIDs = cellfun(@(x)num2str(x),num2cell(GroupIDs),'UniformOutput',false);
 else
-    GroupIDs = {};
+    GroupIDs = [];
 end
 
 

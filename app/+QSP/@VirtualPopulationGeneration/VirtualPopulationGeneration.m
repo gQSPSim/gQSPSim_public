@@ -274,7 +274,7 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
                         StatusOK = false;
                         ThisMessage = sprintf('Group name "%s" does not exist or exists multiple times within the header of the Excel file.',obj.GroupName);
                         Message = sprintf('%s\n* %s\n',Message,ThisMessage);
-                        GroupIDs = {};
+                        GroupIDs = [];
                     end
                     
                     
@@ -289,7 +289,7 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
                         DataValues = {};
                     end
                 else
-                    GroupIDs = {};
+                    GroupIDs = [];
                     DataValues = {};
                 end
                 
@@ -443,7 +443,7 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
             % Check if VirtualPopulationData is valid
             ThisList = {obj.Settings.VirtualPopulationData.Name};
             MatchIdx = strcmpi(ThisList,obj.DatasetName);
-            GroupIDs = {};
+            GroupIDs = [];
             if any(MatchIdx)
                 dObj = obj.Settings.VirtualPopulationData(MatchIdx);
                 ThisStatusOk = validate(dObj);
@@ -462,7 +462,7 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
                     GroupIDs = unique(GroupIDs);
                     GroupIDs = cellfun(@(x)num2str(x),num2cell(GroupIDs),'UniformOutput',false);
                 else
-                    GroupIDs = {};
+                    GroupIDs = [];
                 end
             else
                 ForceMarkAsInvalid = false;
