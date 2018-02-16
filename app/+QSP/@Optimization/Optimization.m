@@ -274,7 +274,7 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                     GroupIDs = unique(GroupIDs);
                     GroupIDs = cellfun(@(x)num2str(x),num2cell(GroupIDs),'UniformOutput',false);
                 else
-                    GroupIDs = {};
+                    GroupIDs = [];
                 end                
                 
                 % ID Column - Validate?
@@ -575,7 +575,7 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                     end
                     GroupIDs = unique(GroupIDs);
                 else
-                    GroupIDs = {};
+                    GroupIDs = [];
                 end
             else
                 ForceMarkAsInvalid = false;
