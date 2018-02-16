@@ -312,7 +312,7 @@ hLegendChildren = cell(1,NumAxes);
 for axIndex = 1:NumAxes
     
     % Append
-    LegendItems = [horzcat(hSpeciesGroup{:,axIndex,:}) horzcat(hDatasetGroup{:,axIndex})];
+    LegendItems = [horzcat(hSpeciesGroup{:,axIndex,1}) horzcat(hDatasetGroup{:,axIndex})];
     
     if ~isempty(LegendItems)
         % Add legend
