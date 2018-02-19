@@ -61,4 +61,5 @@ updateEditView(vObj);
 
 updateVisualizationView(vObj);
 
-
+% Throw away cached ItemModels
+vObj.Data.ItemModels = [];

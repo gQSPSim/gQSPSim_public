@@ -113,16 +113,10 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
             
             if isa(e.HitObject.Parent,'matlab.graphics.primitive.Group')
                 % Find the matching group by species / axes
-                [speciesIdx,axIdx] = find(cellfun(@(x)ismember(e.HitObject.Parent,x),vObj.h.SpeciesGroup));
-                
+                matchIdx = find(cellfun(@(x)ismember(e.HitObject.Parent,x),vObj.h.SpeciesGroup));
+                [~,~,runIdx] = ind2sub(size(vObj.h.SpeciesGroup),matchIdx);
                 % Use the group to get the line index or profile row
-                if ~isempty(speciesIdx)
-                    ThisSpeciesGroup = vObj.h.SpeciesGroup{speciesIdx,axIdx};
-                    Ch = flip(ThisSpeciesGroup.Children);
-                    Ch = Ch(2:end); % Ignore first for legend
-                    vObj.Data.SelectedProfileRow = find(ismember(Ch,e.HitObject));
-                end
-                
+                vObj.Data.SelectedProfileRow = runIdx;                
                 % Update the view
                 updateVisualizationView(vObj);
             end
@@ -258,6 +252,9 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
                 case 'Remove'
                     
                     DeleteIdx = e.Indices;
+                    if isempty(e.Indices)
+                        return
+                    end
                     
                     if DeleteIdx <= numel(vObj.TempData.Item) && strcmpi(TableTag,'OptimItems')
                         vObj.TempData.Item(DeleteIdx) = [];
@@ -477,17 +474,25 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
             Interaction = e.Interaction;
             Indices = e.Indices;
             
+            if isempty(Indices)
+                return
+            end
+            
             switch Interaction
                 case 'Add'
                     vObj.Data.PlotProfile(end+1) = QSP.Profile;
                     vObj.Data.SelectedProfileRow = numel(vObj.Data.PlotProfile);
+                    vObj.Data.ItemModels
                     
                 case 'Remove'
                     if numel(vObj.Data.PlotProfile) > 1
-                        vObj.Data.PlotProfile(Indices) = [];
+                        vObj.Data.PlotProfile(Indices) = []; 
+                        delete([vObj.h.SpeciesGroup{:,:,Indices}]); % remove objects                        
+                        vObj.h.SpeciesGroup(:,:,Indices) = []; % remove group
                     else
                         vObj.Data.PlotProfile = QSP.Profile.empty(0,1);
                     end
+
                     vObj.Data.SelectedProfileRow = [];
                     
                 case 'Duplicate'
@@ -595,11 +600,13 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
                             ThisProfile.Source = NewSource;
                             ThisProfile.Values = sortrows(NewSourceData,1);
                         end
-                        
+
                     case 4
                         % Description
                         ThisProfile.Description = ThisData{RowIdx,ColIdx};
                 end
+                
+
             end
             
             % Update the view

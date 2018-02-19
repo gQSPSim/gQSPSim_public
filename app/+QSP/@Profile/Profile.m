@@ -36,6 +36,7 @@ classdef Profile < uix.mixin.AssignPVPairs
         Description = ''        
         Show = true
         Values = cell(0,2)
+%         RefreshFlag = true
     end
     
     

@@ -37,64 +37,69 @@ ItemModels = [];
 Title1 = sprintf('Configuring models...');
 hWbar1 = uix.utility.CustomWaitbar(0,Title1,'',false);
 
-nItems = options.nItems;
+nBuildItems = options.nBuildItems;
+nRunItems = options.nRunItems;
 
-% Configure models for each (task, vpop) pair (i.e. for each simulation item)
-for ii = 1:nItems
-    % update waitbar
-    uix.utility.CustomWaitbar(ii/nItems,hWbar1,sprintf('Configuring model for task %d of %d...',ii,nItems));
-    
-    % grab the names of the task and vpop for the i'th simulation
-    taskName = obj.Item(ii).TaskName;
-    vpopName = obj.Item(ii).VPopName;
-    
-    % Validate
-    taskObj = obj.Settings.Task(strcmp(taskName,options.allTaskNames));
-    [ThisStatusOK,ThisMessage] = validate(taskObj,false);        
-    if isempty(taskObj)
-        continue
-    elseif ~ThisStatusOK
-        StatusOK = false;
-        ThisMessage = sprintf('Error loading task "%s". Skipping [%s]...', taskName,ThisMessage);
-        Message = sprintf('%s\n%s\n',Message,ThisMessage);
-%         continuesim
-    end
-    
-    % find the relevant task and vpop objects in the settings object
-    vpopObj = [];    
-    if ~isempty(vpopName) && ~strcmp(vpopName,QSP.Simulation.NullVPop)
-        vpopObj = obj.Settings.VirtualPopulation(strcmp(vpopName,options.allVpopNames));
-        if isempty(vpopObj)
-            ThisStatusOK = false;
-            ThisMessage = sprintf('Invalid vpop "%s". VPop does not exist.',vpopName);
-        else
-            [ThisStatusOK,ThisMessage] = validate(vpopObj,false);
-        end
-        if ~ThisStatusOK
-            StatusOK = false;
-            ThisMessage = sprintf('Error loading vpop "%s". Skipping [%s]...', vpopName,ThisMessage);            
-            Message = sprintf('%s\n%s\n',Message,ThisMessage);
+if ~isempty(options.ItemModels)
+    % Item Models were already built and just need to be resimulated
+    ItemModels = options.ItemModels;
+else
+    % Configure models for each (task, vpop) pair (i.e. for each simulation item)
+    for ii = 1:nBuildItems
+        % update waitbar
+        uix.utility.CustomWaitbar(ii/nBuildItems,hWbar1,sprintf('Configuring model for task %d of %d...',ii,nBuildItems));
+
+        % grab the names of the task and vpop for the i'th simulation
+        taskName = obj.Item(ii).TaskName;
+        vpopName = obj.Item(ii).VPopName;
+
+        % Validate
+        taskObj = obj.Settings.Task(strcmp(taskName,options.allTaskNames));
+        [ThisStatusOK,ThisMessage] = validate(taskObj,false);        
+        if isempty(taskObj)
             continue
+        elseif ~ThisStatusOK
+            StatusOK = false;
+            ThisMessage = sprintf('Error loading task "%s". Skipping [%s]...', taskName,ThisMessage);
+            Message = sprintf('%s\n%s\n',Message,ThisMessage);
+    %         continuesim
         end
-    end
-    
-    % group of the task-vpop item
-    groupObj = obj.Item(ii).Group;
-    
-    % Load the Vpop and parse contents 
-   [ThisItemModel, VpopWeights, ThisStatusOK, ThisMessage] = constructVpopItem(taskObj, vpopObj, groupObj, options, Message);
-   if ii == 1
-       ItemModels = ThisItemModel;
-   else
-       ItemModels(ii) = ThisItemModel;
-   end
-   if ~ThisStatusOK
-       StatusOK = false;
-       Message = sprintf('%s\n%s\n',Message,ThisMessage);
-   end
 
-end % for ii...
+        % find the relevant task and vpop objects in the settings object
+        vpopObj = [];    
+        if ~isempty(vpopName) && ~strcmp(vpopName,QSP.Simulation.NullVPop)
+            vpopObj = obj.Settings.VirtualPopulation(strcmp(vpopName,options.allVpopNames));
+            if isempty(vpopObj)
+                ThisStatusOK = false;
+                ThisMessage = sprintf('Invalid vpop "%s". VPop does not exist.',vpopName);
+            else
+                [ThisStatusOK,ThisMessage] = validate(vpopObj,false);
+            end
+            if ~ThisStatusOK
+                StatusOK = false;
+                ThisMessage = sprintf('Error loading vpop "%s". Skipping [%s]...', vpopName,ThisMessage);            
+                Message = sprintf('%s\n%s\n',Message,ThisMessage);
+                continue
+            end
+        end
 
+        % group of the task-vpop item
+        groupObj = obj.Item(ii).Group;
+
+        % Load the Vpop and parse contents 
+       [ThisItemModel, VpopWeights, ThisStatusOK, ThisMessage] = constructVpopItem(taskObj, vpopObj, groupObj, options, Message);
+       if ii == 1
+           ItemModels = ThisItemModel;
+       else
+           ItemModels(ii) = ThisItemModel;
+       end
+       if ~ThisStatusOK
+           StatusOK = false;
+           Message = sprintf('%s\n%s\n',Message,ThisMessage);
+       end
+
+    end % for ii...
+end
 % close waitbar
 uix.utility.CustomWaitbar(1,hWbar1,'Done.');
 if ~isempty(hWbar1) && ishandle(hWbar1)
@@ -108,16 +113,16 @@ Title2 = sprintf('Simulating tasks...');
 hWbar2 = uix.utility.CustomWaitbar(0,Title2,'',false);
 
 %% Cell containing all results
-output = cell(1,nItems);
-ResultFileNames = cell(nItems,1);
+output = cell(1,nRunItems);
+ResultFileNames = cell(nRunItems,1);
 
 if ~isempty(ItemModels)
     
-    for ii = 1:nItems
-        ItemModel = ItemModels(ii);
+    for ii = 1:nRunItems
+        ItemModel = ItemModels(options.runIndices(ii));
         
         % update waitbar
-        uix.utility.CustomWaitbar(ii/nItems,hWbar2,sprintf('Simulating task %d of %d',ii,nItems));
+        uix.utility.CustomWaitbar(ii/nRunItems,hWbar2,sprintf('Simulating task %d of %d',ii,nRunItems));
 
         % simulate virtual patients
         [Results, nFailedSims, ThisStatusOK, ThisMessage] = simulateVPatients(ItemModel, options, Message);
@@ -147,7 +152,7 @@ if ~isempty(ItemModels)
 
         if SaveFlag
             % Update ResultFileNames
-            ResultFileNames{ii} = ['Results - Sim = ' options.simName ', Task = ' obj.Item(ii).TaskName ' - Vpop = ' obj.Item(ii).VPopName ' - Date = ' datestr(now,'dd-mmm-yyyy_HH-MM-SS') '.mat'];
+            ResultFileNames{ii} = ['Results - Sim = ' options.simName ', Task = ' obj.Item(options.runIndices(ii)).TaskName ' - Vpop = ' obj.Item(options.runIndices(ii)).VPopName ' - Date = ' datestr(now,'dd-mmm-yyyy_HH-MM-SS') '.mat'];
 
             if isempty(VpopWeights)
                 save(fullfile(SaveFilePath,ResultFileNames{ii}), 'Results')
@@ -178,8 +183,13 @@ if ~isempty(hWbar2) && ishandle(hWbar2)
 end
 
 % output the results of all simulation items if Pin in provided
-if nargout == 4
+if nargout > 3
     varargout{1} = output;
+end
+
+% save the exported model object
+if nargout > 4
+    varargout{2} = ItemModels;
 end
 
 % restore path
@@ -195,9 +205,9 @@ Message = '';
 
 %% get number of items to simulate
 if ~isempty(obj)
-    nItems = length(obj.Item);
+    nBuildItems = length(obj.Item);
 else
-    nItems = 0;
+    nBuildItems = 0;
     StatusOK = false;
     ThisMessage = sprintf('There are no simulation items.');
     Message = sprintf('%s\n%s\n',Message,ThisMessage);
@@ -207,7 +217,7 @@ Pin = []; % input parameters for simulation (empty by default)
 paramNames = {}; % parameter names
 extraOutputTimes = [];
 
-if nargin == 3
+if nargin > 2
     Pin = varargin{1};
     Pin = reshape(Pin,1,[]); % row vector
     paramNames = varargin{2};
@@ -215,8 +225,24 @@ end
 
 % allow for manual specification of output times to be included on top of
 % the task-specific output times
-if nargin==4
+if nargin > 3
     extraOutputTimes = varargin{3};
+end
+
+if nargin > 4
+    options.ItemModels = varargin{4};
+else
+    options.ItemModels = [];
+end
+
+if nargin > 5
+    % run specified
+    options.runIndices = varargin{5};
+    nRunItems = length(options.runIndices);
+else
+    % run all
+    options.runIndices = 1:nBuildItems;
+    nRunItems = nBuildItems;
 end
 
 % Get the simulation object name
@@ -228,7 +254,8 @@ allVpopNames = {obj.Settings.VirtualPopulation.Name};
 
 
 %% construct options object
-options.nItems = nItems;
+options.nBuildItems = nBuildItems;
+options.nRunItems = nRunItems;
 options.Pin = Pin;
 options.paramNames = paramNames;
 options.extraOutputTimes = extraOutputTimes;
@@ -240,10 +267,10 @@ end
 
 function [StatusOK,Message] = validatePin(obj, options, StatusOK, Message)
 Pin = options.Pin;
-nItems = options.nItems;
+nBuildItems = options.nBuildItems;
 
 if isempty(Pin)
-    for ii = 1:nItems
+    for ii = 1:nBuildItems
         vpopName = obj.Item(ii).VPopName;
         if strcmp(vpopName,QSP.Simulation.NullVPop)
             % do not create a vpopObj for the model default virtual population

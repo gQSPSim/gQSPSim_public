@@ -52,6 +52,8 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         SelectedProfileRow = []
         
         SelectedPlotLayout = '1x1'        
+        
+        ItemModels = []; % cached Item Models
     end
     
     properties (SetAccess = 'private')

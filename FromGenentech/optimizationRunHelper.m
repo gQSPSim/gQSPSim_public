@@ -584,6 +584,7 @@ end
                     end % if
                     
                     % simulate experiment for this ID
+                    IC_id = reshape(IC_id,1,[]);
                     simData_id = simulate(ItemModels(grp).ExportedModel,[IC_id,est_p',fixed_p'],ItemModels(grp).Doses);
                     
                     % generate elements of objective vector by comparing model

@@ -54,17 +54,17 @@ IsSelected = obj.PlotItemTable(:,1);
 if iscell(IsSelected)
     IsSelected = cell2mat(IsSelected);
 end
-if any(IsSelected)
+% if any(IsSelected)
     % make Task-Vpop pairs for each selected task
-    nSelected = sum(IsSelected);
-    SelectedInds = find(IsSelected);
+%     nSelected = sum(IsSelected);
+%     SelectedInds = find(IsSelected);
     simObj = QSP.Simulation;
     simObj.Session = obj.Session;
     simObj.Settings = obj.Settings;
-    for ii = 1:nSelected  
+    for ii = 1:size(obj.PlotItemTable(:,1),1) %nSelected  
         simObj.Item(ii) = QSP.TaskVirtualPopulation;        
         % NOTE: Indexing into Item may not be valid from PlotItemTable (Incorrect if there are/were invalids: obj.Item(SelectedInds(ii)).TaskName;)
-        simObj.Item(ii).TaskName = obj.PlotItemTable{SelectedInds(ii),3};
+        simObj.Item(ii).TaskName = obj.PlotItemTable{ii,3}; %obj.PlotItemTable{SelectedInds(ii),3};
     end
     
     % If Vpop is selected, must provide names the of the Vpops associated
@@ -75,9 +75,9 @@ if any(IsSelected)
         % TODO: Review with Justin - how should this change for multiple
         % parameter sources (history table)
         if ~isempty(obj.SpeciesIC)
-            for ii = 1:nSelected
+            for ii = 1:size(obj.PlotItemTable(:,1),1) %nSelected
                 % find the group associated with this task
-                ThisGroupName = obj.PlotItemTable{SelectedInds(ii),4};
+                ThisGroupName = obj.PlotItemTable{ii,4}; %{SelectedInds(ii),4};
                 % find the name of the vpop generated for this task + group
                 IndCell = strfind(obj.VPopName,['Group = ' ThisGroupName]);
                 NonEmpty = ~cellfun(@isempty, IndCell);
@@ -98,7 +98,7 @@ if any(IsSelected)
                 error('plotOptimization: %s',Message);
             end
             % each task is assigned the same vpop
-            for ii = 1:nSelected
+            for ii = 1:size(obj.PlotItemTable(:,1),1) %nSelected
                 simObj.Item(ii).VPopName = obj.VPopName{1};
             end
             
@@ -107,18 +107,22 @@ if any(IsSelected)
 %     end
     
     % If Parameter is selected, then leave the Vpop names empty
-end
+% end
 
 
 %% Run the simulations
 
 Results = [];
+ItemModels = obj.ItemModels;
 
 if any(IsSelected)    
     
     % Loop through all profiles to be shown
     for index = 1:numel(obj.PlotProfile)
-    
+%         if ~obj.PlotProfile(index).Show
+%             continue
+%         end
+        
         % TODO: Plot all profiles
         if ~isempty(obj.PlotProfile(index).Values)
             ParamNames = obj.PlotProfile(index).Values(:,1);
@@ -130,8 +134,17 @@ if any(IsSelected)
         if iscell(Pin)
             Pin = cell2mat(Pin);
         end        
-        [StatusOK,Message,~,TheseResults] = simulationRunHelper(simObj,Pin,ParamNames);
-
+        if isempty(ItemModels)
+            % profile needs to be resimulated b/c source changed or new
+            [StatusOK,Message,~,TheseResults,ItemModels] = simulationRunHelper(simObj,Pin,ParamNames,[],[],find(IsSelected));
+            obj.ItemModels = ItemModels;
+        else
+            % reuse the previous item model b/c only parameters have
+            % changed
+%             simObj_subset = simObj;
+%             simObj_subset.Item = simObj_subset.Item(IsSelected);
+            [StatusOK,Message,~,TheseResults] = simulationRunHelper(simObj,Pin,ParamNames, [], ItemModels, find(IsSelected));
+        end
         if ~StatusOK
             error('plotOptimization: %s',Message);
         else
@@ -162,7 +175,7 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
     ThisName = obj.PlotSpeciesTable{sIdx,3};    
     
     if ~isempty(axIdx) && ~isnan(axIdx) && ~isempty(Results)
-        for runIdx = 1:size(Results,1)
+        for runIdx = 1:NumRuns
             for itemIdx = 1:size(Results,2)
                 % Plot the species from the simulation item in the appropriate
                 % color
@@ -201,8 +214,8 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
                         
                         % Plot
                         hThis = plot(hSpeciesGroup{sIdx,axIdx,runIdx},Results{runIdx,itemIdx}.Time,Results{runIdx,itemIdx}.Data(:,ColumnIdx),...
-                            'Color',SelectedItemColors(itemIdx,:),...
-                            'Visible',uix.utility.tf2onoff(Show(runIdx)),...
+                            'Color',SelectedItemColors(itemIdx,:),... 
+                            'Visible', uix.utility.tf2onoff(Show(runIdx)),...
                             'LineStyle',ThisLineStyle,...
                             'LineWidth',ThisLineWidth,...
                             'HitTest','on',...
@@ -312,8 +325,11 @@ hLegendChildren = cell(1,NumAxes);
 for axIndex = 1:NumAxes
     
     % Append
-    LegendItems = [horzcat(hSpeciesGroup{:,axIndex,1}) horzcat(hDatasetGroup{:,axIndex})];
-    
+    if size(hSpeciesGroup,3) > 0
+        LegendItems = [horzcat(hSpeciesGroup{:,axIndex,1}) horzcat(hDatasetGroup{:,axIndex})];
+    else
+        LegendItems = [];
+    end
     if ~isempty(LegendItems)
         % Add legend
         [hLegend{axIndex},hLegendChildren{axIndex}] = legend(hAxes(axIndex),LegendItems);
