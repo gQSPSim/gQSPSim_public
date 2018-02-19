@@ -25,7 +25,7 @@ classdef Simulation < uix.abstract.CardViewPane
         
         TaskPopupTableItems = {}
         VPopPopupTableItems = {}
-        GroupPopupTableItems = {}
+%         GroupPopupTableItems = {}
         
         PlotSpeciesAsInvalidTable = cell(0,2)
         PlotItemAsInvalidTable = cell(0,4)
@@ -129,11 +129,12 @@ classdef Simulation < uix.abstract.CardViewPane
                         NewTaskVPop = QSP.TaskVirtualPopulation;
                         NewTaskVPop.TaskName = vObj.TaskPopupTableItems{1};
                         NewTaskVPop.VPopName = vObj.VPopPopupTableItems{1};
-                        if isempty(vObj.GroupPopupTableItems)
-                            NewTaskVPop.Group = 1;
-                        else
-                            NewTaskVPop.Group = num2str( str2num(vObj.GroupPopupTableItems{end})+1); % default to last
-                        end
+%                         if isempty(vObj.GroupPopupTableItems)
+%                             NewTaskVPop.Group = 1;
+%                         else
+%                             NewTaskVPop.Group = num2str( str2num(vObj.GroupPopupTableItems{end})+1); % default to last
+%                         end
+                        NewTaskVPop.Group = '';
                         vObj.TempData.Item(end+1) = NewTaskVPop;
                     else
                         hDlg = errordlg('At least one task must be defined in order to add a simulation item.','Cannot Add','modal');

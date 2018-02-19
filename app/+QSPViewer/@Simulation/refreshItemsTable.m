@@ -27,7 +27,7 @@ else
 end
 
 %% Refresh GroupPopupTableItems
-vObj.GroupPopupTableItems = sprintfc('%d',1:length(vObj.TempData.Settings.Task));
+% vObj.GroupPopupTableItems = sprintfc('%d',1:length(vObj.TempData.Settings.Task));
 
 
 %% Update ItemsTable

@@ -372,7 +372,7 @@ function [ItemModel, VpopWeights, StatusOK, Message] = constructVpopItem(taskObj
         % subset the vpop to the relevant group if it is defined in the
         % vpop
         [hasGroupCol, groupCol] = ismember('Group', paramNames_i);
-        if hasGroupCol
+        if hasGroupCol && ~isempty(groupObj)
             groupVec = cell2mat(vPop_params_i(:,groupCol));
             vPop_params_i = vPop_params_i(str2num(groupObj)==groupVec,:); % filter
         end
