@@ -94,12 +94,12 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
     methods
        function onPlotConfigChange(obj,h,e)
             
+            % Update data first
             Value = get(h,'Value');
             obj.Data.SelectedPlotLayout = obj.PlotLayoutOptions{Value};
             
-            % Update the view
-            updateVisualizationView(obj);            
-        end 
+            onPlotConfigChange@uix.abstract.CardViewPane(obj,h,e);
+        end
     end
     
     

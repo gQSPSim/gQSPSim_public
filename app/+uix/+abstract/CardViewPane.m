@@ -690,12 +690,19 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
         
         function onPlotConfigChange(obj,h,e)
             
+            hFigure = ancestor(obj.UIContainer,'Figure');
+            set(hFigure,'pointer','watch');
+            drawnow;
+            
             Value = get(h,'Value');
             obj.SelectedPlotLayout = obj.PlotLayoutOptions{Value};
             
             % Update the view
             updateVisualizationView(obj);
             update(obj);
+            
+            set(hFigure,'pointer','arrow');
+            drawnow;            
         end
         
         function onAxesContextMenu(obj,h,~,axIndex)

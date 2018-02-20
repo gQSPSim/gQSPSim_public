@@ -78,14 +78,14 @@ classdef Simulation < uix.abstract.CardViewPane
     
     %% Methods from CardViewPane
     methods
-       function onPlotConfigChange(obj,h,e)
+        function onPlotConfigChange(obj,h,e)
             
+            % Update data first
             Value = get(h,'Value');
             obj.Data.SelectedPlotLayout = obj.PlotLayoutOptions{Value};
             
-            % Update the view
-            updateVisualizationView(obj);            
-        end 
+            onPlotConfigChange@uix.abstract.CardViewPane(obj,h,e);
+        end
     end
     
     %% Callbacks
