@@ -511,9 +511,9 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
         
         function onHistoryTableSelectionPlot(vObj,h,e)
             
-            hFigure = ancestor(vObj.h.MainLayout,'Figure');
-            set(hFigure,'pointer','watch');
-            drawnow;
+%             hFigure = ancestor(vObj.h.MainLayout,'Figure');
+%             set(hFigure,'pointer','watch');
+%             drawnow;
             
             if ~isempty(e) && (isfield(e,'Indices') || isprop(e,'Indices'))
                 if numel(e.Indices) >= 1
@@ -523,12 +523,15 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
                 end
             end
             
+            % Turn off call to updateVisualizationView (this prevents
+            % "Show" checkbox from taking into effect since
+            % SelectionChanged (which calls updateVisualizationView) is
+            % triggered before EditChanged
             % Update the view
-            updateVisualizationView(vObj);
+%             updateVisualizationView(vObj);
             
-            set(hFigure,'pointer','arrow');
-            drawnow;
-            
+%             set(hFigure,'pointer','arrow');
+%             drawnow;
             
         end %function
         
