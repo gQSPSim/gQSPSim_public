@@ -572,6 +572,9 @@ function [Results, nFailedSims, StatusOK, Message] = simulateVPatients(ItemModel
                 params = Pin(ItemModel.VPopParamInds);
             elseif ~isempty(ItemModel.VPopParams)
                 params = ItemModel.VPopParams(jj,:);
+                if iscell(params)
+                    params = cell2mat(params);
+                end
             else
                 params = [];
             end
@@ -586,7 +589,11 @@ function [Results, nFailedSims, StatusOK, Message] = simulateVPatients(ItemModel
                 ICs = ItemModel.ICs;
 
                 if ~isempty(ItemModel.VpopSpeciesInds)
-                    ICs(ItemModel.VpopSpeciesInds) = ItemModel.VPopSpeciesICs(jj,:);
+                    tmp = ItemModel.VPopSpeciesICs(jj,:);
+                    if iscell(tmp)
+                        tmp = cell2mat(tmp);
+                    end
+                    ICs(ItemModel.VpopSpeciesInds) = tmp;
                 end % if
 
                 % Set run time using the user-provided time to reach steady state
