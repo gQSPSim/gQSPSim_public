@@ -474,9 +474,7 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
             Interaction = e.Interaction;
             Indices = e.Indices;
             
-            if isempty(Indices)
-                return
-            end
+
             
             switch Interaction
                 case 'Add'
@@ -485,6 +483,11 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
                     vObj.Data.ItemModels
                     
                 case 'Remove'
+                    
+                    if isempty(Indices)
+                        return
+                    end
+                    
                     if numel(vObj.Data.PlotProfile) > 1
                         vObj.Data.PlotProfile(Indices) = []; 
                         delete([vObj.h.SpeciesGroup{:,:,Indices}]); % remove objects                        
@@ -496,6 +499,10 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
                     vObj.Data.SelectedProfileRow = [];
                     
                 case 'Duplicate'
+                    if isempty(Indices)
+                        return
+                    end
+                    
                     vObj.Data.PlotProfile(end+1) = QSP.Profile;
                     vObj.Data.PlotProfile(end).Source = vObj.Data.PlotProfile(Indices).Source;
                     vObj.Data.PlotProfile(end).Description = vObj.Data.PlotProfile(Indices).Description;
