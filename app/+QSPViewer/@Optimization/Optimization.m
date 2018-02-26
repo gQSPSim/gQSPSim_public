@@ -529,6 +529,7 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
             % triggered before EditChanged
             % Update the view
 %             updateVisualizationView(vObj);
+            updateVisualizationPlot(vObj);
             
 %             set(hFigure,'pointer','arrow');
 %             drawnow;

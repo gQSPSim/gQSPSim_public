@@ -368,37 +368,7 @@ end
 
 %% Update plot
 
-if ~isempty(vObj.Data) && isfield(vObj.h,'SpeciesGroup')
-    Show = [vObj.Data.PlotProfile.Show];
-    
-    for i=1:size(vObj.h.SpeciesGroup,1)
-        for j=1:size(vObj.h.SpeciesGroup,2)
-            for k=1:size(vObj.h.SpeciesGroup,3)
-                if ~isempty(vObj.h.SpeciesGroup{i,j,k}) && ishandle(vObj.h.SpeciesGroup{i,j,k})
-                    Ch = vObj.h.SpeciesGroup{i,j,k}.Children;
-                    Ch = flip(Ch);
-                    if numel(Ch) > 1
-                        % Skip first (dummy line)
-                        Ch = Ch(2:end);
-                        set(Ch,'LineWidth',0.5);
-                        if (k==vObj.Data.SelectedProfileRow)
-                            set(Ch,'LineWidth',2);
-                        end
-                        % Show
-                        if Show(k)
-                            set(Ch,'Visible','on');
-                        else
-                            set(Ch,'Visible','off');
-                        end
-                    end %if
-                end %if
-            end % for
-        end %for
-    end %for
-    
-end %if
-
-
+updateVisualizationPlot(vObj);
 
 
 %--------------------------------------------------------------------------
