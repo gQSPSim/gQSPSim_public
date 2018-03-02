@@ -415,7 +415,12 @@ if ~isempty(vObj.Data.SelectedProfileRow)
     SelectedProfileData = cell(size(UniqueSourceData{uIdx},1),3);
     SelectedProfileData(1:size(SelectedProfile.Values,1),1:2) = Values;
     if ~isempty(UniqueSourceData{uIdx})
-        SelectedProfileData(:,end) = UniqueSourceData{uIdx}(:,end);
+        for idx = 1:size(SelectedProfileData,1)
+            MatchIdx = ismember(UniqueSourceData{uIdx}(:,1),SelectedProfileData{idx,1});
+            if any(MatchIdx)                
+                SelectedProfileData{idx,3} = UniqueSourceData{uIdx}{MatchIdx,end};
+            end
+        end
     end
 else
     SelectedProfileData = cell(0,3);

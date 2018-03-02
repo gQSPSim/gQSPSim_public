@@ -93,7 +93,8 @@ end
                 
         else
             % in this case, there should only be one Vpop produced
-            if length(obj.VPopName)~=1
+            
+            if length(obj.VPopName)>1
                 Message = 'Expected there to be one Vpop produced by this optimization, but instead found 0 or more than 1.';
                 error('plotOptimization: %s',Message);
             end

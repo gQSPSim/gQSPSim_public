@@ -500,6 +500,15 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
             ParentObj.(ItemType)( ParentObj.(ItemType)==ThisObj ) = [];
             
             % Update the tree
+            
+            % if deleted objective was the active object, reset the active
+            % pane
+%             if obj.ActivePane.Data == ThisObj
+%                 obj.ActivePane.Data = [];
+%             end
+            
+            obj.ActivePane.Selection = 1; % switch to summary view
+
             SelNode.Parent = hDeletedNode;
             SelNode.Tree.SelectedNodes = SelNode;
             hDeletedNode.expand();
