@@ -275,7 +275,7 @@ if any(MatchIdx)
             
             for dIdx = 1:size(obj.PlotSpeciesTable,1)
                 axIdx = str2double(obj.PlotSpeciesTable{dIdx,1});
-                ThisName = obj.PlotSpeciesTable{dIdx,3};
+                ThisName = obj.PlotSpeciesTable{dIdx,4};
                 ColumnIdx = find(strcmp(OptimHeader,ThisName));
                 
                 if ~isempty(ColumnIdx) && ~isempty(axIdx) && ~isnan(axIdx)
