@@ -262,8 +262,10 @@ for ii = 1:nItems
             return
         end
         
-        for jj = 1:length(model_i.Species)
-            sObj_i(jj) = sbioselect(model_i,'Name',model_i.Species(jj).Name);
+        ICspecies = ICTable.colheaders(ixSpecies);
+        
+        for jj = 1:length(ICspecies)
+            sObj_i(jj) = sbioselect(model_i,'Name',ICspecies(jj));
         end % for
 
         
@@ -327,8 +329,8 @@ else
     groupVec = ICTable.data(:,groupCol);
     ixSpecies = setdiff(1:numel(ICTable.colheaders), groupCol); % columns of species in IC table
     allSpecName = get(model_i.Species,'Name'); % all species as they appear in the model file
-    [~,ICColMapping] = ismember(ICTable.colheaders(ixSpecies), allSpecName); % mapping of columns to species indices   
-
+%     [h_IC,ICColMapping] = ismember(allSpecName, ICTable.colheaders(ixSpecies)); % mapping of columns to species indices   
+%     ICColMapping2 = ICColMapping(h_IC);
 end
 
 % while the total number of simulations and number of virtual patients are
@@ -346,8 +348,8 @@ while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients
     LB_outputs = [];
     UB_outputs = [];
         
-    for grpIdx = 1:length(groupVec) %nItems
-        grp = groupVec(grpIdx);
+    for grp = 1:length(groupVec) %nItems
+%         grp = groupVec(grp);
         % grab the task object
         tskInd = find(strcmp(obj.Item(grp).TaskName,{obj.Settings.Task.Name}));
         tObj_grp = obj.Settings.Task(tskInd);
@@ -366,7 +368,7 @@ while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients
         % set the initial conditions to the value in the IC file if specified
         grpICs = ItemModels(grp).ICs; % IC value after variants have been applied
         if ~isempty(ICTable)
-            grpICs = ICTable.data(grpIdx, ixSpecies(ICColMapping)); % set the initial condition from the IC file
+            grpICs = ICTable.data(grp, ixSpecies); % set the initial condition from the IC file
         end
         
         
