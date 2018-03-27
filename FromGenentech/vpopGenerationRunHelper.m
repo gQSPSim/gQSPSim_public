@@ -393,7 +393,6 @@ while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients
                 simData_grp = simulate(ItemModels(grp).ExportedModel,[grpICs, param_candidate'],ItemModels(grp).Doses);
             else % not run-to-steady-state and no initial conditions file; use model defaults
                 simData_grp = simulate(ItemModels(grp).ExportedModel,param_candidate',ItemModels(grp).Doses);
-                
             end % end
             
             % for each species in this grp acc crit, find the corresponding
