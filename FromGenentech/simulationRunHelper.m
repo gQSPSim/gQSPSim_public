@@ -678,7 +678,7 @@ function [Results, nFailedSims, StatusOK, Message] = simulateVPatients(ItemModel
                     else
                         tmp = ItemModel.VPopSpeciesICs(jj,:);
                         tmp = horzcat(tmp{:});
-                        if ~isempty(doses)
+                        if isempty(doses)
                             simData = simulate(model, [tmp, params]);
                         else
                             simData = simulate(model, [tmp, params], doses);
