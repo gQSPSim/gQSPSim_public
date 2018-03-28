@@ -289,11 +289,17 @@ if ~isempty(vObj.Data)
     [IsSourceMatch,IsRowEmpty,ThisProfileData] = i_importParametersSourceHelper(vObj);    
     for rowIdx = 1:size(Summary,1)
         % Mark invalid if source parameters cannot be loaded
-        if IsRowEmpty(rowIdx)
+        if IsRowEmpty(rowIdx) && ~ispc
             Summary{rowIdx,3} = QSP.makeInvalid(Summary{rowIdx,3});
         elseif ~IsSourceMatch(rowIdx)
             % If parameters don't match the source, italicize
-            for colIdx = [1,3,4]
+            if ispc
+                tmp = [1, 3, 4];
+            else
+                tmp = [1, 4];
+            end
+                
+            for colIdx = tmp
                 Summary{rowIdx,colIdx} = QSP.makeItalicized(Summary{rowIdx,colIdx});
             end
         end
@@ -355,13 +361,15 @@ if ~isempty(ThisProfileData)
         'Data',ThisProfileData,...
         'ColumnName',{'Parameter','Value','Source Value'},...
         'ColumnFormat',{'char','float','float'},...
-        'ColumnEditable',[false,true,false]);
+        'ColumnEditable',[false,true,false], ...
+        'LabelString', sprintf('Parameters (Run = %d)', vObj.Data.SelectedProfileRow));
 else
     set(vObj.h.PlotParametersTable,...
         'Data',cell(0,3),...
         'ColumnName',{'Parameter','Value','Source Value'},...
         'ColumnFormat',{'char','float','float'},...
-        'ColumnEditable',[false,true,false]);
+        'ColumnEditable',[false,true,false], ...
+        'LabelString', sprintf('Parameters'));
 end
 
 
