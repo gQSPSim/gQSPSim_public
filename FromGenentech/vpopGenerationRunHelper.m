@@ -95,7 +95,11 @@ if ~isempty(paramHeader) && ~isempty(paramData)
     Scale = paramData(:,strcmp('Scale',paramHeader));
     LB_params = cell2mat(paramData(:,strcmp('LB',paramHeader)));
     UB_params = cell2mat(paramData(:,strcmp('UB',paramHeader)));
-    
+    useParam = paramData(:,strcmp('Include',paramHeader));
+    p0 = cell2mat(paramData(:,6)); % NOTE: assumes in column 6!
+    if isempty(useParam)
+        useParam = repmat('yes',size(paramNames));
+    end
     logInds = [];
     for ii = 1:length(paramNames)
         if strcmp(Scale{ii},'log')
@@ -335,11 +339,21 @@ end
 
 % while the total number of simulations and number of virtual patients are
 % less than their respective maximum values...
+
+default_params = cell2mat(get(model_i.Parameters, 'Value'));
+% override defaults with the p0 value in the parameters
+[~,orderParams] = ismember( paramNames, get(model_i.Parameters, 'Name') );
+ixParam = find(strcmp(useParam, 'yes'));
+ix_p0 = ~isnan(p0);
+
 while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients
     nSim = nSim+1; % tic up the number of simulations
     
-    param_candidate = LB_params + (UB_params-LB_params).*rand(size(LB_params));
-    param_candidate(logInds) = 10.^param_candidate(logInds);
+    param_candidate = default_params(orderParams);
+    param_candidate(ix_p0) = p0(ix_p0);
+    tmp = LB_params + (UB_params-LB_params).*rand(size(LB_params));
+    tmp(logInds) = 10.^tmp(logInds);
+    param_candidate(ixParam) = tmp(ixParam);
     
     % generate a long vector of model outputs to compare to the acceptance
     % criteria
