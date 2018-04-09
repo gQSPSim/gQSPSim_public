@@ -532,6 +532,46 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                         % Append
                         vpopObj = [vpopObj thisVpopObj]; %#ok<AGROW>
                     end
+                    
+                    % update runs to have only the parameters that are
+                    % present in the parameter object in order to stay up to date with
+                    % changes to the parameter file
+                    
+                    Names = {obj.Settings.Parameters.Name};
+                    MatchIdx = strcmpi(Names,obj.RefParamName);
+                    if any(MatchIdx)
+                        pObj = obj.Settings.Parameters(MatchIdx);
+                        [ThisStatusOk,ThisMessage,paramHeader,paramData] = importData(pObj,pObj.FilePath);
+                        if ~ThisStatusOk
+                            StatusOK = false;
+                            Message = sprintf('%s\n%s\n',Message,ThisMessage);
+                            path(myPath);
+                            return
+                        end
+                    else
+                        warning('Could not find match for specified parameter file')
+                        paramData = {};
+                    end
+                    
+                    % parameters that are being optimized
+                    idxInclude = strcmp(paramHeader,'Include');
+                    idxName = strcmp(paramHeader,'Name');
+                    idx_p0 = strcmpi(paramHeader,'P0_1');
+                    
+                    optParams = paramData(strcmpi(paramData(:,idxInclude),'yes'),:);
+                    optParamNames = optParams(:,idxName);
+                    optParamValues = optParams(:,idx_p0);
+                    for idx = 1:numel(obj.PlotProfile)
+                        inSet = ismember(obj.PlotProfile(idx).Values(:,1), optParamNames);
+                        % keep only those that are in the current parameter
+                        % file
+                        idxMissing = ~ismember(optParamNames, obj.PlotProfile(idx).Values(:,1));
+
+                        obj.PlotProfile(idx).Values = obj.PlotProfile(idx).Values(inSet,:);
+                        % add in any missing entries, use default values
+                        obj.PlotProfile(idx).Values = [obj.PlotProfile(idx).Values; [optParamNames(idxMissing), optParamValues(idxMissing)]];
+                    end
+                    
                 else
                     vpopObj = QSP.VirtualPopulation.empty(0,1);
                 end
