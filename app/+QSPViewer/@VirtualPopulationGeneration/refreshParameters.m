@@ -38,6 +38,11 @@ if ~isempty(vObj.TempData) && ~isempty(vObj.TempData.RefParamName)
             % Display only select columns
             [~,ColIndices] = ismember({'Include','Name','Scale','LB','UB'},ParametersHeader);
             
+            if any(~ColIndices)
+                error('Parameters file contains invalid column names')
+            end
+                
+            
             vObj.ParametersHeader = ParametersHeader(ColIndices);
             vObj.ParametersData = ParametersData(:,ColIndices);
         else
