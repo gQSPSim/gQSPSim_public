@@ -114,7 +114,7 @@ classdef Parameters < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             
             if ~isempty(obj.myData) && exist(DataFilePath, 'File')
                 FileInfo = dir(DataFilePath);
-                timeStamp = FileInfo.date;
+                timeStamp = FileInfo.datenum;
                 if obj.myDataTimeStamp == timeStamp %modified since storing
                     Data = obj.myData;
                     Header = obj.myHeader;
@@ -147,7 +147,7 @@ classdef Parameters < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             obj.myData = Data;
             obj.myHeader = Header;
             FileInfo = dir(DataFilePath);
-            obj.myDataTimeStamp = FileInfo.date;
+            obj.myDataTimeStamp = FileInfo.datenum;
             
             
         end %function
