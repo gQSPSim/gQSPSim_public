@@ -472,10 +472,12 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                         % Parameter File
                         IsName = strcmpi(Header,'Name');
                         IsP0_1 = strcmpi(Header,'P0_1');
+                        IsInclude = strcmpi(Header,'Include');
                         if any(IsName) && any(IsP0_1)
-                            PlotParametersData = cell(size(Data,1),2);
-                            PlotParametersData(:,1) = Data(:,IsName);
-                            PlotParametersData(:,2) = Data(:,IsP0_1);                            
+                            IsUsed = strcmpi(Data(:,IsInclude),'yes');
+                            PlotParametersData = cell(nnz(IsUsed),2);
+                            PlotParametersData(:,1) = Data(IsUsed,IsName);
+                            PlotParametersData(:,2) = Data(IsUsed,IsP0_1);                            
                         end
                     elseif strcmpi(class(thisObj),'QSP.VirtualPopulation')
                         % Virtual Population Data
