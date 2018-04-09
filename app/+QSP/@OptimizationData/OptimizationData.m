@@ -134,7 +134,7 @@ classdef OptimizationData < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                     MatchSpecies = find(strcmpi(Header,'Species'));
                     MatchValue = find(strcmpi(Header,'Value'));
                     if numel(MatchSpecies) == 1 && numel(MatchValue) == 1
-                        Table = unstack(Table,{'Value'},'Species');
+                        Table = unstack(Table,'Value','Species', 'AggregationFunction', @mean);
                         
                         % Overwrite Header and Data
                         Header = Table.Properties.VariableNames;
