@@ -215,7 +215,7 @@ for ii = 1:nItems
     % species by a rule in the model
     clear pObj_i
     for jj = 1:length(paramNames)
-        pObj_i(jj) = sbioselect(model_i,'Name',paramNames{jj});
+        pObj_i(jj) = sbioselect(model_i,'Name',paramNames{jj},'Type','Parameter');
     end % for
     
     % Export model, allowing all initial conditions and the parameters to vary
@@ -224,7 +224,7 @@ for ii = 1:nItems
         % ICs editable
         clear sObj_i
         for jj = 1:length(model_i.Species)
-            sObj_i(jj) = sbioselect(model_i,'Name',model_i.Species(jj).Name);
+            sObj_i(jj) = sbioselect(model_i,'Name',model_i.Species(jj).Name,'Type','Species');
         end % for
         
         exp_model_i = export(model_i, [sObj_i, pObj_i]);
