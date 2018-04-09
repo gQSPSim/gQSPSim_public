@@ -207,9 +207,14 @@ for ii = 1:nItems
     set(model_i.Rules(ismember(tObj_i.RuleNames, tObj_i.InactiveRuleNames)), 'Active', false);
     
     % assume all parameters are present in all models
-    est_pObj_i = sbioselect(model_i,'Name',estParamNames);
-    fixed_pObj_i = sbioselect(model_i,'Name',fixedParamNames);
-        
+    est_pObj_i = sbioselect(model_i,'Name',estParamNames,'Type','Parameter');
+    [~,idxParam] = ismember(estParamNames,get(est_pObj_i,'Name'));
+    est_pObj_i = est_pObj_i(idxParam);
+    
+    fixed_pObj_i = sbioselect(model_i,'Name',fixedParamNames,'Type','Parameter');
+    [~,idxParam] = ismember(fixedParamNames,get(fixed_pObj_i,'Name'));
+    fixed_pObj_i = fixed_pObj_i(idxParam);
+    
     % grab the default initial conditions from the model   
     IC_i = cell2mat(get(model_i.Species,'InitialAmount'));
     
