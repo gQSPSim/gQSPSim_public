@@ -405,7 +405,7 @@ function [ItemModel, VpopWeights, StatusOK, Message] = constructVpopItem(taskObj
             clear pObj_i
         end
         for jj = 1 : length(paramNames_i)
-            pObj_i(jj) = sbioselect(thisModel, 'Name', paramNames_i{jj});             
+            pObj_i(jj) = sbioselect(thisModel, 'Name', paramNames_i{jj}, 'Type', 'Parameter');             
         end % for
         
     else 
