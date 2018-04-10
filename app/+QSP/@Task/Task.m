@@ -52,6 +52,10 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
     %% Protected Properties
     properties (GetAccess=public, SetAccess=protected)
         ModelName
+        ExportedModelTimeStamp 
+        ExportedModel
+        Species
+        Parameters
     end
     
     %% Protected Transient Properties
@@ -65,11 +69,13 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         VariantNames
         DoseNames
         SpeciesNames
+        ParameterNames
+        ParameterValues
         ReactionNames
         RuleNames
         OutputTimes
         DefaultOutputTimes
-        DefaultMaxWallClockTime
+        DefaultMaxWallClockTime        
     end
     
     %% Constructor
@@ -93,9 +99,12 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             
             % Populate public properties from P-V input pairs
             obj.assignPVPairs(varargin{:});
-            
+            obj.ExportedModelTimeStamp = 0;
         end %function obj = Task(varargin)
         
+        [t,x,names] = simulate(obj, varargin) % prototype
+        
+
     end %methods
     
     %% Methods defined as abstract
@@ -210,8 +219,20 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 obj.(Property) = Value;
             end
         end %function
+        
+        constructModel(obj)
+        
+        function upToDate = checkModelCurrent(obj)
+            FileInfo = dir(obj.FilePath);
+            if FileInfo.datenum > obj.ExportedModelTimeStamp || datenum(obj.LastSavedTime) > obj.ExportedModelTimeStamp
+                upToDate = false;
+            else
+                upToDate = true;
+            end
+        end
     end
     
+   
     %% Methods
     methods
         function ModelNames = getModelList(obj)
@@ -363,6 +384,34 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 Value = cell(0,1);
             end
         end % get.SpeciesNames
+        
+        function Value = get.ParameterNames(obj)
+            if ~isempty(obj.ModelObj)
+                Value = obj.ModelObj.Parameters;
+                Value = get(Value,'Name');
+                if isempty(Value)
+                    Value = cell(0,1);
+                elseif ischar(Value)
+                    Value = {Value};
+                end
+            else
+                Value = cell(0,1);
+            end
+        end % get.ParameterNames       
+        
+        function Value = get.ParameterValues(obj)
+            if ~isempty(obj.ModelObj)
+                Value = obj.ModelObj.Parameters;
+                Value = get(Value,'Value');
+                if isempty(Value)
+                    Value = cell(0,1);
+                elseif ischar(Value)
+                    Value = {Value};
+                end
+            else
+                Value = cell(0,1);
+            end
+        end % get.ParameterNames          
         
         function Value = get.RuleNames(obj)
             if ~isempty(obj.ModelObj)
