@@ -480,11 +480,11 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
                 case 'Add'
                     vObj.Data.PlotProfile(end+1) = QSP.Profile;
                     vObj.Data.SelectedProfileRow = numel(vObj.Data.PlotProfile);
-                    vObj.Data.ItemModels
+%                     vObj.Data.ItemModels
                     
                 case 'Remove'
                     
-                    if isempty(Indices)
+                    if isempty(Indices) || Indices > length(vObj.Data.PlotProfile)
                         return
                     end
                     
