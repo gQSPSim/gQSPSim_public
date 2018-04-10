@@ -569,7 +569,7 @@ function [Results, nFailedSims, StatusOK, Message] = simulateVPatients(ItemModel
         for jj = 1:ItemModel.nPatients
             % check for user-input parameter values
             if ~isempty(Pin)
-                params = Pin(ItemModel.VPopParamInds);
+                params = Pin; %(ItemModel.VPopParamInds);
             elseif ~isempty(ItemModel.VPopParams)
                 params = ItemModel.VPopParams(jj,:);
                 if iscell(params)
