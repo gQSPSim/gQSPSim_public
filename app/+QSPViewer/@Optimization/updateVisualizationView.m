@@ -255,13 +255,20 @@ if ~isempty(vObj.Data)
     % longer matches the ExcelResultFileName?
     VPopNames = {};
     for idx = 1:numel(vObj.Data.ExcelResultFileName)
-        [~,VPopNames{idx}] = fileparts(vObj.Data.ExcelResultFileName{idx}); %#ok<AGROW>
+        if ~isempty(vObj.Data.ExcelResultFileName{idx})
+            [~,VPopNames{idx}] = fileparts(vObj.Data.ExcelResultFileName{idx}); %#ok<AGROW>
+        else
+            VPopNames{idx} = [];
+        end
     end
     
     % Filter VPopNames list (only if name does not exist, not if invalid)
     AllVPopNames = {vObj.Data.Session.Settings.VirtualPopulation.Name};
     MatchVPopIdx = false(1,numel(AllVPopNames));
     for idx = 1:numel(VPopNames)
+        if isempty(VPopNames{idx})
+            continue
+        end
         MatchVPopIdx = MatchVPopIdx | ~cellfun(@isempty,regexp(AllVPopNames,VPopNames{idx}));
     end
     VPopNames = AllVPopNames(MatchVPopIdx);
