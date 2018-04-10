@@ -522,7 +522,7 @@ end
         % added property ObjectiveName to SpeciesData class
         objective_handles = cell(length(obj.SpeciesData),1);
         for spec = 1:length(obj.SpeciesData)
-            objective_handles{spec} = str2func(obj.SpeciesData(spec).ObjectiveName);
+            objective_handles{spec} = str2func( regexprep(obj.SpeciesData(spec).ObjectiveName, '.m$', ''));
         end
         SpeciesData = obj.SpeciesData;
         SpeciesIC = obj.SpeciesIC;
