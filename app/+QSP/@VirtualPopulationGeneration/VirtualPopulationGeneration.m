@@ -516,9 +516,11 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
                     VirtualPopulationDataFileLastSavedTime = FileInfo.datenum;
                     
                     % Parameter object and file
-                    ParametersLastSavedTime = datenum(pObj.LastSavedTime);
-                    FileInfo = dir(pObj.FilePath);
-                    ParametersFileLastSavedTime = FileInfo.datenum;                    
+                    if ~isempty(pObj)
+                        ParametersLastSavedTime = datenum(pObj.LastSavedTime);
+                        FileInfo = dir(pObj.FilePath);
+                        ParametersFileLastSavedTime = FileInfo.datenum;                    
+                    end
                     
                     % Results file - ONE file
                     ThisFilePath = fullfile(obj.Session.RootDirectory,obj.VPopResultsFolderName,obj.ExcelResultFileName);
