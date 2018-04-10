@@ -306,10 +306,22 @@ switch obj.AlgorithmName
         end
         
     case 'ParticleSwarm'
-        warning('Particle Swarm not yet implemented')
-        StatusOK = false;
-        path(myPath);
-        return
+        N = length(estParamData);
+        try
+            StatusOK = true;
+            LB = estParamData(:,1);
+            UB = estParamData(:,2);
+            options = optimoptions('ParticleSwarm', 'Display', 'iter', 'FunctionTolerance', .1, 'MaxTime', 30, 'UseParallel', true);
+            VpopParams = particleswarm( @(est_p) objectiveFun(est_p',logInds,fixedParamData,ItemModels,Groups,IDs,Time,optimData,dataNames,obj), N, LB, UB, options);
+        catch err
+            StatusOK = false;
+            warning('Encountered error in particle swarm optimization')
+            Message = sprintf('%s\n%s\n',Message,err);
+            path(myPath);
+            return
+        end    
+        
+
     case 'Local'
         warning('Local optimization not yet implemented')
         StatusOK = false;
