@@ -610,11 +610,12 @@ function [Results, nFailedSims, StatusOK, Message] = simulateVPatients(ItemModel
                 end % try
 
                 % Modify stop time/output times
-                if ~isempty(taskObj.OutputTimes)
-                    model.SimulationOptions.OutputTimes = taskObj.OutputTimes;
-                else
-                    model.SimulationOptions.OutputTimes = taskObj.DefaultOutputTimes;
-                end % if
+%                 if ~isempty(taskObj.OutputTimes)
+%                     model.SimulationOptions.OutputTimes = taskObj.OutputTimes;
+%                 else
+%                     model.SimulationOptions.OutputTimes = taskObj.DefaultOutputTimes;
+%                 end % if
+                model.SimulationOptions.OutputTimes = Results.Time;
 
                 % If simulation to steady state was successful, simulate with
                 % the steady state concentrations as initial conditions
