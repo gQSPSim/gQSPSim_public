@@ -127,24 +127,24 @@ if any(IsSelected)
         % TODO: Plot all profiles
         if ~isempty(obj.PlotProfile(index).Values)
             ParamNames = obj.PlotProfile(index).Values(:,1);
-            Pin = obj.PlotProfile(index).Values(:,2);
+            ParamValues = obj.PlotProfile(index).Values(:,2);
         else
             ParamNames = {};
-            Pin = {};
+            ParamValues = {};
         end
-        if iscell(Pin)
-            Pin = cell2mat(Pin);
+        if iscell(ParamValues)
+            ParamValues = cell2mat(ParamValues);
         end        
         if isempty(ItemModels)
             % profile needs to be resimulated b/c source changed or new
-            [StatusOK,Message,~,TheseResults,ItemModels] = simulationRunHelper(simObj,Pin,ParamNames,[],[],find(IsSelected));
+            [StatusOK,Message,~,TheseResults,ItemModels] = simulationRunHelper(simObj,ParamValues,ParamNames,[],[],find(IsSelected));
             obj.ItemModels = ItemModels;
         else
             % reuse the previous item model b/c only parameters have
             % changed
 %             simObj_subset = simObj;
 %             simObj_subset.Item = simObj_subset.Item(IsSelected);
-            [StatusOK,Message,~,TheseResults] = simulationRunHelper(simObj,Pin,ParamNames, [], ItemModels, find(IsSelected));
+            [StatusOK,Message,~,TheseResults] = simulationRunHelper(simObj,ParamValues,ParamNames, [], ItemModels, find(IsSelected));
         end
         if ~StatusOK
             error('plotOptimization: %s',Message);
