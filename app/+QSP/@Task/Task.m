@@ -61,6 +61,7 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
     %% Protected Transient Properties
     properties (GetAccess=public, SetAccess=protected, Transient = true)
         ModelObj
+        VarModelObj
     end
     
     %% Dependent Properties
@@ -258,6 +259,7 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             % Defaults
             StatusOk = true;
             Message = '';
+            warning('off', 'SimBiology:sbioloadproject:Version')
             
             % Store path
             obj.FilePath = ProjectPath;

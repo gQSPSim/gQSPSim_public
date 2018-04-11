@@ -565,13 +565,13 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
                         ThisProfile.Show = ThisData{RowIdx,ColIdx};
                     case 3
                         % Source
-                              
                         % Re-import the source values for
                         % ThisProfile.Source (before changing)
                         ThisSourceData = {};
                         if ~isempty(ThisProfile.Source) && ~any(strcmpi(ThisProfile.Source,{'','N/A'}))
                             [~,~,ThisSourceData] = importParametersSource(vObj.Data,ThisProfile.Source);
-                        end
+                        end     
+                        
                         % Get the name of the new source                        
                         NewSource = ThisData{RowIdx,ColIdx};
                         
@@ -597,7 +597,35 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
                             ThisProfile.Source = '';
                             ThisProfile.Values = cell(0,2);
                         elseif strcmpi(Result,'Yes')
+
+
                             
+                            obj = vObj.Data;
+                            Names = {obj.Settings.Parameters.Name};
+                            MatchIdx = strcmpi(Names,obj.RefParamName);
+                            if any(MatchIdx)
+                                pObj = obj.Settings.Parameters(MatchIdx);
+                                [ThisStatusOk,ThisMessage,paramHeader,paramData] = importData(pObj,pObj.FilePath);
+                                if ~ThisStatusOk
+                                    StatusOK = false;
+                                    Message = sprintf('%s\n%s\n',Message,ThisMessage);
+                                    path(myPath);
+                                    return
+                                end
+                            else
+                                warning('Could not find match for specified parameter file')
+                                paramData = {};
+                            end
+
+                            % parameters that are being optimized
+                            idxInclude = strcmp(paramHeader,'Include');
+                            idxName = strcmp(paramHeader,'Name');
+                            idx_p0 = strcmpi(paramHeader,'P0_1');
+
+                            optParams = paramData(strcmpi(paramData(:,idxInclude),'yes'),:);
+                            optParamNames = optParams(:,idxName);
+                            optParamValues = optParams(:,idx_p0);    
+   
                             % Get NewSource Data
                             NewSourceData = {};
                             if ~isempty(NewSource) && ~any(strcmpi(NewSource,{'','N/A'}))
@@ -610,6 +638,15 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
                             
                             ThisProfile.Source = NewSource;
                             ThisProfile.Values = sortrows(NewSourceData,1);
+                            
+                            inSet = ismember(ThisProfile.Values(:,1), optParamNames);
+                            idxMissing = ~ismember(optParamNames, ThisProfile.Values(:,1));
+                            ThisProfile.Values = ThisProfile.Values(inSet,:);
+                            % add in any missing entries, use default values
+                            ThisProfile.Values = [ThisProfile.Values; [optParamNames(idxMissing), optParamValues(idxMissing)]];
+                                                        
+                            
+                            
                         end
 
                     case 4

@@ -395,6 +395,10 @@ for index = 1:numel(UniqueSourceNames)
     end
 end
 
+% Exclude species from the parameters table
+% idxSpecies = vObj.Data.
+
+
 % Return which profile rows are different and return the selected profile
 % row's data
 nProfiles = numel(vObj.Data.PlotProfile);
@@ -419,15 +423,20 @@ if ~isempty(vObj.Data.SelectedProfileRow)
     uIdx = ismember(UniqueSourceNames,SelectedProfile.Source);
     
     % Store - names, user's values, source values
-    SelectedProfileData = cell(size(UniqueSourceData{uIdx},1),3);
-    SelectedProfileData(1:size(SelectedProfile.Values,1),1:2) = Values;
+%     SelectedProfileData = cell(size(UniqueSourceData{uIdx},1),3);
+%     SelectedProfileData(1:size(SelectedProfile.Values,1),1:2) = Values;
+    
+    SelectedProfileData = SelectedProfile.Values;
     if ~isempty(UniqueSourceData{uIdx})
-        for idx = 1:size(SelectedProfileData,1)
-            MatchIdx = ismember(UniqueSourceData{uIdx}(:,1),SelectedProfileData{idx,1});
-            if any(MatchIdx)                
-                SelectedProfileData{idx,3} = UniqueSourceData{uIdx}{MatchIdx,end};
-            end
-        end
+        [hMatch,MatchIdx] = ismember(SelectedProfileData(:,1), UniqueSourceData{uIdx}(:,1));
+        SelectedProfileData(:,3) = UniqueSourceData{uIdx}(MatchIdx,end);
+        
+%         for idx = 1:size(SelectedProfileData,1)
+%             MatchIdx = ismember(UniqueSourceData{uIdx}(:,1),SelectedProfileData{idx,1});
+%             if any(MatchIdx)                
+%                 SelectedProfileData{idx,3} = UniqueSourceData{uIdx}{MatchIdx,end};
+%             end
+%         end
     end
 else
     SelectedProfileData = cell(0,3);

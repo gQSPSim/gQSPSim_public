@@ -135,17 +135,8 @@ if any(IsSelected)
         if iscell(ParamValues)
             ParamValues = cell2mat(ParamValues);
         end        
-        if isempty(ItemModels)
-            % profile needs to be resimulated b/c source changed or new
-            [StatusOK,Message,~,TheseResults,ItemModels] = simulationRunHelper(simObj,ParamValues,ParamNames,[],[],find(IsSelected));
-            obj.ItemModels = ItemModels;
-        else
-            % reuse the previous item model b/c only parameters have
-            % changed
-%             simObj_subset = simObj;
-%             simObj_subset.Item = simObj_subset.Item(IsSelected);
-            [StatusOK,Message,~,TheseResults] = simulationRunHelper(simObj,ParamValues,ParamNames, [], ItemModels, find(IsSelected));
-        end
+        [StatusOK,Message,~,TheseResults] = simulationRunHelper(simObj,ParamValues,ParamNames,[],[],find(IsSelected));
+
         if ~StatusOK
             error('plotOptimization: %s',Message);
         else
