@@ -428,7 +428,7 @@ function [Results, nFailedSims, StatusOK, Message] = simulateVPatients(ItemModel
             Results.Data = [Results.Data,activeSpec_j];
             catch err% simulation
                 % If the simulation fails, store NaNs
-                warning(err.message)
+                warning(err.identifier, 'simulationRunHelper: %s', err.message)
                 % pad Results.Data with appropriate number of NaNs
                 if ~isempty(taskObj.ActiveSpeciesNames)
                     Results.Data = [Results.Data,NaN*ones(length(Results.Time),length(taskObj.ActiveSpeciesNames))];

@@ -424,7 +424,7 @@ end
                     
                     simData_id = ItemModels.Task(grpIdx).simulate(...
                         'Names', [{SpeciesIC.SpeciesName}'; estParamNames; fixedParamNames], ...
-                        'Values', cell2mat([IC';est_p;fixed_p]), ...
+                        'Values', [IC';est_p;fixed_p], ...
                         'OutputTimes', OutputTimes, ...
                         'StopTime', StopTime );
                     
@@ -486,6 +486,7 @@ end
             end % for grp = ...
             
         catch simErr
+            disp(simErr.message)
             % if objective calculation fails
             objectiveVec = [];
             for grpIdx = 1:length(obj.Item)
@@ -507,7 +508,11 @@ end
                     
                     %
                     for spec = 1:length(SpeciesData)
+                        try
                         optimData_spec = optimData_id(Time_id>=0,strcmp(SpeciesData(spec).DataName,dataNames));
+                        catch err
+                            disp(err.message)
+                        end
                         objectiveVec = [objectiveVec;inf(length(optimData_spec(~isnan(optimData_spec))),1)];
                     end % for spec = ...
                 end % for id
