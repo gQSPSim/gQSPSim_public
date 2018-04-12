@@ -326,7 +326,7 @@ function [ItemModel, VpopWeights, StatusOK, Message] = constructVpopItem(taskObj
         % vpop
         [hasGroupCol, groupCol] = ismember('Group', params);
         if hasGroupCol && ~isempty(groupObj)
-            groupVec = cell2mat(vpopTable(:,groupCol));
+            groupVec = vpopTable(:,groupCol);
             vpopTable = vpopTable(str2num(groupObj)==groupVec,:); % filter
         end
 
@@ -404,11 +404,6 @@ function [Results, nFailedSims, StatusOK, Message] = simulateVPatients(ItemModel
             
            
             try 
-%                 if ~isempty(Values)
-%                     theseValues = cell2mat(Values(jj,:));
-%                 else
-%                     theseValues = [];
-%                 end
                 if isempty(Values)
                     theseValues = [];
                 else

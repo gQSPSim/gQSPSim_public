@@ -263,7 +263,12 @@ if strcmp(obj.PlotType, 'Normal') && ~isempty(Results)
                     
                     % mean
 %                     mean_line = plot(hAxes(axIdx), Results{itemIdx}.Time, thisData(:,ColumnIdx) * obj.PrevalenceWeights/sum(obj.PrevalenceWeights),...
-                    vpopWeights = cell2mat(Results{itemIdx}.VpopWeights);
+                    if iscell(Results{itemIdx}.VpopWeights)
+                        vpopWeights = cell2mat(Results{itemIdx}.VpopWeights);
+                    else
+                        vpopWeights = Results{itemIdx}.VpopWeights;
+                    end
+                    
                     mean_line = plot(hSpeciesGroup{sIdx,axIdx}, Results{itemIdx}.Time, thisData(:,ColumnIdx) * ...
                             vpopWeights/sum(vpopWeights),...
                         'LineStyle',ThisLineStyle,...
@@ -513,7 +518,11 @@ for axIndex = 1:NumAxes
     
     if ~isempty(LegendItems)
         % Add legend
-        [hLegend{axIndex},hLegendChildren{axIndex}] = legend(hAxes(axIndex),LegendItems);
+        try
+            [hLegend{axIndex},hLegendChildren{axIndex}] = legend(hAxes(axIndex),LegendItems);
+        catch
+            warning('Error drawing legends')
+        end
     else
         hLegend{axIndex} = [];
         hLegendChildren{axIndex} = [];        
