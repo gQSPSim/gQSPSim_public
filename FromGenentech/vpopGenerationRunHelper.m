@@ -180,6 +180,8 @@ else
 end
 
 %% loop over the candidates until enough are generated
+hWbar = uix.utility.CustomWaitbar(0,'Virtual population generation','Generating virtual population...',true);
+
 while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients
     nSim = nSim+1; % tic up the number of simulations
     
@@ -311,9 +313,16 @@ while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients
         if isValid(nSim)
             nPat = nPat+1; % if conditions are satisfied, tick up the number of virutal patients
         end
+        waitStatus = uix.utility.CustomWaitbar(nPat/obj.MaxNumVirtualPatients,hWbar,sprintf('Succesfully generated %d/%d vpatients. (%d/%d Failed)',  ...
+            nPat, obj.MaxNumVirtualPatients, nSim-nPat, nSim ));
+        if ~waitStatus
+            break
+        end
     end      
 end % while
-
+if ~isempty(hWbar) && ishandle(hWbar)
+    delete(hWbar)
+end
 % in case nPat is less than the maximum number of virtual patients...
 % Vpop = Vpop(isValid==1,:); % removes extra zeros in Vpop
 
