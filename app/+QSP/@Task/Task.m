@@ -225,7 +225,7 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         
         function upToDate = checkModelCurrent(obj)
             FileInfo = dir(obj.FilePath);
-            if FileInfo.datenum > obj.ExportedModelTimeStamp || datenum(obj.LastSavedTime) > obj.ExportedModelTimeStamp
+            if isempty(obj.ExportedModelTimeStamp) || FileInfo.datenum > obj.ExportedModelTimeStamp || datenum(obj.LastSavedTime) > obj.ExportedModelTimeStamp
                 upToDate = false;
             else
                 upToDate = true;
