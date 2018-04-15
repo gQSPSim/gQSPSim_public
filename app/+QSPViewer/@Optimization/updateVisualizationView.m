@@ -429,7 +429,8 @@ if ~isempty(vObj.Data.SelectedProfileRow)
     SelectedProfileData = SelectedProfile.Values;
     if ~isempty(UniqueSourceData{uIdx})
         [hMatch,MatchIdx] = ismember(SelectedProfileData(:,1), UniqueSourceData{uIdx}(:,1));
-        SelectedProfileData(:,3) = UniqueSourceData{uIdx}(MatchIdx,end);
+        SelectedProfileData = SelectedProfileData(hMatch,:);
+        SelectedProfileData(:,3) = UniqueSourceData{uIdx}(MatchIdx(hMatch),end);
         
 %         for idx = 1:size(SelectedProfileData,1)
 %             MatchIdx = ismember(UniqueSourceData{uIdx}(:,1),SelectedProfileData{idx,1});
