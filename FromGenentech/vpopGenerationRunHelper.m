@@ -293,6 +293,7 @@ while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients
                     simData_spec = simData_spec(okInds(bSim));
                     LB_grp_spec = LB_grp_spec(okInds(bSim));
                     UB_grp_spec = UB_grp_spec(okInds(bSim));
+                    Time_grp_spec = Time_grp_spec(okInds(bSim));
 
                     % save model outputs
                     model_outputs = [model_outputs;simData_spec];
