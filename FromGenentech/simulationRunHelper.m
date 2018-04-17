@@ -115,6 +115,10 @@ hWbar2 = uix.utility.CustomWaitbar(0,Title2,'',false);
 output = cell(1,nRunItems);
 ResultFileNames = cell(nRunItems,1);
 
+if ~iscell(options.Pin)
+    options.Pin = {options.Pin};
+end
+
 if ~isempty(ItemModels)
     
     for ii = 1:nRunItems
@@ -124,52 +128,62 @@ if ~isempty(ItemModels)
         uix.utility.CustomWaitbar(ii/nRunItems,hWbar2,sprintf('Simulating task %d of %d',ii,nRunItems));
 
         % simulate virtual patients
-        [Results, nFailedSims, ThisStatusOK, ThisMessage] = simulateVPatients(ItemModel, options, Message);
-        if ~ThisStatusOK
-            StatusOK = false;
-            Message = sprintf('%s\n%s\n',Message,ThisMessage);
-            continue
-        end
-        
-        %%% Save results of each simulation in different files %%%%%%%%%%%%%%%%%%%%
-        SaveFlag = isempty(options.Pin); % don't save if PIn is provided
-
-        % keep the VpopWeights for this group
-        Results.VpopWeights = VpopWeights;
-        
-        % add results to output cell
-        output{ii} = Results;
-
-        SaveFilePath = fullfile(obj.Session.RootDirectory,obj.SimResultsFolderName);
-        if ~exist(SaveFilePath,'dir')
-            [ThisStatusOk,ThisMessage] = mkdir(SaveFilePath);
-            if ~ThisStatusOk
+        for jj=1:length(options.Pin)
+            thisOptions = options;
+            thisOptions.Pin = options.Pin{jj};
+            if ~isempty(thisOptions.paramNames)
+                thisOptions.paramNames = options.paramNames{jj};
+            else
+                thisOptions.paramNames = {};
+            end
+            
+            [Results, nFailedSims, ThisStatusOK, ThisMessage] = simulateVPatients(ItemModel, thisOptions, Message);
+            if ~ThisStatusOK
+                StatusOK = false;
                 Message = sprintf('%s\n%s\n',Message,ThisMessage);
-                SaveFlag = false;
+                continue
             end
-        end
 
-        if SaveFlag
-            % Update ResultFileNames
-            ResultFileNames{ii} = ['Results - Sim = ' options.simName ', Task = ' obj.Item(options.runIndices(ii)).TaskName ' - Vpop = ' obj.Item(options.runIndices(ii)).VPopName ' - Date = ' datestr(now,'dd-mmm-yyyy_HH-MM-SS') '.mat'];
+            %%% Save results of each simulation in different files %%%%%%%%%%%%%%%%%%%%
+            SaveFlag = isempty(options.Pin{1}); % don't save if PIn is provided
 
-            if isempty(VpopWeights)
-                save(fullfile(SaveFilePath,ResultFileNames{ii}), 'Results')
-            else
-                save(fullfile(SaveFilePath,ResultFileNames{ii}), 'Results', 'VpopWeights')
+            % keep the VpopWeights for this group
+            Results.VpopWeights = VpopWeights;
+
+            % add results to output cell
+            output{jj,ii} = Results;
+
+            SaveFilePath = fullfile(obj.Session.RootDirectory,obj.SimResultsFolderName);
+            if ~exist(SaveFilePath,'dir')
+                [ThisStatusOk,ThisMessage] = mkdir(SaveFilePath);
+                if ~ThisStatusOk
+                    Message = sprintf('%s\n%s\n',Message,ThisMessage);
+                    SaveFlag = false;
+                end
             end
-            % right now it's one line of Message per Simulation Item
-            if nFailedSims == ItemModel.nPatients
-                ThisMessage = 'No simulations were successful. (Check that dependencies are valid.)';
-            else
-                ThisMessage = [num2str(ItemModel.nPatients-nFailedSims) ' simulations were successful out of ' num2str(ItemModel.nPatients) '.'];
+
+            if SaveFlag
+                % Update ResultFileNames
+                ResultFileNames{ii} = ['Results - Sim = ' options.simName ', Task = ' obj.Item(options.runIndices(ii)).TaskName ' - Vpop = ' obj.Item(options.runIndices(ii)).VPopName ' - Date = ' datestr(now,'dd-mmm-yyyy_HH-MM-SS') '.mat'];
+
+                if isempty(VpopWeights)
+                    save(fullfile(SaveFilePath,ResultFileNames{ii}), 'Results')
+                else
+                    save(fullfile(SaveFilePath,ResultFileNames{ii}), 'Results', 'VpopWeights')
+                end
+                % right now it's one line of Message per Simulation Item
+                if nFailedSims == ItemModel.nPatients
+                    ThisMessage = 'No simulations were successful. (Check that dependencies are valid.)';
+                else
+                    ThisMessage = [num2str(ItemModel.nPatients-nFailedSims) ' simulations were successful out of ' num2str(ItemModel.nPatients) '.'];
+                end
+                Message = sprintf('%s\n%s\n',Message,ThisMessage);        
+            elseif isfield(options,'Pin') && isempty(options.Pin)
+                StatusOK = false;
+                ThisMessage = 'Unable to save results to MAT file.';
+                Message = sprintf('%s\n%s\n',Message,ThisMessage);
             end
-            Message = sprintf('%s\n%s\n',Message,ThisMessage);        
-        elseif isfield(options,'Pin') && isempty(options.Pin)
-            StatusOK = false;
-            ThisMessage = 'Unable to save results to MAT file.';
-            Message = sprintf('%s\n%s\n',Message,ThisMessage);
-        end
+        end % for jj
 
     end % for ii = ...
 
@@ -218,7 +232,9 @@ extraOutputTimes = [];
 
 if nargin > 2
     ParamValues = varargin{1};
-    ParamValues = reshape(ParamValues,1,[]); % row vector
+    if ~isempty(ParamValues)
+        ParamValues = cellfun(@(x) reshape(x,1,[]), ParamValues, 'UniformOutput', false); % row vector
+    end
     ParamNames = varargin{2};
 end
 
@@ -389,10 +405,9 @@ function [Results, nFailedSims, StatusOK, Message] = simulateVPatients(ItemModel
         Results.SpeciesNames = taskObj.SpeciesNames;
     end    
     
-
     if isfield(ItemModel,'nPatients')
         for jj = 1:ItemModel.nPatients
-            
+
             % check for user-input parameter values
             if ~isempty(ParamValues_in)
                 Names = options.paramNames;
@@ -401,8 +416,8 @@ function [Results, nFailedSims, StatusOK, Message] = simulateVPatients(ItemModel
                 Names = ItemModel.Names;
                 Values = ItemModel.Values;
             end
-            
-           
+
+
             try 
                 if isempty(Values)
                     theseValues = [];
@@ -441,4 +456,5 @@ function [Results, nFailedSims, StatusOK, Message] = simulateVPatients(ItemModel
             end % try
         end % for jj = ...
     end % if
+    
 end
