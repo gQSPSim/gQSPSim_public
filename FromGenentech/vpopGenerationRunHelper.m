@@ -182,6 +182,9 @@ end
 %% loop over the candidates until enough are generated
 hWbar = uix.utility.CustomWaitbar(0,'Virtual population generation','Generating virtual population...',true);
 
+
+ViolationTable = [];
+
 while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients
     nSim = nSim+1; % tic up the number of simulations
     
@@ -194,17 +197,21 @@ while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients
     
     % generate a long vector of model outputs to compare to the acceptance
     % criteria
-    model_outputs = [];
+    spec_outputs = [];
     time_outputs = [];
     LB_outputs = [];
     UB_outputs = [];
-        
+    taskName_outputs = [];
+    model_outputs = [];
+    LB_violation = [];
+    UB_violation = [];   
+    
     % loop over unique groups in the acceptance criteria file
     for grpIdx = 1:length(unqGroups) %nItems
         currGrp = unqGroups(grpIdx);
         
         % get matching taskGroup item based on group ID        
-        itemIdx = strcmp(obj.Item.GroupID, num2str(currGrp));
+        itemIdx = strcmp({obj.Item.GroupID}, num2str(currGrp));
         if ~any(itemIdx)
             % this group is not part of this vpop generation
             continue
@@ -239,11 +246,12 @@ while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients
         % loop over initial conditions for this group
         for ixIC = 1:nIC
             if ~isempty(IC_species)
-                Names = [Names0; IC_species'];       
+                Names = [Names0; IC_species'];  
+                Values = [Values0; ICs(ixIC,:)'];
             else
                 Names = Names0;
+                Values = Values0;
             end
-            Values = [Values0; ICs(ixIC,:)'];
 
 
             % simulate
@@ -261,7 +269,7 @@ while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients
                     specInd = strcmp(uniqueSpecies_grp(spec),Mappings(:,2));
 
                     % grab data for the corresponding model species from the simulation results
-                    [simT,simData_spec] = selectbyname(simData,Mappings(specInd,1));
+                    [simT,simData_spec,specName] = selectbyname(simData,Mappings(specInd,1));
 
                     try
                         % transform the model outputs to match the data
@@ -283,10 +291,14 @@ while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients
                     % select simulation time points for which there are acceptance criteria
                     [bSim,okInds] = ismember(simT,Time_grp_spec);
                     simData_spec = simData_spec(okInds(bSim));
+                    LB_grp_spec = LB_grp_spec(okInds(bSim));
+                    UB_grp_spec = UB_grp_spec(okInds(bSim));
 
                     % save model outputs
                     model_outputs = [model_outputs;simData_spec];
                     time_outputs = [time_outputs;Time_grp_spec];
+                    spec_outputs = [spec_outputs;repmat(specName,size(simData_spec))];
+                    taskName_outputs = [taskName_outputs;repmat({taskObj.Name},size(simData_spec))];
 
                     LB_outputs = [LB_outputs; LB_grp_spec];
                     UB_outputs = [UB_outputs; UB_grp_spec];
@@ -308,17 +320,31 @@ while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients
     
     % compare model outputs to acceptance criteria
     if ~isempty(model_outputs) 
-        Vpop(nSim,:) = param_candidate'; % store the parameter set
+        Vpop(nSim,:) = Values0'; % store the parameter set
         isValid(nSim) = double(all(model_outputs>=LB_outputs) && all(model_outputs<=UB_outputs));
         if isValid(nSim)
             nPat = nPat+1; % if conditions are satisfied, tick up the number of virutal patients
         end
         waitStatus = uix.utility.CustomWaitbar(nPat/obj.MaxNumVirtualPatients,hWbar,sprintf('Succesfully generated %d/%d vpatients. (%d/%d Failed)',  ...
             nPat, obj.MaxNumVirtualPatients, nSim-nPat, nSim ));
+        
+        LB_violation = [LB_violation; find(model_outputs<LB_outputs)];
+        UB_violation = [UB_violation; find(model_outputs>UB_outputs)];
         if ~waitStatus
             break
         end
     end      
+    LBTable = table(taskName_outputs(LB_violation), ...
+        spec_outputs(LB_violation), ...
+        num2cell(time_outputs(LB_violation)),...
+        repmat({'LB'},size(LB_violation)), ...
+        'VariableNames', {'Task','Species','Time','Type'});
+    UBTable = table(taskName_outputs(UB_violation), ...
+        spec_outputs(UB_violation), ...
+        num2cell(time_outputs(UB_violation)),...
+        repmat({'UB'},size(UB_violation)), ...
+        'VariableNames', {'Task','Species','Time','Type'});
+    ViolationTable = [ViolationTable; LBTable; UBTable];
 end % while
 if ~isempty(hWbar) && ishandle(hWbar)
     delete(hWbar)
@@ -326,15 +352,30 @@ end
 % in case nPat is less than the maximum number of virtual patients...
 % Vpop = Vpop(isValid==1,:); % removes extra zeros in Vpop
 
+%% DEBUG: output all the violations of the constraints
+if ~isempty(ViolationTable)
+    g = findgroups(ViolationTable.Task, ViolationTable.Species, cell2mat(ViolationTable.Time), ViolationTable.Type);
+    ViolationSums = splitapply(@length, ViolationTable.Type, g);
+    [~,ix] = unique(g);
+    ViolationSumsTable = [ViolationTable(ix,:), table(ViolationSums, 'VariableNames', {'Count'})];
+    disp(ViolationSumsTable)
+end
 %% Outputs
 
 ThisMessage = [num2str(nPat) ' virtual patients generated in ' num2str(nSim) ' simulations.'];
 Message = sprintf('%s\n%s\n',Message,ThisMessage);
 
 if nPat == 0
-    StatusOK = false;
-    ThisMessage = 'No virtual patients generated.';
-    Message = sprintf('%s\n%s\n',Message,ThisMessage);
+    bProceed = questdlg('No valid virtual patients generated. Save virtual population?', 'Save virtual population?', 'No');
+    if strcmp(bProceed,'Yes')
+        StatusOK = true;
+        Vpop = Vpop(1:nSim,:);
+        isValid = isValid(1:nSim);
+    else
+        StatusOK = false;
+        ThisMessage = 'No virtual patients generated.';
+        Message = sprintf('%s\n%s\n',Message,ThisMessage);
+    end
 end
 
 % Save the Vpop
@@ -342,7 +383,9 @@ if StatusOK
     
     SaveFlag = true;
     % add prevalence weight
-    VpopHeader = [paramNames; 'PWeight']';
+%     VpopHeader = [perturbParamNames; 'PWeight']';
+    VpopHeader = [Names0; 'PWeight']';
+
     % replicate the vpops if multiple initial conditions were specified
     VpopData = [num2cell(Vpop), num2cell(isValid)];
     if ~isempty(ICTable)
