@@ -119,30 +119,33 @@ ItemModels = obj.ItemModels;
 if any(IsSelected)    
     
     % Loop through all profiles to be shown
+    ParamNames = cell(1,numel(obj.PlotProfile));
+    ParamValues = cell(1,numel(obj.PlotProfile)); 
+
     for index = 1:numel(obj.PlotProfile)
 %         if ~obj.PlotProfile(index).Show
 %             continue
 %         end
-        
         % TODO: Plot all profiles
+
         if ~isempty(obj.PlotProfile(index).Values)
-            ParamNames = obj.PlotProfile(index).Values(:,1);
-            ParamValues = obj.PlotProfile(index).Values(:,2);
+            ParamNames{index} = obj.PlotProfile(index).Values(:,1);
+            ParamValues{index} = obj.PlotProfile(index).Values(:,2);
         else
             ParamNames = {};
             ParamValues = {};
         end
-        if iscell(ParamValues)
-            ParamValues = cell2mat(ParamValues);
-        end        
-        [StatusOK,Message,~,TheseResults] = simulationRunHelper(simObj,ParamValues,ParamNames,[],[],find(IsSelected));
-
-        if ~StatusOK
-            error('plotOptimization: %s',Message);
-        else
-            Results = [Results; TheseResults]; %#ok<AGROW>
-        end
+        if iscell(ParamValues{index})
+            ParamValues{index} = cell2mat(ParamValues{index});
+        end       
     end
+    
+    [StatusOK,Message,~,Results] = simulationRunHelper(simObj,ParamValues,ParamNames,[],[],find(IsSelected));
+
+    if ~StatusOK
+        error('plotOptimization: %s',Message);
+    end
+    
 end
 
 NumRuns = size(Results,1);
@@ -183,7 +186,7 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
                 if ~isempty(ColumnIdx) && ~isempty(size(Results{1,1}.Data,2))
                     % Update ColumnIdx to get species for ALL virtual patients
                     NumSpecies = numel(Results{runIdx,itemIdx}.SpeciesNames);
-                    ColumnIdx = ColumnIdx:NumSpecies:size(Results{runIdx,1}.Data,2);
+                    ColumnIdx = ColumnIdx:NumSpecies:size(Results{runIdx,itemIdx}.Data,2);
                     
                     % Plot
                     if ~isempty(ColumnIdx)
