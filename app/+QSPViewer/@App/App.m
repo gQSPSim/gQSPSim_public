@@ -237,8 +237,11 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
         function onDataChanged(obj,h,e)
             
             % Mark the current session dirty
-            obj.markDirty();
-            
+            try
+                obj.markDirty();
+            catch error
+                warning(error.message)
+            end
             % Refresh if name changed
             if isfield(e,'NameChanged') && e.NameChanged
                 
