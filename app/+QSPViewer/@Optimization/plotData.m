@@ -1,4 +1,4 @@
-function plotData(vObj)
+function plotData(vObj, varargin)
 % plotData - plots all parts of the viewer display
 % -------------------------------------------------------------------------
 % Abstract: This function plots all parts of the viewer display
@@ -28,7 +28,7 @@ function plotData(vObj)
 
 %             try
 % Plot
-[vObj.h.SpeciesGroup,vObj.h.DatasetGroup] = plotOptimization(vObj.Data,vObj.h.MainAxes);
+[vObj.h.SpeciesGroup,vObj.h.DatasetGroup] = plotOptimization(vObj.Data,vObj.h.MainAxes, varargin);
 %             catch ME
 %                 hDlg = errordlg(sprintf('Cannot plot. %s',ME.message),'Invalid','modal');
 %                 uiwait(hDlg);

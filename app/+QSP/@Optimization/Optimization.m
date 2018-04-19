@@ -53,7 +53,7 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         
         SelectedPlotLayout = '1x1'        
         
-        ItemModels = []; % cached Item Models
+
     end
     
     properties (SetAccess = 'private')
@@ -68,6 +68,11 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             'ParticleSwarm'
             }
     end    
+    
+    properties (Transient=true)
+        ItemModels = []; % cached Item Models
+        Results = []; % cached results
+    end
     
     %% Constructor
     methods

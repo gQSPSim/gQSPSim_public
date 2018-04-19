@@ -193,8 +193,8 @@ switch obj.AlgorithmName
             StatusOK = true;
             LB = estParamData(:,1);
             UB = estParamData(:,2);
-            options = optimoptions('ParticleSwarm', 'Display', 'iter', 'FunctionTolerance', .1, 'MaxTime', 120, ...
-                'UseParallel', false);
+            options = optimoptions('ParticleSwarm', 'Display', 'iter', 'FunctionTolerance', .1, 'MaxTime', 10, ...
+                'UseParallel', false, 'FunValCheck', 'on', 'UseVectorized', false, 'PlotFcn',  @pswplotbestf);
             VpopParams = particleswarm( @(est_p) objectiveFun(est_p',paramObj,ItemModels,Groups,IDs,Time,optimData,dataNames,obj), N, LB, UB, options);
         catch err
             StatusOK = false;
@@ -435,11 +435,12 @@ end
                         % name of current species in the dataset
                         currDataName = SpeciesData(spec).DataName;
                         
-                        % grab each model output for the measured species
-                        [simTime_spec,simData_spec] = selectbyname(simData_id,SpeciesData(spec).SpeciesName);
                         
-                        % transform to match the format of the measured data
+                        
                         try
+                            % grab each model output for the measured species                        
+                            [simTime_spec,simData_spec] = selectbyname(simData_id,SpeciesData(spec).SpeciesName);
+                            % transform to match the format of the measured data
                             simData_spec = SpeciesData(spec).evaluate(simData_spec);
                         catch tempME
                             tempStatusOK = false;

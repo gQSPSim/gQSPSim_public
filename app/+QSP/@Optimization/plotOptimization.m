@@ -1,4 +1,4 @@
-function [hSpeciesGroup,hDatasetGroup,hLegend,hLegendChildren] = plotOptimization(obj,hAxes)
+function [hSpeciesGroup,hDatasetGroup,hLegend,hLegendChildren] = plotOptimization(obj,hAxes, varargin)
 % plot - plots the analysis
 % -------------------------------------------------------------------------
 % Abstract: This plots the analysis based on the settings and data table.
@@ -29,12 +29,19 @@ function [hSpeciesGroup,hDatasetGroup,hLegend,hLegendChildren] = plotOptimizatio
 %% Turn on hold
 
 for index = 1:numel(hAxes)
-    XLimMode{index} = get(hAxes(index),'XLimMode');
-    YLimMode{index} = get(hAxes(index),'YLimMode');
+%     XLimMode{index} = get(hAxes(index),'XLimMode');
+%     YLimMode{index} = get(hAxes(index),'YLimMode');
+    XLimMode{index} = 'auto';
+    YLimMode{index} = 'auto';
+    
     cla(hAxes(index));
     legend(hAxes(index),'off')
     set(hAxes(index),'XLimMode',XLimMode{index},'YLimMode',YLimMode{index})
     hold(hAxes(index),'on')    
+    
+    hFigure = ancestor(hAxes(index),'Figure');
+    zoom(hFigure,'reset');        
+
 end
 
 NumAxes = numel(hAxes);
@@ -43,11 +50,15 @@ NumAxes = numel(hAxes);
 hLegend = cell(1,NumAxes);
 hLegendChildren = cell(1,NumAxes);
 
-
+rerunSims = true;
+if ~isempty(varargin{1})
+    rerunSims = cell2mat(varargin{1});
+end
 %% Get the selections and Task-Vpop pairs
 
 % Initialize
 simObj = QSP.Simulation.empty(0,1);
+
 
 % Get the selected items
 IsSelected = obj.PlotItemTable(:,1);
@@ -131,17 +142,31 @@ if any(IsSelected)
         if ~isempty(obj.PlotProfile(index).Values)
             ParamNames{index} = obj.PlotProfile(index).Values(:,1);
             ParamValues{index} = obj.PlotProfile(index).Values(:,2);
+            ixHasValue = ~cellfun(@isempty, obj.PlotProfile(index).Values(:,2));
+            ParamNames{index} = ParamNames{index}(ixHasValue);
+            ParamValues{index}= ParamValues{index}(ixHasValue);
         else
             ParamNames = {};
             ParamValues = {};
+            continue
         end
         if iscell(ParamValues{index})
+%             tmp = cellfun(@str2num,ParamValues{index});
             ParamValues{index} = cell2mat(ParamValues{index});
         end       
     end
     
-    [StatusOK,Message,~,Results] = simulationRunHelper(simObj,ParamValues,ParamNames,[],[],find(IsSelected));
+    if rerunSims
+        [StatusOK,Message,~,Results,ItemModels] = simulationRunHelper(simObj,ParamValues,ParamNames,[],ItemModels,find(IsSelected));
+%         [StatusOK,Message,~,Results,ItemModels] = simulationRunHelper(simObj,ParamValues,ParamNames,[],[],find(IsSelected));
 
+        obj.ItemModels = ItemModels;
+        obj.Results = Results;
+    else
+        StatusOK = true;
+        Results = obj.Results; % cached results
+    end
+    
     if ~StatusOK
         error('plotOptimization: %s',Message);
     end
@@ -155,8 +180,12 @@ hDatasetGroup = cell(size(obj.PlotSpeciesTable,1),NumAxes);
 
 
 % Get the associated colors
-SelectedItemColors = cell2mat(obj.PlotItemTable(IsSelected,2));
-
+try
+    SelectedItemColors = cell2mat(obj.PlotItemTable(IsSelected,2));
+catch thisError
+    warning(thisError.message);
+end
+    
 
 %% Plot Simulation Items
 

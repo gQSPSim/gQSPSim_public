@@ -163,6 +163,7 @@ SelectedItemColors = cell2mat(obj.PlotItemTable(IsSelected,2));
 
 %% Plot Simulation Items
 
+ResultsIdx = find(IsSelected);
 
 if strcmp(obj.PlotType, 'Normal') && ~isempty(Results)
     % all axes with species assigned to them
@@ -186,6 +187,7 @@ if strcmp(obj.PlotType, 'Normal') && ~isempty(Results)
         if ~isempty(axIdx) && ~isnan(axIdx)
             
             for itemIdx = 1:numel(Results)
+                itemNumber = ResultsIdx(itemIdx);
                 % Plot the species from the simulation item in the appropriate
                 % color
 
@@ -281,7 +283,7 @@ if strcmp(obj.PlotType, 'Normal') && ~isempty(Results)
                     accName = obj.PlotSpeciesTable(strcmp(ThisDataName,obj.PlotSpeciesTable(:,4)),4);
 
                     accDataRows = strcmp(accCritData(:,DataCol), accName) & ...
-                        cell2mat(accCritData(:,strcmp(accCritHeader,'Group'))) == str2num(obj.PlotItemTable{itemIdx,4}) ;
+                        cell2mat(accCritData(:,strcmp(accCritHeader,'Group'))) == str2num(obj.PlotItemTable{itemNumber,4}) ;
                     LB = cell2mat(accCritData(accDataRows, strcmp(accCritHeader, 'LB')));
                     UB = cell2mat(accCritData(accDataRows, strcmp(accCritHeader, 'UB')));
                     accTime = cell2mat(accCritData(accDataRows, strcmp(accCritHeader, 'Time')));
@@ -362,18 +364,20 @@ elseif strcmp(obj.PlotType,'Diagnostic') && ~isempty(Results)
             % loop over all tasks and get the data for this species  
             for itemIdx = 1:numel(Results)
 
+                itemNumber = ResultsIdx(itemIdx);
+
                 % species in this task 
                 NumSpecies = numel(Results{itemIdx}.SpeciesNames);
                 currentSpecies = obj.PlotSpeciesTable( strcmp(obj.PlotSpeciesTable(:,4), currentData), 3);
                 % time points for this species in this group in the acc. crit.
-                thisTime = TimeVec(grpVec == str2num(obj.PlotItemTable{itemIdx,4}) & strcmp(DataVec, currentData));
+                thisTime = TimeVec(grpVec == str2num(obj.PlotItemTable{itemNumber,4}) & strcmp(DataVec, currentData));
                 if isempty(thisTime)
                     continue
                 end
                 
                 % ub/lb
-                thisUB = UBVec(grpVec == str2num(obj.PlotItemTable{itemIdx,4}) & strcmp(DataVec, currentData));
-                thisLB = LBVec(grpVec == str2num(obj.PlotItemTable{itemIdx,4}) & strcmp(DataVec, currentData));
+                thisUB = UBVec(grpVec == str2num(obj.PlotItemTable{itemNumber,4}) & strcmp(DataVec, currentData));
+                thisLB = LBVec(grpVec == str2num(obj.PlotItemTable{itemNumber,4}) & strcmp(DataVec, currentData));
 
                 % get times that are in the acceptance criteria for this task / species      
                 [b_time,timeIdx] = ismember(thisTime, Results{itemIdx}.Time);
@@ -388,7 +392,8 @@ elseif strcmp(obj.PlotType,'Diagnostic') && ~isempty(Results)
                     ColumnIdx = find( strcmp(Results{itemIdx}.SpeciesNames, currentSpecies)) + (0:NumVpop-1)*NumSpecies;
                 end
 
-                thisData = obj.SpeciesData(currentDataIdx).evaluate(Results{itemIdx}.Data(timeIdx, ColumnIdx));
+                thisData = obj.SpeciesData(currentDataIdx).evaluate(Results{itemIdx}.Data(:, ColumnIdx));
+                thisData = thisData(timeIdx, :);
 
                 for tix = 1:length(timeIdx)
                     axDataArray = [axDataArray, thisData(tix,:)];
@@ -405,12 +410,13 @@ elseif strcmp(obj.PlotType,'Diagnostic') && ~isempty(Results)
         if isempty(axDataArray)
             continue
         end
+        warning('off','DISTRIBUTIONPLOT:ERASINGLABELS')
         distributionPlot(hAxes(currentAxis), axDataArray, 'color', colorArray, 'xNames', xlabArray, 'showMM', 0, 'histOpt', 1.1)
 
         % add error bars
         for k=1:length(UBArray)
             errorbar(hAxes(currentAxis), k, (UBArray(k)+LBArray(k))/2, (UBArray(k)-LBArray(k))/2, 'Marker', 's', 'LineStyle', 'none',  ..., ...
-                            'Color', colorArray{k})
+                            'Color', 'k', 'LineWidth', 2) % colorArray{k}
         end
 
     end

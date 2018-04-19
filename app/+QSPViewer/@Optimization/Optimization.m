@@ -395,7 +395,7 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
             vObj.Data.PlotSpeciesTable(RowIdx,ColIdx) = ThisData(RowIdx,ColIdx);
             
             % Plot
-            plotData(vObj);
+            plotData(vObj, false); % don't re-run simulations since we are just changing visualization options
                 
             % Update the view
             updateVisualizationView(vObj);
@@ -637,13 +637,14 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
                             end
                             
                             ThisProfile.Source = NewSource;
-                            ThisProfile.Values = sortrows(NewSourceData,1);
+                            [~,index] = sort(upper(NewSourceData(:,1)));
+                            ThisProfile.Values = NewSourceData(index,:);
                             
-                            inSet = ismember(ThisProfile.Values(:,1), optParamNames);
-                            idxMissing = ~ismember(optParamNames, ThisProfile.Values(:,1));
-                            ThisProfile.Values = ThisProfile.Values(inSet,:);
+%                             inSet = ismember(ThisProfile.Values(:,1), optParamNames);
+%                             idxMissing = ~ismember(optParamNames, ThisProfile.Values(:,1));
+%                             ThisProfile.Values = ThisProfile.Values(inSet,:);
                             % add in any missing entries, use default values
-                            ThisProfile.Values = [ThisProfile.Values; [optParamNames(idxMissing), optParamValues(idxMissing)]];
+%                             ThisProfile.Values = [ThisProfile.Values; [optParamNames(idxMissing), optParamValues(idxMissing)]];
                                                         
                             
                             
@@ -705,6 +706,7 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
             if ~isempty(ThisData{RowIdx,ColIdx}) && isnumeric(ThisData{RowIdx,ColIdx})
                 ThisProfile = vObj.Data.PlotProfile(vObj.Data.SelectedProfileRow);                
                 ThisProfile.Values(RowIdx,ColIdx) = ThisData(RowIdx,ColIdx);
+%                 vObj.Data.PlotProfile(vObj.Data.SelectedProfileRow).Values(RowIdx,ColIdx) = ThisData(RowIdx,ColIdx);
             else
                 hDlg = errordlg('Invalid value specified for parameter. Values must be numeric','Invalid value','modal');
                 uiwait(hDlg);
@@ -781,7 +783,7 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
                     vObj.Data.PlotItemTable{SelectedRow,2} = NewColor;
                     
                     % Plot
-                    plotData(vObj);
+                    plotData(vObj, false);
                     
                     % Update the view
                     updateVisualizationView(vObj);

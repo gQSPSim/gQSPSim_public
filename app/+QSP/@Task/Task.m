@@ -140,6 +140,14 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         
         function [StatusOK, Message] = validate(obj,FlagRemoveInvalid)
             
+            FileInfo = dir(obj.FilePath);
+            if obj.ExportedModelTimeStamp > FileInfo.datenum % built after the model file was saved
+                StatusOK = true;
+                Message = '';
+                return
+            end
+            
+            
             StatusOK = true;
             Message = sprintf('Task: %s\n%s\n',obj.Name,repmat('-',1,75));
             
@@ -225,7 +233,8 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         
         function upToDate = checkModelCurrent(obj)
             FileInfo = dir(obj.FilePath);
-            if isempty(obj.ExportedModelTimeStamp) || FileInfo.datenum > obj.ExportedModelTimeStamp || datenum(obj.LastSavedTime) > obj.ExportedModelTimeStamp
+            if isempty(obj.ExportedModelTimeStamp) || FileInfo.datenum > obj.ExportedModelTimeStamp || datenum(obj.LastSavedTime) > obj.ExportedModelTimeStamp || ...
+                    isempty(obj.VarModelObj)
                 upToDate = false;
             else
                 upToDate = true;
