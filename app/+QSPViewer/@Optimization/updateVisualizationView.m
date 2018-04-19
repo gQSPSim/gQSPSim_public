@@ -351,7 +351,7 @@ if ~isempty(ThisProfileData)
     
     % Mark the rows that are edited (column 2 does not equal column 3)
     for rowIdx = 1:size(ThisProfileData,1)
-        if ThisProfileData{rowIdx,2} ~= ThisProfileData{rowIdx,3}
+        if ~isequal(ThisProfileData{rowIdx,2}, ThisProfileData{rowIdx,3})
             for colIdx = 1:size(ThisProfileData,2)
                 ThisProfileData{rowIdx,colIdx} = QSP.makeItalicized(ThisProfileData{rowIdx,colIdx});
             end

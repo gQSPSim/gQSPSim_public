@@ -479,10 +479,13 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                         IsP0_1 = strcmpi(Header,'P0_1');
                         IsInclude = strcmpi(Header,'Include');
                         if any(IsName) && any(IsP0_1)
-                            IsUsed = strcmpi(Data(:,IsInclude),'yes');
-                            PlotParametersData = cell(nnz(IsUsed),2);
-                            PlotParametersData(:,1) = Data(IsUsed,IsName);
-                            PlotParametersData(:,2) = Data(IsUsed,IsP0_1);                            
+%                             IsUsed = strcmpi(Data(:,IsInclude),'yes');
+%                             PlotParametersData = cell(nnz(IsUsed),2);
+%                             PlotParametersData(:,1) = Data(IsUsed,IsName);
+%                             PlotParametersData(:,2) = Data(IsUsed,IsP0_1);  
+                             PlotParametersData = cell(size(Data,1),2);
+                            PlotParametersData(:,1) = Data(:,IsName);
+                            PlotParametersData(:,2) = Data(:,IsP0_1);  
                         end
                     elseif strcmpi(class(thisObj),'QSP.VirtualPopulation')
                         % Virtual Population Data
@@ -495,7 +498,9 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                         PlotParametersData = cell(0,2);
                     end
                     
+%                     PlotParametersData(:,2) = cell2mat(cellfun(@str2num, PlotParametersData(:,2), 'UniformOutput', false));
                     PlotParametersData(:,2) = cellfun(@str2num, PlotParametersData(:,2), 'UniformOutput', false);
+                    
                     %obj.PlotParametersSource = NewSource;
                 else
                     Message = sprintf('Could not import from file. %s',Message);
