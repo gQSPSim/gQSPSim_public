@@ -274,7 +274,7 @@ if ~isempty(vObj.Data)
     VPopNames = AllVPopNames(MatchVPopIdx);
     
     if any(MatchIdx)
-        pObj = vObj.Data.Settings.Parameters(MatchIdx);      
+        pObj = vObj.Data.Settings.Parameters(MatchIdx);        
         PlotParametersSourceOptions = vertcat('N/A',{pObj.Name},VPopNames(:));
     else
         PlotParametersSourceOptions = vertcat('N/A',VPopNames(:));
@@ -389,16 +389,11 @@ for index = 1:numel(UniqueSourceNames)
     % Get values
     [StatusOk,~,SourceData] = importParametersSource(vObj.Data,UniqueSourceNames{index});
     if StatusOk
-        [~,order] = sortrows( upper(SourceData(:,1)),1);
-        UniqueSourceData{index} = SourceData(order,:);
+        UniqueSourceData{index} = sortrows(SourceData,1);
     else
         UniqueSourceData{index} = cell(0,2);
     end
 end
-
-% Exclude species from the parameters table
-% idxSpecies = vObj.Data.
-
 
 % Return which profile rows are different and return the selected profile
 % row's data
@@ -419,34 +414,20 @@ for index = 1:nProfiles
 end
 
 if ~isempty(vObj.Data.SelectedProfileRow)
-    try
-        SelectedProfile = vObj.Data.PlotProfile(vObj.Data.SelectedProfileRow);
-    catch thisError
-        warning(thisError.message);
-    end
-        
-        
+    SelectedProfile = vObj.Data.PlotProfile(vObj.Data.SelectedProfileRow);
     Values = SelectedProfile.Values; % Already sorted
     uIdx = ismember(UniqueSourceNames,SelectedProfile.Source);
     
     % Store - names, user's values, source values
-%     SelectedProfileData = cell(size(UniqueSourceData{uIdx},1),3);
-%     SelectedProfileData(1:size(SelectedProfile.Values,1),1:2) = Values;
-    
-    SelectedProfileData = SelectedProfile.Values;
+    SelectedProfileData = cell(size(UniqueSourceData{uIdx},1),3);
+    SelectedProfileData(1:size(SelectedProfile.Values,1),1:2) = Values;
     if ~isempty(UniqueSourceData{uIdx})
-        [hMatch,MatchIdx] = ismember(SelectedProfileData(:,1), UniqueSourceData{uIdx}(:,1));
-        SelectedProfileData = SelectedProfileData(hMatch,:);
-        SelectedProfileData(:,3) = UniqueSourceData{uIdx}(MatchIdx(hMatch),end);
-        [~,index] = sort(upper(SelectedProfileData(:,1)));
-        SelectedProfileData = SelectedProfileData(index,:);
-
-%         for idx = 1:size(SelectedProfileData,1)
-%             MatchIdx = ismember(UniqueSourceData{uIdx}(:,1),SelectedProfileData{idx,1});
-%             if any(MatchIdx)                
-%                 SelectedProfileData{idx,3} = UniqueSourceData{uIdx}{MatchIdx,end};
-%             end
-%         end
+        for idx = 1:size(SelectedProfileData,1)
+            MatchIdx = ismember(UniqueSourceData{uIdx}(:,1),SelectedProfileData{idx,1});
+            if any(MatchIdx)                
+                SelectedProfileData{idx,3} = UniqueSourceData{uIdx}{MatchIdx,end};
+            end
+        end
     end
 else
     SelectedProfileData = cell(0,3);

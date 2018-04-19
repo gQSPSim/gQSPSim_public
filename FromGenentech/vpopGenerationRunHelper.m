@@ -11,7 +11,10 @@ VpopName = '';
 myPath = path;
 addpath(genpath(obj.Session.RootDirectory));
 
+
+
 %% Check number of items
+
 if numel(obj.Item) == 0
     StatusOK = false;
     Message = 'The number of items is 0.';
@@ -20,6 +23,7 @@ if numel(obj.Item) == 0
 end
 
 %% Load Acceptance Criteria
+
 Names = {obj.Settings.VirtualPopulationData.Name};
 MatchIdx = strcmpi(Names,obj.DatasetName);
 
@@ -49,14 +53,13 @@ if ~isempty(accCritHeader) && ~isempty(accCritData)
     % filter out any acceptance criteria that are not included
     includeIdx = accCritData(:,strcmp('Include',accCritHeader));
     if ~isempty(includeIdx)
-        param_candidate = cell2mat(includeIdx);
-        accCritData = accCritData(param_candidate==1,:);
+        tmp = cell2mat(includeIdx);
+        accCritData = accCritData(tmp==1,:);
     end
     
     spIdx = ismember( accCritData(:,3), Mappings(:,2));
     % [Group, Species, Time, LB, UB]
     Groups = cell2mat(accCritData(spIdx,strcmp('Group',accCritHeader)));
-    unqGroups = unique(Groups);
     Time = cell2mat(accCritData(spIdx,strcmp('Time',accCritHeader)));
     Species = accCritData(spIdx,strcmp('Data',accCritHeader));
     LB_accCrit = cell2mat(accCritData(spIdx,strcmp('LB',accCritHeader)));
@@ -97,18 +100,15 @@ if ~isempty(paramHeader) && ~isempty(paramData)
     if isempty(useParam)
         useParam = repmat('yes',size(paramNames));
     end
-    useParam = strcmpi(useParam,'yes');
-    perturbParamNames = paramNames(useParam);
-    fixedParamNames = paramNames(~useParam);
-    logInds = strcmp(Scale, 'log');
+    logInds = [];
+    for ii = 1:length(paramNames)
+        if strcmp(Scale{ii},'log')
+            logInds = [logInds;ii];
+        end
+    end
     
-    LB = LB_params(useParam);
-    UB = UB_params(useParam);
-    logInds = logInds(useParam);
-    
-    LB(logInds) = log10(LB(logInds));
-    UB(logInds) = log10(UB(logInds));
-    fixedParams = p0(~useParam);
+    LB_params(logInds) = log10(LB_params(logInds));
+    UB_params(logInds) = log10(UB_params(logInds));
 else
     %     LB_params = [];
     %     UB_params = [];
@@ -121,7 +121,7 @@ end
 
 %% Deal with initial conditions file if it is specified and exists
 
-if ~isempty(obj.ICFileName) && ~strcmp(obj.ICFileName,'N/A') && exist(obj.ICFileName, 'file')
+if ~isempty(obj.ICFileName) && exist(obj.ICFileName, 'file')
  % get names from the IC file
     ICTable = importdata(obj.ICFileName);
   % validate the column names
@@ -140,12 +140,21 @@ end
 
 
 %% For each task/group, load models and prepare for simulations
+ItemModels = struct('ExportedModel',zeros(length(obj.Item),1),...
+    'Doses',zeros(length(obj.Item),1),...
+    'ICs',zeros(length(obj.Item),1)); % used only when running to steady state
+
+% Initialize waitbar
+Title1 = sprintf('Configuring models...');
+hWbar1 = uix.utility.CustomWaitbar(0,Title1,'',false);
 
 nItems = length(obj.Item);
 
 obj.SimResults = {}; %cell(1,nItems);
 
 for ii = 1:nItems
+    % update waitbar
+    uix.utility.CustomWaitbar(ii/nItems,hWbar1,sprintf('Configuring model for task %d of %d...',ii,nItems));
     
     % get the task obj from the settings obj
     tskInd = find(strcmp(obj.Item(ii).TaskName,{obj.Settings.Task.Name}));
@@ -160,8 +169,154 @@ for ii = 1:nItems
         continue
     end
     
-    ItemModels.Task(ii) = tObj_i;
+    % load the model in that task
+    AllModels = sbioloadproject(fullfile(tObj_i.Session.RootDirectory, tObj_i.RelativeFilePath));
+    AllModels = cell2mat(struct2cell(AllModels));
+    model_i = sbioselect(AllModels,'Name',tObj_i.ModelName,'type','sbiomodel');
+    
+    % apply the active variants (if specified)
+    if ~isempty(tObj_i.ActiveVariantNames)
+        % turn off all variants
+        varObj_i = getvariant(model_i); % reference to variant objects      
+        set(varObj_i, 'Active', false); 
+        
+        % combine active variants in order into a new variant, add to the
+        % model and activate
+        [~,ix] = ismember(tObj_i.ActiveVariantNames, tObj_i.VariantNames);
+        varObj_i = model_i.variant(ix);
+        [model_i,varSpeciesObj_i] = CombineVariants(model_i,varObj_i);
+        
+    else
+        varSpeciesObj_i = [];
+    end % if
+    
+    % inactivate reactions (if specified)
+    if ~isempty(tObj_i.InactiveReactionNames)
+        % turn on all reactions
+        set(model_i.Reactions, 'Active', true);
+        % turn off inactive reactions
+        [~,ix] = ismember(tObj_i.InactiveReactionNames,tObj_i.ReactionNames);
+        set(model_i.Reactions(ix), 'Active', false);
+    end % if
+    
+    % inactivate rules (if specified)
+    if ~isempty(tObj_i.InactiveRuleNames)
+        % turn on all rules
+        for jj = 1 : length(model_i.Rules)
+            model_i.Rules(jj).Active = true;
+        end % for        
+        % turn off inactive rules
+        [~,ix] = ismember(tObj_i.InactiveRuleNames,tObj_i.RuleNames);
+        set(model_i.Rules(ix), 'Active', false);
+    end % if
+    
+    % assume all parameters are present in all models. varying species
+    % initial conditions must be set as parameters and then linked to the
+    % species by a rule in the model
+    clear pObj_i
+    for jj = 1:length(paramNames)
+        pObj_i(jj) = sbioselect(model_i,'Name',paramNames{jj},'Type','Parameter');
+    end % for
+    
+    % Export model, allowing all initial conditions and the parameters to vary
+    if tObj_i.RunToSteadyState
+        % if running to steady state, need to export model with all species
+        % ICs editable
+        clear sObj_i
+        for jj = 1:length(model_i.Species)
+            sObj_i(jj) = sbioselect(model_i,'Name',model_i.Species(jj).Name,'Type','Species');
+        end % for
+        
+        exp_model_i = export(model_i, [sObj_i, pObj_i]);
+        
+        % get default initial conditions from the model
+        IC_i = cell2mat(get(model_i.Species,'InitialAmount'));
+       
+        % update ICs with variants
+        if ~isempty(varSpeciesObj_i)
+            allSpecNames = [get(sObj_i, 'Name')];
+            tmp = get(varSpeciesObj_i, 'Content');
+            if size(tmp,1) > 1 % fix for simbio inconsistent formatting
+                tmp = cellfun(@(X) X{1}, tmp, 'UniformOutput', false);
+                tmp = vertcat(tmp{:,1});
+            else
+                tmp = [tmp{:}];
+            end
+            
+            [~,ix] = ismember(tmp(:,2), allSpecNames);
+            IC_i(ix) = [tmp{ix,4}];
+            
+        end % if
+        
+        ItemModels(ii).ICs = IC_i;
+        
+    elseif ~isempty(ICTable) 
+        % an initial conditions file has been specified
+        % use this file to extract initial conditions and allow those
+        % species to be specified for the exported model
+    
+        % all species names in the model
+        allSpecNames = get(model_i.Species,'Name');
+        ixSpecies = setdiff(1:numel(ICTable.colheaders), groupCol);
+
+        if any(~ismember(ICTable.colheaders(ixSpecies), allSpecNames))
+            StatusOK = false;
+            ThisMessage = 'Initial conditions contains invalid species names as columns';
+            Message = sprintf('%s\n%s\n',Message,ThisMessage);
+            return
+        end
+        
+        ICspecies = ICTable.colheaders(ixSpecies);
+        
+        for jj = 1:length(ICspecies)
+            sObj_i(jj) = sbioselect(model_i,'Name',ICspecies(jj));
+        end % for
+
+        
+               
+        exp_model_i = export(model_i, [sObj_i, pObj_i]);
+        
+    else
+        % otherwise export model with just the parameters editable
+        exp_model_i = export(model_i, pObj_i);
+        
+    end % if
+    
+    % set MaxWallClockTime in the exported model
+    if ~isempty(tObj_i.MaxWallClockTime)
+        exp_model_i.SimulationOptions.MaximumWallClock = tObj_i.MaxWallClockTime;
+    else
+        exp_model_i.SimulationOptions.MaximumWallClock = tObj_i.DefaultMaxWallClockTime;
+    end % if
+    
+    % select active doses (if specified)
+    exp_doses_i = [];
+    if ~isempty(tObj_i.ActiveDoseNames)
+        for jj = 1 : length(tObj_i.ActiveDoseNames)
+            exp_doses_i = [exp_doses_i, getdose(exp_model_i, tObj_i.ActiveDoseNames{jj})];
+        end % for
+    end % if
+    ItemModels(ii).Doses = exp_doses_i;
+    
+    % accelerate model
+    try
+        accelerate(exp_model_i)
+    catch ME
+        StatusOK = false;
+        ThisMessage = sprintf('Model acceleration failed. Check that you have a compiler installed and setup. %s', ME.message);
+        Message = sprintf('%s\n%s\n',Message,ThisMessage);
+    end % try
+    
+    ItemModels(ii).ExportedModel = exp_model_i;
+    
+    
 end % for
+
+% close waitbar
+uix.utility.CustomWaitbar(1,hWbar1,'Done.');
+if ~isempty(hWbar1) && ishandle(hWbar1)
+    delete(hWbar1);
+end
 
 %% Sample parameter sets, simulate, compare to acceptance criteria
 nSim = 0;
@@ -177,51 +332,43 @@ else
     % initial conditions exist
     groupVec = ICTable.data(:,groupCol);
     ixSpecies = setdiff(1:numel(ICTable.colheaders), groupCol); % columns of species in IC table
+    allSpecName = get(model_i.Species,'Name'); % all species as they appear in the model file
+%     [h_IC,ICColMapping] = ismember(allSpecName, ICTable.colheaders(ixSpecies)); % mapping of columns to species indices   
+%     ICColMapping2 = ICColMapping(h_IC);
 end
 
-%% loop over the candidates until enough are generated
-hWbar = uix.utility.CustomWaitbar(0,'Virtual population generation','Generating virtual population...',true);
+% while the total number of simulations and number of virtual patients are
+% less than their respective maximum values...
 
-
-ViolationTable = [];
+default_params = cell2mat(get(model_i.Parameters, 'Value'));
+% override defaults with the p0 value in the parameters
+[~,orderParams] = ismember( paramNames, get(model_i.Parameters, 'Name') );
+ixParam = find(strcmp(useParam, 'yes'));
+ix_p0 = ~isnan(p0);
 
 while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients
     nSim = nSim+1; % tic up the number of simulations
     
-    % produce sample uniformly sampled between LB & UB
-    param_candidate = LB + (UB-LB).*rand(size(LB));
-    param_candidate(logInds) = 10.^param_candidate(logInds);
-    Values0 = [param_candidate; fixedParams];
-    Names0 = [perturbParamNames; fixedParamNames];
-    
+    param_candidate = default_params(orderParams);
+    param_candidate(ix_p0) = p0(ix_p0);
+    tmp = LB_params + (UB_params-LB_params).*rand(size(LB_params));
+    tmp(logInds) = 10.^tmp(logInds);
+    param_candidate(ixParam) = tmp(ixParam);
     
     % generate a long vector of model outputs to compare to the acceptance
     % criteria
-    spec_outputs = [];
+    model_outputs = [];
     time_outputs = [];
     LB_outputs = [];
     UB_outputs = [];
-    taskName_outputs = [];
-    model_outputs = [];
-    LB_violation = [];
-    UB_violation = [];   
-    
-    % loop over unique groups in the acceptance criteria file
-    for grpIdx = 1:length(unqGroups) %nItems
-        currGrp = unqGroups(grpIdx);
         
-        % get matching taskGroup item based on group ID        
-        itemIdx = strcmp({obj.Item.GroupID}, num2str(currGrp));
-        if ~any(itemIdx)
-            % this group is not part of this vpop generation
-            continue
-        end
-        % get task object for this item based on name
-        tskInd = strcmp(obj.Item(itemIdx).TaskName,{obj.Settings.Task.Name});
-        taskObj = obj.Settings.Task(tskInd);
+    for grp = 1:length(groupVec) %nItems
+%         grp = groupVec(grp);
+        % grab the task object
+        tskInd = find(strcmp(obj.Item(grp).TaskName,{obj.Settings.Task.Name}));
+        tObj_grp = obj.Settings.Task(tskInd);
         
-        % indices of data points in acc. crit. matching this group
-        grpInds = find(Groups == currGrp);
+        grpInds = find(Groups == str2double(obj.Item(grp).GroupID));
         
         % get group information
         Species_grp = Species(grpInds);
@@ -230,89 +377,84 @@ while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients
         UB_grp = UB_accCrit(grpInds);
         
         % change output times for the exported model
-        OutputTimes = sort(unique(Time_grp));
+        ItemModels(grp).ExportedModel.SimulationOptions.OutputTimes = sort(unique(Time_grp));
         
         % set the initial conditions to the value in the IC file if specified
+        grpICs = ItemModels(grp).ICs; % IC value after variants have been applied
         if ~isempty(ICTable)
-            ICs = ICTable.data(groupVec==currGrp, ixSpecies );
-            IC_species = ICTable.colheaders(ixSpecies);
-            nIC = size(ICs,1);
-        else
-            nIC = 1;
-            ICs = [];
-            IC_species = {};
+            grpICs = ICTable.data(grp, ixSpecies); % set the initial condition from the IC file
         end
         
-        % loop over initial conditions for this group
-        for ixIC = 1:nIC
-            if ~isempty(IC_species)
-                Names = [Names0; IC_species'];  
-                Values = [Values0; ICs(ixIC,:)'];
-            else
-                Names = Names0;
-                Values = Values0;
-            end
-
-
-            % simulate
-            try
-                simData  = taskObj.simulate(...
-                    'Names', Names, ...
-                    'Values', Values, ...
-                    'OutputTimes', OutputTimes);
-
-                % for each species in this grp acc crit, find the corresponding
-                % model output, grab relevant time points, compare
-                uniqueSpecies_grp = unique(Species_grp);
-                for spec = 1:length(uniqueSpecies_grp)
-                    % find the data species in the Species-Data mapping
-                    specInd = strcmp(uniqueSpecies_grp(spec),Mappings(:,2));
-
-                    % grab data for the corresponding model species from the simulation results
-                    [simT,simData_spec,specName] = selectbyname(simData,Mappings(specInd,1));
-
-                    try
-                        % transform the model outputs to match the data
-                        simData_spec = obj.SpeciesData(specInd).evaluate(simData_spec);
-                    catch ME
-                        StatusOK = false;
-                        ThisMessage = sprintf('There is an error in one of the function expressions in the SpeciesData mapping. Validate that all Mappings have been specified for each unique species in dataset. %s', ME.message);
-                        Message = sprintf('%s\n%s\n',Message,ThisMessage);
-                        path(myPath);
-                        return                    
-                    end % try
-
-                    % grab all acceptance criteria time points for this species in this group
-                    ix_grp_spec = strcmp(uniqueSpecies_grp(spec),Species_grp);
-                    Time_grp_spec = Time_grp(ix_grp_spec);
-                    LB_grp_spec = LB_grp(ix_grp_spec);
-                    UB_grp_spec = UB_grp(ix_grp_spec);
-
-                    % select simulation time points for which there are acceptance criteria
-                    [bSim,okInds] = ismember(simT,Time_grp_spec);
-                    simData_spec = simData_spec(okInds(bSim));
-                    LB_grp_spec = LB_grp_spec(okInds(bSim));
-                    UB_grp_spec = UB_grp_spec(okInds(bSim));
-                    Time_grp_spec = Time_grp_spec(okInds(bSim));
-
-                    % save model outputs
-                    model_outputs = [model_outputs;simData_spec];
-                    time_outputs = [time_outputs;Time_grp_spec];
-                    spec_outputs = [spec_outputs;repmat(specName,size(simData_spec))];
-                    taskName_outputs = [taskName_outputs;repmat({taskObj.Name},size(simData_spec))];
-
-                    LB_outputs = [LB_outputs; LB_grp_spec];
-                    UB_outputs = [UB_outputs; UB_grp_spec];
-
-                end % for spec
-            catch ME2
-                % if the simulation fails, replace model outputs with Inf so
-                % that the parameter set fails the acceptance criteria
-                model_outputs = [model_outputs;Inf*ones(length(grpInds),1)];
-                LB_outputs = [LB_outputs;NaN(length(grpInds),1)];            
-                UB_outputs = [UB_outputs;NaN(length(grpInds),1)];
-            end
-        end % for ixIC
+        
+        % simulate
+        try
+            % if running to steady state
+            if tObj_grp.RunToSteadyState
+                % set time to reach steady state
+                ItemModels(grp).ExportedModel.SimulationOptions.OutputTimes = [];
+                ItemModels(grp).ExportedModel.SimulationOptions.StopTime = tObj_grp.TimeToSteadyState;
+                % simulate model
+                [~,RTSSdata] = simulate(ItemModels(grp).ExportedModel,[grpICs', param_candidate']);
+                % record steady state values
+                IC_ss = RTSSdata(end,1:length(grpICs));
+                % update output times
+                ItemModels(grp).ExportedModel.SimulationOptions.OutputTimes = sort(unique(Time_grp));
+                ItemModels(grp).ExportedModel.SimulationOptions.StopTime = max(Time_grp);
+                
+                simData_grp = simulate(ItemModels(grp).ExportedModel,[IC_ss, param_candidate'],ItemModels(grp).Doses);
+                
+            elseif ~isempty(ICTable) % initial conditions file has been specified
+                simData_grp = simulate(ItemModels(grp).ExportedModel,[grpICs, param_candidate'],ItemModels(grp).Doses);
+            else % not run-to-steady-state and no initial conditions file; use model defaults
+                simData_grp = simulate(ItemModels(grp).ExportedModel,param_candidate',ItemModels(grp).Doses);
+            end % end
+            
+            % for each species in this grp acc crit, find the corresponding
+            % model output, grab relevant time points, compare
+            uniqueSpecies_grp = unique(Species_grp);
+            for spec = 1:length(uniqueSpecies_grp)
+                % find the data species in the Species-Data mapping
+                specInd = strcmp(uniqueSpecies_grp(spec),Mappings(:,2));
+                
+                % grap data for the corresponding model species from the simulation results
+                [simT,simData_spec] = selectbyname(simData_grp,Mappings(specInd,1));
+                
+                try
+                    % transform the model outputs to match the data
+                    simData_spec = obj.SpeciesData(specInd).evaluate(simData_spec);
+                catch ME
+                    StatusOK = false;
+                    ThisMessage = sprintf('There is an error in one of the function expressions in the SpeciesData mapping. Validate that all Mappings have been specified for each unique species in dataset. %s', ME.message);
+                    Message = sprintf('%s\n%s\n',Message,ThisMessage);
+                    path(myPath);
+                    return                    
+                end % try
+                
+                % grab all acceptance criteria time points for this species in this group
+                ix_grp_spec = strcmp(uniqueSpecies_grp(spec),Species_grp);
+                Time_grp_spec = Time_grp(ix_grp_spec);
+                LB_grp_spec = LB_grp(ix_grp_spec);
+                UB_grp_spec = UB_grp(ix_grp_spec);
+                
+                % select simulation time points for which there are acceptance criteria
+                [bSim,okInds] = ismember(simT,Time_grp_spec);
+                simData_spec = simData_spec(okInds(bSim));
+                
+                % save model outputs
+                model_outputs = [model_outputs;simData_spec];
+                time_outputs = [time_outputs;Time_grp_spec];
+                
+                LB_outputs = [LB_outputs; LB_grp_spec];
+                UB_outputs = [UB_outputs; UB_grp_spec];
+                
+            end % for spec
+        catch ME2
+            % if the simulation fails, replace model outputs with Inf so
+            % that the parameter set fails the acceptance criteria
+            model_outputs = [model_outputs;Inf*ones(length(grpInds),1)];
+            LB_outputs = [LB_outputs;NaN(length(grpInds),1)];            
+            UB_outputs = [UB_outputs;NaN(length(grpInds),1)];
+        end
         
     end % for grp
     
@@ -321,62 +463,26 @@ while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients
     
     % compare model outputs to acceptance criteria
     if ~isempty(model_outputs) 
-        Vpop(nSim,:) = Values0'; % store the parameter set
+        Vpop(nSim,:) = param_candidate'; % store the parameter set
         isValid(nSim) = double(all(model_outputs>=LB_outputs) && all(model_outputs<=UB_outputs));
         if isValid(nSim)
             nPat = nPat+1; % if conditions are satisfied, tick up the number of virutal patients
         end
-        waitStatus = uix.utility.CustomWaitbar(nPat/obj.MaxNumVirtualPatients,hWbar,sprintf('Succesfully generated %d/%d vpatients. (%d/%d Failed)',  ...
-            nPat, obj.MaxNumVirtualPatients, nSim-nPat, nSim ));
-        
-        LB_violation = [LB_violation; find(model_outputs<LB_outputs)];
-        UB_violation = [UB_violation; find(model_outputs>UB_outputs)];
-        if ~waitStatus
-            break
-        end
     end      
-    LBTable = table(taskName_outputs(LB_violation), ...
-        spec_outputs(LB_violation), ...
-        num2cell(time_outputs(LB_violation)),...
-        repmat({'LB'},size(LB_violation)), ...
-        'VariableNames', {'Task','Species','Time','Type'});
-    UBTable = table(taskName_outputs(UB_violation), ...
-        spec_outputs(UB_violation), ...
-        num2cell(time_outputs(UB_violation)),...
-        repmat({'UB'},size(UB_violation)), ...
-        'VariableNames', {'Task','Species','Time','Type'});
-    ViolationTable = [ViolationTable; LBTable; UBTable];
 end % while
-if ~isempty(hWbar) && ishandle(hWbar)
-    delete(hWbar)
-end
+
 % in case nPat is less than the maximum number of virtual patients...
 % Vpop = Vpop(isValid==1,:); % removes extra zeros in Vpop
 
-%% DEBUG: output all the violations of the constraints
-if ~isempty(ViolationTable)
-    g = findgroups(ViolationTable.Task, ViolationTable.Species, cell2mat(ViolationTable.Time), ViolationTable.Type);
-    ViolationSums = splitapply(@length, ViolationTable.Type, g);
-    [~,ix] = unique(g);
-    ViolationSumsTable = [ViolationTable(ix,:), table(ViolationSums, 'VariableNames', {'Count'})];
-    disp(ViolationSumsTable)
-end
 %% Outputs
 
 ThisMessage = [num2str(nPat) ' virtual patients generated in ' num2str(nSim) ' simulations.'];
 Message = sprintf('%s\n%s\n',Message,ThisMessage);
 
 if nPat == 0
-    bProceed = questdlg('No valid virtual patients generated. Save virtual population?', 'Save virtual population?', 'No');
-    if strcmp(bProceed,'Yes')
-        StatusOK = true;
-        Vpop = Vpop(1:nSim,:);
-        isValid = isValid(1:nSim);
-    else
-        StatusOK = false;
-        ThisMessage = 'No virtual patients generated.';
-        Message = sprintf('%s\n%s\n',Message,ThisMessage);
-    end
+    StatusOK = false;
+    ThisMessage = 'No virtual patients generated.';
+    Message = sprintf('%s\n%s\n',Message,ThisMessage);
 end
 
 % Save the Vpop
@@ -384,9 +490,7 @@ if StatusOK
     
     SaveFlag = true;
     % add prevalence weight
-%     VpopHeader = [perturbParamNames; 'PWeight']';
-    VpopHeader = [Names0; 'PWeight']';
-
+    VpopHeader = [paramNames; 'PWeight']';
     % replicate the vpops if multiple initial conditions were specified
     VpopData = [num2cell(Vpop), num2cell(isValid)];
     if ~isempty(ICTable)
@@ -409,7 +513,7 @@ if StatusOK
         end
     end
     
-    obj.SimFlag = repmat(isValid, nIC, 1);
+    obj.SimFlag = isValid;
     
     if SaveFlag
         VpopName = ['Results - Vpop Generation = ' obj.Name ' - Date = ' datestr(now,'dd-mmm-yyyy_HH-MM-SS')];
