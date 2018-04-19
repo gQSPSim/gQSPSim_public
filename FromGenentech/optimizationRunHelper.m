@@ -23,7 +23,7 @@ Names = {obj.Settings.Parameters.Name};
 MatchIdx = strcmpi(Names,obj.RefParamName);
 if any(MatchIdx)
     pObj = obj.Settings.Parameters(MatchIdx);
-    [ThisStatusOk,ThisMessage,~,paramData] = importData(pObj,pObj.FilePath);
+    [ThisStatusOk,ThisMessage,paramHeaders,paramData] = importData(pObj,pObj.FilePath);
     if ~ThisStatusOk
         StatusOK = false;
         Message = sprintf('%s\n%s\n',Message,ThisMessage);
@@ -38,12 +38,38 @@ end
 if ~isempty(paramData)
     % parse paramData
     
+    colId.Include = find(strcmpi(paramHeaders, 'Include'));
+    colId.Name = find(strcmpi(paramHeaders, 'Name'));
+    colId.LB = find(strcmpi(paramHeaders, 'LB'));
+    colId.UB = find(strcmpi(paramHeaders, 'UB'));
+    colId.P0 = find(contains(upper(paramHeaders), 'P0'));
+    
     % remove any NaNs at bottom of file
     paramData = paramData(~strcmp('NaN',paramData(:,1)),:);
     
+    % check that all parameters to be optimized (Include=Yes) have
+    % specified LB and UB
+    
+    optimizeIdx = find(strcmpi('Yes',paramData(:,colId.Include)));
+    
+    LB = cell2mat(paramData(optimizeIdx, colId.LB));
+    UB = cell2mat(paramData(optimizeIdx, colId.UB));
+    if any(isnan(LB) | isempty(LB) | isnan(UB) | isempty(UB))
+        StatusOK = false;
+        ThisMessage = 'LB and UB must be given for each parameter to be optimized.';
+        Message = sprintf('%s\n%s\n',Message,ThisMessage);
+        path(myPath);
+        return
+    end
+    
+    % convert to numeric cell array if it is a cell array (i.e. contains strings)
+    if iscell(paramData(:,4:end))
+        paramData(:,4:end) = cellfun(@str2num, paramData(:,4:end), 'UniformOutput', false);
+    end
+    
     % check that an initial guess is given
     if size(paramData,2)<6
-    StatusOK = false;
+        StatusOK = false;
         ThisMessage = 'No initial guess for the parameter values was given. Make sure sure the P0_1 column of the selected parameter file is filled out.';
         Message = sprintf('%s\n%s\n',Message,ThisMessage);
         path(myPath);
