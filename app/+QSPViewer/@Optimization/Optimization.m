@@ -577,26 +577,31 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
                         
                         % First check if values have been changed. If so,
                         % then alert the user
-                        Result = 'Yes';
-                        if ~isequal(sortrows(ThisProfile.Values),sortrows(ThisSourceData)) && ...
-                                ~any(strcmpi(ThisProfile.Source,{'','N/A'})) && ~any(strcmpi(NewSource,{'','N/A'}))
-                            
-                            % Has the source changed?
-                            if ~strcmpi(ThisProfile.Source,NewSource)
-                                % Confirm with user
-                                Prompt = 'Changing the source will clear overriden source parameters. Do you want to continue?';                                
-                            else
-                                % Source did not change but reset the parameter values
-                                Prompt = 'This action will clear overriden source parameters. Do you want to continue? Press Cancel to save.';                                         
+                        if ~isempty(ThisSourceData)
+                            Result = 'Yes';
+                            [~,ix1] = sort(ThisProfile.Values(:,1));
+                            [~,ix2] = sort(ThisSourceData(:,1));
+
+                            if ~isequal(ThisProfile.Values(ix1,2), ThisSourceData(ix2,2)) && ...
+                                    ~any(strcmpi(ThisProfile.Source,{'','N/A'})) && ~any(strcmpi(NewSource,{'','N/A'}))
+
+                                % Has the source changed?
+                                if ~strcmpi(ThisProfile.Source,NewSource)
+                                    % Confirm with user
+                                    Prompt = 'Changing the source will clear overriden source parameters. Do you want to continue?';                                
+                                else
+                                    % Source did not change but reset the parameter values
+                                    Prompt = 'This action will clear overriden source parameters. Do you want to continue? Press Cancel to save.';                                         
+                                end
+                                Result = questdlg(Prompt,'Continue?','Yes','Cancel','Cancel');                                
                             end
-                            Result = questdlg(Prompt,'Continue?','Yes','Cancel','Cancel');                                
-                        end
                         
+                        end
                         % Set the source and values
                         if isempty(NewSource) || any(strcmpi(NewSource,{'','N/A'}))
                             ThisProfile.Source = '';
                             ThisProfile.Values = cell(0,2);
-                        elseif strcmpi(Result,'Yes')
+                        elseif isempty(ThisSourceData) || strcmpi(Result,'Yes')
 
 
                             
@@ -703,8 +708,9 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
             RowIdx = Indices(1,1);
             ColIdx = Indices(1,2);
             
-            if ~isempty(ThisData{RowIdx,ColIdx}) && isnumeric(ThisData{RowIdx,ColIdx})
+            if isempty(ThisData{RowIdx,ColIdx}) || isnumeric(ThisData{RowIdx,ColIdx})             
                 ThisProfile = vObj.Data.PlotProfile(vObj.Data.SelectedProfileRow);                
+                assert(isscalar(ThisData(RowIdx,ColIdx)))
                 ThisProfile.Values(RowIdx,ColIdx) = ThisData(RowIdx,ColIdx);
 %                 vObj.Data.PlotProfile(vObj.Data.SelectedProfileRow).Values(RowIdx,ColIdx) = ThisData(RowIdx,ColIdx);
             else
