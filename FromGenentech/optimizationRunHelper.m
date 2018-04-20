@@ -43,38 +43,24 @@ if ~isempty(paramData)
     colId.LB = find(strcmpi(paramHeaders, 'LB'));
     colId.UB = find(strcmpi(paramHeaders, 'UB'));
     colId.P0 = find(contains(upper(paramHeaders), 'P0'));
-    
+    colId.Scale = find(contains(upper(paramHeaders), 'Scale'));
     % remove any NaNs at bottom of file
     paramData = paramData(~strcmp('NaN',paramData(:,1)),:);
-    
-    % check that all parameters to be optimized (Include=Yes) have
-    % specified LB and UB
-    
-    optimizeIdx = find(strcmpi('Yes',paramData(:,colId.Include)));
-    
-    LB = cell2mat(paramData(optimizeIdx, colId.LB));
-    UB = cell2mat(paramData(optimizeIdx, colId.UB));
-    if any(isnan(LB) | isempty(LB) | isnan(UB) | isempty(UB))
-        StatusOK = false;
-        ThisMessage = 'LB and UB must be given for each parameter to be optimized.';
-        Message = sprintf('%s\n%s\n',Message,ThisMessage);
-        path(myPath);
-        return
-    end
-    
     % convert to numeric cell array if it is a cell array (i.e. contains strings)
-    if iscell(paramData(:,4:end))
-        paramData(:,4:end) = cellfun(@str2num, paramData(:,4:end), 'UniformOutput', false);
+    for k=1:length(colId.P0)
+        if iscell(paramData(:,colId.P0(k)))            
+            paramData(:,colId.P0(k)) = cellfun(@str2num, paramData(:,colId.P0(k)), 'UniformOutput', false);
+        end
     end
-    
+   
     % check that an initial guess is given
-    if size(paramData,2)<6
+    if isempty(colId.P0)
         StatusOK = false;
         ThisMessage = 'No initial guess for the parameter values was given. Make sure sure the P0_1 column of the selected parameter file is filled out.';
         Message = sprintf('%s\n%s\n',Message,ThisMessage);
         path(myPath);
         return
-    elseif any(any(isnan(cell2mat(paramData(:,6:end)))))
+    elseif any(any(isnan(cell2mat(paramData(:,colId.P0)))))
         StatusOK = false;
         ThisMessage = 'Parameter file is missing information.';
         Message = sprintf('%s\n%s\n',Message,ThisMessage);
@@ -92,15 +78,34 @@ if ~isempty(paramData)
         return
     end
     
+    % check that all parameters to be optimized (Include=Yes) have
+    % specified LB and UB
+    
+    optimizeIdx = find(strcmpi('Yes',paramData(:,colId.Include)));
+    
+    LB = cell2mat(paramData(optimizeIdx, colId.LB));
+    UB = cell2mat(paramData(optimizeIdx, colId.UB));
+    if any(isnan(LB) | isempty(LB) | isnan(UB) | isempty(UB))
+        StatusOK = false;
+        ThisMessage = 'LB and UB must be given for each parameter to be optimized.';
+        Message = sprintf('%s\n%s\n',Message,ThisMessage);
+        path(myPath);
+        return
+    end
+    
+
+    
     % record indices of parameters that will be log-scaled
-    logInds = find(strcmpi('log',paramData(idxEstimate,3)));
+    logInds = find(strcmpi('log',paramData(idxEstimate,colId.Scale)));
     % extract parameter names
     estParamNames = paramData(idxEstimate,2);
     fixedParamNames = paramData(~idxEstimate,2);
     % extract numeric data
     estParamData = cell2mat(paramData(idxEstimate,4:end));
     if ~isempty(fixedParamNames)
-        fixedParamData = cell2mat(paramData(~idxEstimate,6));
+        isValid = ~cellfun(@isempty, paramData(~idxEstimate, colId.P0(1)));
+        fixedParamData = cell2mat(paramData(~idxEstimate,colId.P0(1)));
+        fixedParamNames = fixedParamNames(isValid);
     else
         fixedParamData = {};
     end
