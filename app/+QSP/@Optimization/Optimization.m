@@ -499,7 +499,10 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                     end
                     
 %                     PlotParametersData(:,2) = cell2mat(cellfun(@str2num, PlotParametersData(:,2), 'UniformOutput', false));
-                    PlotParametersData(:,2) = cellfun(@str2num, PlotParametersData(:,2), 'UniformOutput', false);
+                    if iscell(PlotParametersData(:,2))
+                        isStr = cellfun(@ischar, PlotParametersData(:,2));
+                        PlotParametersData(isStr,2) = cellfun(@str2num, PlotParametersData(isStr,2), 'UniformOutput', false);
+                    end
                     
                     %obj.PlotParametersSource = NewSource;
                 else
