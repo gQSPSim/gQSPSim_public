@@ -26,6 +26,9 @@ addpath(genpath(obj.Session.RootDirectory));
 if ~ThisStatusOK
     StatusOK = false;
     Message = ThisMessage;
+    if nargout==5
+        varargout{2} = {};
+    end
     return;
 end
 
