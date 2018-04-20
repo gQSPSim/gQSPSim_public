@@ -26,6 +26,8 @@ function [hSpeciesGroup,hDatasetGroup,hLegend,hLegendChildren] = plotOptimizatio
 %   $Revision: 331 $  $Date: 2016-10-05 18:01:36 -0400 (Wed, 05 Oct 2016) $
 % ---------------------------------------------------------------------
 
+StatusOK = true;
+
 %% Turn on hold
 
 for index = 1:numel(hAxes)
@@ -111,7 +113,11 @@ end
             end
             % each task is assigned the same vpop
             for ii = 1:size(obj.PlotItemTable(:,1),1) %nSelected
-                simObj.Item(ii).VPopName = obj.VPopName{1};
+                if ~isempty(obj.VPopName)
+                    simObj.Item(ii).VPopName = obj.VPopName{1};
+                else
+                    simObj.Item(ii).VPopName = QSP.Simulation.NullVPop;
+                end
             end
             
         end
@@ -166,17 +172,17 @@ if any(IsSelected)
         StatusOK = true;
         Results = obj.Results; % cached results
     end
-    
-    if ~StatusOK
-        error('plotOptimization: %s',Message);
-    end
-    
+
 end
 
 NumRuns = size(Results,1);
 hSpeciesGroup = cell(size(obj.PlotSpeciesTable,1),NumAxes, NumRuns);
 hDatasetGroup = cell(size(obj.PlotSpeciesTable,1),NumAxes);
 
+if ~StatusOK
+    warning('plotOptimization: %s',Message);
+    return
+end
 
 
 % Get the associated colors
