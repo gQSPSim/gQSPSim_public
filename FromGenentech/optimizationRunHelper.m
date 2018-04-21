@@ -333,7 +333,8 @@ else
         Vpop = [Vpop;Vpop_grp];
         
         % add headers to current group's Vpop
-        Vpop_grp = [[estParamNames', fixedParamNames' ,ICspecNames]; num2cell(Vpop_grp)];
+%         Vpop_grp = [[estParamNames', fixedParamNames' ,ICspecNames]; num2cell(Vpop_grp)];
+        Vpop_grp = [[estParamNames',ICspecNames,fixedParamNames']; [num2cell(Vpop_grp), num2cell(repmat(fixedParamData', size(Vpop_grp,1), 1)) ]];
 
         % save current group's Vpop
         SaveFlag = true;
@@ -369,7 +370,7 @@ end % if
 % Vpop = [[estParamNames',specNames,{'PWeight'}]; num2cell([Vpop,PWeight])];
 
 % add headers to final Vpop
-Vpop = [[estParamNames',ICspecNames]; num2cell(Vpop)];
+Vpop = [[estParamNames',ICspecNames,fixedParamNames']; [num2cell(Vpop), num2cell(repmat(fixedParamData', size(Vpop,1), 1)) ]];
 
 % save final Vpop
 SaveFlag = true;

@@ -158,6 +158,8 @@ if any(IsSelected)
         end
         if iscell(ParamValues{index})
 %             tmp = cellfun(@str2num,ParamValues{index});
+            isStr = cellfun(@ischar,ParamValues{index});
+            ParamValues{index}(isStr) = num2cell(cellfun(@str2num, ParamValues{index}(isStr)));
             ParamValues{index} = cell2mat(ParamValues{index});
         end       
     end

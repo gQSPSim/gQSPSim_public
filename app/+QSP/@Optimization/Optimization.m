@@ -573,9 +573,12 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                     idxName = strcmp(paramHeader,'Name');
                     idx_p0 = strcmpi(paramHeader,'P0_1');
                     
-                    optParams = paramData(strcmpi(paramData(:,idxInclude),'yes'),:);
+%                     optParams = paramData(strcmpi(paramData(:,idxInclude),'yes'),:);
+                      optParams = paramData;
+                  
                     optParamNames = optParams(:,idxName);
                     optParamValues = optParams(:,idx_p0);
+                    optParamValues = cellfun(@str2num, optParamValues, 'UniformOutput', false);
                     for idx = 1:numel(obj.PlotProfile)
                         inSet = ismember(obj.PlotProfile(idx).Values(:,1), optParamNames);
                         % keep only those that are in the current parameter
@@ -585,6 +588,7 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                         obj.PlotProfile(idx).Values = obj.PlotProfile(idx).Values(inSet,:);
                         % add in any missing entries, use default values
                         obj.PlotProfile(idx).Values = [obj.PlotProfile(idx).Values; [optParamNames(idxMissing), optParamValues(idxMissing)]];
+%                         obj.PlotProfile(idx).Values(:,2) = cellfun(@str2num, obj.PlotProfile(idx).Values(:,2));
                     end
                     
                 else

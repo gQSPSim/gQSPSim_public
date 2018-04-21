@@ -50,6 +50,11 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
         
         PlotSpeciesInvalidRowIndices = []
         PlotItemInvalidRowIndices = []  
+        
+    end
+    
+    properties (Access=public)
+        Semaphore = 'free';
     end
         
     
@@ -403,18 +408,27 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
         end %function
         
         function onItemsTableSelectionPlot(vObj,h,e)
-            
-            Indices = e.Indices;
-            if isempty(Indices)
-                return;
+            waitfor(vObj, 'Semaphore', 'free');
+            vObj.Semaphore = 'locked';
+            ME = [];
+            try
+                Indices = e.Indices;
+                if isempty(Indices)
+                    return;
+                end
+
+                RowIdx = Indices(1,1);
+
+                h.SelectedRows = RowIdx;
+
+                % Update the view
+                updateVisualizationView(vObj);
+            catch ME
             end
-            
-            RowIdx = Indices(1,1);
-            
-            h.SelectedRows = RowIdx;
-            
-            % Update the view
-            updateVisualizationView(vObj);
+            vObj.Semaphore = 'free';
+            if ~isempty(ME)
+                rethrow(ME);
+            end
             
         end %function  
         
@@ -470,49 +484,60 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
         end %function
         
         function onHistoryTableButtonPlot(vObj,h,e)
-            
-            Interaction = e.Interaction;
-            Indices = e.Indices;
-            
+            pause(0.25);
+            waitfor(vObj, 'Semaphore', 'free');
+            vObj.Semaphore = 'locked';                    
+            ME = [];
+            try
+                
+                Interaction = e.Interaction;
+                Indices = e.Indices;
+                switch Interaction
+                    case 'Add'              
+                        vObj.Data.PlotProfile(end+1) = QSP.Profile;
+                        vObj.Data.SelectedProfileRow = numel(vObj.Data.PlotProfile);
+                    case 'Remove'
 
-            
-            switch Interaction
-                case 'Add'
-                    vObj.Data.PlotProfile(end+1) = QSP.Profile;
-                    vObj.Data.SelectedProfileRow = numel(vObj.Data.PlotProfile);
-%                     vObj.Data.ItemModels
-                    
-                case 'Remove'
-                    
-                    if isempty(Indices) || Indices > length(vObj.Data.PlotProfile)
-                        return
-                    end
-                    
-                    if numel(vObj.Data.PlotProfile) > 1
-                        vObj.Data.PlotProfile(Indices) = []; 
-                        delete([vObj.h.SpeciesGroup{:,:,Indices}]); % remove objects                        
-                        vObj.h.SpeciesGroup(:,:,Indices) = []; % remove group
-                    else
-                        vObj.Data.PlotProfile = QSP.Profile.empty(0,1);
-                    end
+                        if isempty(Indices) || Indices > length(vObj.Data.PlotProfile)
+                            vObj.Semaphore = 'free';
+                            return
+                        end
 
-                    vObj.Data.SelectedProfileRow = [];
-                    
-                case 'Duplicate'
-                    if isempty(Indices)
-                        return
-                    end
-                    
-                    vObj.Data.PlotProfile(end+1) = QSP.Profile;
-                    vObj.Data.PlotProfile(end).Source = vObj.Data.PlotProfile(Indices).Source;
-                    vObj.Data.PlotProfile(end).Description = vObj.Data.PlotProfile(Indices).Description;
-                    vObj.Data.PlotProfile(end).Show = vObj.Data.PlotProfile(Indices).Show;
-                    vObj.Data.PlotProfile(end).Values = sortrows(vObj.Data.PlotProfile(Indices).Values,1);
-                    vObj.Data.SelectedProfileRow = numel(vObj.Data.PlotProfile);
+                        if numel(vObj.Data.PlotProfile) > 1
+                            vObj.Data.PlotProfile(Indices) = [];
+                        else
+                            vObj.Data.PlotProfile = QSP.Profile.empty(0,1);
+                        end
+                        
+                        if size(vObj.h.SpeciesGroup,3) >=Indices 
+                            delete([vObj.h.SpeciesGroup{:,:,Indices}]); % remove objects                        
+                            vObj.h.SpeciesGroup(:,:,Indices) = []; % remove group
+                        end                        
+
+                        vObj.Data.SelectedProfileRow = [];
+
+                    case 'Duplicate'
+                        if isempty(Indices)
+                            vObj.Semaphore = 'free';
+                            return
+                        end
+
+                        vObj.Data.PlotProfile(end+1) = QSP.Profile;
+                        vObj.Data.PlotProfile(end).Source = vObj.Data.PlotProfile(Indices).Source;
+                        vObj.Data.PlotProfile(end).Description = vObj.Data.PlotProfile(Indices).Description;
+                        vObj.Data.PlotProfile(end).Show = vObj.Data.PlotProfile(Indices).Show;
+                        vObj.Data.PlotProfile(end).Values = sortrows(vObj.Data.PlotProfile(Indices).Values,1);
+                        vObj.Data.SelectedProfileRow = numel(vObj.Data.PlotProfile);
+                end
+
+                % Update the view
+                updateVisualizationView(vObj);
+            catch ME
             end
-            
-            % Update the view
-            updateVisualizationView(vObj);
+            vObj.Semaphore = 'free';
+            if ~isempty(ME)
+                rethrow(ME);
+            end
             
         end %function
         
@@ -530,12 +555,7 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
                 end
             end
             
-            % Turn off call to updateVisualizationView (this prevents
-            % "Show" checkbox from taking into effect since
-            % SelectionChanged (which calls updateVisualizationView) is
-            % triggered before EditChanged
-            % Update the view
-%             updateVisualizationView(vObj);
+            updateVisualizationView(vObj);
             updateVisualizationPlot(vObj);
             
 %             set(hFigure,'pointer','arrow');
@@ -544,131 +564,142 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
         end %function
         
         function onHistoryTableEditPlot(vObj,h,e)
-            
-            hFigure = ancestor(vObj.h.MainLayout,'Figure');
-            set(hFigure,'pointer','watch');
-            drawnow;
-            
-            ThisData = get(h,'Data');
-            Indices = e.Indices;
-            if isempty(Indices)
-                return;
-            end
-            RowIdx = Indices(1,1);
-            ColIdx = Indices(1,2);            
-            
-            if ~isempty(RowIdx)
-                ThisProfile = vObj.Data.PlotProfile(RowIdx);
-                switch ColIdx
-                    case 2
-                        % Show
-                        ThisProfile.Show = ThisData{RowIdx,ColIdx};
-                    case 3
-                        % Source
-                        % Re-import the source values for
-                        % ThisProfile.Source (before changing)
-                        ThisSourceData = {};
-                        if ~isempty(ThisProfile.Source) && ~any(strcmpi(ThisProfile.Source,{'','N/A'}))
-                            [~,~,ThisSourceData] = importParametersSource(vObj.Data,ThisProfile.Source);
-                        end     
-                        
-                        % Get the name of the new source                        
-                        NewSource = ThisData{RowIdx,ColIdx};
-                        
-                        % First check if values have been changed. If so,
-                        % then alert the user
-                        if ~isempty(ThisSourceData)
-                            Result = 'Yes';
-                            [~,ix1] = sort(ThisProfile.Values(:,1));
-                            [~,ix2] = sort(ThisSourceData(:,1));
+            ME = []; % exception object
+            try
+                waitfor(vObj, 'Semaphore', 'free'); % wait until previous operations have finished
 
-                            if ~isequal(ThisProfile.Values(ix1,2), ThisSourceData(ix2,2)) && ...
-                                    ~any(strcmpi(ThisProfile.Source,{'','N/A'})) && ~any(strcmpi(NewSource,{'','N/A'}))
-
-                                % Has the source changed?
-                                if ~strcmpi(ThisProfile.Source,NewSource)
-                                    % Confirm with user
-                                    Prompt = 'Changing the source will clear overriden source parameters. Do you want to continue?';                                
-                                else
-                                    % Source did not change but reset the parameter values
-                                    Prompt = 'This action will clear overriden source parameters. Do you want to continue? Press Cancel to save.';                                         
-                                end
-                                Result = questdlg(Prompt,'Continue?','Yes','Cancel','Cancel');                                
-                            end
-                        
-                        end
-                        % Set the source and values
-                        if isempty(NewSource) || any(strcmpi(NewSource,{'','N/A'}))
-                            ThisProfile.Source = '';
-                            ThisProfile.Values = cell(0,2);
-                        elseif isempty(ThisSourceData) || strcmpi(Result,'Yes')
+                vObj.Semaphore = 'locked'; % lock while modifying properties
 
 
-                            
-                            obj = vObj.Data;
-                            Names = {obj.Settings.Parameters.Name};
-                            MatchIdx = strcmpi(Names,obj.RefParamName);
-                            if any(MatchIdx)
-                                pObj = obj.Settings.Parameters(MatchIdx);
-                                [ThisStatusOk,ThisMessage,paramHeader,paramData] = importData(pObj,pObj.FilePath);
-                                if ~ThisStatusOk
-                                    StatusOK = false;
-                                    Message = sprintf('%s\n%s\n',Message,ThisMessage);
-                                    path(myPath);
-                                    return
-                                end
-                            else
-                                warning('Could not find match for specified parameter file')
-                                paramData = {};
-                            end
+                hFigure = ancestor(vObj.h.MainLayout,'Figure');
+                set(hFigure,'pointer','watch');
+                drawnow;
 
-                            % parameters that are being optimized
-                            idxInclude = strcmp(paramHeader,'Include');
-                            idxName = strcmp(paramHeader,'Name');
-                            idx_p0 = strcmpi(paramHeader,'P0_1');
-
-                            optParams = paramData(strcmpi(paramData(:,idxInclude),'yes'),:);
-                            optParamNames = optParams(:,idxName);
-                            optParamValues = optParams(:,idx_p0);    
-   
-                            % Get NewSource Data
-                            NewSourceData = {};
-                            if ~isempty(NewSource) && ~any(strcmpi(NewSource,{'','N/A'}))
-                                [StatusOk,Message,NewSourceData] = importParametersSource(vObj.Data,NewSource);
-                                if ~StatusOk
-                                    hDlg = errordlg(Message,'Cannot import','modal');
-                                    uiwait(hDlg);
-                                end
-                            end
-                            
-                            ThisProfile.Source = NewSource;
-                            [~,index] = sort(upper(NewSourceData(:,1)));
-                            ThisProfile.Values = NewSourceData(index,:);
-                            
-%                             inSet = ismember(ThisProfile.Values(:,1), optParamNames);
-%                             idxMissing = ~ismember(optParamNames, ThisProfile.Values(:,1));
-%                             ThisProfile.Values = ThisProfile.Values(inSet,:);
-                            % add in any missing entries, use default values
-%                             ThisProfile.Values = [ThisProfile.Values; [optParamNames(idxMissing), optParamValues(idxMissing)]];
-                                                        
-                            
-                            
-                        end
-
-                    case 4
-                        % Description
-                        ThisProfile.Description = ThisData{RowIdx,ColIdx};
+                ThisData = get(h,'Data');
+                Indices = e.Indices;
+                if isempty(Indices)
+                    return;
                 end
-                
+                RowIdx = Indices(1,1);
+                ColIdx = Indices(1,2);            
 
+                if ~isempty(RowIdx)
+                    ThisProfile = vObj.Data.PlotProfile(RowIdx);
+                    switch ColIdx
+                        case 2
+                            % Show
+                            ThisProfile.Show = ThisData{RowIdx,ColIdx};
+                        case 3
+                            % Source
+                            % Re-import the source values for
+                            % ThisProfile.Source (before changing)
+                            ThisSourceData = {};
+                            if ~isempty(ThisProfile.Source) && ~any(strcmpi(ThisProfile.Source,{'','N/A'}))
+                                [~,~,ThisSourceData] = importParametersSource(vObj.Data,ThisProfile.Source);
+                            end     
+
+                            % Get the name of the new source                        
+                            NewSource = ThisData{RowIdx,ColIdx};
+
+                            % First check if values have been changed. If so,
+                            % then alert the user
+                            if ~isempty(ThisSourceData)
+                                Result = 'Yes';
+                                [~,ix1] = sort(ThisProfile.Values(:,1));
+                                [~,ix2] = sort(ThisSourceData(:,1));
+
+                                if ~isequal(ThisProfile.Values(ix1,2), ThisSourceData(ix2,2)) && ...
+                                        ~any(strcmpi(ThisProfile.Source,{'','N/A'})) && ~any(strcmpi(NewSource,{'','N/A'}))
+
+                                    % Has the source changed?
+                                    if ~strcmpi(ThisProfile.Source,NewSource)
+                                        % Confirm with user
+                                        Prompt = 'Changing the source will clear overriden source parameters. Do you want to continue?';                                
+                                    else
+                                        % Source did not change but reset the parameter values
+                                        Prompt = 'This action will clear overriden source parameters. Do you want to continue? Press Cancel to save.';                                         
+                                    end
+                                    Result = questdlg(Prompt,'Continue?','Yes','Cancel','Cancel');                                
+                                end
+
+                            end
+                            % Set the source and values
+                            if isempty(NewSource) || any(strcmpi(NewSource,{'','N/A'}))
+                                ThisProfile.Source = '';
+                                ThisProfile.Values = cell(0,2);
+                            elseif isempty(ThisSourceData) || strcmpi(Result,'Yes')
+
+
+
+                                obj = vObj.Data;
+                                Names = {obj.Settings.Parameters.Name};
+                                MatchIdx = strcmpi(Names,obj.RefParamName);
+                                if any(MatchIdx)
+                                    pObj = obj.Settings.Parameters(MatchIdx);
+                                    [ThisStatusOk,ThisMessage,paramHeader,paramData] = importData(pObj,pObj.FilePath);
+                                    if ~ThisStatusOk
+                                        StatusOK = false;
+                                        Message = sprintf('%s\n%s\n',Message,ThisMessage);
+                                        path(myPath);
+                                        return
+                                    end
+                                else
+                                    warning('Could not find match for specified parameter file')
+                                    paramData = {};
+                                end
+
+                                % parameters that are being optimized
+                                idxInclude = strcmp(paramHeader,'Include');
+                                idxName = strcmp(paramHeader,'Name');
+                                idx_p0 = strcmpi(paramHeader,'P0_1');
+
+                                optParams = paramData(strcmpi(paramData(:,idxInclude),'yes'),:);
+                                optParamNames = optParams(:,idxName);
+                                optParamValues = optParams(:,idx_p0);    
+
+                                % Get NewSource Data
+                                NewSourceData = {};
+                                if ~isempty(NewSource) && ~any(strcmpi(NewSource,{'','N/A'}))
+                                    [StatusOk,Message,NewSourceData] = importParametersSource(vObj.Data,NewSource);
+                                    if ~StatusOk
+                                        hDlg = errordlg(Message,'Cannot import','modal');
+                                        uiwait(hDlg);
+                                    end
+                                end
+
+                                ThisProfile.Source = NewSource;
+                                [~,index] = sort(upper(NewSourceData(:,1)));
+                                ThisProfile.Values = NewSourceData(index,:);
+
+    %                             inSet = ismember(ThisProfile.Values(:,1), optParamNames);
+    %                             idxMissing = ~ismember(optParamNames, ThisProfile.Values(:,1));
+    %                             ThisProfile.Values = ThisProfile.Values(inSet,:);
+                                % add in any missing entries, use default values
+    %                             ThisProfile.Values = [ThisProfile.Values; [optParamNames(idxMissing), optParamValues(idxMissing)]];
+
+
+
+                            end
+
+                        case 4
+                            % Description
+                            ThisProfile.Description = ThisData{RowIdx,ColIdx};
+                    end
+
+
+                end
+
+                % Update the view
+                updateVisualizationView(vObj);
+
+                set(hFigure,'pointer','arrow');
+                drawnow;
+            catch ME                
             end
-            
-            % Update the view
-            updateVisualizationView(vObj);
-            
-            set(hFigure,'pointer','arrow');
-            drawnow;
-                        
+            vObj.Semaphore = 'free';
+            if ~isempty(ME)
+                rethrow(ME);
+            end
         end %function
         
 %         function onPlotParametersSourcePopup(vObj,h,e)
@@ -698,28 +729,45 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
 %         end %function
                 
         function onParametersTablePlot(vObj,h,e)
+            pause(0.25);
+
+            waitfor(vObj, 'Semaphore', 'free');
+            vObj.Semaphore = 'locked';
+            ME = [];
             
-            ThisData = get(h,'Data');
-            Indices = e.Indices;
-            if isempty(Indices)
-                return;
+            try
+                ThisData = get(h,'Data');
+                Indices = e.Indices;
+                if isempty(Indices)
+                    return;
+                end
+
+                RowIdx = Indices(1,1);
+                ColIdx = Indices(1,2);
+
+                if isempty(ThisData{RowIdx,ColIdx}) || isnumeric(ThisData{RowIdx,ColIdx})             
+                    ThisProfile = vObj.Data.PlotProfile(vObj.Data.SelectedProfileRow);                
+                    assert(isscalar(ThisData(RowIdx,ColIdx)))
+%                     profileRow = find(strcmp(ThisData(RowIdx,1),ThisProfile.Values(:,1)));
+                    ThisProfile.Values(RowIdx,ColIdx) = ThisData(RowIdx,ColIdx);
+                    vObj.Data.PlotProfile(vObj.Data.SelectedProfileRow) = ThisProfile;
+%                     vObj.Data.PlotProfile(vObj.Data.SelectedProfileRow).Values(RowIdx,ColIdx) = ThisData(RowIdx,ColIdx);
+%                     vObj.Data.PlotProfile(vObj.Data.SelectedProfileRow).Values = ThisData(:,1:2);
+
+                else
+                    hDlg = errordlg('Invalid value specified for parameter. Values must be numeric','Invalid value','modal');
+                    uiwait(hDlg);
+                end
+
+                % Update the view
+                updateVisualizationView(vObj);
+            catch ME
             end
             
-            RowIdx = Indices(1,1);
-            ColIdx = Indices(1,2);
-            
-            if isempty(ThisData{RowIdx,ColIdx}) || isnumeric(ThisData{RowIdx,ColIdx})             
-                ThisProfile = vObj.Data.PlotProfile(vObj.Data.SelectedProfileRow);                
-                assert(isscalar(ThisData(RowIdx,ColIdx)))
-                ThisProfile.Values(RowIdx,ColIdx) = ThisData(RowIdx,ColIdx);
-%                 vObj.Data.PlotProfile(vObj.Data.SelectedProfileRow).Values(RowIdx,ColIdx) = ThisData(RowIdx,ColIdx);
-            else
-                hDlg = errordlg('Invalid value specified for parameter. Values must be numeric','Invalid value','modal');
-                uiwait(hDlg);
+            vObj.Semaphore = 'free';
+            if ~isempty(ME)
+                rethrow(ME);
             end
-            
-            % Update the view
-            updateVisualizationView(vObj);
             
         end %function   
         

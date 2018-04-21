@@ -347,11 +347,16 @@ else
 end
 
 % Parameters Table
-if ~isempty(ThisProfileData)
+if ~isempty(ThisProfileData) && size(ThisProfileData,2)==3
     
     % Mark the rows that are edited (column 2 does not equal column 3)
     for rowIdx = 1:size(ThisProfileData,1)
-        if ~isequal(ThisProfileData{rowIdx,2}, ThisProfileData{rowIdx,3})
+        tmp1 = ThisProfileData{rowIdx,2};
+        tmp2 = ThisProfileData{rowIdx,3};
+        if ischar(tmp1), tmp1=str2num(tmp1); end
+        if ischar(tmp2), tmp2=str2num(tmp2); end
+        
+        if ~isequal(tmp1, tmp2)
             for colIdx = 1:size(ThisProfileData,2)
                 ThisProfileData{rowIdx,colIdx} = QSP.makeItalicized(ThisProfileData{rowIdx,colIdx});
             end
@@ -389,7 +394,7 @@ for index = 1:numel(UniqueSourceNames)
     % Get values
     [StatusOk,~,SourceData] = importParametersSource(vObj.Data,UniqueSourceNames{index});
     if StatusOk
-        [~,order] = sortrows( upper(SourceData(:,1)),1);
+        [~,order] = sort(upper(SourceData(:,1)));
         UniqueSourceData{index} = SourceData(order,:);
     else
         UniqueSourceData{index} = cell(0,2);
@@ -423,10 +428,10 @@ if ~isempty(vObj.Data.SelectedProfileRow)
         SelectedProfile = vObj.Data.PlotProfile(vObj.Data.SelectedProfileRow);
     catch thisError
         warning(thisError.message);
+        return
     end
         
         
-    Values = SelectedProfile.Values; % Already sorted
     uIdx = ismember(UniqueSourceNames,SelectedProfile.Source);
     
     % Store - names, user's values, source values
@@ -435,9 +440,10 @@ if ~isempty(vObj.Data.SelectedProfileRow)
     
     SelectedProfileData = SelectedProfile.Values;
     if ~isempty(UniqueSourceData{uIdx})
+        % get matching values in the source
         [hMatch,MatchIdx] = ismember(SelectedProfileData(:,1), UniqueSourceData{uIdx}(:,1));
-        SelectedProfileData = SelectedProfileData(hMatch,:);
-        SelectedProfileData(:,3) = UniqueSourceData{uIdx}(MatchIdx(hMatch),end);
+%         SelectedProfileData = SelectedProfileData(hMatch,:);
+        SelectedProfileData(hMatch,3) = UniqueSourceData{uIdx}(MatchIdx(hMatch),end);
         [~,index] = sort(upper(SelectedProfileData(:,1)));
         SelectedProfileData = SelectedProfileData(index,:);
 
