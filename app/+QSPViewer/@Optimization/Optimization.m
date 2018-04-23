@@ -54,7 +54,7 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
     end
     
     properties (Access=public)
-        Semaphore = 'free';
+        semaphore = [];
     end
         
     
@@ -408,8 +408,12 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
         end %function
         
         function onItemsTableSelectionPlot(vObj,h,e)
-            waitfor(vObj, 'Semaphore', 'free');
-            vObj.Semaphore = 'locked';
+%             pause(0.25)
+%             waitfor(vObj, 'Semaphore', 'free');
+%             vObj.Semaphore = 'locked';
+            vObj.semaphore.wait();
+            vObj.semaphore.lock();
+            
             ME = [];
             try
                 Indices = e.Indices;
@@ -425,7 +429,8 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
                 updateVisualizationView(vObj);
             catch ME
             end
-            vObj.Semaphore = 'free';
+%             vObj.Semaphore = 'free';
+            vObj.semaphore.release();
             if ~isempty(ME)
                 rethrow(ME);
             end
@@ -476,17 +481,36 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
         function onPlotParameters(vObj,h,e)
             
             % Plot
-            plotData(vObj);
+%             pause(0.35)
+%             waitfor(vObj, 'Semaphore', 'free');
+%             vObj.Semaphore = 'locked';
+            vObj.semaphore.wait();
+            vObj.semaphore.lock();
+            ME = [];
+            try
+                plotData(vObj);
             
-            % Update
-            updateVisualizationView(vObj);
+                % Update
+                updateVisualizationView(vObj);
+            catch ME
+                warning(ME)
+            end
+
+%             vObj.Semaphore = 'free';
+            vObj.semaphore.release();
+            if ~isempty(ME)
+                rethrow(ME)
+            end            
             
         end %function
         
         function onHistoryTableButtonPlot(vObj,h,e)
             pause(0.25);
-            waitfor(vObj, 'Semaphore', 'free');
-            vObj.Semaphore = 'locked';                    
+%             waitfor(vObj, 'Semaphore', 'free');
+%             vObj.Semaphore = 'locked';           
+            vObj.semaphore.wait();
+            vObj.semaphore.lock();
+
             ME = [];
             try
                 
@@ -499,7 +523,8 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
                     case 'Remove'
 
                         if isempty(Indices) || Indices > length(vObj.Data.PlotProfile)
-                            vObj.Semaphore = 'free';
+%                             vObj.Semaphore = 'free';
+                            vObj.semaphore.release();
                             return
                         end
 
@@ -518,7 +543,9 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
 
                     case 'Duplicate'
                         if isempty(Indices)
-                            vObj.Semaphore = 'free';
+%                             vObj.Semaphore = 'free';
+                            vObj.semaphore.release();
+
                             return
                         end
 
@@ -534,7 +561,8 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
                 updateVisualizationView(vObj);
             catch ME
             end
-            vObj.Semaphore = 'free';
+%             vObj.Semaphore = 'free';
+            vObj.semaphore.release();
             if ~isempty(ME)
                 rethrow(ME);
             end
@@ -566,10 +594,12 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
         function onHistoryTableEditPlot(vObj,h,e)
             ME = []; % exception object
             try
-                waitfor(vObj, 'Semaphore', 'free'); % wait until previous operations have finished
+%                 pause(0.25)
+%                 waitfor(vObj, 'Semaphore', 'free'); % wait until previous operations have finished
 
-                vObj.Semaphore = 'locked'; % lock while modifying properties
-
+%                 vObj.Semaphore = 'locked'; % lock while modifying properties
+                vObj.semaphore.wait();                
+                vObj.semaphore.lock();
 
                 hFigure = ancestor(vObj.h.MainLayout,'Figure');
                 set(hFigure,'pointer','watch');
@@ -696,7 +726,8 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
                 drawnow;
             catch ME                
             end
-            vObj.Semaphore = 'free';
+%             vObj.Semaphore = 'free';
+            vObj.semaphore.release();
             if ~isempty(ME)
                 rethrow(ME);
             end
@@ -729,10 +760,12 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
 %         end %function
                 
         function onParametersTablePlot(vObj,h,e)
-            pause(0.25);
-
-            waitfor(vObj, 'Semaphore', 'free');
-            vObj.Semaphore = 'locked';
+%             pause(0.25);
+%             waitfor(vObj, 'Semaphore', 'free');
+%             vObj.Semaphore = 'locked';
+            vObj.semaphore.wait();
+            vObj.semaphore.lock();
+            
             ME = [];
             
             try
@@ -764,7 +797,8 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
             catch ME
             end
             
-            vObj.Semaphore = 'free';
+%             vObj.Semaphore = 'free';
+            vObj.semaphore.release();
             if ~isempty(ME)
                 rethrow(ME);
             end
