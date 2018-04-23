@@ -504,6 +504,10 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                         PlotParametersData(isStr,2) = cellfun(@str2num, PlotParametersData(isStr,2), 'UniformOutput', false);
                     end
                     
+                    % reorder alphabetically
+                    [~,index] = sort(upper(PlotParametersData(:,1)));
+                    PlotParametersData = PlotParametersData(index,:);
+                    
                     %obj.PlotParametersSource = NewSource;
                 else
                     Message = sprintf('Could not import from file. %s',Message);
