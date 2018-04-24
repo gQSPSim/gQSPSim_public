@@ -192,6 +192,7 @@ try
     SelectedItemColors = cell2mat(obj.PlotItemTable(IsSelected,2));
 catch thisError
     warning(thisError.message);
+    return
 end
     
 
@@ -365,7 +366,12 @@ for axIndex = 1:NumAxes
     end
     if ~isempty(LegendItems)
         % Add legend
+       try
         [hLegend{axIndex},hLegendChildren{axIndex}] = legend(hAxes(axIndex),LegendItems);
+       catch ME
+           warning(ME.message)
+       end
+           
     else
         hLegend{axIndex} = [];
         hLegendChildren{axIndex} = [];        
