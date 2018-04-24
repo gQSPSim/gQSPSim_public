@@ -428,6 +428,7 @@ if ~isempty(vObj.Data.SelectedProfileRow)
         SelectedProfile = vObj.Data.PlotProfile(vObj.Data.SelectedProfileRow);
     catch thisError
         warning(thisError.message);
+        SelectedProfileData = [];
         return
     end
         
