@@ -486,6 +486,7 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                              PlotParametersData = cell(size(Data,1),2);
                             PlotParametersData(:,1) = Data(:,IsName);
                             PlotParametersData(:,2) = Data(:,IsP0_1);  
+                            PlotParametersData(cell2mat(cellfun(@isnan, PlotParametersData(:,2), 'UniformOutput', false)), 2) = {''};
                         end
                     elseif strcmpi(class(thisObj),'QSP.VirtualPopulation')
                         % Virtual Population Data
@@ -502,7 +503,7 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                     if iscell(PlotParametersData(:,2))
                         isStr = cellfun(@ischar, PlotParametersData(:,2));
                         PlotParametersData(isStr,2) = cellfun(@str2num, PlotParametersData(isStr,2), 'UniformOutput', false);
-                    end
+                    end                                       
                     
                     % reorder alphabetically
                     [~,index] = sort(upper(PlotParametersData(:,1)));

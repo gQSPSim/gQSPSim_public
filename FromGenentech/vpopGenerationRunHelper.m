@@ -88,15 +88,25 @@ end
 
 if ~isempty(paramHeader) && ~isempty(paramData)
     % [Include, Name, Scale, LB, UB, P0_1, ...]
+    % filter missing LB/UB
+    ixValid = (~isnan(cell2mat(paramData(:,strcmp('LB',paramHeader)))) & ~isnan(cell2mat(paramData(:,strcmp('UB',paramHeader))))) | ...
+        ~isnan(cell2mat(paramData(:,strcmp('P0_1',paramHeader))));
+    paramData = paramData(ixValid,:);
+    
     paramNames = paramData(:,strcmp('Name',paramHeader));
     Scale = paramData(:,strcmp('Scale',paramHeader));
     LB_params = cell2mat(paramData(:,strcmp('LB',paramHeader)));
     UB_params = cell2mat(paramData(:,strcmp('UB',paramHeader)));
+    
+
+    
+    
     useParam = paramData(:,strcmp('Include',paramHeader));
     p0 = cell2mat(paramData(:,6)); % NOTE: assumes in column 6!
     if isempty(useParam)
         useParam = repmat('yes',size(paramNames));
     end
+    
     useParam = strcmpi(useParam,'yes');
     perturbParamNames = paramNames(useParam);
     fixedParamNames = paramNames(~useParam);
@@ -104,6 +114,14 @@ if ~isempty(paramHeader) && ~isempty(paramData)
     
     LB = LB_params(useParam);
     UB = UB_params(useParam);
+    
+    if any(isnan(LB) | isnan(UB))
+        StatusOK = false;
+        Message = 'At least one optimization parameter is missing a lower/upper bound. Check parameter file';
+        path(myPath);
+        return
+    end
+    
     logInds = logInds(useParam);
     
     LB(logInds) = log10(LB(logInds));
