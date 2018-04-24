@@ -126,6 +126,7 @@ classdef Parameters < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             try            
                 Raw = readtable(DataFilePath);
                 Raw = [Raw.Properties.VariableNames;table2cell(Raw)];
+
             catch ME
                 Raw = {};
                 StatusOk = false;
@@ -147,8 +148,12 @@ classdef Parameters < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             obj.myData = Data;
             obj.myHeader = Header;
             FileInfo = dir(DataFilePath);
-            obj.myDataTimeStamp = FileInfo.datenum;
-            
+
+            if ~isempty(FileInfo)
+                obj.myDataTimeStamp = FileInfo.datenum;
+            else
+                obj.myDataTimeStamp = [];
+            end
             
         end %function
         
