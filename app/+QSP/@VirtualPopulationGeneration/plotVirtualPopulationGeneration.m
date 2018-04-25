@@ -547,7 +547,11 @@ for index = 1:numel(hAxes)
     hFigure = ancestor(hAxes(index),'Figure');
     if ~isempty(hFigure) && strcmpi(XLimMode{index},'auto') && strcmpi(YLimMode{index},'auto')
         axes(hAxes(index));
-        zoom(hFigure,'out');
-        zoom(hFigure,'reset');        
+        try
+            zoom(hFigure,'out');
+            zoom(hFigure,'reset');        
+        catch ME
+            warning(ME.message);
+        end
     end
 end

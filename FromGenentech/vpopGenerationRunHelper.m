@@ -202,14 +202,27 @@ hWbar = uix.utility.CustomWaitbar(0,'Virtual population generation','Generating 
 
 
 ViolationTable = [];
+% param_candidate = LB + (UB-LB).*rand(size(LB)); % initial candidate
+tmp = p0;
+logInds = strcmp(Scale, 'log');
+
+tmp(logInds) = log10(tmp(logInds));
+logInds = logInds(useParam);
+
+param_candidate_old = tmp(useParam);
+tune_param = 0.1; % percent of interval
 
 while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients
     nSim = nSim+1; % tic up the number of simulations
     
     % produce sample uniformly sampled between LB & UB
-    param_candidate = LB + (UB-LB).*rand(size(LB));
-    param_candidate(logInds) = 10.^param_candidate(logInds);
-    Values0 = [param_candidate; fixedParams];
+    param_candidate = param_candidate_old + (UB-LB).*(2*rand(size(LB))-1)*tune_param;
+    P = param_candidate;
+    P = max(P, LB);
+    P = min(P, UB);
+    
+    P(logInds) = 10.^P(logInds);
+    Values0 = [P; fixedParams];
     Names0 = [perturbParamNames; fixedParamNames];
     
     
@@ -343,7 +356,9 @@ while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients
         isValid(nSim) = double(all(model_outputs>=LB_outputs) && all(model_outputs<=UB_outputs));
         if isValid(nSim)
             nPat = nPat+1; % if conditions are satisfied, tick up the number of virutal patients
+            param_candidate_old = param_candidate; % keep new candidate as starting point
         end
+        
         waitStatus = uix.utility.CustomWaitbar(nPat/obj.MaxNumVirtualPatients,hWbar,sprintf('Succesfully generated %d/%d vpatients. (%d/%d Failed)',  ...
             nPat, obj.MaxNumVirtualPatients, nSim-nPat, nSim ));
         
@@ -371,6 +386,7 @@ end
 % in case nPat is less than the maximum number of virtual patients...
 % Vpop = Vpop(isValid==1,:); % removes extra zeros in Vpop
 
+
 %% DEBUG: output all the violations of the constraints
 if ~isempty(ViolationTable)
     g = findgroups(ViolationTable.Task, ViolationTable.Species, cell2mat(ViolationTable.Time), ViolationTable.Type);
@@ -384,12 +400,13 @@ end
 ThisMessage = [num2str(nPat) ' virtual patients generated in ' num2str(nSim) ' simulations.'];
 Message = sprintf('%s\n%s\n',Message,ThisMessage);
 
+isValid = isValid(1:nSim);
+Vpop = Vpop(1:nSim,:);
+
 if nPat == 0
     bProceed = questdlg('No valid virtual patients generated. Save virtual population?', 'Save virtual population?', 'No');
     if strcmp(bProceed,'Yes')
         StatusOK = true;
-        Vpop = Vpop(1:nSim,:);
-        isValid = isValid(1:nSim);
     else
         StatusOK = false;
         ThisMessage = 'No virtual patients generated.';
@@ -399,7 +416,8 @@ end
 
 % Save the Vpop
 if StatusOK
-    
+    hWbar = uix.utility.CustomWaitbar(0,'Saving virtual population','Saving virtual population...',true);
+
     SaveFlag = true;
     % add prevalence weight
 %     VpopHeader = [perturbParamNames; 'PWeight']';
@@ -447,6 +465,7 @@ if StatusOK
         Message = sprintf('%s\n%s\n',Message,ThisMessage);
     end
         
+    delete(hWbar)
 end
 
 % restore path

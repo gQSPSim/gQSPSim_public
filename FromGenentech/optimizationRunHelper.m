@@ -224,13 +224,13 @@ switch obj.AlgorithmName
             StatusOK = true;
             LB = estParamData(:,1);
             UB = estParamData(:,2);
-            options = optimoptions('ParticleSwarm', 'Display', 'iter', 'FunctionTolerance', .1, 'MaxTime', 10, ...
+            options = optimoptions('ParticleSwarm', 'Display', 'iter', 'FunctionTolerance', .1, 'MaxTime', 12000, ...
                 'UseParallel', false, 'FunValCheck', 'on', 'UseVectorized', false, 'PlotFcn',  @pswplotbestf);
             VpopParams = particleswarm( @(est_p) objectiveFun(est_p',paramObj,ItemModels,Groups,IDs,Time,optimData,dataNames,obj), N, LB, UB, options);
         catch err
             StatusOK = false;
             warning('Encountered error in particle swarm optimization')
-            Message = sprintf('%s\n%s\n',Message,err);
+            Message = sprintf('%s\n%s\n',Message,err.message);
             path(myPath);
             return
         end    
