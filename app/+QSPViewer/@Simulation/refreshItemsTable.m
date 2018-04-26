@@ -1,7 +1,7 @@
 function refreshItemsTable(vObj, validateFlag)
 
 %% Refresh TaskPopupTableItems
-% if validateFlag
+if validateFlag
 
     if ~isempty(vObj.TempData)
         ValidItemTasks = getValidSelectedTasks(vObj.TempData.Settings,{vObj.TempData.Settings.Task.Name});
@@ -26,7 +26,7 @@ function refreshItemsTable(vObj, validateFlag)
     else
         vObj.VPopPopupTableItems = {};
     end
-% end
+end
 %% Refresh GroupPopupTableItems
 % vObj.GroupPopupTableItems = sprintfc('%d',1:length(vObj.TempData.Settings.Task));
 
