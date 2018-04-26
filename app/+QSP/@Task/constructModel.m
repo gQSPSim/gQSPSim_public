@@ -22,17 +22,18 @@ function constructModel(obj)
     end % if
 
     % inactivate reactions (if specified)
+    % turn on all reactions
+    set(model.Reactions,'Active',true);        
     if ~isempty(obj.InactiveReactionNames)
-        % turn on all reactions
-        set(model.Reactions,'Active',true);
         % turn off inactive reactions
         set(model.Reactions(ismember(obj.ReactionNames, obj.InactiveReactionNames)),'Active',false);
     end % if
-
+    
+    % turn on all rules
+    set(model.Rules,'Active',true);
     % inactivate rules (if specified)
     if ~isempty(obj.InactiveRuleNames)        
-        % turn on all rules
-        set(model.Rules,'Active',true);
+
         % turn off inactive rules
         set(model.Rules(ismember(obj.RuleNames,obj.InactiveRuleNames)),'Active',false);
     end % if
