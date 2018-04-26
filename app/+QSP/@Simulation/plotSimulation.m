@@ -123,9 +123,12 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
             
             % Update ColumnIdx to get species for ALL virtual patients
             NumSpecies = numel(Results(itemIdx).SpeciesNames);
-            ColumnIdx = ColumnIdx:NumSpecies:size(Results(itemIdx).Data,2);
-%             ColumnIdx = find( strcmp(Results{itemIdx}.SpeciesNames, currentSpecies)) + (find(obj.SimFlag)-1)*NumSpecies ;
-
+            if ~isempty(Results(itemIdx).VpopWeights)
+                ColumnIdx = find( strcmp(Results(itemIdx).SpeciesNames, ThisName)) + (find(Results(itemIdx).VpopWeights)-1)*NumSpecies ;
+            else
+                ColumnIdx = ColumnIdx:NumSpecies:size(Results(itemIdx).Data,2);
+            end
+            
             if isempty(hSpeciesGroup{sIdx,axIdx})
                 hSpeciesGroup{sIdx,axIdx} = hggroup(hAxes(axIdx),...
                     'DisplayName',regexprep(ThisName,'_','\\_')); 
