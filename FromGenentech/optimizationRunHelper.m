@@ -43,13 +43,14 @@ if ~isempty(paramData)
     colId.LB = find(strcmpi(paramHeaders, 'LB'));
     colId.UB = find(strcmpi(paramHeaders, 'UB'));
     colId.P0 = find(contains(upper(paramHeaders), 'P0'));
-    colId.Scale = find(contains(upper(paramHeaders), 'Scale'));
+    colId.Scale = find(strcmpi(paramHeaders, 'SCALE'));
     % remove any NaNs at bottom of file
     paramData = paramData(~strcmp('NaN',paramData(:,1)),:);
     % convert to numeric cell array if it is a cell array (i.e. contains strings)
     for k=1:length(colId.P0)
         if iscell(paramData(:,colId.P0(k)))            
-            paramData(:,colId.P0(k)) = cellfun(@str2num, paramData(:,colId.P0(k)), 'UniformOutput', false);
+            isStr = cellfun(@ischar, paramData(:,colId.P0(k)));
+            paramData(isStr,colId.P0(k)) = cellfun(@str2num, paramData(isStr,colId.P0(k)), 'UniformOutput', false);
         end
     end
    
