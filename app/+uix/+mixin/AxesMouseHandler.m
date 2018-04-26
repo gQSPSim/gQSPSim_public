@@ -24,9 +24,9 @@ classdef AxesMouseHandler < handle
     end
     
     properties (SetAccess=private)
-        MouseSelection matlab.graphics.Graphics
+        MouseSelection % matlab.graphics.Graphics
         MouseSelectionType char
-        MouseAxes matlab.graphics.Graphics
+        MouseAxes % matlab.graphics.Graphics
         MouseDragDelta  double = nan(1,3) % mouse drag difference
         MousePressPoint double = nan(1,3) % mouse press location
         MouseReleasePoint double = nan(1,3) % mouse press location
