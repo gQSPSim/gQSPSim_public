@@ -407,7 +407,12 @@ end
 %         inputStr = '(species,data,simTime,dataTime,allData,ID,Grp,currID,currGrp)';
         logInds = reshape( paramObj.logInds, [], 1);
         
-        fixed_p = paramObj.fixedParamData;
+        if ~isempty(paramObj.fixedParamData)
+            fixed_p = paramObj.fixedParamData;
+        else
+            fixed_p = [];
+        end
+        
         estParamNames = paramObj.estParamNames;
         fixedParamNames = paramObj.fixedParamNames;
         
