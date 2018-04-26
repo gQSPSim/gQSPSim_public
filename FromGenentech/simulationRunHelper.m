@@ -128,8 +128,9 @@ if ~isempty(ItemModels)
         ItemModel = ItemModels(options.runIndices(ii));
         
         % update waitbar
-        uix.utility.CustomWaitbar(ii/nRunItems,hWbar2,sprintf('Simulating task %d of %d',ii,nRunItems));
-
+        set(hWbar2, 'Name', sprintf('Simulating task %d of %d',ii,nRunItems))
+        uix.utility.CustomWaitbar(0,hWbar2,'');
+        options.WaitBar = hWbar2;
         % simulate virtual patients
         for jj=1:length(options.Pin)
             thisOptions = options;
@@ -261,6 +262,12 @@ else
     % run all
     options.runIndices = 1:nBuildItems;
     nRunItems = nBuildItems;
+end
+
+if nargin > 6
+    options.hWaitBar = varargin{6};
+else
+    options.hWaitBar = [];
 end
 
 % Get the simulation object name
@@ -457,6 +464,11 @@ function [Results, nFailedSims, StatusOK, Message] = simulateVPatients(ItemModel
                 nFailedSims = nFailedSims + 1;
 
             end % try
+            
+            % update wait bar
+            if ~isempty(options.WaitBar)
+                uix.utility.CustomWaitbar(jj/ItemModel.nPatients, options.WaitBar, sprintf('Simulation vpatient %d/%d', jj, ItemModel.nPatients));
+            end
         end % for jj = ...
     end % if
     
