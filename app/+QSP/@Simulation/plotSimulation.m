@@ -118,13 +118,13 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
             % color
             
             % Get the match in Sim 1 (Virtual Patient 1) in this VPop
-            ColumnIdx = find(strcmp(Results(itemIdx).SpeciesNames,ThisName));
+            ColumnIdx = find(strcmp(Results(itemIdx).SpeciesNames,ThisName), 1); % keep only first in case of duplicate
             if isempty(ColumnIdx), continue, end
             
             % Update ColumnIdx to get species for ALL virtual patients
             NumSpecies = numel(Results(itemIdx).SpeciesNames);
             if ~isempty(Results(itemIdx).VpopWeights)
-                ColumnIdx = find( strcmp(Results(itemIdx).SpeciesNames, ThisName)) + (find(Results(itemIdx).VpopWeights)-1)*NumSpecies ;
+                ColumnIdx = ColumnIdx + (find(Results(itemIdx).VpopWeights)-1)*NumSpecies ;
             else
                 ColumnIdx = ColumnIdx:NumSpecies:size(Results(itemIdx).Data,2);
             end
