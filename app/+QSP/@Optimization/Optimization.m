@@ -583,7 +583,8 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                   
                     optParamNames = optParams(:,idxName);
                     optParamValues = optParams(:,idx_p0);
-                    optParamValues = cellfun(@str2num, optParamValues, 'UniformOutput', false);
+                    isStr = cellfun(@ischar, optParamValues);
+                    optParamValues(isStr) = cellfun(@str2num, optParamValues(isStr), 'UniformOutput', false);
                     for idx = 1:numel(obj.PlotProfile)
                         inSet = ismember(obj.PlotProfile(idx).Values(:,1), optParamNames);
                         % keep only those that are in the current parameter
