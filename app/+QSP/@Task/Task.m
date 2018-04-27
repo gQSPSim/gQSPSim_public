@@ -316,6 +316,19 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                         obj.OutputTimesStr = sprintf('[0:%2f/100:%2f]',StopTime,StopTime);
                     end
                 end %if
+                
+                % get inactive reactions from the model
+                allReactionNames = get(obj.ModelObj.Reactions, 'Reaction');
+                obj.InactiveReactionNames = allReactionNames(~cell2mat(get(obj.ModelObj.Reactions,'Active')));
+                
+                % get inactive rules from model
+                allRulesNames = get(obj.ModelObj.Rules, 'Rule');
+                obj.InactiveRuleNames = allRulesNames(~cell2mat(get(obj.ModelObj.Rules,'Active')));
+                
+                % get active variant names
+                allVariantNames = get(obj.ModelObj.Variants, 'Name');
+                obj.ActiveVariantNames = allVariantNames(~cell2mat(get(obj.ModelObj.Variants,'Active')));
+                
             end %if
         end %function
         
