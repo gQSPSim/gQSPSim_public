@@ -124,12 +124,18 @@ end
 
 if ~isempty(ItemModels)
     
+
+    % update simulation time stamp
+    updateLastSavedTime(obj);
+
     for ii = 1:nRunItems
         ItemModel = ItemModels(options.runIndices(ii));
         
         % update waitbar
-        set(hWbar2, 'Name', sprintf('Simulating task %d of %d',ii,nRunItems))
-        uix.utility.CustomWaitbar(0,hWbar2,'');
+        if isempty(hWbar2)
+            set(hWbar2, 'Name', sprintf('Simulating task %d of %d',ii,nRunItems))
+            uix.utility.CustomWaitbar(0,hWbar2,'');
+        end
         options.WaitBar = hWbar2;
         % simulate virtual patients
         for jj=1:length(options.Pin)
@@ -148,6 +154,8 @@ if ~isempty(ItemModels)
                 continue
             end
 
+
+            
             %%% Save results of each simulation in different files %%%%%%%%%%%%%%%%%%%%
             SaveFlag = isempty(options.Pin{1}); % don't save if PIn is provided
 
@@ -187,11 +195,16 @@ if ~isempty(ItemModels)
                 ThisMessage = 'Unable to save results to MAT file.';
                 Message = sprintf('%s\n%s\n',Message,ThisMessage);
             end
+            
+            
         end % for jj
 
     end % for ii = ...
 
+    
+    
 end
+
 
 % close waitbar
 uix.utility.CustomWaitbar(1,hWbar2,'Done.');
@@ -467,7 +480,7 @@ function [Results, nFailedSims, StatusOK, Message] = simulateVPatients(ItemModel
             
             % update wait bar
             if ~isempty(options.WaitBar)
-                uix.utility.CustomWaitbar(jj/ItemModel.nPatients, options.WaitBar, sprintf('Simulation vpatient %d/%d', jj, ItemModel.nPatients));
+                uix.utility.CustomWaitbar(jj/ItemModel.nPatients, options.WaitBar, sprintf('Simulating vpatient %d/%d', jj, ItemModel.nPatients));
             end
         end % for jj = ...
     end % if
