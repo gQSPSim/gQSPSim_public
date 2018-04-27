@@ -23,7 +23,7 @@ Names = {obj.Settings.Parameters.Name};
 MatchIdx = strcmpi(Names,obj.RefParamName);
 if any(MatchIdx)
     pObj = obj.Settings.Parameters(MatchIdx);
-    [ThisStatusOk,ThisMessage,~,paramData] = importData(pObj,pObj.FilePath);
+    [ThisStatusOk,ThisMessage,paramHeaders,paramData] = importData(pObj,pObj.FilePath);
     if ~ThisStatusOk
         StatusOK = false;
         Message = sprintf('%s\n%s\n',Message,ThisMessage);
@@ -38,17 +38,30 @@ end
 if ~isempty(paramData)
     % parse paramData
     
+    colId.Include = find(strcmpi(paramHeaders, 'Include'));
+    colId.Name = find(strcmpi(paramHeaders, 'Name'));
+    colId.LB = find(strcmpi(paramHeaders, 'LB'));
+    colId.UB = find(strcmpi(paramHeaders, 'UB'));
+    colId.P0 = find(contains(upper(paramHeaders), 'P0'));
+    colId.Scale = find(strcmpi(paramHeaders, 'SCALE'));
     % remove any NaNs at bottom of file
     paramData = paramData(~strcmp('NaN',paramData(:,1)),:);
-    
+    % convert to numeric cell array if it is a cell array (i.e. contains strings)
+    for k=1:length(colId.P0)
+        if iscell(paramData(:,colId.P0(k)))            
+            isStr = cellfun(@ischar, paramData(:,colId.P0(k)));
+            paramData(isStr,colId.P0(k)) = cellfun(@str2num, paramData(isStr,colId.P0(k)), 'UniformOutput', false);
+        end
+    end
+   
     % check that an initial guess is given
-    if size(paramData,2)<6
-    StatusOK = false;
+    if isempty(colId.P0)
+        StatusOK = false;
         ThisMessage = 'No initial guess for the parameter values was given. Make sure sure the P0_1 column of the selected parameter file is filled out.';
         Message = sprintf('%s\n%s\n',Message,ThisMessage);
         path(myPath);
         return
-    elseif any(any(isnan(cell2mat(paramData(:,6:end)))))
+    elseif any(any(isnan(cell2mat(paramData(:,colId.P0)))))
         StatusOK = false;
         ThisMessage = 'Parameter file is missing information.';
         Message = sprintf('%s\n%s\n',Message,ThisMessage);
@@ -57,9 +70,8 @@ if ~isempty(paramData)
     end
     
     % separate into estimated parameters and fixed parameters
-    estParamData = paramData(strcmpi('Yes',paramData(:,1)),:);
-    fixedParamData = paramData(strcmpi('No',paramData(:,1)),:);
-    if isempty(estParamData)
+    idxEstimate = strcmpi('Yes',paramData(:,1));
+    if ~any(idxEstimate)
         StatusOK = false;
         ThisMessage = 'No parameters included in optimization.';
         Message = sprintf('%s\n%s\n',Message,ThisMessage);
@@ -67,17 +79,44 @@ if ~isempty(paramData)
         return
     end
     
+    % check that all parameters to be optimized (Include=Yes) have
+    % specified LB and UB
+    
+    optimizeIdx = find(strcmpi('Yes',paramData(:,colId.Include)));
+    
+    LB = cell2mat(paramData(optimizeIdx, colId.LB));
+    UB = cell2mat(paramData(optimizeIdx, colId.UB));
+    if any(isnan(LB) | isempty(LB) | isnan(UB) | isempty(UB))
+        StatusOK = false;
+        ThisMessage = 'LB and UB must be given for each parameter to be optimized.';
+        Message = sprintf('%s\n%s\n',Message,ThisMessage);
+        path(myPath);
+        return
+    end
+    
+
+    
     % record indices of parameters that will be log-scaled
-    logInds = find(strcmpi('log',estParamData(:,3)));
+    logInds = find(strcmpi('log',paramData(idxEstimate,colId.Scale)));
     % extract parameter names
-    estParamNames = estParamData(:,2);
-    fixedParamNames = fixedParamData(:,2);
+    estParamNames = paramData(idxEstimate,2);
+    fixedParamNames = paramData(~idxEstimate,2);
     % extract numeric data
-    estParamData = cell2mat(estParamData(:,4:end));
-    fixedParamData = cell2mat(fixedParamData(:,6));
+    estParamData = cell2mat(paramData(idxEstimate,4:end));
+    if ~isempty(fixedParamNames)
+        isValid = ~cellfun(@isempty, paramData(~idxEstimate, colId.P0(1)));
+        fixedParamData = cell2mat(paramData(~idxEstimate,colId.P0(1)));
+        fixedParamNames = fixedParamNames(isValid);
+    else
+        fixedParamData = {};
+    end
     % transform log-scaled parameters
     estParamData(logInds,:) = log10(estParamData(logInds,:));
     
+    paramObj.estParamNames = estParamNames;
+    paramObj.fixedParamNames = fixedParamNames;
+    paramObj.fixedParamData = fixedParamData;
+    paramObj.logInds = logInds;
     
 else
     StatusOK = false;
@@ -148,24 +187,10 @@ end
 % do this up-front so that it isn't done on every call to the objective
 % function
 nItems = length(obj.Item);
-ItemModels = struct('TaskName',zeros(nItems,1),'RunToSteadyState',zeros(nItems,1),...
-    'ExportedModel',zeros(nItems,1),'SpeciesInds',zeros(nItems,1),...
-    'DefaultIC',zeros(nItems,1),'Doses',zeros(nItems,1),...
-    'TimeToSteadyState',zeros(nItems,1),...
-    'EstParamInds',zeros(nItems,1));
-
-% Initialize waitbar
-Title1 = sprintf('Configuring models...');
-hWbar1 = uix.utility.CustomWaitbar(0,Title1,'',false);
-
-
-
 
 % for each task-group item
 for ii = 1:nItems
-    % update waitbar
-    uix.utility.CustomWaitbar(ii/nItems,hWbar1,sprintf('Configuring model for task %d of %d...',ii,nItems));
-    
+
     % get the task obj from the settings obj
     tskInd = find(strcmp(obj.Item(ii).TaskName,{obj.Settings.Task.Name}));
     tObj_i = obj.Settings.Task(tskInd);
@@ -177,122 +202,16 @@ for ii = 1:nItems
     elseif ~ThisStatusOk
         warning('Error loading task %s. Skipping [%s]...', taskName,ThisMessage)
         continue
-    end
+    end       
     
-    % load the model in that task
-%     AllModels = sbioloadproject(tObj_i.RelativeFilePath);
-    
-%     if ~isempty(tObj_i.ModelObj) % use cached model
-%         model_i = tObj_i.ModelObj;
-%     else
-    AllModels = sbioloadproject(fullfile(tObj_i.Session.RootDirectory, tObj_i.RelativeFilePath));
-    AllModels = cell2mat(struct2cell(AllModels));
-    model_i = sbioselect(AllModels,'Name',tObj_i.ModelName,'type','sbiomodel');
-%     end
-    
-    
-    % apply the active variants (if specified)
-    % combine active variants in order into a new variant, add to the
-    % model and activate
-    
-    [~,ixActive] = ismember(tObj_i.ActiveVariantNames, tObj_i.VariantNames);
-    [model_i,varSpeciesObj_i] = CombineVariants(model_i,model_i.variant(ixActive));
-    
-    % inactivate reactions (if specified)   
-    set(model_i.Reactions, 'Active', true);
-    set(model_i.Reactions(ismember(tObj_i.ReactionNames,tObj_i.InactiveReactionNames)), false);
-    
-    % inactivate rules (if specified)   
-    set(model_i.Rules, 'Active', true);
-    set(model_i.Rules(ismember(tObj_i.RuleNames, tObj_i.InactiveRuleNames)), 'Active', false);
-    
-    % assume all parameters are present in all models
-    est_pObj_i = sbioselect(model_i,'Name',estParamNames);
-    fixed_pObj_i = sbioselect(model_i,'Name',fixedParamNames);
-        
-    % grab the default initial conditions from the model   
-    IC_i = cell2mat(get(model_i.Species,'InitialAmount'));
-    
-    % if variants affect the initial conditions, we must include them in the
-    % IC_i vector so that those variants do not get overwritten by the
-    % model defaults when IC_i is input to the exported model
-    
-    % first, get the names of all species in the model
-    modelSpeciesNames_i = get(model_i.Species,'Name');
-    
-    if ~isempty(varSpeciesObj_i)
-        nVarSpec = length(varSpeciesObj_i.Content);
-        for jj = 1:nVarSpec
-            % get the species name
-            var_speciesName_j = varSpeciesObj_i.Content{jj}{2};
-            % get its initial amount
-            var_speciesIC_j = varSpeciesObj_i.Content{jj}{4};
-            % apply the initial amount to the correct index of IC_i
-            ind = strcmp(var_speciesName_j,modelSpeciesNames_i);
-            IC_i(ind) = var_speciesIC_j;
-        end
-    end % if
-    
-    ItemModels(ii).DefaultICs = IC_i;
-    
-    % find the indices of each measured species in the model   
-    [~,ItemModels(ii).SpeciesInds] = ismember({obj.SpeciesIC.SpeciesName}, modelSpeciesNames_i);
-    
-    % run model to steady state?
-    ItemModels(ii).RunToSteadyState = tObj_i.RunToSteadyState;
-    
-    % Export model, allowing all initial conditions and the parameters to vary
-    if isempty(fixedParamNames)
-        exp_model_i = export(model_i, [model_i.Species; est_pObj_i]);
-    else
-        exp_model_i = export(model_i, [model_i.Species; est_pObj_i; fixed_pObj_i]);
-    end % if
-    
-    % set MaxWallClockTime in the exported model
-    if ~isempty(tObj_i.MaxWallClockTime)
-        exp_model_i.SimulationOptions.MaximumWallClock = tObj_i.MaxWallClockTime;
-    else
-        exp_model_i.SimulationOptions.MaximumWallClock = tObj_i.DefaultMaxWallClockTime;
-    end % if
-    
-    % for the run to steady state option, get the user-provided time to
-    % reach steady state
-    ItemModels(ii).TimeToSteadyState = tObj_i.TimeToSteadyState;
-    
-    % select active doses (if specified)
-    exp_doses_i = [];
-    if ~isempty(tObj_i.ActiveDoseNames)
-        for jj = 1 : length(tObj_i.ActiveDoseNames)
-            exp_doses_i = [exp_doses_i, getdose(exp_model_i, tObj_i.ActiveDoseNames{jj})];
-        end % for
-    end % if
-    ItemModels(ii).Doses = exp_doses_i;
-    
-    
-    
-    % accelerate model
-    try
-        accelerate(exp_model_i)
-    catch ME
-        StatusOK = false;
-        ThisMessage = sprintf('Model acceleration failed. Check that you have a compiler installed and setup. %s', ME.message);
-        Message = sprintf('%s\n%s\n',Message,ThisMessage);
-    end % try
-    
-    ItemModels(ii).ExportedModel = exp_model_i;
-    
+    ItemModels.Task(ii) = tObj_i;
 end % for ii = ...
 
-% close waitbar
-uix.utility.CustomWaitbar(1,hWbar1,'Done.');
-if ~isempty(hWbar1) && ishandle(hWbar1)
-    delete(hWbar1);
-end
 
 %% Call optimization program
 switch obj.AlgorithmName
     case 'ScatterSearch'
-        [VpopParams,StatusOK,ThisMessage] = run_ss(@(est_p) objectiveFun(est_p,logInds,fixedParamData,ItemModels,Groups,IDs,Time,optimData,dataNames,obj),estParamData);
+        [VpopParams,StatusOK,ThisMessage] = run_ss(@(est_p) objectiveFun(est_p,paramObj,ItemModels,Groups,IDs,Time,optimData,dataNames,obj),estParamData);
         Message = sprintf('%s\n%s\n',Message,ThisMessage);
         
         if ~StatusOK
@@ -301,10 +220,23 @@ switch obj.AlgorithmName
         end
         
     case 'ParticleSwarm'
-        warning('Particle Swarm not yet implemented')
-        StatusOK = false;
-        path(myPath);
-        return
+        N = size(estParamData,1);
+        try
+            StatusOK = true;
+            LB = estParamData(:,1);
+            UB = estParamData(:,2);
+            options = optimoptions('ParticleSwarm', 'Display', 'iter', 'FunctionTolerance', .1, 'MaxTime', 12000, ...
+                'UseParallel', false, 'FunValCheck', 'on', 'UseVectorized', false, 'PlotFcn',  @pswplotbestf);
+            VpopParams = particleswarm( @(est_p) objectiveFun(est_p',paramObj,ItemModels,Groups,IDs,Time,optimData,dataNames,obj), N, LB, UB, options);
+        catch err
+            StatusOK = false;
+            warning('Encountered error in particle swarm optimization')
+            Message = sprintf('%s\n%s\n',Message,err.message);
+            path(myPath);
+            return
+        end    
+        
+
     case 'Local'
         warning('Local optimization not yet implemented')
         StatusOK = false;
@@ -357,9 +289,9 @@ else
     % across groups. need to do this so that the Vpops for each group are
     % of the same size and can be concatentated
     allSpeciesInds = [];
-    for grp1 = 1:length(ItemModels)
-        allSpeciesInds = union(allSpeciesInds,ItemModels(grp1).SpeciesInds);
-    end
+%     for grp1 = 1:length(ItemModels)
+%         allSpeciesInds = union(allSpeciesInds,ItemModels(grp1).SpeciesInds);
+%     end
     
     % prepare for a concatenated Vpop
     Vpop = [];
@@ -379,45 +311,22 @@ else
         
         % for each ID (varying initial conditions and time points in the same model)
         uniqueIDs_grp1 = unique(IDs_grp1);
-        
+        SpeciesIC = obj.SpeciesIC;
+
         for pat = 1:nPatients
             for id1 = 1:length(uniqueIDs_grp1)
                 % get time and data values for this ID
                 optimData_id1 = optimData_grp1(IDs_grp1 == uniqueIDs_grp1(id1),:);
                 Time_id1 = Time_grp1(IDs_grp1 == uniqueIDs_grp1(id1));
-                % get default initial conditions for this group (uses model
-                % plus variants in the corresponding task)
-                IC_id1 = ItemModels(grp1).DefaultICs;
                 
-                % get IC values from data
-                for spec1 = 1:length(obj.SpeciesIC)
-                    % get species values for t<=0
-                    IC_spec1 = optimData_id1(Time_id1<=0,strcmp(obj.SpeciesIC(spec1).DataName,dataNames));
-                    
-                    try
-                        % transform values, take the mean
-                        IC_spec1 = nanmean(obj.SpeciesIC(spec1).evaluate(IC_spec1));
-                    catch ME
-                        StatusOK = false;
-                        ThisMessage = sprintf('There is an error in one of the function expressions in the SpeciesInitialConditions mapping. %s', ME.message);
-                        Message = sprintf('%s\n%s\n',Message,ThisMessage);
-                        path(myPath);
-                        return
-                    end % try
-                    
-                    % check that the IC from data is not NaN
-                    if ~isnan(IC_spec1)
-                        % if not, replace the entry corresponding  to that
-                        % that species in the default ICs
-                        IC_id1(ItemModels(grp1).SpeciesInds(spec1)) = IC_spec1;
-                    end % if
-                end % for spec1 = ...
-                
-                % keep only those ICs that are measured in the data
-                IC_id1 = IC_id1(allSpeciesInds);
-                
+                %get species IC values from data for the current ID
+                % use average of values with t <= 0
+                [~,spIdx] = ismember({SpeciesIC.DataName},dataNames); % columns in the data table
+                IC = optimData_id1(Time_id1<=0,spIdx);
+                IC = nanmean(IC,1);
+                                
                 % Add VP parameters and data ICs for this ID to the Vpop
-                Vpop_grp = [Vpop_grp;VpopParams(pat,:),IC_id1'];
+                Vpop_grp = [Vpop_grp;VpopParams(pat,:),IC];
 
             end % for id1 = ...
         end % for pat = ...
@@ -425,7 +334,8 @@ else
         Vpop = [Vpop;Vpop_grp];
         
         % add headers to current group's Vpop
-        Vpop_grp = [[estParamNames',ICspecNames]; num2cell(Vpop_grp)];
+%         Vpop_grp = [[estParamNames', fixedParamNames' ,ICspecNames]; num2cell(Vpop_grp)];
+        Vpop_grp = [[estParamNames',ICspecNames,fixedParamNames']; [num2cell(Vpop_grp), num2cell(repmat(fixedParamData', size(Vpop_grp,1), 1)) ]];
 
         % save current group's Vpop
         SaveFlag = true;
@@ -461,7 +371,7 @@ end % if
 % Vpop = [[estParamNames',specNames,{'PWeight'}]; num2cell([Vpop,PWeight])];
 
 % add headers to final Vpop
-Vpop = [[estParamNames',ICspecNames]; num2cell(Vpop)];
+Vpop = [[estParamNames',ICspecNames,fixedParamNames']; [num2cell(Vpop), num2cell(repmat(fixedParamData', size(Vpop,1), 1)) ]];
 
 % save final Vpop
 SaveFlag = true;
@@ -490,22 +400,29 @@ end
 
 
 %% Objective function
-    function [objective,varargout] = objectiveFun(est_p,logInds,fixed_p,ItemModels,Groups,IDs,Time,optimData,dataNames,obj)
+    function [objective,varargout] = objectiveFun(est_p,paramObj,ItemModels,Groups,IDs,Time,optimData,dataNames,obj)
         tempStatusOK = true;
         tempMessage = '';
         
 %         inputStr = '(species,data,simTime,dataTime,allData,ID,Grp,currID,currGrp)';
+        logInds = reshape( paramObj.logInds, [], 1);
         
-        if size(logInds,2)>size(logInds,1)
-            logInds = logInds';
+        if ~isempty(paramObj.fixedParamData)
+            fixed_p = paramObj.fixedParamData;
+        else
+            fixed_p = [];
         end
+        
+        estParamNames = paramObj.estParamNames;
+        fixedParamNames = paramObj.fixedParamNames;
+        
         est_p(logInds) = 10.^(est_p(logInds));
         objectiveVec = [];
         
         % added property ObjectiveName to SpeciesData class
         objective_handles = cell(length(obj.SpeciesData),1);
         for spec = 1:length(obj.SpeciesData)
-            objective_handles{spec} = str2func(obj.SpeciesData(spec).ObjectiveName);
+            objective_handles{spec} = str2func( regexprep(obj.SpeciesData(spec).ObjectiveName, '.m$', ''));
         end
         SpeciesData = obj.SpeciesData;
         SpeciesIC = obj.SpeciesIC;
@@ -514,10 +431,10 @@ end
         try
             
             % for each Group (varying experiments)
-            for grp = 1:length(obj.Item)
+            for grpIdx = 1:length(obj.Item)
                 
                 % get indices of relevant rows
-                currGrp = str2double(obj.Item(grp).GroupID);
+                currGrp = str2double(obj.Item(grpIdx).GroupID);
                 grpInds = find(Groups == currGrp);
                 
                 % grab group data
@@ -533,59 +450,22 @@ end
                     optimData_id = optimData_grp(IDs_grp == currID,:);
                     Time_id = Time_grp(IDs_grp == currID);
                     
-                    % change output times for the exported model
-                    ItemModels(grp).ExportedModel.SimulationOptions.OutputTimes = sort(unique(Time_id(Time_id>=0)));
-                    
-                    % update initial conditions of each measured species using
-                    % the data
-                    IC_id = ItemModels(grp).DefaultICs;
-                    
-                    
-                    %get species IC values from data
-                    for spec = 1:length(SpeciesIC)
-                        % get species values for t<=0
-                        IC_spec = optimData_id(Time_id<=0,strcmp(SpeciesIC(spec).DataName,dataNames));
-                        
-                        try
-                            % transform values, take the mean
-                            IC_spec = nanmean(SpeciesIC(spec).evaluate(IC_spec));
-                        catch tempME
-                            tempStatusOK = false;
-                            tempThisMessage = sprintf('There is an error in one of the function expressions in the SpeciesInitialConditions mapping. %s', tempME.message);
-                            tempMessage = sprintf('%s\n%s\n',tempMessage,tempThisMessage);
-                            
-                            if nargout>1
-                                varargout{1} = tempStatusOK;
-                                varargout{2} = tempMessage;
-                            end
-                            path(myPath);
-                            return
-                        end % try
-                        
-                        % check that the IC from data is not just NaN
-                        if ~isnan(IC_spec)
-                            IC_id(ItemModels(grp).SpeciesInds(spec)) = IC_spec;
-                        end % if
-                    end % for spec = ...
-                    
-                    
-                    % run to steady state if checked for this group
-                    if ItemModels(grp).RunToSteadyState
-                        % set time to reach steady state
-                        ItemModels(grp).ExportedModel.SimulationOptions.OutputTimes = [];
-                        ItemModels(grp).ExportedModel.SimulationOptions.StopTime = ItemModels(grp).TimeToSteadyState;
-                        % simulate model
-                        [~,RTSSdata] = simulate(ItemModels(grp).ExportedModel,[IC_id',est_p',fixed_p']);
-                        % record steady state values
-                        IC_id = RTSSdata(end,1:length(IC_id));
-                        % update output times
-                        ItemModels(grp).ExportedModel.SimulationOptions.OutputTimes = sort(unique(Time_id(Time_id>=0)));
-                        ItemModels(grp).ExportedModel.SimulationOptions.StopTime = max(Time_id(Time_id>=0));
-                    end % if
-                    
+                    %get species IC values from data for the current ID
+                    % use average of values with t <= 0
+                    [~,spIdx] = ismember({SpeciesIC.DataName},dataNames); % columns in the data table
+                    IC = optimData_id(Time_id<=0,spIdx);
+                    IC = nanmean(IC,1);
+ 
                     % simulate experiment for this ID
-                    IC_id = reshape(IC_id,1,[]);
-                    simData_id = simulate(ItemModels(grp).ExportedModel,[IC_id,est_p',fixed_p'],ItemModels(grp).Doses);
+                    OutputTimes = sort(unique(Time_id(Time_id>=0)));
+                    StopTime = max(Time_id(Time_id>=0));
+                    
+                    simData_id = ItemModels.Task(grpIdx).simulate(...
+                        'Names', [{SpeciesIC.SpeciesName}'; estParamNames; fixedParamNames], ...
+                        'Values', [IC';est_p;fixed_p], ...
+                        'OutputTimes', OutputTimes, ...
+                        'StopTime', StopTime );
+                    
                     
                     % generate elements of objective vector by comparing model
                     % outputs to data
@@ -593,11 +473,12 @@ end
                         % name of current species in the dataset
                         currDataName = SpeciesData(spec).DataName;
                         
-                        % grab each model output for the measured species
-                        [simTime_spec,simData_spec] = selectbyname(simData_id,SpeciesData(spec).SpeciesName);
                         
-                        % transform to match the format of the measured data
+                        
                         try
+                            % grab each model output for the measured species                        
+                            [simTime_spec,simData_spec] = selectbyname(simData_id,SpeciesData(spec).SpeciesName);
+                            % transform to match the format of the measured data
                             simData_spec = SpeciesData(spec).evaluate(simData_spec);
                         catch tempME
                             tempStatusOK = false;
@@ -634,7 +515,8 @@ end
                         
                         % Inputs are '(species,data,simTime,dataTime,allData,ID,Grp,currID,currGrp)'
                         % or           (simData_spec,optimData_spec,simTime_spec,dataTime_spec,optimData(:,strcmp(currDataName,dataNames)),IDs,Groups,currID,currGrp)
-                        objectiveVec = [objectiveVec; objective_handles{spec}(simData_spec,optimData_spec,simTime_spec,dataTime_spec,optimData(:,strcmp(currDataName,dataNames)),IDs,Groups,currID,currGrp)];
+                        thisObj = objective_handles{spec}(simData_spec,optimData_spec,simTime_spec,dataTime_spec,optimData(:,strcmp(currDataName,dataNames)),IDs,Groups,currID,currGrp);
+                        objectiveVec = [objectiveVec; thisObj];
                         
                     end % for spec = ...
                     
@@ -643,12 +525,13 @@ end
             end % for grp = ...
             
         catch simErr
+            disp(simErr.message)
             % if objective calculation fails
             objectiveVec = [];
-            for grp = 1:length(obj.Item)
+            for grpIdx = 1:length(obj.Item)
                 
                 % get indices of relevant rows
-                currGrp = str2double(obj.Item(grp).GroupID);
+                currGrp = str2double(obj.Item(grpIdx).GroupID);
                 grpInds = find(Groups == currGrp);
                 
                 % grab group data
@@ -664,7 +547,11 @@ end
                     
                     %
                     for spec = 1:length(SpeciesData)
+                        try
                         optimData_spec = optimData_id(Time_id>=0,strcmp(SpeciesData(spec).DataName,dataNames));
+                        catch err
+                            disp(err.message)
+                        end
                         objectiveVec = [objectiveVec;inf(length(optimData_spec(~isnan(optimData_spec))),1)];
                     end % for spec = ...
                 end % for id
@@ -675,11 +562,11 @@ end
         switch obj.AlgorithmName
             case 'ScatterSearch'
                 % sum objectiveVec entries to get the current objective value
-                objective = sum(objectiveVec);
+                objective = nansum(objectiveVec);
                 
             case 'ParticleSwarm'
                 % sum objectiveVec entries to get the current objective value
-                objective = sum(objectiveVec);
+                objective = nansum(objectiveVec);
                 
                 %             case 'Local'
                 %                 % requires that the selected ObjectiveName is localObj

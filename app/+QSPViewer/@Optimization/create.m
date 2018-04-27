@@ -293,3 +293,6 @@ vObj.h.ParametersLayout.Heights = [-1 -1 WidgetHeight];
 % Sizes
 vObj.h.VisualizationLayout.Heights = [-1 -1 -3];
 
+% Semaphore
+% vObj.semaphore = Semaphore();
+

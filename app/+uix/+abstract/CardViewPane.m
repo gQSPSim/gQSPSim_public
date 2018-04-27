@@ -591,7 +591,9 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                         % Call the callback
                         evt.InteractionType = sprintf('Updated %s',class(vpopObj));
                         evt.Data = vpopObj;
+                        hWbar = uix.utility.CustomWaitbar(0,'Updating','Updating tree items',false);
                         obj.callCallback(evt);
+                        delete(hWbar)
                     end
                         
                     if StatusOK

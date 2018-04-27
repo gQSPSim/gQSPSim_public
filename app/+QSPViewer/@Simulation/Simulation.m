@@ -148,17 +148,10 @@ classdef Simulation < uix.abstract.CardViewPane
                         vObj.TempData.Item(DeleteIdx) = [];
                     end
             end
-                
-            Title = 'Refreshing view';
-            hWbar = uix.utility.CustomWaitbar(0,Title,'',false);
-            
-            uix.utility.CustomWaitbar(0.5,hWbar,'Refresh Table...');
+
             % Update the view
-            refreshItemsTable(vObj);
-            uix.utility.CustomWaitbar(1,hWbar,'Done');
-            if ~isempty(hWbar) && ishandle(hWbar)
-                delete(hWbar);
-            end
+            refreshItemsTable(vObj, false);
+
             
         end %function
         
@@ -198,17 +191,8 @@ classdef Simulation < uix.abstract.CardViewPane
                 vObj.TempData.Item(RowIdx).MATFileName = '';
             end
             
-            Title = 'Refreshing view';
-            hWbar = uix.utility.CustomWaitbar(0,Title,'',false);
-            
-            uix.utility.CustomWaitbar(0.5,hWbar,'Refresh Table...');
-            % Update the view
-            refreshItemsTable(vObj);
-            uix.utility.CustomWaitbar(1,hWbar,'Done');
-            if ~isempty(hWbar) && ishandle(hWbar)
-                delete(hWbar);
-            end
-            
+            refreshItemsTable(vObj, false);
+           
         end %function
         
         function onItemsTableSelect(vObj,h,e)
@@ -421,6 +405,20 @@ classdef Simulation < uix.abstract.CardViewPane
         
         function onNavigation(vObj,View)
             
+            % if changing to simulation configuration view then refresh the
+            % tables since vpops and tasks may have changed
+            if strcmp(View,'Edit')
+                Title = 'Refreshing view';
+                hWbar = uix.utility.CustomWaitbar(0,Title,'',false);
+
+                uix.utility.CustomWaitbar(0.5,hWbar,'Refresh Table...');
+                % Update the view
+                refreshItemsTable(vObj, true);
+                uix.utility.CustomWaitbar(1,hWbar,'Done');
+                if ~isempty(hWbar) && ishandle(hWbar)
+                    delete(hWbar);
+                end
+            end
             onNavigation@uix.abstract.CardViewPane(vObj,View);
             
         end %function

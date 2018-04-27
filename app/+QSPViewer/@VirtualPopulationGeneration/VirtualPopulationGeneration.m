@@ -408,7 +408,7 @@ classdef VirtualPopulationGeneration < uix.abstract.CardViewPane
                 set(p, 'Widths', 900, 'Heights', 300*ceil(nCol/3))
                 
             end
-            uiwait(h)
+%             uiwait(h)
             
             
         end %function

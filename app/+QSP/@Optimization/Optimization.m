@@ -53,7 +53,7 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         
         SelectedPlotLayout = '1x1'        
         
-        ItemModels = []; % cached Item Models
+
     end
     
     properties (SetAccess = 'private')
@@ -68,6 +68,11 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             'ParticleSwarm'
             }
     end    
+    
+    properties (Transient=true)
+        ItemModels = []; % cached Item Models
+        Results = []; % cached results
+    end
     
     %% Constructor
     methods
@@ -472,10 +477,16 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                         % Parameter File
                         IsName = strcmpi(Header,'Name');
                         IsP0_1 = strcmpi(Header,'P0_1');
+                        IsInclude = strcmpi(Header,'Include');
                         if any(IsName) && any(IsP0_1)
-                            PlotParametersData = cell(size(Data,1),2);
+%                             IsUsed = strcmpi(Data(:,IsInclude),'yes');
+%                             PlotParametersData = cell(nnz(IsUsed),2);
+%                             PlotParametersData(:,1) = Data(IsUsed,IsName);
+%                             PlotParametersData(:,2) = Data(IsUsed,IsP0_1);  
+                             PlotParametersData = cell(size(Data,1),2);
                             PlotParametersData(:,1) = Data(:,IsName);
-                            PlotParametersData(:,2) = Data(:,IsP0_1);                            
+                            PlotParametersData(:,2) = Data(:,IsP0_1);  
+                            PlotParametersData(cell2mat(cellfun(@isnan, PlotParametersData(:,2), 'UniformOutput', false)), 2) = {''};
                         end
                     elseif strcmpi(class(thisObj),'QSP.VirtualPopulation')
                         % Virtual Population Data
@@ -487,6 +498,17 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                     else
                         PlotParametersData = cell(0,2);
                     end
+                    
+%                     PlotParametersData(:,2) = cell2mat(cellfun(@str2num, PlotParametersData(:,2), 'UniformOutput', false));
+                    if iscell(PlotParametersData(:,2))
+                        isStr = cellfun(@ischar, PlotParametersData(:,2));
+                        PlotParametersData(isStr,2) = cellfun(@str2num, PlotParametersData(isStr,2), 'UniformOutput', false);
+                    end                                       
+                    
+                    % reorder alphabetically
+                    [~,index] = sort(upper(PlotParametersData(:,1)));
+                    PlotParametersData = PlotParametersData(index,:);
+                    
                     %obj.PlotParametersSource = NewSource;
                 else
                     Message = sprintf('Could not import from file. %s',Message);
@@ -530,6 +552,51 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                         % Append
                         vpopObj = [vpopObj thisVpopObj]; %#ok<AGROW>
                     end
+                    
+                    % update runs to have only the parameters that are
+                    % present in the parameter object in order to stay up to date with
+                    % changes to the parameter file
+                    
+                    Names = {obj.Settings.Parameters.Name};
+                    MatchIdx = strcmpi(Names,obj.RefParamName);
+                    if any(MatchIdx)
+                        pObj = obj.Settings.Parameters(MatchIdx);
+                        [ThisStatusOk,ThisMessage,paramHeader,paramData] = importData(pObj,pObj.FilePath);
+                        if ~ThisStatusOk
+                            StatusOK = false;
+                            Message = sprintf('%s\n%s\n',Message,ThisMessage);
+                            path(myPath);
+                            return
+                        end
+                    else
+                        warning('Could not find match for specified parameter file')
+                        paramData = {};
+                    end
+                    
+                    % parameters that are being optimized
+                    idxInclude = strcmp(paramHeader,'Include');
+                    idxName = strcmp(paramHeader,'Name');
+                    idx_p0 = strcmpi(paramHeader,'P0_1');
+                    
+%                     optParams = paramData(strcmpi(paramData(:,idxInclude),'yes'),:);
+                      optParams = paramData;
+                  
+                    optParamNames = optParams(:,idxName);
+                    optParamValues = optParams(:,idx_p0);
+                    isStr = cellfun(@ischar, optParamValues);
+                    optParamValues(isStr) = cellfun(@str2num, optParamValues(isStr), 'UniformOutput', false);
+                    for idx = 1:numel(obj.PlotProfile)
+                        inSet = ismember(obj.PlotProfile(idx).Values(:,1), optParamNames);
+                        % keep only those that are in the current parameter
+                        % file
+                        idxMissing = ~ismember(optParamNames, obj.PlotProfile(idx).Values(:,1));
+
+                        obj.PlotProfile(idx).Values = obj.PlotProfile(idx).Values(inSet,:);
+                        % add in any missing entries, use default values
+                        obj.PlotProfile(idx).Values = [obj.PlotProfile(idx).Values; [optParamNames(idxMissing), optParamValues(idxMissing)]];
+%                         obj.PlotProfile(idx).Values(:,2) = cellfun(@str2num, obj.PlotProfile(idx).Values(:,2));
+                    end
+                    
                 else
                     vpopObj = QSP.VirtualPopulation.empty(0,1);
                 end

@@ -119,6 +119,7 @@ vObj = obj.Settings.VirtualPopulation(strcmp(obj.VPopName,allVpopNames));
 
 %% Run the simulations for those that are not cached
 if ~isempty(simObj)
+
     [ThisStatusOK,Message,ResultFileNames,Results] = simulationRunHelper(simObj, [], {}, TimeVec);
     
     if ~ThisStatusOK        
@@ -163,6 +164,7 @@ SelectedItemColors = cell2mat(obj.PlotItemTable(IsSelected,2));
 
 %% Plot Simulation Items
 
+ResultsIdx = find(IsSelected);
 
 if strcmp(obj.PlotType, 'Normal') && ~isempty(Results)
     % all axes with species assigned to them
@@ -176,6 +178,7 @@ if strcmp(obj.PlotType, 'Normal') && ~isempty(Results)
         end
         ThisLineStyle = obj.PlotSpeciesTable{sIdx,2};
         ThisName = obj.PlotSpeciesTable{sIdx,3};
+        ThisDataName = obj.PlotSpeciesTable{sIdx,4};
         
         acc_lines = [];
         rej_lines = [];
@@ -185,6 +188,7 @@ if strcmp(obj.PlotType, 'Normal') && ~isempty(Results)
         if ~isempty(axIdx) && ~isnan(axIdx)
             
             for itemIdx = 1:numel(Results)
+                itemNumber = ResultsIdx(itemIdx);
                 % Plot the species from the simulation item in the appropriate
                 % color
 
@@ -195,7 +199,7 @@ if strcmp(obj.PlotType, 'Normal') && ~isempty(Results)
                 if ~isempty(ColumnIdx)
                     % Update ColumnIdx to get species for ALL virtual patients
                     NumSpecies = numel(Results{itemIdx}.SpeciesNames);
-                    ColumnIdx = ColumnIdx:NumSpecies:size(Results{1}.Data,2);
+                    ColumnIdx = ColumnIdx:NumSpecies:size(Results{itemIdx}.Data,2);
                     ColumnIdx_invalid = find(strcmp(Results{itemIdx}.SpeciesNames,ThisName)) + (find(~obj.SimFlag)-1) * NumSpecies;
 
                     
@@ -262,7 +266,12 @@ if strcmp(obj.PlotType, 'Normal') && ~isempty(Results)
                     
                     % mean
 %                     mean_line = plot(hAxes(axIdx), Results{itemIdx}.Time, thisData(:,ColumnIdx) * obj.PrevalenceWeights/sum(obj.PrevalenceWeights),...
-                    vpopWeights = cell2mat(Results{itemIdx}.VpopWeights);
+                    if iscell(Results{itemIdx}.VpopWeights)
+                        vpopWeights = cell2mat(Results{itemIdx}.VpopWeights);
+                    else
+                        vpopWeights = Results{itemIdx}.VpopWeights;
+                    end
+                    
                     mean_line = plot(hSpeciesGroup{sIdx,axIdx}, Results{itemIdx}.Time, thisData(:,ColumnIdx) * ...
                             vpopWeights/sum(vpopWeights),...
                         'LineStyle',ThisLineStyle,...
@@ -272,10 +281,10 @@ if strcmp(obj.PlotType, 'Normal') && ~isempty(Results)
 
                     % add upper and lower bounds if applicable
                     DataCol = find(strcmp(accCritHeader,'Data'));
-                    accName = obj.PlotSpeciesTable(strcmp(ThisName,obj.PlotSpeciesTable(:,3)),4);
+                    accName = obj.PlotSpeciesTable(strcmp(ThisDataName,obj.PlotSpeciesTable(:,4)),4);
 
                     accDataRows = strcmp(accCritData(:,DataCol), accName) & ...
-                        cell2mat(accCritData(:,strcmp(accCritHeader,'Group'))) == str2num(obj.PlotItemTable{itemIdx,4}) ;
+                        cell2mat(accCritData(:,strcmp(accCritHeader,'Group'))) == str2num(obj.PlotItemTable{itemNumber,4}) ;
                     LB = cell2mat(accCritData(accDataRows, strcmp(accCritHeader, 'LB')));
                     UB = cell2mat(accCritData(accDataRows, strcmp(accCritHeader, 'UB')));
                     accTime = cell2mat(accCritData(accDataRows, strcmp(accCritHeader, 'Time')));
@@ -332,7 +341,8 @@ elseif strcmp(obj.PlotType,'Diagnostic') && ~isempty(Results)
 
     % all species names
     spNames = obj.PlotSpeciesTable(:,3);
-
+    dataNames = obj.PlotSpeciesTable(:,4);
+    
     % loop over axes
     unqAxis = unique(allAxes);
     for axIdx = 1:numel(unqAxis)
@@ -340,7 +350,7 @@ elseif strcmp(obj.PlotType,'Diagnostic') && ~isempty(Results)
 %         cla(hAxes(unqAxis(axIdx)))
 
         % get all species for this axis
-        axSpecies = spNames(allAxes==currentAxis);
+        axData = dataNames(allAxes==currentAxis);
 
         axDataArray = {};
         xlabArray = {};
@@ -349,22 +359,26 @@ elseif strcmp(obj.PlotType,'Diagnostic') && ~isempty(Results)
         LBArray = [];
 
         % loop over the species on this axis
-        for spIdx = 1:length(axSpecies)    
-            currentSpec = axSpecies(spIdx);
-            currentSpecIdx = find(strcmp(currentSpec, obj.PlotSpeciesTable(:,3)));
+        for dataIdx = 1:length(axData)    
+            currentData = axData(dataIdx);
+            currentDataIdx = strcmp(currentData, obj.PlotSpeciesTable(:,4));
             % loop over all tasks and get the data for this species  
             for itemIdx = 1:numel(Results)
 
+                itemNumber = ResultsIdx(itemIdx);
+
                 % species in this task 
                 NumSpecies = numel(Results{itemIdx}.SpeciesNames);
-                dataName = obj.PlotSpeciesTable( strcmp(obj.PlotSpeciesTable(:,3), currentSpec), 4);
-
+                currentSpecies = obj.PlotSpeciesTable( strcmp(obj.PlotSpeciesTable(:,4), currentData), 3);
                 % time points for this species in this group in the acc. crit.
-                thisTime = TimeVec(grpVec == itemIdx & strcmp(DataVec, dataName));
-
+                thisTime = TimeVec(grpVec == str2num(obj.PlotItemTable{itemNumber,4}) & strcmp(DataVec, currentData));
+                if isempty(thisTime)
+                    continue
+                end
+                
                 % ub/lb
-                thisUB = UBVec(grpVec == itemIdx & strcmp(DataVec, dataName));
-                thisLB = LBVec(grpVec == itemIdx & strcmp(DataVec, dataName));
+                thisUB = UBVec(grpVec == str2num(obj.PlotItemTable{itemNumber,4}) & strcmp(DataVec, currentData));
+                thisLB = LBVec(grpVec == str2num(obj.PlotItemTable{itemNumber,4}) & strcmp(DataVec, currentData));
 
                 % get times that are in the acceptance criteria for this task / species      
                 [b_time,timeIdx] = ismember(thisTime, Results{itemIdx}.Time);
@@ -373,13 +387,19 @@ elseif strcmp(obj.PlotType,'Diagnostic') && ~isempty(Results)
                 % index of all columns for this species in this group 
                 NumVpop = size(Results{itemIdx}.Data,2) / NumSpecies;
                 
-                if ~obj.ShowInvalidVirtualPatients
-                    ColumnIdx = find( strcmp(Results{itemIdx}.SpeciesNames, currentSpec)) + (find(obj.SimFlag)-1)*NumSpecies ;
+                if ~obj.ShowInvalidVirtualPatients && ~isempty(obj.SimFlag)
+                    if isempty(obj.SimFlag)
+                        ColumnIdx = find( strcmp(Results{itemIdx}.SpeciesNames, currentSpecies)) + (0:NumVpop-1)*NumSpecies;
+                        warning('plotVirtualPopulationGeneration: missing SimFlag in vpop. Showing all trajectories.')
+                    else
+                        ColumnIdx = find( strcmp(Results{itemIdx}.SpeciesNames, currentSpecies)) + (find(obj.SimFlag)-1)*NumSpecies ;
+                    end
                 else
-                    ColumnIdx = find( strcmp(Results{itemIdx}.SpeciesNames, currentSpec)) + (0:NumVpop-1)*NumSpecies;
+                    ColumnIdx = find( strcmp(Results{itemIdx}.SpeciesNames, currentSpecies)) + (0:NumVpop-1)*NumSpecies;
                 end
 
-                thisData = obj.SpeciesData(currentSpecIdx).evaluate(Results{itemIdx}.Data(timeIdx, ColumnIdx));
+                thisData = obj.SpeciesData(currentDataIdx).evaluate(Results{itemIdx}.Data(:, ColumnIdx));
+                thisData = thisData(timeIdx, :);
 
                 for tix = 1:length(timeIdx)
                     axDataArray = [axDataArray, thisData(tix,:)];
@@ -393,12 +413,16 @@ elseif strcmp(obj.PlotType,'Diagnostic') && ~isempty(Results)
         end
 
         % plot distribution plots for this axis
+        if isempty(axDataArray)
+            continue
+        end
+        warning('off','DISTRIBUTIONPLOT:ERASINGLABELS')
         distributionPlot(hAxes(currentAxis), axDataArray, 'color', colorArray, 'xNames', xlabArray, 'showMM', 0, 'histOpt', 1.1)
 
         % add error bars
         for k=1:length(UBArray)
-            errorbar(hAxes(currentAxis), k, (UBArray(k)+LBArray(k))/2, (UBArray(k)-LBArray(k))/2, 'Marker', 'none', 'LineStyle', 'none',  ..., ...
-                            'Color', colorArray{k})
+            errorbar(hAxes(currentAxis), k, (UBArray(k)+LBArray(k))/2, (UBArray(k)-LBArray(k))/2, 'Marker', 's', 'LineStyle', 'none',  ..., ...
+                            'Color', 'k', 'LineWidth', 2) % colorArray{k}
         end
 
     end
@@ -506,7 +530,11 @@ for axIndex = 1:NumAxes
     
     if ~isempty(LegendItems)
         % Add legend
-        [hLegend{axIndex},hLegendChildren{axIndex}] = legend(hAxes(axIndex),LegendItems);
+        try
+            [hLegend{axIndex},hLegendChildren{axIndex}] = legend(hAxes(axIndex),LegendItems);
+        catch
+            warning('Error drawing legends')
+        end
     else
         hLegend{axIndex} = [];
         hLegendChildren{axIndex} = [];        
@@ -525,7 +553,11 @@ for index = 1:numel(hAxes)
     hFigure = ancestor(hAxes(index),'Figure');
     if ~isempty(hFigure) && strcmpi(XLimMode{index},'auto') && strcmpi(YLimMode{index},'auto')
         axes(hAxes(index));
-        zoom(hFigure,'out');
-        zoom(hFigure,'reset');        
+        try
+            zoom(hFigure,'out');
+            zoom(hFigure,'reset');        
+        catch ME
+            warning(ME.message);
+        end
     end
 end

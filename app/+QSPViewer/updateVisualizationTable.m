@@ -38,12 +38,12 @@ if ~isempty(InvalidRowIndices)
         % Check to see if the row is missing from InTable
         MissingRow = false;
         for kIndex = KeyIndex
-            MissingRow = MissingRow | ~ismember(InTable(:,kIndex),OutTable(index,kIndex));
+            MissingRow = MissingRow | ~ismember(OutTable(index,kIndex),InTable(:,kIndex));
         end
         % If it's missing, then delete it
         if MissingRow
             % Mark for deletion
-            DeleteRowIndices = [DeleteRowIndices index]; %#ok<AGROW>
+%             DeleteRowIndices = [DeleteRowIndices index]; %#ok<AGROW>
         else
             % Mark row as invalid
             for kIndex = KeyIndex

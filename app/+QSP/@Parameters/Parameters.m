@@ -30,6 +30,9 @@ classdef Parameters < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
     %% Protected Properties
     properties (Transient=true, GetAccess=public, SetAccess=protected)
         NumParameters = 0
+        myData = [];
+        myHeader = [];
+        myDataTimeStamp = [];
     end
     
     %% Constructor
@@ -109,10 +112,21 @@ classdef Parameters < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             StatusOk = true;
             Message = '';
             
+            if ~isempty(obj.myData) && exist(DataFilePath, 'File')
+                FileInfo = dir(DataFilePath);
+                timeStamp = FileInfo.datenum;
+                if obj.myDataTimeStamp == timeStamp %modified since storing
+                    Data = obj.myData;
+                    Header = obj.myHeader;
+                    return
+                end
+            end
+            
             % Load from file
             try            
                 Raw = readtable(DataFilePath);
                 Raw = [Raw.Properties.VariableNames;table2cell(Raw)];
+
             catch ME
                 Raw = {};
                 StatusOk = false;
@@ -131,6 +145,15 @@ classdef Parameters < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             end
             
             obj.FilePath = DataFilePath;
+            obj.myData = Data;
+            obj.myHeader = Header;
+            FileInfo = dir(DataFilePath);
+
+            if ~isempty(FileInfo)
+                obj.myDataTimeStamp = FileInfo.datenum;
+            else
+                obj.myDataTimeStamp = [];
+            end
             
         end %function
         
