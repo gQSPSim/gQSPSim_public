@@ -355,7 +355,14 @@ function [ItemModel, VpopWeights, StatusOK, Message] = constructVpopItem(taskObj
     ItemModel.Group = groupObj;
     
     if ~isempty(vpopObj) % AG: TODO: added ~isempty(vpopObj) for function-call from plotOptimization. Need to verify with Genentech
-        [vpopTable,params] = xlsread(vpopObj.FilePath);
+        
+        if ~ispc
+            tmp = readtable(vpopObj.FilePath);
+            vpopTable = table2array(tmp);
+            params = tmp.Properties.VariableNames;
+        else
+            [vpopTable,params] = xlsread(vpopObj.FilePath);
+        end
         params = params(1,:);
 %         T = readtable(vpopObj.FilePath);
 %         vpopTable = table2cell(T);         
