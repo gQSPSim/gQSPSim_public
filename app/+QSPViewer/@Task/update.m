@@ -79,7 +79,7 @@ end
 if ~isempty(vObj.TempData)
     
     InvalidNames = getInvalidActiveVariantNames(vObj.TempData);
-    ListItems = vertcat(vObj.TempData.VariantNames,InvalidNames);
+    ListItems = vertcat( sort(vObj.TempData.VariantNames),InvalidNames);
     [~,AddedIndex] = ismember(vObj.TempData.ActiveVariantNames,ListItems);
     [~,InvalidIndex] = ismember(InvalidNames,ListItems);
     set(vObj.h.VariantsSelector,...
@@ -89,7 +89,7 @@ if ~isempty(vObj.TempData)
         'Enable',uix.utility.tf2onoff(FlagValidModel));
     
     InvalidNames = getInvalidActiveDoseNames(vObj.TempData);
-    ListItems = vertcat(vObj.TempData.DoseNames,InvalidNames);
+    ListItems = vertcat( sort(vObj.TempData.DoseNames),InvalidNames);
     [~,AddedIndex] = ismember(vObj.TempData.ActiveDoseNames,ListItems);
     [~,InvalidIndex] = ismember(InvalidNames,ListItems);
     set(vObj.h.DosesSelector,...
@@ -99,7 +99,7 @@ if ~isempty(vObj.TempData)
         'Enable',uix.utility.tf2onoff(FlagValidModel));
     
     InvalidNames = getInvalidActiveSpeciesNames(vObj.TempData);
-    ListItems = vertcat(vObj.TempData.SpeciesNames,InvalidNames);
+    ListItems = vertcat( sort(vObj.TempData.SpeciesNames),InvalidNames);
     [~,AddedIndex] = ismember(vObj.TempData.ActiveSpeciesNames,ListItems);
     [~,InvalidIndex] = ismember(InvalidNames,ListItems);
     set(vObj.h.SpeciesSelector,...
@@ -109,7 +109,7 @@ if ~isempty(vObj.TempData)
         'Enable',uix.utility.tf2onoff(FlagValidModel));
     
     InvalidNames = getInvalidInactiveReactionNames(vObj.TempData);
-    ListItems = vertcat(vObj.TempData.ReactionNames,InvalidNames);
+    ListItems = vertcat(sort(vObj.TempData.ReactionNames),InvalidNames);
     [~,AddedIndex] = ismember(vObj.TempData.InactiveReactionNames,ListItems);
     [~,InvalidIndex] = ismember(InvalidNames,ListItems);
     set(vObj.h.ReactionsSelector,...
@@ -119,7 +119,7 @@ if ~isempty(vObj.TempData)
         'Enable',uix.utility.tf2onoff(FlagValidModel));
     
     InvalidNames = getInvalidInactiveRuleNames(vObj.TempData);
-    ListItems = vertcat(vObj.TempData.RuleNames,InvalidNames);
+    ListItems = vertcat(sort(vObj.TempData.RuleNames),InvalidNames);
     [~,AddedIndex] = ismember(vObj.TempData.InactiveRuleNames,ListItems);
     [~,InvalidIndex] = ismember(InvalidNames,ListItems);
     set(vObj.h.RulesSelector,...

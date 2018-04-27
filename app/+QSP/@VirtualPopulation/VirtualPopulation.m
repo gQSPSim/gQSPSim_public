@@ -34,6 +34,11 @@ classdef VirtualPopulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         PrevalenceWeightsStr = 'no'
     end
     
+    properties
+        validationDateNum = 0;
+        LastStatus = false;
+    end
+    
     %% Constructor
     methods
         function obj = VirtualPopulation(varargin)
@@ -86,10 +91,23 @@ classdef VirtualPopulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 StatusOK = false;
                 Message = sprintf('%s\n* Virtual Population file "%s" is invalid or does not exist',Message,obj.FilePath);
             else
-                % Import data                
-                [ThisStatusOk,ThisMessage] = importData(obj,obj.FilePath);
-                if ~ThisStatusOk
-                    Message = sprintf('%s\n* Error loading data "%s". %s\n',Message,obj.FilePath,ThisMessage);
+                
+                FileInfo = dir(obj.FilePath);
+                if FileInfo.datenum > obj.validationDateNum
+                    % has been modified since the last validation                    
+                    % Import data
+                    tic
+                    fprintf('Importing data...')
+                    [ThisStatusOk,ThisMessage] = importData(obj,obj.FilePath);
+                    toc
+                    if ~ThisStatusOk
+                        Message = sprintf('%s\n* Error loading data "%s". %s\n',Message,obj.FilePath,ThisMessage);
+                    end
+
+                    obj.validationDateNum = now;
+                    obj.LastStatus = ThisStatusOk;
+                else
+                    ThisStatusOk = obj.LastStatus;
                 end
             end
             

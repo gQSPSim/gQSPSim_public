@@ -1,28 +1,27 @@
 function refreshItemsTable(vObj)
 
 %% Refresh TaskPopupTableItems
-
-if ~isempty(vObj.TempData)
-    ValidItemTasks = getValidSelectedTasks(vObj.TempData.Settings,{vObj.TempData.Settings.Task.Name});
-    if ~isempty(ValidItemTasks)
-        vObj.TaskPopupTableItems = {ValidItemTasks.Name};
+    if ~isempty(vObj.TempData)
+        ValidItemTasks = getValidSelectedTasks(vObj.TempData.Settings,{vObj.TempData.Settings.Task.Name});
+        if ~isempty(ValidItemTasks)
+            vObj.TaskPopupTableItems = {ValidItemTasks.Name};
+        else
+            vObj.TaskPopupTableItems = {};
+        end
     else
         vObj.TaskPopupTableItems = {};
     end
-else
-    vObj.TaskPopupTableItems = {};
-end
 
 
-%% Refresh SpeciesPopupTableItems - Derived from Selected Tasks
+    %% Refresh SpeciesPopupTableItems - Derived from Selected Tasks
 
-% Species
-if ~isempty(vObj.TempData)
-    ItemTaskNames = {vObj.TempData.Item.TaskName};    
-    vObj.SpeciesPopupTableItems = getSpeciesFromValidSelectedTasks(vObj.TempData.Settings,ItemTaskNames);    
-else
-    vObj.SpeciesPopupTableItems = {};
-end
+    % Species
+    if ~isempty(vObj.TempData)
+        ItemTaskNames = {vObj.TempData.Item.TaskName};    
+        vObj.SpeciesPopupTableItems = getSpeciesFromValidSelectedTasks(vObj.TempData.Settings,ItemTaskNames);    
+    else
+        vObj.SpeciesPopupTableItems = {};
+    end
 
 
 %% Update ItemsTable

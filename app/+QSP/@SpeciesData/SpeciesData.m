@@ -77,7 +77,15 @@ classdef SpeciesData < QSP.abstract.BaseProps
         end %function
         
         function Value = evaluate(obj,Data)
-            Value = feval(str2func(['@(x)' obj.FunctionExpression]),Data);
+            if isempty(Data)
+                Value = [];
+                return
+            end
+            Value = zeros(size(Data));
+            lambda = str2func(['@(x)' obj.FunctionExpression]);
+            for k=1:size(Data,2)
+                Value(:,k) = feval(lambda,Data(:,k));
+            end
         end %function
     end
     
