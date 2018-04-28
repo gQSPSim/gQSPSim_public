@@ -525,7 +525,11 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
                         if ~isempty(pObj)
                             ParametersLastSavedTime = datenum(pObj.LastSavedTime);
                             FileInfo = dir(pObj.FilePath);
-                            ParametersFileLastSavedTime = FileInfo.datenum;                    
+                            ParametersFileLastSavedTime = FileInfo.datenum;         
+                        else
+                            ResultLastSavedTime = Inf;
+                            ParametersLastSavedTime = Inf;
+                            ParametersFileLastSavedTime = Inf;
                         end
                     elseif ~isempty(obj.ExcelResultFileName)
                         ResultLastSavedTime = '';
