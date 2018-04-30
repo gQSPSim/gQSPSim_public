@@ -514,24 +514,34 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
                     VirtualPopulationDataLastSavedTime = datenum(dObj.LastSavedTime);
                     FileInfo = dir(dObj.FilePath);
                     VirtualPopulationDataFileLastSavedTime = FileInfo.datenum;
-                    
-                    % Parameter object and file
-                    ParametersLastSavedTime = datenum(pObj.LastSavedTime);
-                    FileInfo = dir(pObj.FilePath);
-                    ParametersFileLastSavedTime = FileInfo.datenum;                    
-                    
+                                        
                     % Results file - ONE file
                     ThisFilePath = fullfile(obj.Session.RootDirectory,obj.VPopResultsFolderName,obj.ExcelResultFileName);
                     if exist(ThisFilePath,'file') == 2
                         FileInfo = dir(ThisFilePath);                        
                         ResultLastSavedTime = FileInfo.datenum;
+                        
+                        % Parameter object and file
+                        if ~isempty(pObj)
+                            ParametersLastSavedTime = datenum(pObj.LastSavedTime);
+                            FileInfo = dir(pObj.FilePath);
+                            ParametersFileLastSavedTime = FileInfo.datenum;         
+                        else
+                            ResultLastSavedTime = Inf;
+                            ParametersLastSavedTime = Inf;
+                            ParametersFileLastSavedTime = Inf;
+                        end
                     elseif ~isempty(obj.ExcelResultFileName)
                         ResultLastSavedTime = '';
                         % Display invalid
                         ValidFlag(index) = false;
+                        ParametersLastSavedTime = Inf;
+                        ParametersFileLastSavedTime = Inf;                        
                         InvalidMessages{index} = 'Excel file cannot be found';
                     else
-                        ResultLastSavedTime = '';
+                        ResultLastSavedTime = Inf;
+                        ParametersLastSavedTime = Inf;
+                        ParametersFileLastSavedTime = Inf;
                     end
                     
                     % Check

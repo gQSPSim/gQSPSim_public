@@ -1,31 +1,32 @@
-function refreshItemsTable(vObj)
+function refreshItemsTable(vObj, validateFlag)
 
 %% Refresh TaskPopupTableItems
+if validateFlag
 
-if ~isempty(vObj.TempData)
-    ValidItemTasks = getValidSelectedTasks(vObj.TempData.Settings,{vObj.TempData.Settings.Task.Name});
-    if ~isempty(ValidItemTasks)
-        vObj.TaskPopupTableItems = {ValidItemTasks.Name};
+    if ~isempty(vObj.TempData)
+        ValidItemTasks = getValidSelectedTasks(vObj.TempData.Settings,{vObj.TempData.Settings.Task.Name});
+        if ~isempty(ValidItemTasks)
+            vObj.TaskPopupTableItems = {ValidItemTasks.Name};
+        else
+            vObj.TaskPopupTableItems = {};
+        end
     else
         vObj.TaskPopupTableItems = {};
     end
-else
-    vObj.TaskPopupTableItems = {};
-end
 
-%% Refresh VPopPopupTableItems
+    %% Refresh VPopPopupTableItems
 
-if ~isempty(vObj.TempData)
-    ValidItemVPops = getValidSelectedVPops(vObj.TempData.Settings,{vObj.TempData.Settings.VirtualPopulation.Name});    
-    if ~isempty(ValidItemVPops)
-        vObj.VPopPopupTableItems = [{vObj.Data.NullVPop} {ValidItemVPops.Name}];        
+    if ~isempty(vObj.TempData)
+        ValidItemVPops = getValidSelectedVPops(vObj.TempData.Settings,{vObj.TempData.Settings.VirtualPopulation.Name});    
+        if ~isempty(ValidItemVPops)
+            vObj.VPopPopupTableItems = [{vObj.Data.NullVPop} {ValidItemVPops.Name}];        
+        else
+            vObj.VPopPopupTableItems = {vObj.Data.NullVPop};
+        end
     else
-        vObj.VPopPopupTableItems = {vObj.Data.NullVPop};
+        vObj.VPopPopupTableItems = {};
     end
-else
-    vObj.VPopPopupTableItems = {};
 end
-
 %% Refresh GroupPopupTableItems
 % vObj.GroupPopupTableItems = sprintfc('%d',1:length(vObj.TempData.Settings.Task));
 

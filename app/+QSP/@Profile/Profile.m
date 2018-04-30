@@ -101,10 +101,10 @@ classdef Profile < uix.mixin.AssignPVPairs
             obj.Description = Value;
         end
         
-        function set.Values(obj,Value)
-            validateattributes(Value,{'cell'},{'size',[nan 2]})
-            obj.Values = Value;
-        end
+%         function set.Values(obj,Value)
+%             validateattributes(Value,{'cell'},{'size',[nan 2]})
+%             obj.Values = Value;
+%         end
         
     end %methods
 end %classdef

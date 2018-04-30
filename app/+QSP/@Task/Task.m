@@ -52,11 +52,16 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
     %% Protected Properties
     properties (GetAccess=public, SetAccess=protected)
         ModelName
+        ExportedModelTimeStamp 
+        ExportedModel
+        Species
+        Parameters
     end
     
     %% Protected Transient Properties
     properties (GetAccess=public, SetAccess=protected, Transient = true)
         ModelObj
+        VarModelObj
     end
     
     %% Dependent Properties
@@ -65,11 +70,13 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         VariantNames
         DoseNames
         SpeciesNames
+        ParameterNames
+        ParameterValues
         ReactionNames
         RuleNames
         OutputTimes
         DefaultOutputTimes
-        DefaultMaxWallClockTime
+        DefaultMaxWallClockTime        
     end
     
     %% Constructor
@@ -93,9 +100,12 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             
             % Populate public properties from P-V input pairs
             obj.assignPVPairs(varargin{:});
-            
+            obj.ExportedModelTimeStamp = 0;
         end %function obj = Task(varargin)
         
+        [t,x,names] = simulate(obj, varargin) % prototype
+        
+
     end %methods
     
     %% Methods defined as abstract
@@ -129,6 +139,14 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         end
         
         function [StatusOK, Message] = validate(obj,FlagRemoveInvalid)
+            
+            FileInfo = dir(obj.FilePath);
+            if ~isempty(FileInfo) && obj.ExportedModelTimeStamp > FileInfo.datenum % built after the model file was saved
+                StatusOK = true;
+                Message = '';
+                return
+            end
+            
             
             StatusOK = true;
             Message = sprintf('Task: %s\n%s\n',obj.Name,repmat('-',1,75));
@@ -210,8 +228,21 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 obj.(Property) = Value;
             end
         end %function
+        
+        constructModel(obj)
+        
+        function upToDate = checkModelCurrent(obj)
+            FileInfo = dir(obj.FilePath);
+            if isempty(obj.ExportedModelTimeStamp) || FileInfo.datenum > obj.ExportedModelTimeStamp || datenum(obj.LastSavedTime) > obj.ExportedModelTimeStamp || ...
+                    isempty(obj.VarModelObj)
+                upToDate = false;
+            else
+                upToDate = true;
+            end
+        end
     end
     
+   
     %% Methods
     methods
         function ModelNames = getModelList(obj)
@@ -237,6 +268,7 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             % Defaults
             StatusOk = true;
             Message = '';
+            warning('off', 'SimBiology:sbioloadproject:Version')
             
             % Store path
             obj.FilePath = ProjectPath;
@@ -284,6 +316,19 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                         obj.OutputTimesStr = sprintf('[0:%2f/100:%2f]',StopTime,StopTime);
                     end
                 end %if
+                
+                % get inactive reactions from the model
+                allReactionNames = get(obj.ModelObj.Reactions, 'Reaction');
+                obj.InactiveReactionNames = allReactionNames(~cell2mat(get(obj.ModelObj.Reactions,'Active')));
+                
+                % get inactive rules from model
+                allRulesNames = get(obj.ModelObj.Rules, 'Rule');
+                obj.InactiveRuleNames = allRulesNames(~cell2mat(get(obj.ModelObj.Rules,'Active')));
+                
+                % get active variant names
+                allVariantNames = get(obj.ModelObj.Variants, 'Name');
+                obj.ActiveVariantNames = allVariantNames(~cell2mat(get(obj.ModelObj.Variants,'Active')));
+                
             end %if
         end %function
         
@@ -363,6 +408,34 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 Value = cell(0,1);
             end
         end % get.SpeciesNames
+        
+        function Value = get.ParameterNames(obj)
+            if ~isempty(obj.ModelObj)
+                Value = obj.ModelObj.Parameters;
+                Value = get(Value,'Name');
+                if isempty(Value)
+                    Value = cell(0,1);
+                elseif ischar(Value)
+                    Value = {Value};
+                end
+            else
+                Value = cell(0,1);
+            end
+        end % get.ParameterNames       
+        
+        function Value = get.ParameterValues(obj)
+            if ~isempty(obj.ModelObj)
+                Value = obj.ModelObj.Parameters;
+                Value = get(Value,'Value');
+                if isempty(Value)
+                    Value = cell(0,1);
+                elseif ischar(Value)
+                    Value = {Value};
+                end
+            else
+                Value = cell(0,1);
+            end
+        end % get.ParameterNames          
         
         function Value = get.RuleNames(obj)
             if ~isempty(obj.ModelObj)

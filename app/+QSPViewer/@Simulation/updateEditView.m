@@ -39,4 +39,4 @@ refreshDataset(vObj);
 
 %% Refresh items table
 
-refreshItemsTable(vObj);
+refreshItemsTable(vObj, true);
