@@ -393,6 +393,9 @@ elseif strcmp(obj.PlotType,'Diagnostic') && ~isempty(Results)
                         warning('plotVirtualPopulationGeneration: missing SimFlag in vpop. Showing all trajectories.')
                     else
                         ColumnIdx = find( strcmp(Results{itemIdx}.SpeciesNames, currentSpecies)) + (find(obj.SimFlag)-1)*NumSpecies ;
+                        if isempty(ColumnIdx)
+                            return
+                        end
                     end
                 else
                     ColumnIdx = find( strcmp(Results{itemIdx}.SpeciesNames, currentSpecies)) + (0:NumVpop-1)*NumSpecies;
