@@ -788,7 +788,7 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
                 RowIdx = Indices(1,1);
                 ColIdx = Indices(1,2);
 
-                if isempty(ThisData{RowIdx,ColIdx}) || isnumeric(ThisData{RowIdx,ColIdx})             
+                if ~isempty(vObj.Data.SelectedProfileRow) && (isempty(ThisData{RowIdx,ColIdx}) || isnumeric(ThisData{RowIdx,ColIdx}) )
                     ThisProfile = vObj.Data.PlotProfile(vObj.Data.SelectedProfileRow);                
                     assert(isscalar(ThisData(RowIdx,ColIdx)))
 %                     profileRow = find(strcmp(ThisData(RowIdx,1),ThisProfile.Values(:,1)));
