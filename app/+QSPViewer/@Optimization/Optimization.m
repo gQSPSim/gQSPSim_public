@@ -522,20 +522,24 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
 %             vObj.semaphore.wait();
 %             vObj.semaphore.lock();
 
+
             ME = [];
             try
-                
+
                 Interaction = e.Interaction;
                 Indices = e.Indices;
+
                 switch Interaction
-                    case 'Add'              
+                    case 'Add'
                         vObj.Data.PlotProfile(end+1) = QSP.Profile;
                         vObj.Data.SelectedProfileRow = numel(vObj.Data.PlotProfile);
+                        %                     vObj.Data.ItemModels
+
                     case 'Remove'
 
                         if isempty(Indices) || Indices > length(vObj.Data.PlotProfile)
-%                             vObj.Semaphore = 'free';
-%                             vObj.semaphore.release();
+                            %                             vObj.Semaphore = 'free';
+                            %                             vObj.semaphore.release();
                             return
                         end
 
@@ -544,18 +548,18 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
                         else
                             vObj.Data.PlotProfile = QSP.Profile.empty(0,1);
                         end
-                        
-                        if size(vObj.h.SpeciesGroup,3) >=Indices 
-                            delete([vObj.h.SpeciesGroup{:,:,Indices}]); % remove objects                        
+
+                        if size(vObj.h.SpeciesGroup,3) >=Indices
+                            delete([vObj.h.SpeciesGroup{:,:,Indices}]); % remove objects
                             vObj.h.SpeciesGroup(:,:,Indices) = []; % remove group
-                        end                        
+                        end
 
                         vObj.Data.SelectedProfileRow = [];
 
                     case 'Duplicate'
                         if isempty(Indices)
-%                             vObj.Semaphore = 'free';
-%                             vObj.semaphore.release();
+                            %                             vObj.Semaphore = 'free';
+                            %                             vObj.semaphore.release();
 
                             return
                         end
@@ -594,8 +598,13 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
                 end
             end
             
+            % Turn off call to updateVisualizationView (this prevents
+            % "Show" checkbox from taking into effect since
+            % SelectionChanged (which calls updateVisualizationView) is
+            % triggered before EditChanged
+            % Update the view
             updateVisualizationView(vObj);
-            updateVisualizationPlot(vObj);
+%             updateVisualizationPlot(vObj);
             
 %             set(hFigure,'pointer','arrow');
 %             drawnow;
@@ -776,9 +785,9 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
 %             vObj.semaphore.lock();
             
             ME = [];
-           h_applyButton = findobj(vObj.h.PlotApplyParametersButtonLayout, 'Tag','ApplyParameters');
-           set(h_applyButton, 'Enable', 'off')
-            try
+            h_applyButton = findobj(vObj.h.PlotApplyParametersButtonLayout, 'Tag','ApplyParameters');
+            set(h_applyButton, 'Enable', 'off')
+%             try
                 ThisData = get(h,'Data');
                 Indices = e.Indices;
                 if isempty(Indices)
@@ -790,12 +799,18 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
 
                 if ~isempty(vObj.Data.SelectedProfileRow) && (isempty(ThisData{RowIdx,ColIdx}) || isnumeric(ThisData{RowIdx,ColIdx}) )
                     ThisProfile = vObj.Data.PlotProfile(vObj.Data.SelectedProfileRow);                
-                    assert(isscalar(ThisData(RowIdx,ColIdx)))
-%                     profileRow = find(strcmp(ThisData(RowIdx,1),ThisProfile.Values(:,1)));
-                    assert(size(ThisData(RowIdx,ColIdx),2) == 1);
-                    ThisProfile.Values(RowIdx,ColIdx) = ThisData(RowIdx,ColIdx);
+                    if ischar(ThisData{RowIdx,ColIdx})
+                        ThisProfile.Values(RowIdx,ColIdx) = {str2double(ThisData{RowIdx,ColIdx})};
+                    else
+                        ThisProfile.Values(RowIdx,ColIdx) = ThisData(RowIdx,ColIdx);
+                    end
                     
-                    vObj.Data.PlotProfile(vObj.Data.SelectedProfileRow) = ThisProfile;
+%                     assert(isscalar(ThisData(RowIdx,ColIdx)))
+%                     profileRow = find(strcmp(ThisData(RowIdx,1),ThisProfile.Values(:,1)));
+%                     assert(size(ThisData(RowIdx,ColIdx),2) == 1);
+%                     ThisProfile.Values(RowIdx,ColIdx) = ThisData(RowIdx,ColIdx);
+                    
+%                     vObj.Data.PlotProfile(vObj.Data.SelectedProfileRow) = ThisProfile;
 %                     vObj.Data.PlotProfile(vObj.Data.SelectedProfileRow).Values(RowIdx,ColIdx) = ThisData(RowIdx,ColIdx);
 %                     vObj.Data.PlotProfile(vObj.Data.SelectedProfileRow).Values = ThisData(:,1:2);
 
@@ -806,16 +821,11 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
 
                 % Update the view
                 updateVisualizationView(vObj);
-            catch ME
-            end
+%             catch ME
+%             end
             
 %             vObj.semaphore.release();
            set(h_applyButton, 'Enable', 'on')
-            
-            if ~isempty(ME)
-                rethrow(ME);
-            end
-
             
         end %function   
         
