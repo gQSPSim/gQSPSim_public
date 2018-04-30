@@ -60,4 +60,6 @@ updateMaxNumSims(vObj);
 updateMaxNumVirtualPatients(vObj);
 
 %% set initial conditions file
-set(vObj.h.ICFileSelector,'Value',vObj.Data.ICFileName);
+if ~isempty(vObj.Data)
+    set(vObj.h.ICFileSelector,'Value',vObj.Data.ICFileName);
+end
