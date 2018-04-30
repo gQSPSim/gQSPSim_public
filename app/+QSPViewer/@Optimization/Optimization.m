@@ -590,7 +590,7 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
                 if numel(e.Indices) >= 1
                     vObj.Data.SelectedProfileRow = e.Indices(1); % Temporary
                 else
-                    vObj.Data.SelectedProfileRow = [];
+%                     vObj.Data.SelectedProfileRow = [];
                 end
             end
             
