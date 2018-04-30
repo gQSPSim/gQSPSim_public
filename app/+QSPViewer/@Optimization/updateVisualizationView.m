@@ -289,11 +289,11 @@ if ~isempty(vObj.Data)
     [IsSourceMatch,IsRowEmpty,ThisProfileData] = i_importParametersSourceHelper(vObj);    
     for rowIdx = 1:size(Summary,1)
         % Mark invalid if source parameters cannot be loaded
-        if IsRowEmpty(rowIdx) && ~ispc
+        if IsRowEmpty(rowIdx) && vObj.h.PlotHistoryTable.UseJTable
             Summary{rowIdx,3} = QSP.makeInvalid(Summary{rowIdx,3});
         elseif ~IsSourceMatch(rowIdx)
             % If parameters don't match the source, italicize
-            if ispc
+            if vObj.h.PlotHistoryTable.UseJTable
                 tmp = [1, 3, 4];
             else
                 tmp = [1, 4];
@@ -304,16 +304,20 @@ if ~isempty(vObj.Data)
             end
         end
     end
-    
+
+    ThisCallback = get(vObj.h.PlotHistoryTable,'CellSelectionCallback');
+    set(vObj.h.PlotHistoryTable,'CellSelectionCallback',''); % Disable    
     set(vObj.h.PlotHistoryTable,...
-        'Data',Summary,...        
+        'Data',Summary,...
         'ColumnName',{'Run','Show','Source','Description'},...
         'ColumnFormat',{'numeric','logical',PlotParametersSourceOptions(:),'char'},...
         'ColumnEditable',[false,true,true,true]...
-        );    
+        );
     if ~isempty(Summary)
         set(vObj.h.PlotHistoryTable,'SelectedRows',vObj.Data.SelectedProfileRow);
     end
+    set(vObj.h.PlotHistoryTable,'CellSelectionCallback',ThisCallback); % Restore
+
 else
     set(vObj.h.PlotHistoryTable,...
         'Data',cell(0,5),...

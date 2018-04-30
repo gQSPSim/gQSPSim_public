@@ -480,7 +480,7 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
                 case 'Add'
                     vObj.Data.PlotProfile(end+1) = QSP.Profile;
                     vObj.Data.SelectedProfileRow = numel(vObj.Data.PlotProfile);
-                    vObj.Data.ItemModels
+%                     vObj.Data.ItemModels
                     
                 case 'Remove'
                     
@@ -490,8 +490,10 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
                     
                     if numel(vObj.Data.PlotProfile) > 1
                         vObj.Data.PlotProfile(Indices) = []; 
-                        delete([vObj.h.SpeciesGroup{:,:,Indices}]); % remove objects                        
-                        vObj.h.SpeciesGroup(:,:,Indices) = []; % remove group
+                        if ~isempty(vObj.h.SpeciesGroup)
+                            delete([vObj.h.SpeciesGroup{:,:,Indices}]); % remove objects
+                            vObj.h.SpeciesGroup(:,:,Indices) = []; % remove group
+                        end
                     else
                         vObj.Data.PlotProfile = QSP.Profile.empty(0,1);
                     end
@@ -535,8 +537,8 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
             % SelectionChanged (which calls updateVisualizationView) is
             % triggered before EditChanged
             % Update the view
-%             updateVisualizationView(vObj);
-            updateVisualizationPlot(vObj);
+            updateVisualizationView(vObj);
+%             updateVisualizationPlot(vObj);
             
 %             set(hFigure,'pointer','arrow');
 %             drawnow;
@@ -665,9 +667,13 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
             RowIdx = Indices(1,1);
             ColIdx = Indices(1,2);
             
-            if ~isempty(ThisData{RowIdx,ColIdx}) && isnumeric(ThisData{RowIdx,ColIdx})
-                ThisProfile = vObj.Data.PlotProfile(vObj.Data.SelectedProfileRow);                
-                ThisProfile.Values(RowIdx,ColIdx) = ThisData(RowIdx,ColIdx);
+            if ~isempty(ThisData{RowIdx,ColIdx})
+                ThisProfile = vObj.Data.PlotProfile(vObj.Data.SelectedProfileRow);   
+                if ischar(ThisData{RowIdx,ColIdx})
+                    ThisProfile.Values(RowIdx,ColIdx) = {str2double(ThisData{RowIdx,ColIdx})};
+                else
+                    ThisProfile.Values(RowIdx,ColIdx) = ThisData(RowIdx,ColIdx);
+                end
             else
                 hDlg = errordlg('Invalid value specified for parameter. Values must be numeric','Invalid value','modal');
                 uiwait(hDlg);
