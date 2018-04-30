@@ -112,7 +112,7 @@ classdef Parameters < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             StatusOk = true;
             Message = '';
             
-            if ~isempty(obj.myData) && exist(DataFilePath, 'File')
+            if ~isempty(obj.myData) && exist(DataFilePath, 'file')
                 FileInfo = dir(DataFilePath);
                 timeStamp = FileInfo.datenum;
                 if obj.myDataTimeStamp == timeStamp %modified since storing

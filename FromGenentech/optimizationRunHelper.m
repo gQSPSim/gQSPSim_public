@@ -238,22 +238,26 @@ switch obj.AlgorithmName
         
 
     case 'Local'
-        warning('Local optimization not yet implemented')
-        StatusOK = false;
-        path(myPath);
-        return
-        %     case 'Local'
-        %         % parameter bounds
-        %         LB = paramData(:,1);
-        %         UB = paramData(:,2);
-        %
-        %         % options
-        %         LSQopts = optimoptions(@lsqnonlin,'MaxFunctionEvaluations',1e4,'MaxIterations',1e4,'UseParallel',false,'FunctionTolerance',1e-5,'StepTolerance',1e-3);
-        %
-        %         % fit
-        %         p0 = paramData(:,3);
-        %         VpopParams = lsqnonlin(@(p) objectiveFun(p,logInds,ItemModels,Groups,IDs,Time,optimData,dataNames,obj),p0,LB,UB,LSQopts);
-        %         VpopParams = VpopParams';
+        % parameter bounds
+        LB = estParamData(:,1);
+        UB = estParamData(:,2);
+
+        % options
+        LSQopts = optimoptions(@lsqnonlin,'MaxFunctionEvaluations',1e4,'MaxIterations',1e4,'UseParallel',false,'FunctionTolerance',1e-5,'StepTolerance',1e-3);
+
+        % fit
+        p0 = estParamData(:,3);
+        try
+        VpopParams = lsqnonlin(@(est_p) objectiveFun(est_p',paramObj,ItemModels,Groups,IDs,Time,optimData,dataNames,obj), p0, LB, UB, LSQopts);
+        VpopParams = VpopParams';
+        catch err
+            StatusOK = false;
+            warning('Encountered error in local optimization')
+            Message = sprintf('%s\n%s\n',Message,err.message);
+            path(myPath);
+            return            
+        end
+            
 end % switch
 
 % VpopParams is a matrix of patients and varying parameter values
@@ -557,22 +561,13 @@ end
                 end % for id
             end % for grp
         end % try
-        
-        
-        switch obj.AlgorithmName
-            case 'ScatterSearch'
-                % sum objectiveVec entries to get the current objective value
-                objective = nansum(objectiveVec);
-                
-            case 'ParticleSwarm'
-                % sum objectiveVec entries to get the current objective value
-                objective = nansum(objectiveVec);
-                
-                %             case 'Local'
-                %                 % requires that the selected ObjectiveName is localObj
-                %                 objective = objectiveVec;
-                
-        end % switch
+               
+        if ~strcmp(obj.AlgorithmName, 'Local')
+            % return scalar objective function
+            objective = nansum(objectiveVec);
+        else
+            objective = objectiveVec;
+        end
         
         if nargout>1
             varargout{1} = tempStatusOK;
