@@ -253,14 +253,17 @@ if ~isempty(vObj.Data)
     
     % TODO: Confirm - is this an issue if the Vpop name is renamed so it no
     % longer matches the ExcelResultFileName?
-    VPopNames = {};
-    for idx = 1:numel(vObj.Data.ExcelResultFileName)
-        if ~isempty(vObj.Data.ExcelResultFileName{idx})
-            [~,VPopNames{idx}] = fileparts(vObj.Data.ExcelResultFileName{idx}); %#ok<AGROW>
-        else
-            VPopNames{idx} = [];
-        end
-    end
+%     VPopNames = {};
+%     for idx = 1:numel(vObj.Data.ExcelResultFileName)
+%         if ~isempty(vObj.Data.ExcelResultFileName{idx})
+%             [~,VPopNames{idx}] = fileparts(vObj.Data.ExcelResultFileName{idx}); %#ok<AGROW>
+%         else
+%             VPopNames{idx} = [];
+%         end
+%     end
+
+    % construct the VPopname from the name of the optimization
+    VPopNames = {sprintf('Results - Optimization = %s', vObj.Data.Name)};
     
     % Filter VPopNames list (only if name does not exist, not if invalid)
     AllVPopNames = {vObj.Data.Session.Settings.VirtualPopulation.Name};
