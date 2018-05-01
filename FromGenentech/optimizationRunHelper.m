@@ -457,16 +457,19 @@ end
                     %get species IC values from data for the current ID
                     % use average of values with t <= 0
                     [~,spIdx] = ismember({SpeciesIC.DataName},dataNames); % columns in the data table
-                    IC = optimData_id(Time_id<=0,spIdx);
-                    IC = nanmean(IC,1);
+                    for k=1:length(spIdx)
+                        IC(k) = SpeciesIC(spIdx(k)).evaluate(optimData_id(Time_id<=0,spIdx));
+                        IC(k) = nanmean(IC,1);
+                    end
+                    
  
                     % simulate experiment for this ID
                     OutputTimes = sort(unique(Time_id(Time_id>=0)));
                     StopTime = max(Time_id(Time_id>=0));
-                    Values = [IC,est_p];
+                    Values = [IC;est_p];
                     Names = [{SpeciesIC.SpeciesName}'; estParamNames];
                     if ~isempty(fixed_p)
-                        Values = [Values, fixed_p];
+                        Values = [Values; fixed_p];
                         Names = [Names; fixedParamNames];
                     end
                     simData_id = ItemModels.Task(grpIdx).simulate(...
