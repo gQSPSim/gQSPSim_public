@@ -864,8 +864,9 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
                     
                     ThisProfile = vObj.Data.PlotProfile(vObj.Data.SelectedProfileRow);
                     Values = ThisProfile.Values'; % Take first 2 rows and transpose
-                    xlswrite(vpopObj.FilePath,Values); 
                     
+                    xlwrite(vpopObj.FilePath,Values); 
+
                     % Update last saved time
                     updateLastSavedTime(vpopObj);
                     % Validate
