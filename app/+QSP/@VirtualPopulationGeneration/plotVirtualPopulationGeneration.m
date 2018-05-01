@@ -200,7 +200,7 @@ if strcmp(obj.PlotType, 'Normal') && ~isempty(Results)
                     % Update ColumnIdx to get species for ALL virtual patients
                     NumSpecies = numel(Results{itemIdx}.SpeciesNames);
                     ColumnIdx = ColumnIdx:NumSpecies:size(Results{itemIdx}.Data,2);
-                    ColumnIdx_invalid = find(strcmp(Results{itemIdx}.SpeciesNames,ThisName)) + (find(~obj.SimFlag)-1) * NumSpecies;
+                    ColumnIdx_invalid = find(strcmp(Results{itemIdx}.SpeciesNames,ThisName)) + (find(Results{itemIdx}.VpopWeights==0)-1) * NumSpecies;
 
                     
                     if isempty(hSpeciesGroup{sIdx,axIdx})
@@ -387,12 +387,12 @@ elseif strcmp(obj.PlotType,'Diagnostic') && ~isempty(Results)
                 % index of all columns for this species in this group 
                 NumVpop = size(Results{itemIdx}.Data,2) / NumSpecies;
                 
-                if ~obj.ShowInvalidVirtualPatients && ~isempty(obj.SimFlag)
-                    if isempty(obj.SimFlag)
+                if ~obj.ShowInvalidVirtualPatients && ~isempty(Results{itemIdx}.VpopWeights)
+                    if isempty(Results{itemIdx}.VpopWeights)
                         ColumnIdx = find( strcmp(Results{itemIdx}.SpeciesNames, currentSpecies)) + (0:NumVpop-1)*NumSpecies;
-                        warning('plotVirtualPopulationGeneration: missing SimFlag in vpop. Showing all trajectories.')
+                        warning('plotVirtualPopulationGeneration: missing prevalence weights in vpop. Showing all trajectories.')
                     else
-                        ColumnIdx = find( strcmp(Results{itemIdx}.SpeciesNames, currentSpecies)) + (find(obj.SimFlag)-1)*NumSpecies ;
+                        ColumnIdx = find( strcmp(Results{itemIdx}.SpeciesNames, currentSpecies)) + (find(Results{itemIdx}.VpopWeights)-1)*NumSpecies ;
                         if isempty(ColumnIdx)
                             return
                         end
