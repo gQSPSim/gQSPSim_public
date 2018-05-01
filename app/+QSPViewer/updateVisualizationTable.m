@@ -63,6 +63,9 @@ InvalidRowsFromInTable = [];
 for index = 1:size(InTable,1)
     MissingRow = false;
     for kIndex = KeyIndex
+        if iscell(InTable(index,kIndex)) && isempty(InTable{index,kIndex})
+            continue
+        end
         MissingRow = MissingRow | ~ismember(InTable(index,kIndex),OutTable(:,kIndex));
     end
     if all(MissingRow)
