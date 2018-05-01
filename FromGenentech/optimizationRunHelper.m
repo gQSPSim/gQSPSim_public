@@ -151,7 +151,7 @@ if ~isempty(optimHeader) && ~isempty(optimData)
     IDs = cell2mat(optimData(:,strcmp(obj.IDName,optimHeader)));
     Time = cell2mat(optimData(:,strcmp('Time',optimHeader)));
     % find columns corresponding to species data and initial conditions
-    [~, dataInds] = ismember({obj.SpeciesData.DataName}, optimHeader);
+    [~, dataInds] = ismember([{obj.SpeciesIC.DataName}, {obj.SpeciesData.DataName}], optimHeader);
     
     
     % convert optimData into a matrix of species data
