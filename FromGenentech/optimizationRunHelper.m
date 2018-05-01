@@ -248,7 +248,7 @@ switch obj.AlgorithmName
         % fit
         p0 = estParamData(:,3);
         try
-        VpopParams = lsqnonlin(@(est_p) objectiveFun(est_p',paramObj,ItemModels,Groups,IDs,Time,optimData,dataNames,obj), p0, LB, UB, LSQopts);
+        VpopParams = lsqnonlin(@(est_p) objectiveFun(est_p,paramObj,ItemModels,Groups,IDs,Time,optimData,dataNames,obj), p0, LB, UB, LSQopts);
         VpopParams = VpopParams';
         catch err
             StatusOK = false;
