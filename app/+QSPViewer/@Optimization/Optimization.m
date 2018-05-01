@@ -846,7 +846,7 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
                 ThisVPopName = matlab.lang.makeValidName(strtrim(Answer{1}));
                 ThisVPopName = sprintf('%s - %s',ThisProfile.Source,ThisVPopName);
                 
-                ThisFilePath = fullfile(vObj.Data.Session.RootDirectory,[ThisVPopName '.xlsx']);
+                ThisFilePath = fullfile(vObj.Data.Session.RootDirectory, vObj.Data.OptimResultsFolderName,[ThisVPopName '.xlsx']);
                 
                 if isempty(ThisVPopName) || any(strcmpi(ThisVPopName,AllVPopNames)) || ...
                         any(strcmpi(ThisFilePath,AllVPopFilePaths))
@@ -864,8 +864,9 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
                     
                     ThisProfile = vObj.Data.PlotProfile(vObj.Data.SelectedProfileRow);
                     Values = ThisProfile.Values'; % Take first 2 rows and transpose
-                    xlswrite(vpopObj.FilePath,Values); 
                     
+                    xlwrite(vpopObj.FilePath,Values); 
+
                     % Update last saved time
                     updateLastSavedTime(vpopObj);
                     % Validate

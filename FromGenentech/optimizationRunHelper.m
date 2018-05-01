@@ -151,7 +151,7 @@ if ~isempty(optimHeader) && ~isempty(optimData)
     IDs = cell2mat(optimData(:,strcmp(obj.IDName,optimHeader)));
     Time = cell2mat(optimData(:,strcmp('Time',optimHeader)));
     % find columns corresponding to species data and initial conditions
-    [~, dataInds] = ismember({obj.SpeciesData.DataName}, optimHeader);
+    [~, dataInds] = ismember([{obj.SpeciesIC.DataName}, {obj.SpeciesData.DataName}], optimHeader);
     
     
     % convert optimData into a matrix of species data
@@ -463,10 +463,15 @@ end
                     % simulate experiment for this ID
                     OutputTimes = sort(unique(Time_id(Time_id>=0)));
                     StopTime = max(Time_id(Time_id>=0));
-                    
+                    Values = [IC,est_p];
+                    Names = [{SpeciesIC.SpeciesName}'; estParamNames];
+                    if ~isempty(fixed_p)
+                        Values = [Values, fixed_p];
+                        Names = [Names; fixedParamNames];
+                    end
                     simData_id = ItemModels.Task(grpIdx).simulate(...
-                        'Names', [{SpeciesIC.SpeciesName}'; estParamNames; fixedParamNames], ...
-                        'Values', [IC';est_p;fixed_p], ...
+                        'Names', Names, ...
+                        'Values', Values, ...
                         'OutputTimes', OutputTimes, ...
                         'StopTime', StopTime );
                     
