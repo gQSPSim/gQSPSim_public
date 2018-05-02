@@ -113,7 +113,7 @@ end
             end
             % each task is assigned the same vpop
             for ii = 1:size(obj.PlotItemTable(:,1),1) %nSelected
-                if ~isempty(obj.VPopName) && ~isempty(obj.VPopName{1})
+                if ~isempty(obj.VPopName) && ~isempty(obj.VPopName{1}) && any(strcmp(obj.VPopName{1}, {obj.Settings.VirtualPopulation.Name}) )
                     simObj.Item(ii).VPopName = obj.VPopName{1};
                 else
                     simObj.Item(ii).VPopName = QSP.Simulation.NullVPop;
