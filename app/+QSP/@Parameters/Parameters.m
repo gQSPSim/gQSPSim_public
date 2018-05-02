@@ -94,6 +94,12 @@ classdef Parameters < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             
         end %function
         
+        function clearData(obj)
+            obj.myData = [];
+            obj.myHeader = [];
+            obj.myDataTimeStamp = []; 
+        end
+        
     end
     
     %% Protected Methods

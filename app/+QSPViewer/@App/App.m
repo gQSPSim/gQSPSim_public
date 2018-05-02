@@ -457,6 +457,7 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
             NewName = matlab.lang.makeUniqueStrings(ThisObj.Name, DisallowedNames);
             ThisObj = ThisObj.copy();
             ThisObj.Name = NewName;
+            ThisObj.clearData();
             
             % Place the item and add the tree node
             if isscalar(ParentNode)

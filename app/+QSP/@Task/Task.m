@@ -153,13 +153,15 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             
             % Import model
             MaxWallClockTime = obj.MaxWallClockTime;
+            thisObj = obj.copy();
             
             [ThisStatusOk,ThisMessage] = importModel(obj,obj.FilePath,obj.ModelName);
-            obj.MaxWallClockTime = MaxWallClockTime; % override model defaults
+            thisObj.MaxWallClockTime = MaxWallClockTime; % override model defaults
             if ~ThisStatusOk
                 Message = sprintf('%s\n* Error loading model "%s" in "%s". %s\n',Message,obj.ModelName,obj.FilePath,ThisMessage);
             end            
             
+            obj = thisObj;
             % Active Variants
             [InvalidActiveVariantNames,MatchIndex] = getInvalidActiveVariantNames(obj);
             if FlagRemoveInvalid
@@ -219,6 +221,11 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 Message = sprintf('%s\n* Invalid MaxWallClockTime. MaxWallClockTime must be > 0.\n',Message);
             end
         end %function
+        
+        function clearData(obj)
+            obj.ModelObj = [];
+            obj.VarModelObj = [];
+        end
     end
     
     %% Protected Methods
@@ -327,7 +334,7 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 
                 % get active variant names
                 allVariantNames = get(obj.ModelObj.Variants, 'Name');
-                obj.ActiveVariantNames = allVariantNames(~cell2mat(get(obj.ModelObj.Variants,'Active')));
+                obj.ActiveVariantNames = allVariantNames(cell2mat(get(obj.ModelObj.Variants,'Active')));
                 
             end %if
         end %function

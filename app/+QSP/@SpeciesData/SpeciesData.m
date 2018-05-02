@@ -87,6 +87,10 @@ classdef SpeciesData < QSP.abstract.BaseProps
                 Value(:,k) = feval(lambda,Data(:,k));
             end
         end %function
+        
+        function clearData(obj)
+            
+        end
     end
     
     

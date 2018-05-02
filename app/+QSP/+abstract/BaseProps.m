@@ -65,8 +65,8 @@ classdef (Abstract) BaseProps < matlab.mixin.SetGet & matlab.mixin.Heterogeneous
             % Assign PV pairs to properties
             obj.assignPVPairs(varargin{:});
             
-        end % constructor
-        
+        end % constructor       
+                
     end % Public methods
     
     %% Abstract methods
@@ -76,6 +76,7 @@ classdef (Abstract) BaseProps < matlab.mixin.SetGet & matlab.mixin.Heterogeneous
         
         [StatusOK, Message] = validate(obj,FlagRemoveInvalid) % Validate current properties
         
+        clearData(obj) % remove all data after copying
     end % abstract methods
     
     %% Protected methods
