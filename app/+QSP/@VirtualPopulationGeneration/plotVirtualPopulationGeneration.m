@@ -262,21 +262,24 @@ if strcmp(obj.PlotType, 'Normal') && ~isempty(Results)
 %                         acc_lines = [acc_lines; plot(hAxes(axIdx),Results{itemIdx}.Time,Results{itemIdx}.Data(:,setdiff(ColumnIdx, ColumnIdx_invalid)),...
 %                             'LineStyle',ThisLineStyle,...
 %                             'Color',SelectedItemColors(itemIdx,:))];
-                    end
+
+                        % mean
+    %                     mean_line = plot(hAxes(axIdx), Results{itemIdx}.Time, thisData(:,ColumnIdx) * obj.PrevalenceWeights/sum(obj.PrevalenceWeights),...
+                        if iscell(Results{itemIdx}.VpopWeights)
+                            vpopWeights = cell2mat(Results{itemIdx}.VpopWeights);
+                        else
+                            vpopWeights = Results{itemIdx}.VpopWeights;
+                        end
                     
-                    % mean
-%                     mean_line = plot(hAxes(axIdx), Results{itemIdx}.Time, thisData(:,ColumnIdx) * obj.PrevalenceWeights/sum(obj.PrevalenceWeights),...
-                    if iscell(Results{itemIdx}.VpopWeights)
-                        vpopWeights = cell2mat(Results{itemIdx}.VpopWeights);
-                    else
-                        vpopWeights = Results{itemIdx}.VpopWeights;
-                    end
-                    
-                    mean_line = plot(hSpeciesGroup{sIdx,axIdx}, Results{itemIdx}.Time, thisData(:,ColumnIdx) * ...
+                        mean_line = plot(hSpeciesGroup{sIdx,axIdx}, Results{itemIdx}.Time, thisData(:,ColumnIdx) * ...
                             vpopWeights/sum(vpopWeights),...
-                        'LineStyle',ThisLineStyle,...
-                        'Color',SelectedItemColors(itemIdx,:), ...
-                        'LineWidth', 3);
+                            'LineStyle',ThisLineStyle,...
+                            'Color',SelectedItemColors(itemIdx,:), ...
+                            'LineWidth', 3);
+
+                    end
+                    
+
 
 
                     % add upper and lower bounds if applicable

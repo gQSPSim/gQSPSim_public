@@ -13,5 +13,7 @@ if ~isempty(vObj.PlotItemInvalidRowIndices)
     vObj.PlotItemInvalidRowIndices = [];
 end
 
+vObj.Data.clearData();
+
 % Update
 updateVisualizationView(vObj);

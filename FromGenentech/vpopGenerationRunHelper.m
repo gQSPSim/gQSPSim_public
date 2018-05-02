@@ -247,6 +247,13 @@ while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients
             % this group is not part of this vpop generation
             continue
         end
+        
+        if nnz(itemIdx) > 1
+            StatusOK = false;
+            Message = sprintf('%s\n\nItem groups must be unique. Please check settings.\n\n', Message);
+            break
+        end
+        
         % get task object for this item based on name
         tskInd = strcmp(obj.Item(itemIdx).TaskName,{obj.Settings.Task.Name});
         taskObj = obj.Settings.Task(tskInd);
@@ -346,7 +353,9 @@ while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients
         end % for ixIC
         
     end % for grp
-    
+    if ~StatusOK % exit loop if something went wrong
+        break
+    end
     % at this point, model_outputs should be the same length as the vectors
     % LB_accCrit and UB_accCrit
     
