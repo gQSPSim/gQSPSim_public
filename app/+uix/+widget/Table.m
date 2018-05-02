@@ -1748,7 +1748,7 @@ classdef Table < matlab.mixin.SetGet
             % This method may be triggered multiple times from a selection.
             % Don't process notifications until the time when changes are
             % complete.            
-            if callbacksEnabled(obj) && ~eventData.getValueIsAdjusting()
+            if callbacksEnabled(obj) && ~eventData.getValueIsAdjusting() % NOTE: Reverse logic of getValueIsAdjusting to trigger Selection then Edit callbacks
                 
                 if obj.Debug, disp('onSelectionChanged - entered'); end
                 

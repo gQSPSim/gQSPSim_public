@@ -356,6 +356,8 @@ end %if any
 
 hLegend = cell(1,NumAxes);
 hLegendChildren = cell(1,NumAxes);
+% Force a drawnow, to avoid legend issues
+drawnow;
 for axIndex = 1:NumAxes
     
     % Append
