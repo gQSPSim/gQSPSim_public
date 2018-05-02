@@ -289,7 +289,11 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 
                 %%% Remove the invalid task/group combos if any
                 [TaskItemIndex,MatchTaskIndex] = ismember({obj.Item.TaskName},{obj.Settings.Task.Name});
-                GroupItemIndex = ismember({obj.Item.GroupID},GroupIDs(:)');
+                if ~isempty(GroupIDs)
+                    GroupItemIndex = ismember({obj.Item.GroupID},GroupIDs(:)');
+                else
+                    GroupItemIndex = false(size({obj.Item.GroupID}));
+                end
                 RemoveIndices = ~TaskItemIndex | ~GroupItemIndex;
                 if any(RemoveIndices)
                     StatusOK = false;
