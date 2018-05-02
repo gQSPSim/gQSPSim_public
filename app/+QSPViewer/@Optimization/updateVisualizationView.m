@@ -263,7 +263,7 @@ if ~isempty(vObj.Data)
 %     end
 
     % construct the VPopname from the name of the optimization
-    VPopNames = {sprintf('Results - Optimization = %s', vObj.Data.Name)};
+    VPopNames = {sprintf('Results - Optimization = %s -', vObj.Data.Name)};
     
     % Filter VPopNames list (only if name does not exist, not if invalid)
     AllVPopNames = {vObj.Data.Session.Settings.VirtualPopulation.Name};
@@ -277,8 +277,9 @@ if ~isempty(vObj.Data)
     VPopNames = AllVPopNames(MatchVPopIdx);
     
     if any(MatchIdx)
-        pObj = vObj.Data.Settings.Parameters(MatchIdx);      
-        PlotParametersSourceOptions = vertcat('N/A',{pObj.Name},VPopNames(:));
+        pObj = vObj.Data.Settings.Parameters(MatchIdx);    
+        pObj_derivs = AllVPopNames(~cellfun(@isempty, regexp(AllVPopNames, vObj.Data.RefParamName)));
+        PlotParametersSourceOptions = vertcat('N/A',{pObj.Name},pObj_derivs, VPopNames(:));
     else
         PlotParametersSourceOptions = vertcat('N/A',VPopNames(:));
     end
