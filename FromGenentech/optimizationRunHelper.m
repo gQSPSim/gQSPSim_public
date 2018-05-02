@@ -44,8 +44,9 @@ if ~isempty(paramData)
     colId.UB = find(strcmpi(paramHeaders, 'UB'));
     colId.P0 = find(contains(upper(paramHeaders), 'P0'));
     colId.Scale = find(strcmpi(paramHeaders, 'SCALE'));
-    % remove any NaNs at bottom of file
-    paramData = paramData(~strcmp('NaN',paramData(:,1)),:);
+    
+    
+
     % convert to numeric cell array if it is a cell array (i.e. contains strings)
     for k=1:length(colId.P0)
         if iscell(paramData(:,colId.P0(k)))            
@@ -54,6 +55,11 @@ if ~isempty(paramData)
         end
     end
    
+    % remove any NaNs at bottom of file
+    paramData = paramData(~cellfun(@isnan,paramData(:,colId.P0)),:);
+    optimizeIdx = find(strcmpi('Yes',paramData(:,colId.Include)));
+    
+    
     % check that an initial guess is given
     if isempty(colId.P0)
         StatusOK = false;
@@ -61,7 +67,7 @@ if ~isempty(paramData)
         Message = sprintf('%s\n%s\n',Message,ThisMessage);
         path(myPath);
         return
-    elseif any(any(isnan(cell2mat(paramData(:,colId.P0)))))
+    elseif any(any(isnan(cell2mat(paramData(optimizeIdx,colId.P0)))))
         StatusOK = false;
         ThisMessage = 'Parameter file is missing information.';
         Message = sprintf('%s\n%s\n',Message,ThisMessage);
@@ -82,7 +88,6 @@ if ~isempty(paramData)
     % check that all parameters to be optimized (Include=Yes) have
     % specified LB and UB
     
-    optimizeIdx = find(strcmpi('Yes',paramData(:,colId.Include)));
     
     LB = cell2mat(paramData(optimizeIdx, colId.LB));
     UB = cell2mat(paramData(optimizeIdx, colId.UB));
