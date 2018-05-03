@@ -279,7 +279,7 @@ if ~isempty(vObj.Data)
     if any(MatchIdx)
         pObj = vObj.Data.Settings.Parameters(MatchIdx);    
         pObj_derivs = AllVPopNames(~cellfun(@isempty, regexp(AllVPopNames, vObj.Data.RefParamName)));
-        PlotParametersSourceOptions = vertcat('N/A',{pObj.Name},pObj_derivs, VPopNames(:));
+        PlotParametersSourceOptions = vertcat('N/A',{pObj.Name}, pObj_derivs', VPopNames(:));
     else
         PlotParametersSourceOptions = vertcat('N/A',VPopNames(:));
     end

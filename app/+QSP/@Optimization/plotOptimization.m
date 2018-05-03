@@ -165,7 +165,7 @@ if any(IsSelected)
     end
     
     if rerunSims
-        [StatusOK,Message,~,Results,ItemModels] = simulationRunHelper(simObj,ParamValues,ParamNames,[],ItemModels,find(IsSelected));
+        [StatusOK,Message,~,Cancelled,Results,ItemModels] = simulationRunHelper(simObj,ParamValues,ParamNames,[],ItemModels,find(IsSelected));
 %         [StatusOK,Message,~,Results,ItemModels] = simulationRunHelper(simObj,ParamValues,ParamNames,[],[],find(IsSelected));
 
         obj.ItemModels = ItemModels;
@@ -181,7 +181,7 @@ NumRuns = size(Results,1);
 hSpeciesGroup = cell(size(obj.PlotSpeciesTable,1),NumAxes, NumRuns);
 hDatasetGroup = cell(size(obj.PlotSpeciesTable,1),NumAxes);
 
-if ~StatusOK
+if ~StatusOK && ~Cancelled
     warning('plotOptimization: %s',Message);
     return
 end

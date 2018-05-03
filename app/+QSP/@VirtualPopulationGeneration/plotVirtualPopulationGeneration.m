@@ -120,10 +120,14 @@ vObj = obj.Settings.VirtualPopulation(strcmp(obj.VPopName,allVpopNames));
 %% Run the simulations for those that are not cached
 if ~isempty(simObj)
 
-    [ThisStatusOK,Message,ResultFileNames,Results] = simulationRunHelper(simObj, [], {}, TimeVec);
+    [ThisStatusOK,Message,ResultFileNames,Cancelled,Results] = simulationRunHelper(simObj, [], {}, TimeVec);
     
-    if ~ThisStatusOK        
+    if ~ThisStatusOK  && ~Cancelled     
         error('plotVirtualPopulationGeneration: %s',Message);
+    end
+    
+    if Cancelled
+        return
     end
     
     % cache the result to avoid simulating again
@@ -245,9 +249,21 @@ if strcmp(obj.PlotType, 'Normal') && ~isempty(Results)
                     if ~isempty(Results{itemIdx}.Data(:,setdiff(ColumnIdx, ColumnIdx_invalid)))
 
                         % Plot
-                        hThis = plot(hSpeciesGroup{sIdx,axIdx},Results{itemIdx}.Time,thisData(:,setdiff(ColumnIdx, ColumnIdx_invalid)),...
-                            'Color',SelectedItemColors(itemIdx,:),...
-                            'LineStyle',ThisLineStyle);
+                        if vObj.ShowTraces
+                            hThis = plot(hSpeciesGroup{sIdx,axIdx},Results{itemIdx}.Time,thisData(:,setdiff(ColumnIdx, ColumnIdx_invalid)),...
+                                'Color',SelectedItemColors(itemIdx,:),...
+                                'LineStyle',ThisLineStyle);
+                        end
+                        
+                        if vObj.ShowSEBar
+                            h=shadedErrorBar(hSpeciesGroup{sIdx,axIdx},Results{itemIdx}.Time, mean(thisData(:,setdiff(ColumnIdx, ColumnIdx_invalid)),2), ...
+                                std(thisData(:,setdiff(ColumnIdx, ColumnIdx_invalid)),[],2));
+                            set(h.mainLine, 'Color',SelectedItemColors(itemIdx,:),...
+                                'LineStyle',ThisLineStyle);
+                            set(h.patch,'FaceColor',SelectedItemColors(itemIdx,:));
+                            hThis = h.mainLine;
+                        end
+                        
                         hThisAnn = get(hThis,'Annotation');
                         if iscell(hThisAnn)
                             hThisAnn = [hThisAnn{:}];

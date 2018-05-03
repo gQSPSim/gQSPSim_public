@@ -45,6 +45,8 @@ classdef VirtualPopulationGeneration < uix.abstract.CardViewPane
         PlotSpeciesInvalidRowIndices = []
         PlotItemInvalidRowIndices = []       
         
+        ShowTraces = true;
+        ShowSEBar = false;
     end
     
     

@@ -504,7 +504,7 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
                 % Update
                 updateVisualizationView(vObj);
             catch ME
-                warning(ME)
+                warning(ME.message)
             end
 
 %             vObj.Semaphore = 'free';
@@ -678,10 +678,7 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
                                 ThisProfile.Source = '';
                                 ThisProfile.Values = cell(0,2);
                             elseif isempty(ThisSourceData) || strcmpi(Result,'Yes')
-
-
-
-                                obj = vObj.Data;
+                              obj = vObj.Data;
                                 Names = {obj.Settings.Parameters.Name};
                                 MatchIdx = strcmpi(Names,obj.RefParamName);
                                 if any(MatchIdx)

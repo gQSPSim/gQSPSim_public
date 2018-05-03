@@ -139,10 +139,16 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
             end
             
             % Plot
-            hThis = plot(hSpeciesGroup{sIdx,axIdx},Results(itemIdx).Time,Results(itemIdx).Data(:,ColumnIdx),...
-                'Color',SelectedItemColors(itemIdx,:),...
-                'LineStyle',ThisLineStyle);
-           thisAnnotation = get(hThis,'Annotation');
+%             hThis = plot(hSpeciesGroup{sIdx,axIdx},Results(itemIdx).Time,Results(itemIdx).Data(:,ColumnIdx),...
+%                 'Color',SelectedItemColors(itemIdx,:),...
+%                 'LineStyle',ThisLineStyle);
+            
+            axes(get(hSpeciesGroup{sIdx,axIdx},'Parent'))
+            hThis=shadedErrorBar(Results(itemIdx).Time, mean(Results(itemIdx).Data(:,ColumnIdx), 2), ...
+                std(Results(itemIdx).Data(:,ColumnIdx),[],2));
+            set(hThis.mainLine,'Color',SelectedItemColors(itemIdx,:), 'LineStyle',ThisLineStyle)
+            set(hThis.patch,'FaceColor', SelectedItemColors(itemIdx,:));
+           thisAnnotation = get(hThis.mainLine,'Annotation');
 
            if iscell(thisAnnotation)
                thisLegendInformation = get([thisAnnotation{:}],'LegendInformation');
@@ -247,12 +253,11 @@ end %if any(MatchIdx)
 
 hLegend = cell(1,NumAxes);
 hLegendChildren = cell(1,NumAxes);
-% Force a drawnow, to avoid legend issues
-drawnow;
 for axIndex = 1:NumAxes
     
     % Append
-    LegendItems = [horzcat(hSpeciesGroup{:,axIndex}) horzcat(hDatasetGroup{:,axIndex})];    
+    LegendItems = [horzcat(hSpeciesGroup{:,axIndex}) horzcat(hDatasetGroup{:,axIndex})];
+    
     if ~isempty(LegendItems) && all(isvalid(LegendItems))
         % Add legend
         [hLegend{axIndex},hLegendChildren{axIndex}] = legend(hAxes(axIndex),LegendItems);
