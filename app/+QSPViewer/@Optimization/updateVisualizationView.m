@@ -157,7 +157,11 @@ if ~isempty(vObj.Data)
     for index = 1:size(TableData,1)
         ThisColor = vObj.Data.PlotItemTable{index,2};
         if ~isempty(ThisColor)
-            vObj.h.PlotItemsTable.setCellColor(index,2,ThisColor);
+            if isnumeric(ThisColor)
+                vObj.h.PlotItemsTable.setCellColor(index,2,ThisColor);
+            else
+                warning('Error: invalid colot')
+            end
         end
     end
 else
@@ -475,6 +479,8 @@ if ~isempty(vObj.Data.SelectedProfileRow)
     SelectedProfileData = SelectedProfile.Values;
     if ~isempty(UniqueSourceData{uIdx})
         % get matching values in the source
+        missing = find(~cellfun(@ischar, SelectedProfileData(:,1)));
+        SelectedProfileData(missing,:) = [];
         [hMatch,MatchIdx] = ismember(SelectedProfileData(:,1), UniqueSourceData{uIdx}(:,1));
 %         SelectedProfileData = SelectedProfileData(hMatch,:);
         SelectedProfileData(hMatch,3) = UniqueSourceData{uIdx}(MatchIdx(hMatch),end);

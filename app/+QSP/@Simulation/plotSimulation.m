@@ -266,6 +266,7 @@ end %if any(MatchIdx)
 
 
 %% Legend
+drawnow
 
 hLegend = cell(1,NumAxes);
 hLegendChildren = cell(1,NumAxes);

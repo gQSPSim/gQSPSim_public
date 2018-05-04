@@ -210,7 +210,12 @@ tmp(logInds) = log10(tmp(logInds));
 logInds = logInds(useParam);
 
 param_candidate_old = tmp(useParam);
-tune_param = 0.15; % percent of interval
+tune_param = 0.05; % percent of interval
+
+P = param_candidate_old;
+if any(P<LB | P>UB)
+    warning('Initial parameter P0_1 outside search interval. Resetting to boundary.')
+end
 
 while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients
     nSim = nSim+1; % tic up the number of simulations

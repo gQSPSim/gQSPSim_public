@@ -14,7 +14,7 @@ classdef VirtualPopulation < uix.abstract.CardViewPane
     %   $Date: 2016-09-02 13:08:51 -0400 (Fri, 02 Sep 2016) $
     % ---------------------------------------------------------------------
    
-        
+       
     %% Methods in separate files with custom permissions
     methods (Access=protected)
         create(obj);        

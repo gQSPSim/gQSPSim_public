@@ -51,6 +51,8 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
         PlotSpeciesInvalidRowIndices = []
         PlotItemInvalidRowIndices = []  
         
+        DiagnosticHandle = [];
+        
     end
     
     properties (Access=public)

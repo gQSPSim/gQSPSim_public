@@ -37,6 +37,9 @@ classdef VirtualPopulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
     properties
         validationDateNum = 0;
         LastStatus = false;
+
+        ShowTraces = false;
+        ShowSEBar = true;    
     end
     
     %% Constructor

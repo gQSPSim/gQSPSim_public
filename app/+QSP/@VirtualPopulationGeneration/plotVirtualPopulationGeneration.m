@@ -256,8 +256,12 @@ if strcmp(obj.PlotType, 'Normal') && ~isempty(Results)
                         end
                         
                         if vObj.ShowSEBar
-                            h=shadedErrorBar(hSpeciesGroup{sIdx,axIdx},Results{itemIdx}.Time, mean(thisData(:,setdiff(ColumnIdx, ColumnIdx_invalid)),2), ...
+%                             axes(get(hSpeciesGroup{sIdx,axIdx},'Parent'))
+                            h=shadedErrorBar(Results{itemIdx}.Time, mean(thisData(:,setdiff(ColumnIdx, ColumnIdx_invalid)),2), ...
                                 std(thisData(:,setdiff(ColumnIdx, ColumnIdx_invalid)),[],2));
+                            set(h.mainLine,'Parent',hSpeciesGroup{sIdx,axIdx})
+                            set(h.patch,'Parent',hSpeciesGroup{sIdx,axIdx})
+                            set(h.edge,'Parent',hSpeciesGroup{sIdx,axIdx})
                             set(h.mainLine, 'Color',SelectedItemColors(itemIdx,:),...
                                 'LineStyle',ThisLineStyle);
                             set(h.patch,'FaceColor',SelectedItemColors(itemIdx,:));

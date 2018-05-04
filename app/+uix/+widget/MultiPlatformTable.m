@@ -438,11 +438,15 @@ classdef MultiPlatformTable < uix.abstract.Widget & uix.mixin.HasLabel
         
         % Data
         function value = get.Data(obj)
+            
+            hEdit = obj.CellEditCallback ;
+            obj.CellEditCallback = @(h,e) [];
             if obj.IsConstructed
                 value = get(obj.HTable,'Data');
             else
                 value = {};
             end
+            obj.CellEditCallback = hEdit;
         end
         function set.Data(obj,value)
             if obj.IsConstructed
