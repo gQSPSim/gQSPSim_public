@@ -1,3 +1,5 @@
+function app = QSPapp()
+
 warning('off','uix:ViewPaneManager:NoView')
 warning('off','MATLAB:table:ModifiedAndSavedVarnames');
 
@@ -31,3 +33,4 @@ end %if ~isdeployed
 % Instantiate the application
 app = QSPViewer.App();
 
+end
