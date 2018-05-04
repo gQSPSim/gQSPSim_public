@@ -91,6 +91,10 @@ classdef Task < uix.abstract.CardViewPane
                 uiwait(hDlg);
             end
             
+            % get active variant names
+            allVariantNames = get(vObj.Data.ModelObj.Variants, 'Name');
+            vObj.Data.ActiveVariantNames = allVariantNames(cell2mat(get(vObj.Data.ModelObj.Variants,'Active')));
+            
             % Update the view
             update(vObj);
             
