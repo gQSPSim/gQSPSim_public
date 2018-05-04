@@ -465,7 +465,9 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
             
             RowIdx = Indices(1,1);
             ColIdx = Indices(1,2);
-            
+                        
+            cb = vObj.Callback;
+            vObj.Callback = @(h,e) [];
             h.SelectedRows = RowIdx;
             
             vObj.Data.PlotItemTable(RowIdx,ColIdx) = ThisData(RowIdx,ColIdx);
@@ -478,7 +480,8 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
             
             % Enable column 1
             set(h,'ColumnEditable',OrigColumnEditable);
-            
+            vObj.Callback = cb;
+
         end %function
         
         function onSelectedLinePlot(vObj,h,e)
@@ -777,11 +780,10 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
 %         end %function
                 
         function onParametersTablePlot(vObj,h,e)
-            pause(0.25);
-%             vObj.semaphore.wait();
-%             vObj.semaphore.lock();
             
-            ME = [];
+            cb = vObj.h.PlotParametersTable.CellEditCallback;
+            vObj.h.PlotParametersTable.CellEditCallback = @(h,e) [];
+            
             h_applyButton = findobj(vObj.h.PlotApplyParametersButtonLayout, 'Tag','ApplyParameters');
             set(h_applyButton, 'Enable', 'off')
 %             try
@@ -802,15 +804,6 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
                         ThisProfile.Values(RowIdx,ColIdx) = ThisData(RowIdx,ColIdx);
                     end
                     
-%                     assert(isscalar(ThisData(RowIdx,ColIdx)))
-%                     profileRow = find(strcmp(ThisData(RowIdx,1),ThisProfile.Values(:,1)));
-%                     assert(size(ThisData(RowIdx,ColIdx),2) == 1);
-%                     ThisProfile.Values(RowIdx,ColIdx) = ThisData(RowIdx,ColIdx);
-                    
-%                     vObj.Data.PlotProfile(vObj.Data.SelectedProfileRow) = ThisProfile;
-%                     vObj.Data.PlotProfile(vObj.Data.SelectedProfileRow).Values(RowIdx,ColIdx) = ThisData(RowIdx,ColIdx);
-%                     vObj.Data.PlotProfile(vObj.Data.SelectedProfileRow).Values = ThisData(:,1:2);
-
                 else
                     hDlg = errordlg('Invalid value specified for parameter. Values must be numeric','Invalid value','modal');
                     uiwait(hDlg);
@@ -818,11 +811,8 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
 
                 % Update the view
                 updateVisualizationView(vObj);
-%             catch ME
-%             end
-            
-%             vObj.semaphore.release();
            set(h_applyButton, 'Enable', 'on')
+           vObj.h.PlotParametersTable.CellEditCallback = cb;
             
         end %function   
         

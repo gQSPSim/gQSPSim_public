@@ -136,12 +136,20 @@ if ~isempty(vObj.Data)
     TableData = vObj.PlotItemAsInvalidTable;
     TableData(:,2) = uix.utility.getHTMLColor(vObj.Data.PlotItemTable(:,2));
     % Items table
+
+    hSelect = vObj.h.PlotItemsTable.CellSelectionCallback;
+    hEdit = vObj.h.PlotItemsTable.CellEditCallback;
+    vObj.h.PlotItemsTable.CellSelectionCallback = [];
+    vObj.h.PlotItemsTable.CellEditCallback = [];
     set(vObj.h.PlotItemsTable,...
         'Data',TableData,...
         'ColumnName',{'Include','Color','Task','Group'},...
         'ColumnFormat',{'boolean','char','char','char'},...
         'ColumnEditable',[true,false,false,false]...
         );
+    vObj.h.PlotItemsTable.CellSelectionCallback = hSelect;
+    vObj.h.PlotItemsTable.CellEditCallback = hEdit;
+    
     % Set cell color
     for index = 1:size(TableData,1)
         ThisColor = vObj.Data.PlotItemTable{index,2};
