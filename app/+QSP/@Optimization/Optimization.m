@@ -507,6 +507,8 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                         if ~isempty(Data)
                             PlotParametersData(:,2) = Data(1,:);                            
                         end
+                        PlotParametersData(cell2mat(cellfun(@isnan, PlotParametersData(:,2), 'UniformOutput', false)), 2) = {''};
+
                     else
                         PlotParametersData = cell(0,2);
                     end
