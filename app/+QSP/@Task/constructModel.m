@@ -7,8 +7,7 @@ function constructModel(obj)
     % apply the active variants (if specified)
     if ~isempty(obj.ActiveVariantNames)
         % turn off all variants
-        varObj_i = getvariant(model);
-        set(varObj_i,'Active',false);
+        set(model.variant, 'Active', false)
 
         % combine active variants in order into a new variant, add to the
         % model and activate

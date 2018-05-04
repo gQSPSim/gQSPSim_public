@@ -327,9 +327,9 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 allRulesNames = get(obj.ModelObj.Rules, 'Rule');
                 obj.InactiveRuleNames = allRulesNames(~cell2mat(get(obj.ModelObj.Rules,'Active')));
                 
-                % get active variant names
-                allVariantNames = get(obj.ModelObj.Variants, 'Name');
-                obj.ActiveVariantNames = allVariantNames(cell2mat(get(obj.ModelObj.Variants,'Active')));
+%                 % get active variant names
+%                 allVariantNames = get(obj.ModelObj.Variants, 'Name');
+%                 obj.ActiveVariantNames = allVariantNames(cell2mat(get(obj.ModelObj.Variants,'Active')));
                 
             end %if
         end %function
