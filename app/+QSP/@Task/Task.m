@@ -320,12 +320,12 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 end %if
                 
                 % get inactive reactions from the model
-                allReactionNames = get(obj.ModelObj.Reactions, 'Reaction');
-                obj.InactiveReactionNames = allReactionNames(~cell2mat(get(obj.ModelObj.Reactions,'Active')));
-                
-                % get inactive rules from model
-                allRulesNames = get(obj.ModelObj.Rules, 'Rule');
-                obj.InactiveRuleNames = allRulesNames(~cell2mat(get(obj.ModelObj.Rules,'Active')));
+%                 allReactionNames = get(obj.ModelObj.Reactions, 'Reaction');
+%                 obj.InactiveReactionNames = allReactionNames(~cell2mat(get(obj.ModelObj.Reactions,'Active')));
+%                 
+%                 % get inactive rules from model
+%                 allRulesNames = get(obj.ModelObj.Rules, 'Rule');
+%                 obj.InactiveRuleNames = allRulesNames(~cell2mat(get(obj.ModelObj.Rules,'Active')));
                 
 %                 % get active variant names
 %                 allVariantNames = get(obj.ModelObj.Variants, 'Name');
