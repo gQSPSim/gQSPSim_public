@@ -295,19 +295,24 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
                 
                 
                 %%% Remove the invalid task/group combos if any
-                [TaskItemIndex,MatchTaskIndex] = ismember({obj.Item.TaskName},{obj.Settings.Task.Name});
-                GroupItemIndex = ismember({obj.Item.GroupID},GroupIDs(:)');
-                RemoveIndices = ~TaskItemIndex | ~GroupItemIndex;
-                if any(RemoveIndices)
-                    StatusOK = false;
-                    ThisMessage = sprintf('Task-Group rows %s are invalid.',num2str(find(RemoveIndices)));
-                    Message = sprintf('%s\n* %s\n',Message,ThisMessage);
+                if all(isvalid(obj.Item))
+                    [TaskItemIndex,MatchTaskIndex] = ismember({obj.Item.TaskName},{obj.Settings.Task.Name});
+                    GroupItemIndex = ismember({obj.Item.GroupID},GroupIDs(:)');
+                    RemoveIndices = ~TaskItemIndex | ~GroupItemIndex;
+                    if any(RemoveIndices)
+                        StatusOK = false;
+                        ThisMessage = sprintf('Task-Group rows %s are invalid.',num2str(find(RemoveIndices)));
+                        Message = sprintf('%s\n* %s\n',Message,ThisMessage);
+                    end
+                else
+                    RemoveIndices = 1:length(obj.Item);
+                    MatchTaskIndex = [];
                 end
                 if FlagRemoveInvalid
                     obj.Item(RemoveIndices) = [];
                 end
-                
-                % Check Tasks
+
+            % Check Tasks
                 MatchTaskIndex(MatchTaskIndex == 0) = [];
                 for index = MatchTaskIndex
                     [ThisStatusOK,ThisMessage] = validate(obj.Settings.Task(index),FlagRemoveInvalid);
