@@ -149,6 +149,9 @@ if EchoOutput
     disp('---------------------------------------------------');
 end
 
+% run the units script
+units
+
 % Instantiate the application
 app = QSPViewer.App();
 
