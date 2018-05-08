@@ -97,11 +97,11 @@ classdef Task < uix.abstract.CardViewPane
                 vObj.TempData.ActiveVariantNames = allVariantNames(cell2mat(get(vObj.TempData.ModelObj.Variants,'Active')));
 
                  % get inactive reactions from the model
-                allReactionNames = get(vObj.TempData.ModelObj.Reactions, 'Reaction');
+                allReactionNames = vObj.TempData.ReactionNames; 
                 vObj.TempData.InactiveReactionNames = allReactionNames(~cell2mat(get(vObj.TempData.ModelObj.Reactions,'Active')));
 
                 % get inactive rules from model
-                allRulesNames = get(vObj.TempData.ModelObj.Rules, 'Rule');
+                allRulesNames = vObj.TempData.RuleNames; 
                 vObj.TempData.InactiveRuleNames = allRulesNames(~cell2mat(get(vObj.TempData.ModelObj.Rules,'Active')));
             end
             % Update the view
