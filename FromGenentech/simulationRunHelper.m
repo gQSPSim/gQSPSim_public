@@ -188,6 +188,11 @@ if ~isempty(ItemModels)
                     ThisMessage = 'Error encountered saving file. Check that the save file name is valid.';
                     Message = sprintf('%s\n%s\n\n%s\n',Message,ThisMessage,error.message);        
                     StatusOK = false;
+                    % close waitbar
+                    uix.utility.CustomWaitbar(1,hWbar2,'Done.');
+                    if ~isempty(hWbar2) && ishandle(hWbar2)
+                        delete(hWbar2);
+                    end
                     return
                 end
                 % right now it's one line of Message per Simulation Item
