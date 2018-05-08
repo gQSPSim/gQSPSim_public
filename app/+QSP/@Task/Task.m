@@ -140,6 +140,12 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         
         function [StatusOK, Message] = validate(obj,FlagRemoveInvalid)
             
+            if isempty(obj)
+                Message = 'Object is empty!';
+                StatusOK = false;
+                return
+            end
+            
             FileInfo = dir(obj.FilePath);
             if ~isempty(FileInfo) && ~isempty(obj.ExportedModelTimeStamp) && (obj.ExportedModelTimeStamp > FileInfo.datenum) % built after the model file was saved
                 StatusOK = true;
@@ -220,6 +226,13 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 StatusOK = false;
                 Message = sprintf('%s\n* Invalid MaxWallClockTime. MaxWallClockTime must be > 0.\n',Message);
             end
+            
+            % Task name forbidden characters
+            if any(regexp(obj.Name,'[:*?/]'))
+                Message = sprintf('%s\n* Invalid task name.', Message);
+                StatusOK=false;
+            end
+            
         end %function
     end
     

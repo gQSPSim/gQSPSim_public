@@ -29,6 +29,16 @@ if ~isdeployed
         end
         
     end
+       
+    if isempty(mex.getCompilerConfigurations('C','Supported'))
+        hDlg = errordlg(['Unable to locate C compiler. Please install a compatible compiler before launching. '...
+            'See www.mathworks.com for more details.'],...
+            'WindowStyle','modal');
+        uiwait(hDlg);
+        return
+    end
+
+
     
 end %if ~isdeployed
 
@@ -138,6 +148,9 @@ javaaddpath(Paths);
 if EchoOutput
     disp('---------------------------------------------------');
 end
+
+% run the units script
+units
 
 % Instantiate the application
 app = QSPViewer.App();

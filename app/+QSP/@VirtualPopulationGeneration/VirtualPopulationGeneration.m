@@ -381,6 +381,11 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
                 % taken place
                 obj.SimResults = {}; % cached simulation results
 
+                % VpopGeneration name forbidden characters
+                if any(regexp(obj.Name,'[:*?/]'))
+                    Message = sprintf('%s\n* Invalid vpop generation name.', Message);
+                    StatusOK=false;
+                end
                 
             end %if
             
