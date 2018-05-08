@@ -226,6 +226,13 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 StatusOK = false;
                 Message = sprintf('%s\n* Invalid MaxWallClockTime. MaxWallClockTime must be > 0.\n',Message);
             end
+            
+            % Task name forbidden characters
+            if any(regexp(obj.Name,'[:*?/]'))
+                Message = sprintf('%s\n* Invalid task name.', Message);
+                StatusOK=false;
+            end
+            
         end %function
     end
     

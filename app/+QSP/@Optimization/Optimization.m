@@ -429,6 +429,13 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 if FlagRemoveInvalid
                     obj.SpeciesIC(RemoveIndices) = [];
                 end
+                
+                % Optimization name forbidden characters
+                if any(regexp(obj.Name,'[:*?/]'))
+                    Message = sprintf('%s\n* Invalid optimization name.', Message);
+                    StatusOK=false;
+                end
+                
             end
             
         end %function
