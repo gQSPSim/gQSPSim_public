@@ -91,18 +91,18 @@ classdef Task < uix.abstract.CardViewPane
                 uiwait(hDlg);
             end
             
-            if ~isempty(vObj.Data.ModelObj)
+            if ~isempty(vObj.TempData.ModelObj)
                 % get active variant names
-                allVariantNames = get(vObj.Data.ModelObj.Variants, 'Name');
-                vObj.Data.ActiveVariantNames = allVariantNames(cell2mat(get(vObj.Data.ModelObj.Variants,'Active')));
+                allVariantNames = get(vObj.TempData.ModelObj.Variants, 'Name');
+                vObj.TempData.ActiveVariantNames = allVariantNames(cell2mat(get(vObj.TempData.ModelObj.Variants,'Active')));
 
                  % get inactive reactions from the model
-                allReactionNames = get(vObj.Data.ModelObj.Reactions, 'Reaction');
-                vObj.Data.InactiveReactionNames = allReactionNames(~cell2mat(get(vObj.Data.ModelObj.Reactions,'Active')));
+                allReactionNames = get(vObj.TempData.ModelObj.Reactions, 'Reaction');
+                vObj.TempData.InactiveReactionNames = allReactionNames(~cell2mat(get(vObj.TempData.ModelObj.Reactions,'Active')));
 
                 % get inactive rules from model
-                allRulesNames = get(vObj.Data.ModelObj.Rules, 'Rule');
-                vObj.Data.InactiveRuleNames = allRulesNames(~cell2mat(get(vObj.Data.ModelObj.Rules,'Active')));
+                allRulesNames = get(vObj.TempData.ModelObj.Rules, 'Rule');
+                vObj.TempData.InactiveRuleNames = allRulesNames(~cell2mat(get(vObj.TempData.ModelObj.Rules,'Active')));
             end
             % Update the view
             update(vObj);
