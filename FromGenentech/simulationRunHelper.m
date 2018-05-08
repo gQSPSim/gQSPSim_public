@@ -58,7 +58,7 @@ else
         % Validate
         taskObj = obj.Settings.Task(strcmp(taskName,options.allTaskNames));
         [ThisStatusOK,ThisMessage] = validate(taskObj,false);        
-        if isempty(taskObj)
+        if isempty(taskObj) && ThisStatusOK
             continue
         elseif ~ThisStatusOK
             StatusOK = false;
@@ -178,10 +178,17 @@ if ~isempty(ItemModels)
                 % Update ResultFileNames
                 ResultFileNames{ii} = ['Results - Sim = ' options.simName ', Task = ' obj.Item(options.runIndices(ii)).TaskName ' - Vpop = ' obj.Item(options.runIndices(ii)).VPopName ' - Date = ' datestr(now,'dd-mmm-yyyy_HH-MM-SS') '.mat'];
 
-                if isempty(VpopWeights)
-                    save(fullfile(SaveFilePath,ResultFileNames{ii}), 'Results')
-                else
-                    save(fullfile(SaveFilePath,ResultFileNames{ii}), 'Results', 'VpopWeights')
+                try
+                    if isempty(VpopWeights)
+                        save(fullfile(SaveFilePath,ResultFileNames{ii}), 'Results')
+                    else
+                        save(fullfile(SaveFilePath,ResultFileNames{ii}), 'Results', 'VpopWeights')
+                    end
+                catch error
+                    ThisMessage = 'Error encountered saving file. Check that the save file name is valid.';
+                    Message = sprintf('%s\n%s\n\n%s\n',Message,ThisMessage,error.message);        
+                    StatusOK = false;
+                    return
                 end
                 % right now it's one line of Message per Simulation Item
                 if nFailedSims == ItemModel.nPatients
@@ -412,7 +419,6 @@ function [Results, nFailedSims, StatusOK, Message] = simulateVPatients(ItemModel
         StatusOK = false;
         Message = sprintf('%s\n\n%s', 'Failed to run simulation', Message);
         
-        path(myPath);
         return
     end
 

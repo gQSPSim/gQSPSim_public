@@ -140,6 +140,12 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         
         function [StatusOK, Message] = validate(obj,FlagRemoveInvalid)
             
+            if isempty(obj)
+                Message = 'Object is empty!';
+                StatusOK = false;
+                return
+            end
+            
             FileInfo = dir(obj.FilePath);
             if ~isempty(FileInfo) && ~isempty(obj.ExportedModelTimeStamp) && (obj.ExportedModelTimeStamp > FileInfo.datenum) % built after the model file was saved
                 StatusOK = true;

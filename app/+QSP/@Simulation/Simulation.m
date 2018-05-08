@@ -228,8 +228,9 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             if StatusOK
                 % Run helper
                 [ThisStatusOK,Message,ResultFileNames] = simulationRunHelper(obj);
+                StatusOK = ThisStatusOK;
                 if ~ThisStatusOK
-                    error('run: %s',Message);
+                    return
                 end
                 
                 % Update MATFileName in the simulation items
