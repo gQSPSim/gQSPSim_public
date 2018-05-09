@@ -362,6 +362,11 @@ if ~isempty(vObj.Data) && ~isempty(OptimData)
     for index = 1:size(TableData,1)
         ThisColor = vObj.Data.PlotGroupTable{index,2};
         if ~isempty(ThisColor)
+            if ischar(ThisColor) %html string
+                rgb = regexp(ThisColor, 'bgcolor="#(\w{2})(\w{2})(\w{2})', 'tokens');
+                rgb = rgb{1};
+                ThisColor = [hex2dec(rgb{1}), hex2dec(rgb{2}), hex2dec(rgb{3})]/255;
+            end
             vObj.h.PlotGroupTable.setCellColor(index,2,ThisColor);
         end
     end
