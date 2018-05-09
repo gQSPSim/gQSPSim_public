@@ -26,9 +26,6 @@ function updateEditView(vObj)
 %   $Revision: 318 $  $Date: 2016-09-09 17:22:35 -0400 (Fri, 09 Sep 2016) $
 % ---------------------------------------------------------------------
 
-if vObj.Selection ~= 2
-    return;
-end
 
 %% Refresh Dataset
 
