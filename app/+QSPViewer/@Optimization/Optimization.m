@@ -504,7 +504,7 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
                 % Update
                 updateVisualizationView(vObj);
             catch ME
-                warning(ME)
+                warning(ME.message)
             end
 
 %             vObj.Semaphore = 'free';
