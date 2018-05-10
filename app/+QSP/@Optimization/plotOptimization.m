@@ -165,7 +165,7 @@ if any(IsSelected)
     end
     
     if rerunSims
-        [StatusOK,Message,~,Results,ItemModels] = simulationRunHelper(simObj,ParamValues,ParamNames,[],ItemModels,find(IsSelected));
+        [StatusOK,Message,~,~,Results,ItemModels] = simulationRunHelper(simObj,ParamValues,ParamNames,[],ItemModels,find(IsSelected));
 %         [StatusOK,Message,~,Results,ItemModels] = simulationRunHelper(simObj,ParamValues,ParamNames,[],[],find(IsSelected));
 
         obj.ItemModels = ItemModels;

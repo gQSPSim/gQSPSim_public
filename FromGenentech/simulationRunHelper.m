@@ -391,7 +391,7 @@ function [ItemModel, VpopWeights, StatusOK, Message] = constructVpopItem(taskObj
             groupVec = vpopTable(:,groupCol);
             vpopTable = vpopTable(str2num(groupObj)==groupVec,:); % filter
         end
-
+{
         % check whether the last column is PWeight
         if strcmp('PWeight',params{end})
             VpopWeights     = vpopTable(:,end);
@@ -401,7 +401,7 @@ function [ItemModel, VpopWeights, StatusOK, Message] = constructVpopItem(taskObj
         % check if there are parameters which are not contained in the
         % model
         
-        if ~isempty(setdiff( params, [taskObj.SpeciesNames; taskObj.ParameterNames; 'PWeight']))
+        if ~isempty(setdiff( params, [taskObj.SpeciesNames; taskObj.ParameterNames; {'PWeight','Group'}']))
             StatusOK = false;
             Message = sprintf('%s%s: Invalid parameters contained in the vpop file. Please check for consistency with the selected task model.\n', ...
                 Message, taskObj.Name);
