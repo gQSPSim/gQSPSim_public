@@ -100,6 +100,7 @@ else
        if ~ThisStatusOK
            StatusOK = false;
            Message = sprintf('%s\n%s\n',Message,ThisMessage);
+           break
        end
 
     end % for ii...
@@ -396,6 +397,17 @@ function [ItemModel, VpopWeights, StatusOK, Message] = constructVpopItem(taskObj
             VpopWeights     = vpopTable(:,end);
             vpopTable   = vpopTable(:,1:end-1);
         end 
+        
+        % check if there are parameters which are not contained in the
+        % model
+        
+        if ~isempty(setdiff( params, [taskObj.SpeciesNames; taskObj.ParameterNames]))
+            StatusOK = false;
+            Message = sprintf('%s%s: Invalid parameters contained in the vpop file. Please check for consistency with the selected task model.\n', ...
+                Message, taskObj.Name);
+            return
+        end
+        
         nPatients = size(vpopTable,1);
         Values = vpopTable;
         Names = params;
