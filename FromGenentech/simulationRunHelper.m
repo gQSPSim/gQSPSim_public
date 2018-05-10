@@ -391,7 +391,7 @@ function [ItemModel, VpopWeights, StatusOK, Message] = constructVpopItem(taskObj
             groupVec = vpopTable(:,groupCol);
             vpopTable = vpopTable(str2num(groupObj)==groupVec,:); % filter
         end
-{
+
         % check whether the last column is PWeight
         if strcmp('PWeight',params{end})
             VpopWeights     = vpopTable(:,end);
