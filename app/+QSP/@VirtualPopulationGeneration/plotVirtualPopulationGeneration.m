@@ -120,7 +120,7 @@ vObj = obj.Settings.VirtualPopulation(strcmp(obj.VPopName,allVpopNames));
 %% Run the simulations for those that are not cached
 if ~isempty(simObj)
 
-    [ThisStatusOK,Message,ResultFileNames,Results] = simulationRunHelper(simObj, [], {}, TimeVec);
+    [ThisStatusOK,Message,ResultFileNames,~,Results] = simulationRunHelper(simObj, [], {}, TimeVec);
     
     if ~ThisStatusOK        
         error('plotVirtualPopulationGeneration: %s',Message);
