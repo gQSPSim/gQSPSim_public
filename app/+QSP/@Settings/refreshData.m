@@ -3,6 +3,8 @@ function [StatusOk,Message] = refreshData(obj)
 StatusOk = true;
 Message = '';
 
+hWaitBar = uix.utility.CustomWaitbar(0, 'Loading session', '', true);
+
 
 %% Task
 
@@ -16,6 +18,13 @@ for index = 1:numel(obj.Task)
         StatusOk = false;
         Message = sprintf('%s\n%s\n',Message,ThisMessage);
     end
+    waitStatus = uix.utility.CustomWaitbar(index/numel(obj.Task), hWaitBar, 'Loading Tasks');
+    if ~waitStatus % cancelled
+        StatusOk = false;
+        obj = QSP.Settings.empty;
+        delete(hWaitBar)
+        return
+    end
 end
 
 
@@ -27,6 +36,14 @@ for index = 1:numel(obj.VirtualPopulation)
     if ~ThisStatusOk
         StatusOk = false;
         Message = sprintf('%s\n%s\n',Message,ThisMessage);
+    end
+    waitStatus = uix.utility.CustomWaitbar(index/numel(obj.VirtualPopulation), hWaitBar, 'Loading Virtual Populations');
+    if ~waitStatus % cancelled
+        StatusOk = false;
+        obj = QSP.Settings.empty;
+        delete(hWaitBar)
+
+        return
     end
 end
 
@@ -40,6 +57,14 @@ for index = 1:numel(obj.Parameters)
         StatusOk = false;
         Message = sprintf('%s\n%s\n',Message,ThisMessage);
     end
+    waitStatus = uix.utility.CustomWaitbar(index/numel(obj.Parameters), hWaitBar, 'Loading Parameters');
+    if ~waitStatus % cancelled
+        StatusOk = false;
+        obj = QSP.Settings.empty;
+        delete(hWaitBar)
+
+        return
+    end    
 end
 
 
@@ -52,6 +77,14 @@ for index = 1:numel(obj.OptimizationData)
         StatusOk = false;
         Message = sprintf('%s\n%s\n',Message,ThisMessage);
     end
+    waitStatus = uix.utility.CustomWaitbar(index/numel(obj.OptimizationData), hWaitBar, 'Loading Optimization Data');
+    if ~waitStatus % cancelled
+        StatusOk = false;
+        obj = QSP.Settings.empty;
+        delete(hWaitBar)
+
+        return
+    end        
 end
 
 
@@ -64,4 +97,14 @@ for index = 1:numel(obj.VirtualPopulationData)
         StatusOk = false;
         Message = sprintf('%s\n%s\n',Message,ThisMessage);
     end
+    waitStatus = uix.utility.CustomWaitbar(index/numel(obj.VirtualPopulationData), hWaitBar, 'Loading Virtual Population Data');
+    if ~waitStatus % cancelled
+        StatusOk = false;
+        obj = QSP.Settings.empty;
+        delete(hWaitBar)
+
+        return
+    end        
 end
+
+delete(hWaitBar)
