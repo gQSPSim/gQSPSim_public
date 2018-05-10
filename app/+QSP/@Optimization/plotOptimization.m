@@ -152,8 +152,8 @@ if any(IsSelected)
             ParamNames{index} = ParamNames{index}(ixHasValue);
             ParamValues{index}= ParamValues{index}(ixHasValue);
         else
-            ParamNames = {};
-            ParamValues = {};
+            ParamNames{index} = {};
+            ParamValues{index} = {};
             continue
         end
         if iscell(ParamValues{index})
