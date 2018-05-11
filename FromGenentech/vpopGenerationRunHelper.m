@@ -247,6 +247,14 @@ while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients
             % this group is not part of this vpop generation
             continue
         end
+        
+        if length(itemIdx) > 1
+            StatusOK = false;
+            Message = sprintf('%s\nOnly one task may be assigned to any group. Check task group mappings.\n', Message);
+            delete(hWbar)
+            return
+        end
+        
         % get task object for this item based on name
         tskInd = strcmp(obj.Item(itemIdx).TaskName,{obj.Settings.Task.Name});
         taskObj = obj.Settings.Task(tskInd);
