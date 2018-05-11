@@ -394,6 +394,8 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
         function clearData(obj)
             obj.SimResults = {};
             obj.SimFlag = [];
+            obj.ExcelResultFileName = '';
+            obj.VPopName = '';
         end
     end
     

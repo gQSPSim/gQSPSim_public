@@ -248,7 +248,7 @@ while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients
             continue
         end
         
-        if length(itemIdx) > 1
+        if nnz(itemIdx) > 1
             StatusOK = false;
             Message = sprintf('%s\nOnly one task may be assigned to any group. Check task group mappings.\n', Message);
             delete(hWbar)
