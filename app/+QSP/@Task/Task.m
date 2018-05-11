@@ -236,8 +236,8 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         end %function
         
         function clearData(obj)
-            obj.ModelObj = [];
-            obj.VarModelObj = [];
+%             obj.ModelObj = [];
+%             obj.VarModelObj = [];
         end
     end
     
