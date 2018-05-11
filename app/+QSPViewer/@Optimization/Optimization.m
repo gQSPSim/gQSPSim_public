@@ -568,7 +568,7 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
                         vObj.Data.PlotProfile(end).Source = vObj.Data.PlotProfile(Indices).Source;
                         vObj.Data.PlotProfile(end).Description = vObj.Data.PlotProfile(Indices).Description;
                         vObj.Data.PlotProfile(end).Show = vObj.Data.PlotProfile(Indices).Show;
-                        vObj.Data.PlotProfile(end).Values = sortrows(vObj.Data.PlotProfile(Indices).Values,1);
+                        vObj.Data.PlotProfile(end).Values = vObj.Data.PlotProfile(Indices).Values;
                         vObj.Data.SelectedProfileRow = numel(vObj.Data.PlotProfile);
                 end
 
