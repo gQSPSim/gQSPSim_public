@@ -797,7 +797,7 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
                 RowIdx = Indices(1,1);
                 ColIdx = Indices(1,2);
 
-                if ~isempty(vObj.Data.SelectedProfileRow) && (isempty(ThisData{RowIdx,ColIdx}) || isnumeric(ThisData{RowIdx,ColIdx}) )
+                if ~isempty(vObj.Data.SelectedProfileRow) && ~isempty(ThisData{RowIdx,ColIdx}) 
                     ThisProfile = vObj.Data.PlotProfile(vObj.Data.SelectedProfileRow);                
                     if ischar(ThisData{RowIdx,ColIdx})
                         ThisProfile.Values(RowIdx,ColIdx) = {str2double(ThisData{RowIdx,ColIdx})};
