@@ -58,7 +58,7 @@ classdef Session < matlab.mixin.SetGet & uix.mixin.AssignPVPairs & uix.mixin.Has
     end
     
     properties (Constant=true)
-        DefaultColorMap = repmat(jet(10),5,1)
+        DefaultColorMap = repmat(lines(10),5,1)
     end
         
     properties (Dependent=true, SetAccess='immutable')
