@@ -439,6 +439,14 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             end
             
         end %function
+        
+        function clearData(obj)
+            obj.ItemModels = [];
+            obj.Results = [];
+            obj.PlotProfile = QSP.Profile.empty(0,1);
+            obj.SelectedProfileRow = [];
+            obj.LastSavedTime = '';
+        end
     end
     
     

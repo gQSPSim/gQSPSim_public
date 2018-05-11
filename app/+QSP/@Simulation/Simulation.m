@@ -211,6 +211,13 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             end
     
         end %function
+        
+        function clearData(obj)
+            for index = 1:numel(obj.Item)
+                obj.Item(index).MATFileName = [];
+            end
+        end
+          
     end
     
     %% Methods    

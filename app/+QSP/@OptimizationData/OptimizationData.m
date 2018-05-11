@@ -92,6 +92,9 @@ classdef OptimizationData < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             end
             
         end
+        
+        function clearData(obj)
+        end
     end
     
     %% Methods

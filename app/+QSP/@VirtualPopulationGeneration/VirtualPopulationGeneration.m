@@ -390,7 +390,11 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
             end %if
             
         end %function
-              
+           
+        function clearData(obj)
+            obj.SimResults = {};
+            obj.SimFlag = [];
+        end
     end
     
     

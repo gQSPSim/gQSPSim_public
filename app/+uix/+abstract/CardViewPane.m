@@ -373,7 +373,8 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                 case 'Save'
                     
                     FlagRemoveInvalid = false;
-                    [StatusOK,Message] = validate(obj.TempData,FlagRemoveInvalid);
+                    TempData = obj.TempData.copy();
+                    [StatusOK,Message] = validate(TempData,FlagRemoveInvalid);
                     
                     [StatusOK,Message] = checkDuplicateNames(obj,StatusOK,Message);
                     
