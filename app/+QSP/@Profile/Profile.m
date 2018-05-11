@@ -84,6 +84,10 @@ classdef Profile < QSP.abstract.BaseProps
             Message = '';
             % Do nothing
         end
+        
+        function clearData(obj)
+            
+        end
     end
     
     

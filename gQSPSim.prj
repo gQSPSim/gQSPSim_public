@@ -1,14 +1,14 @@
 <deployment-project plugin="plugin.apptool" plugin-version="1.0">
-  <configuration build-checksum="130774101" file="C:\Users\feigelmj\Documents\Projects\gQSPsim\gQSPSim.prj" location="C:\Users\feigelmj\Documents\Projects\gQSPsim" name="gQSPSim" target="target.mlapps" target-name="Package App">
-    <param.appname>gQSPSim</param.appname>
-    <param.authnamewatermark>Genentech</param.authnamewatermark>
-    <param.email />
-    <param.company />
-    <param.icon>${PROJECT_ROOT}\gQSPSim_resources\icon_24.png</param.icon>
+  <configuration build-checksum="755839634" file="C:\Users\feigelmj\Documents\Projects\gQSPsim\gQSPsim.prj" location="C:\Users\feigelmj\Documents\Projects\gQSPsim" name="gQSPsim" target="target.mlapps" target-name="Package App">
+    <param.appname>gQSPsim</param.appname>
+    <param.authnamewatermark>Iraj Hosseini, Justin Feigelman</param.authnamewatermark>
+    <param.email>iraj.hosseini@gene.com</param.email>
+    <param.company>Genentech</param.company>
+    <param.icon>${PROJECT_ROOT}\gQSPsim_resources\icon_24.png</param.icon>
     <param.icons>
-      <file>${PROJECT_ROOT}\gQSPSim_resources\icon_48.png</file>
-      <file>${PROJECT_ROOT}\gQSPSim_resources\icon_24.png</file>
-      <file>${PROJECT_ROOT}\gQSPSim_resources\icon_16.png</file>
+      <file>${PROJECT_ROOT}\gQSPsim_resources\icon_48.png</file>
+      <file>${PROJECT_ROOT}\gQSPsim_resources\icon_24.png</file>
+      <file>${PROJECT_ROOT}\gQSPsim_resources\icon_16.png</file>
     </param.icons>
     <param.summary />
     <param.description />
@@ -19,8 +19,9 @@
     <param.products.version />
     <param.platforms />
     <param.output>C:\Users\feigelmj\Documents\Projects\gQSPsim</param.output>
-    <param.guid>fa0f2746-1f54-4e3a-b1d7-1d019a708a10</param.guid>
+    <param.guid>76c8a7e9-e79f-4251-a921-3521d32d5ff7</param.guid>
     <unset>
+      <param.authnamewatermark />
       <param.email />
       <param.company />
       <param.summary />
