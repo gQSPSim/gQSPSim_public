@@ -202,29 +202,24 @@ hWbar = uix.utility.CustomWaitbar(0,'Virtual population generation','Generating 
 
 
 ViolationTable = [];
-% tmp = p0;
+% param_candidate = LB + (UB-LB).*rand(size(LB)); % initial candidate
+tmp = p0;
 logInds = strcmp(Scale, 'log');
 
-% tmp(logInds) = log10(tmp(logInds)); % perturbative approach
+tmp(logInds) = log10(tmp(logInds));
 logInds = logInds(useParam);
 
-% if using perturbative approach
-% param_candidate_old = tmp(useParam);
-% tune_param = 0.02; % percent of interval
+param_candidate_old = tmp(useParam);
+tune_param = 0.02; % percent of interval
 
 while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients
     nSim = nSim+1; % tic up the number of simulations
     
     % produce sample uniformly sampled between LB & UB
-    
-    % if using perturbative approach
-%     param_candidate = param_candidate_old + (UB-LB).*(2*rand(size(LB))-1)*tune_param;
-    
-    % if using random approach
-    P = unifrnd(LB,UB);
-%     P = param_candidate;
-%     P = max(P, LB);
-%     P = min(P, UB);
+    param_candidate = param_candidate_old + (UB-LB).*(2*rand(size(LB))-1)*tune_param;
+    P = param_candidate;
+    P = max(P, LB);
+    P = min(P, UB);
     
     P(logInds) = 10.^P(logInds);
     Values0 = [P; fixedParams];
@@ -369,9 +364,7 @@ while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients
         isValid(nSim) = double(all(model_outputs>=LB_outputs) && all(model_outputs<=UB_outputs));
         if isValid(nSim)
             nPat = nPat+1; % if conditions are satisfied, tick up the number of virutal patients
-            
-            % if using perturbative approach
-%             param_candidate_old = param_candidate; % keep new candidate as starting point
+            param_candidate_old = param_candidate; % keep new candidate as starting point
         end
         
         waitStatus = uix.utility.CustomWaitbar(nPat/obj.MaxNumVirtualPatients,hWbar,sprintf('Succesfully generated %d/%d vpatients. (%d/%d Failed)',  ...
