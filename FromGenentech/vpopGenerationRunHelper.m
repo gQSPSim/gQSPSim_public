@@ -184,7 +184,7 @@ end % for
 %% Sample parameter sets, simulate, compare to acceptance criteria
 nSim = 0;
 nPat = 0;
-Vpop = zeros(obj.MaxNumVirtualPatients,length(LB_params));
+Vpop = zeros(obj.MaxNumSimulations,length(LB_params));
 isValid = zeros(obj.MaxNumSimulations,1);
 
 % set up the loop for different initial conditions
