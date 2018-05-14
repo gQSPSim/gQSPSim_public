@@ -123,9 +123,15 @@ classdef VirtualPopulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 Message = sprintf('%s\n* Number of Parameters in %s must not be 0',Message,obj.Name);
             end
           
+            % VPop name forbidden characters
+            if any(regexp(obj.Name,'[:*?/]'))
+                Message = sprintf('%s\n* Invalid virtual population name.', Message);
+                StatusOK=false;
+            end            
+            
         end
         
-        function clearData(obj)
+        function clearData(obj)            
         end
     end
     
