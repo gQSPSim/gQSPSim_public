@@ -209,6 +209,12 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                     end
                 end
             end
+            
+            % Simulation name forbidden characters
+            if any(regexp(obj.Name,'[:*?/]'))
+                Message = sprintf('%s\n* Invalid simulation name.', Message);
+                StatusOK=false;
+            end
     
         end %function
         
