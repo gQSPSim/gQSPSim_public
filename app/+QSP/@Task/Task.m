@@ -146,12 +146,12 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 return
             end
             
-            FileInfo = dir(obj.FilePath);
-            if ~isempty(FileInfo) && ~isempty(obj.ExportedModelTimeStamp) && (obj.ExportedModelTimeStamp > FileInfo.datenum) % built after the model file was saved
-                StatusOK = true;
-                Message = '';
-                return
-            end
+%             FileInfo = dir(obj.FilePath);
+%             if ~isempty(FileInfo) && ~isempty(obj.ExportedModelTimeStamp) && (obj.ExportedModelTimeStamp > FileInfo.datenum) % built after the model file was saved
+%                 StatusOK = true;
+%                 Message = '';
+%                 return
+%             end
             
             
             StatusOK = true;
