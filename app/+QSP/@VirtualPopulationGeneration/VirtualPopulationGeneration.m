@@ -535,8 +535,13 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
                     % Compare times
                     
                     % Optimization object (this)
-                    VpopLastSavedTime = datenum(obj.LastSavedTime);
-                    
+                    ResultFileInfo = dir(fullfile(obj.Session.RootDirectory, obj.VPopResultsFolderName, obj.ExcelResultFileName));
+                    if ~isempty(ResultFileInfo)
+                        VpopLastSavedTime = ResultFileInfo.datenum;
+                    else
+                        VpopLastSavedTime = 0;
+                    end
+                                        
                     % Task object (item)
                     TaskLastSavedTime = datenum(ThisTask.LastSavedTime);
                     
