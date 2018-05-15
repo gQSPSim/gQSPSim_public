@@ -60,10 +60,13 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
     
     %% Protected Transient Properties
     properties (GetAccess=public, SetAccess=protected, Transient = true)
-        ModelObj
         VarModelObj
     end
     
+    %% Private Transient Properties
+    properties (GetAccess=private, SetAccess=private, Transient = true)
+        ModelObj_
+    end
     %% Dependent Properties
     properties(SetAccess=protected,Dependent=true)
         ConfigSet
@@ -77,6 +80,7 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         OutputTimes
         DefaultOutputTimes
         DefaultMaxWallClockTime        
+        ModelObj
     end
     
     %% Constructor
@@ -159,7 +163,7 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             
             % Import model
             MaxWallClockTime = obj.MaxWallClockTime;
-            thisObj = obj.copy();
+%             thisObj = obj.copy();
             
             [ThisStatusOk,ThisMessage] = importModel(obj,obj.FilePath,obj.ModelName);
             thisObj.MaxWallClockTime = MaxWallClockTime; % override model defaults
@@ -167,7 +171,7 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 Message = sprintf('%s\n* Error loading model "%s" in "%s". %s\n',Message,obj.ModelName,obj.FilePath,ThisMessage);
             end            
             
-            obj = thisObj;
+%             obj = thisObj;
             % Active Variants
             [InvalidActiveVariantNames,MatchIndex] = getInvalidActiveVariantNames(obj);
             if FlagRemoveInvalid
@@ -252,7 +256,33 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         constructModel(obj)
         
         function upToDate = checkModelCurrent(obj)
+            % check just that the task was saved after the sbproj file was
+            % last modified
             FileInfo = dir(obj.FilePath);
+            if length(FileInfo)>1
+                upToDate=false;
+                return
+            end
+            
+            if isempty(obj.LastSavedTime)
+                upToDate = true;
+                return
+            end
+            
+            if FileInfo.datenum > datenum(obj.LastSavedTime)
+                upToDate = false;
+            else
+                upToDate = true;
+            end
+        end
+        
+        function upToDate = checkExportedModelCurrent(obj)
+            FileInfo = dir(obj.FilePath);
+            if length(FileInfo)>1
+                upToDate=false;
+                return
+            end
+            
             if isempty(obj.ExportedModelTimeStamp) || FileInfo.datenum > obj.ExportedModelTimeStamp || datenum(obj.LastSavedTime) > obj.ExportedModelTimeStamp || ...
                     isempty(obj.VarModelObj)
                 upToDate = false;
@@ -299,7 +329,7 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             catch ME
                 StatusOk = false;
                 Message = ME.message;
-                obj.ModelObj = [];
+                obj.ModelObj_ = [];
                 obj.ModelName = '';
                 obj.MaxWallClockTime = [];
                 obj.OutputTimesStr = '';
@@ -320,12 +350,12 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 if isempty(m1)
                     StatusOk = false;
                     Message = sprintf('Model "%s" not found in project',ModelName);
-                    obj.ModelObj = [];
+                    obj.ModelObj_ = [];
                     obj.ModelName = '';
                     obj.MaxWallClockTime = [];
                     obj.OutputTimesStr = '';
                 else
-                    obj.ModelObj = m1;
+                    obj.ModelObj_ = m1;
                     obj.ModelName = ModelName;
                     obj.MaxWallClockTime = m1.ConfigSet.MaximumWallClock;
                     
@@ -369,6 +399,16 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
     
     %% Get Methods
     methods
+        
+        function ModelObj = get.ModelObj(obj)
+            % model obj is out of date
+            if ~isempty(obj.ModelObj_) && ~checkModelCurrent(obj)
+                % reimport the model
+                importModel(obj,obj.FilePath,obj.ModelName);                                   
+            end
+            ModelObj = obj.ModelObj_;
+            
+        end
         
         function Value = get.ConfigSet(obj)
             if ~isempty(obj.ModelObj)

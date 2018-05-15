@@ -14,7 +14,7 @@ function [simData, statusOK] = simulate(obj, varargin)
     
     
     % rebuild model if necessary
-    if ~obj.checkModelCurrent()
+    if ~obj.checkExportedModelCurrent()
 %         uix.utility.CustomWaitbar(ii/nBuildItems,hWbar1,sprintf('Configuring model for %s', obj.Name);        
         obj.constructModel();
         disp('Rebuilding model')
