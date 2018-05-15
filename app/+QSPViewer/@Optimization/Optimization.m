@@ -780,7 +780,7 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
 %         end %function
                 
         function onParametersTablePlot(vObj,h,e)
-            pause(0.25);
+%             pause(0.25);
 %             vObj.semaphore.wait();
 %             vObj.semaphore.lock();
             
