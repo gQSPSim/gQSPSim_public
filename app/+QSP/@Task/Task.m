@@ -448,7 +448,7 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         
         function Value = get.SpeciesNames(obj)
             if ~isempty(obj.ModelObj)
-                Value = obj.ModelObj.Species;
+                Value = sbioselect(obj.ModelObj, 'Type', 'Species');
                 Value = get(Value,'Name');
                 if isempty(Value)
                     Value = cell(0,1);
@@ -462,7 +462,7 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         
         function Value = get.ParameterNames(obj)
             if ~isempty(obj.ModelObj)
-                Value = obj.ModelObj.Parameters;
+                Value = sbioselect(obj.ModelObj,'Type','Parameter');                
                 Value = get(Value,'Name');
                 if isempty(Value)
                     Value = cell(0,1);
@@ -476,7 +476,7 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         
         function Value = get.ParameterValues(obj)
             if ~isempty(obj.ModelObj)
-                Value = obj.ModelObj.Parameters;
+                Value = sbioselect(obj.ModelObj,'Type','Parameter');                                
                 Value = get(Value,'Value');
                 if isempty(Value)
                     Value = cell(0,1);
@@ -490,7 +490,7 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         
         function Value = get.RuleNames(obj)
             if ~isempty(obj.ModelObj)
-                Value = obj.ModelObj.Rules;
+                Value = sbioselect(obj.ModelObj, 'Type', 'Rule');
                 Value = get(Value,'Rule');
                 if isempty(Value)
                     Value = cell(0,1);                
@@ -504,7 +504,7 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         
         function Value = get.ReactionNames(obj)
             if ~isempty(obj.ModelObj)
-                Value = obj.ModelObj.Reactions;
+                Value = sbioselect(obj.ModelObj, 'Type', 'Reaction');                
                 Value = get(Value,'Reaction');
                 if isempty(Value)
                     Value = cell(0,1);                
