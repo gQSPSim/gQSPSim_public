@@ -48,6 +48,11 @@ if ~isempty(vObj.Data)
     end
 end
 
+%% update plot style
+if ~isempty(vObj.Data)
+    vObj.Data.bShowTraces = vObj.bShowTraces;
+    vObj.Data.bShowQuantiles = vObj.bShowQuantiles;
+end
 
 %% Update table contextmenus
 

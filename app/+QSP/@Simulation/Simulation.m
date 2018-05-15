@@ -42,6 +42,8 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         PlotGroupTable = cell(0,3)
         
         SelectedPlotLayout = '1x1'
+        
+        
     end
     
     properties (SetAccess = 'private')

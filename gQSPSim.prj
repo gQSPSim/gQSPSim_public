@@ -1,19 +1,19 @@
 <deployment-project plugin="plugin.apptool" plugin-version="1.0">
-  <configuration build-checksum="1524054939" file="C:\Users\feigelmj\Documents\Projects\gQSPsim\gQSPsim.prj" location="C:\Users\feigelmj\Documents\Projects\gQSPsim" name="gQSPsim" target="target.mlapps" target-name="Package App">
+  <configuration build-checksum="935062894" file="C:\Users\feigelmj\Documents\Projects\gQSPsim\gQSPSim.prj" location="C:\Users\feigelmj\Documents\Projects\gQSPsim" name="gQSPSim" target="target.mlapps" target-name="Package App">
     <param.appname>gQSPsim</param.appname>
     <param.authnamewatermark>Iraj Hosseini, Justin Feigelman</param.authnamewatermark>
     <param.email>iraj.hosseini@gene.com</param.email>
     <param.company>Genentech</param.company>
-    <param.icon>${PROJECT_ROOT}\gQSPsim_resources\icon_24.png</param.icon>
+    <param.icon>${PROJECT_ROOT}\gQSPSim_resources\icon_24.png</param.icon>
     <param.icons>
-      <file>${PROJECT_ROOT}\gQSPsim_resources\icon_48.png</file>
-      <file>${PROJECT_ROOT}\gQSPsim_resources\icon_24.png</file>
-      <file>${PROJECT_ROOT}\gQSPsim_resources\icon_16.png</file>
+      <file>${PROJECT_ROOT}\gQSPSim_resources\icon_48.png</file>
+      <file>${PROJECT_ROOT}\gQSPSim_resources\icon_24.png</file>
+      <file>${PROJECT_ROOT}\gQSPSim_resources\icon_16.png</file>
     </param.icons>
     <param.summary />
     <param.description />
-    <param.screenshot />
-    <param.version>1.2</param.version>
+    <param.screenshot>${PROJECT_ROOT}\Logo\QSP_logo_v2.png</param.screenshot>
+    <param.version>1.3</param.version>
     <param.products.name />
     <param.products.id />
     <param.products.version />
@@ -26,7 +26,6 @@
       <param.company />
       <param.summary />
       <param.description />
-      <param.screenshot />
       <param.products.name />
       <param.products.id />
       <param.products.version />

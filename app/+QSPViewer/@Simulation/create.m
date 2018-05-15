@@ -159,3 +159,5 @@ vObj.h.PlotGroupTable = uix.widget.MultiPlatformTable(...
 % Sizes
 VisualizationLayout.Heights = [-1 -1 -1 -1];
 
+
+

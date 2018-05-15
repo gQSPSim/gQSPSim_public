@@ -22,6 +22,12 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
         SelectedPlotLayout = '1x1'
     end
     
+    properties (SetAccess=protected)
+       bShowTraces = []
+       bShowQuantiles = []
+    end
+    
+    
     properties (SetAccess=private)        
         UseRunVis = false
         LastPath = pwd
@@ -222,8 +228,26 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                     uimenu(obj.h.ContextMenu(index),...
                         'Label','Save Full View...',...
                         'Tag','ExportAllAxes',...
+                        'Callback',@(h,e)onAxesContextMenu(obj,h,e,index));                    
+                    
+                    % show traces/quantiles
+                    uimenu(obj.h.ContextMenu(index),...
+                        'Label','Show Traces...',...
+                        'Checked', 'off',...
+                        'Tag','ShowTraces',...
                         'Callback',@(h,e)onAxesContextMenu(obj,h,e,index));
+
+                     uimenu(obj.h.ContextMenu(index),...
+                        'Label','Show Quantiles. ...',...
+                        'Checked', 'on',...
+                        'Tag','ShowQuantiles',...
+                        'Callback',@(h,e)onAxesContextMenu(obj,h,e,index));
+                    
                     set(obj.h.MainAxes(index),'UIContextMenu',obj.h.ContextMenu(index));
+                    
+                    obj.bShowQuantiles(index) = true; % default on
+                    obj.bShowTraces(index) = false; % default off
+
                 end
                 set(obj.h.MainAxes(1),'Visible','on');
                 
@@ -837,10 +861,28 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                             close(hTempFig)
                         end
                     end
+                case 'ShowTraces'
+                    obj.bShowTraces(axIndex) = ~obj.bShowTraces(axIndex);
+                    if strcmp(h.Checked,'on')
+                        h.Checked = 'off';
+                    else
+                        h.Checked = 'on';
+                    end
+                case 'ShowQuantiles'
+                    obj.bShowQuantiles(axIndex) = ~obj.bShowQuantiles(axIndex);
+                    if strcmp(h.Checked,'on')
+                        h.Checked = 'off';
+                    else
+                        h.Checked = 'on';
+                    end                    
             end
             
             % Update the display
             obj.updateVisualizationView();
+            
+            if strcmp(ThisTag,'ShowTraces') || strcmp(ThisTag,'ShowQuantiles')
+                obj.plotData();
+            end
             
         end %function
         
