@@ -150,12 +150,18 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 return
             end
             
-%             FileInfo = dir(obj.FilePath);
-%             if ~isempty(FileInfo) && ~isempty(obj.ExportedModelTimeStamp) && (obj.ExportedModelTimeStamp > FileInfo.datenum) % built after the model file was saved
-%                 StatusOK = true;
-%                 Message = '';
-%                 return
-%             end
+            % Task name forbidden characters
+            if any(regexp(obj.Name,'[:*?/]'))
+                Message = sprintf('%s\n* Invalid task name.', Message);
+                StatusOK=false;
+            end
+            
+            FileInfo = dir(obj.FilePath);
+            if ~isempty(FileInfo) && ~isempty(obj.ExportedModelTimeStamp) && (obj.ExportedModelTimeStamp > FileInfo.datenum) % built after the model file was saved
+                StatusOK = true;
+                Message = '';
+                return
+            end
             
             
             StatusOK = true;
@@ -231,11 +237,7 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 Message = sprintf('%s\n* Invalid MaxWallClockTime. MaxWallClockTime must be > 0.\n',Message);
             end
             
-            % Task name forbidden characters
-            if any(regexp(obj.Name,'[:*?/]'))
-                Message = sprintf('%s\n* Invalid task name.', Message);
-                StatusOK=false;
-            end
+
             
         end %function
         
