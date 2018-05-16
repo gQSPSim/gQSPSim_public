@@ -7,7 +7,9 @@ function constructModel(obj)
     % apply the active variants (if specified)
     if ~isempty(obj.ActiveVariantNames)
         % turn off all variants
-        set(model.variant, 'Active', false)
+        
+        variants = sbioselect(model, 'Name', obj.VariantNames, 'Type', 'variant');
+        set(variants, 'Active', false)
 
         % combine active variants in order into a new variant, add to the
         % model and activate
@@ -22,19 +24,20 @@ function constructModel(obj)
 
     % inactivate reactions (if specified)
     % turn on all reactions
-    set(model.Reactions,'Active',true);        
+    reactions = sbioselect(model,  'Reaction', obj.ReactionNames,'Type', 'reaction');
+    set(reactions,'Active',true);        
     if ~isempty(obj.InactiveReactionNames)
         % turn off inactive reactions
-        set(model.Reactions(ismember(obj.ReactionNames, obj.InactiveReactionNames)),'Active',false);
+        set(reactions(ismember(obj.ReactionNames, obj.InactiveReactionNames)),'Active',false);
     end % if
     
     % turn on all rules
-    set(model.Rules,'Active',true);
+    rules = sbioselect(model,  'Rule', obj.RuleNames,'Type', 'rule');
+    set(rules,'Active',true);        
     % inactivate rules (if specified)
     if ~isempty(obj.InactiveRuleNames)        
-
         % turn off inactive rules
-        set(model.Rules(ismember(obj.RuleNames,obj.InactiveRuleNames)),'Active',false);
+        set(rules(ismember(obj.RuleNames,obj.InactiveRuleNames)),'Active',false);
     end % if
     
     % get all parameter names

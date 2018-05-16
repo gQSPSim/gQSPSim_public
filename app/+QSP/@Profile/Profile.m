@@ -1,4 +1,4 @@
-classdef Profile < uix.mixin.AssignPVPairs
+classdef Profile < QSP.abstract.BaseProps
     % Profile - Defines a complete Profile
     % ---------------------------------------------------------------------
     % Abstract: This object defines a complete Profile setup
@@ -33,7 +33,6 @@ classdef Profile < uix.mixin.AssignPVPairs
     %% Properties
     properties        
         Source = ''
-        Description = ''        
         Show = true
         Values = cell(0,2)
 %         RefreshFlag = true
@@ -80,6 +79,15 @@ classdef Profile < uix.mixin.AssignPVPairs
             
         end %function
         
+        function [StatusOK, Message] = validate(obj,~)
+            StatusOK = true;
+            Message = '';
+            % Do nothing
+        end
+        
+        function clearData(obj)
+            
+        end
     end
     
     
@@ -94,11 +102,6 @@ classdef Profile < uix.mixin.AssignPVPairs
         function set.Show(obj,Value)
             validateattributes(Value,{'logical'},{'scalar'})
             obj.Show = Value;
-        end
-        
-        function set.Description(obj,Value)
-            validateattributes(Value,{'char'},{})
-            obj.Description = Value;
         end
         
 %         function set.Values(obj,Value)

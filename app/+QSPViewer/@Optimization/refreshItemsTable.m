@@ -15,7 +15,7 @@ end
 %% Refresh SpeciesPopupTableItems - Derived from Selected Tasks
 
 % Species
-    if ~isempty(vObj.TempData)
+    if ~isempty(vObj.TempData) && all(isvalid(vObj.TempData.Item))
         ItemTaskNames = {vObj.TempData.Item.TaskName};    
         vObj.SpeciesPopupTableItems = getSpeciesFromValidSelectedTasks(vObj.TempData.Settings,ItemTaskNames);    
     else

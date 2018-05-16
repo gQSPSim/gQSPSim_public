@@ -152,8 +152,8 @@ if any(IsSelected)
             ParamNames{index} = ParamNames{index}(ixHasValue);
             ParamValues{index}= ParamValues{index}(ixHasValue);
         else
-            ParamNames = {};
-            ParamValues = {};
+            ParamNames{index} = {};
+            ParamValues{index} = {};
             continue
         end
         if iscell(ParamValues{index})
@@ -165,7 +165,7 @@ if any(IsSelected)
     end
     
     if rerunSims
-        [StatusOK,Message,~,Results,ItemModels] = simulationRunHelper(simObj,ParamValues,ParamNames,[],ItemModels,find(IsSelected));
+        [StatusOK,Message,~,~,Results,ItemModels] = simulationRunHelper(simObj,ParamValues,ParamNames,[],ItemModels,find(IsSelected));
 %         [StatusOK,Message,~,Results,ItemModels] = simulationRunHelper(simObj,ParamValues,ParamNames,[],[],find(IsSelected));
 
         obj.ItemModels = ItemModels;

@@ -1,4 +1,4 @@
-function [StatusOK,Message,ResultFileNames,varargout] = simulationRunHelper(obj,varargin)
+function [StatusOK,Message,ResultFileNames,Cancelled, varargout] = simulationRunHelper(obj,varargin)
 % Function that performs the simulations using the (Task,
 % VirtualPopulation) pairs listed in the simulation object "obj".
 % Simulates the model using the variants, doses, rules, reactions, and 
@@ -8,9 +8,11 @@ function [StatusOK,Message,ResultFileNames,varargout] = simulationRunHelper(obj,
 StatusOK = true;
 Message = '';
 ResultFileNames = {};
-if nargout > 3
+if nargout > 4
     varargout{1} = {};
 end
+
+Cancelled = false;
 
 %% update path to include everything in subdirectories of the root folder
 myPath = path;
@@ -26,7 +28,7 @@ addpath(genpath(obj.Session.RootDirectory));
 if ~ThisStatusOK
     StatusOK = false;
     Message = ThisMessage;
-    if nargout==5
+    if nargout==6
         varargout{2} = {};
     end
     return;
@@ -98,6 +100,7 @@ else
        if ~ThisStatusOK
            StatusOK = false;
            Message = sprintf('%s\n%s\n',Message,ThisMessage);
+           break
        end
 
     end % for ii...
@@ -112,7 +115,7 @@ end
 %%%% Simulate each parameter set in the vpop %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Initialize waitbar
 Title2 = sprintf('Simulating tasks...');
-hWbar2 = uix.utility.CustomWaitbar(0,Title2,'',false);
+hWbar2 = uix.utility.CustomWaitbar(0,Title2,'',true);
 
 %% Cell containing all results
 output = cell(1,nRunItems);
@@ -130,13 +133,16 @@ if ~isempty(ItemModels)
 
     for ii = 1:nRunItems
         ItemModel = ItemModels(options.runIndices(ii));
-        
+        if ~StatusOK % interrupted
+            break
+        end
         % update waitbar
         if isempty(hWbar2)
             set(hWbar2, 'Name', sprintf('Simulating task %d of %d',ii,nRunItems))
             uix.utility.CustomWaitbar(0,hWbar2,'');
         end
         options.WaitBar = hWbar2;
+
         % simulate virtual patients
         for jj=1:length(options.Pin)
             thisOptions = options;
@@ -147,15 +153,13 @@ if ~isempty(ItemModels)
                 thisOptions.paramNames = {};
             end
             
-            [Results, nFailedSims, ThisStatusOK, ThisMessage] = simulateVPatients(ItemModel, thisOptions, Message);
+            [Results, nFailedSims, ThisStatusOK, ThisMessage, Cancelled] = simulateVPatients(ItemModel, thisOptions, Message);
             if ~ThisStatusOK
                 StatusOK = false;
                 Message = sprintf('%s\n%s\n',Message,ThisMessage);
                 continue
             end
 
-
-            
             %%% Save results of each simulation in different files %%%%%%%%%%%%%%%%%%%%
             SaveFlag = isempty(options.Pin{1}); % don't save if PIn is provided
 
@@ -178,10 +182,22 @@ if ~isempty(ItemModels)
                 % Update ResultFileNames
                 ResultFileNames{ii} = ['Results - Sim = ' options.simName ', Task = ' obj.Item(options.runIndices(ii)).TaskName ' - Vpop = ' obj.Item(options.runIndices(ii)).VPopName ' - Date = ' datestr(now,'dd-mmm-yyyy_HH-MM-SS') '.mat'];
 
-                if isempty(VpopWeights)
-                    save(fullfile(SaveFilePath,ResultFileNames{ii}), 'Results')
-                else
-                    save(fullfile(SaveFilePath,ResultFileNames{ii}), 'Results', 'VpopWeights')
+                try
+                    if isempty(VpopWeights)
+                        save(fullfile(SaveFilePath,ResultFileNames{ii}), 'Results')
+                    else
+                        save(fullfile(SaveFilePath,ResultFileNames{ii}), 'Results', 'VpopWeights')
+                    end
+                catch error
+                    ThisMessage = 'Error encountered saving file. Check that the save file name is valid.';
+                    Message = sprintf('%s\n%s\n\n%s\n',Message,ThisMessage,error.message);        
+                    StatusOK = false;
+                    % close waitbar
+                    uix.utility.CustomWaitbar(1,hWbar2,'Done.');
+                    if ~isempty(hWbar2) && ishandle(hWbar2)
+                        delete(hWbar2);
+                    end
+                    return
                 end
                 % right now it's one line of Message per Simulation Item
                 if nFailedSims == ItemModel.nPatients
@@ -213,12 +229,12 @@ if ~isempty(hWbar2) && ishandle(hWbar2)
 end
 
 % output the results of all simulation items if Pin in provided
-if nargout > 3
+if nargout > 4
     varargout{1} = output;
 end
 
 % save the exported model object
-if nargout > 4
+if nargout > 5
     varargout{2} = ItemModels;
 end
 
@@ -381,6 +397,17 @@ function [ItemModel, VpopWeights, StatusOK, Message] = constructVpopItem(taskObj
             VpopWeights     = vpopTable(:,end);
             vpopTable   = vpopTable(:,1:end-1);
         end 
+        
+        % check if there are parameters which are not contained in the
+        % model
+        
+        if ~isempty(setdiff( params, [taskObj.SpeciesNames; taskObj.ParameterNames; {'PWeight','Group'}']))
+            StatusOK = false;
+            Message = sprintf('%s%s: Invalid parameters contained in the vpop file. Please check for consistency with the selected task model.\n', ...
+                Message, taskObj.Name);
+            return
+        end
+        
         nPatients = size(vpopTable,1);
         Values = vpopTable;
         Names = params;
@@ -398,7 +425,8 @@ function [ItemModel, VpopWeights, StatusOK, Message] = constructVpopItem(taskObj
     
 end
 
-function [Results, nFailedSims, StatusOK, Message] = simulateVPatients(ItemModel, options, Message)
+function [Results, nFailedSims, StatusOK, Message, Cancelled] = simulateVPatients(ItemModel, options, Message)  
+    Cancelled = false;
     nFailedSims = 0;
     taskObj = ItemModel.Task;
     
@@ -412,7 +440,6 @@ function [Results, nFailedSims, StatusOK, Message] = simulateVPatients(ItemModel
         StatusOK = false;
         Message = sprintf('%s\n\n%s', 'Failed to run simulation', Message);
         
-        path(myPath);
         return
     end
 
@@ -487,7 +514,11 @@ function [Results, nFailedSims, StatusOK, Message] = simulateVPatients(ItemModel
             
             % update wait bar
             if ~isempty(options.WaitBar)
-                uix.utility.CustomWaitbar(jj/ItemModel.nPatients, options.WaitBar, sprintf('Simulating vpatient %d/%d', jj, ItemModel.nPatients));
+                StatusOK = uix.utility.CustomWaitbar(jj/ItemModel.nPatients, options.WaitBar, sprintf('Simulating vpatient %d/%d', jj, ItemModel.nPatients));
+            end
+            if ~StatusOK
+                Cancelled=true;
+                break
             end
         end % for jj = ...
     end % if

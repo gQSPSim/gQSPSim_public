@@ -209,8 +209,21 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                     end
                 end
             end
+            
+            % Simulation name forbidden characters
+            if any(regexp(obj.Name,'[:*?/]'))
+                Message = sprintf('%s\n* Invalid simulation name.', Message);
+                StatusOK=false;
+            end
     
         end %function
+        
+        function clearData(obj)
+            for index = 1:numel(obj.Item)
+                obj.Item(index).MATFileName = [];
+            end
+        end
+          
     end
     
     %% Methods    
@@ -228,8 +241,9 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             if StatusOK
                 % Run helper
                 [ThisStatusOK,Message,ResultFileNames] = simulationRunHelper(obj);
+                StatusOK = ThisStatusOK;
                 if ~ThisStatusOK
-                    error('run: %s',Message);
+                    return
                 end
                 
                 % Update MATFileName in the simulation items

@@ -21,6 +21,11 @@ StatusOk = true;
 % Load the data
 try
     s = load(FilePath,'Session');
+    if s.Session.toRemove
+        % cancelled
+        StatusOk = false;
+        return
+    end
 catch err
     StatusOk = false;
     Message = sprintf('The file %s could not be loaded:\n%s',...

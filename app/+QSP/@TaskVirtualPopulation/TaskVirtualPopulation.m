@@ -75,6 +75,9 @@ classdef TaskVirtualPopulation < QSP.abstract.BaseProps
             Message = '';
             
         end %function
+        
+        function clearData(obj)
+        end
     end
         
     

@@ -13,5 +13,8 @@ if ~isempty(vObj.PlotItemInvalidRowIndices)
     vObj.PlotItemInvalidRowIndices = [];
 end
 
+% reset the cached simulation results
+vObj.Data.SimResults = {};
+
 % Update
 updateVisualizationView(vObj);

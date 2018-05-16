@@ -40,6 +40,16 @@ if ~isempty(vObj.TempData)
         'RootDirectory',vObj.TempData.Session.RootDirectory,...
         'Value',vObj.TempData.RelativeFilePath)
     
+    % check if the task data is out of date -- project file has changed
+    
+    if ~isempty(vObj.TempData.FilePath) % project is selected
+        FileInfo = dir(vObj.TempData.FilePath);
+        if length(FileInfo)==1 && (isempty(vObj.TempData.LastSavedTime) || (datenum(vObj.TempData.LastSavedTime) < FileInfo.datenum))
+            % reload model
+            [StatusOK,Message] = importModel(vObj.TempData,vObj.TempData.FilePath,vObj.TempData.ModelName);
+        end
+    end
+    
     ModelList = getModelList(vObj.TempData);
     
     if isempty(ModelList)

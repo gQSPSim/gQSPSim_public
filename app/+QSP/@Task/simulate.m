@@ -84,7 +84,7 @@ function [simData, statusOK] = simulate(obj, varargin)
             end
             ICValues = reshape(RTSSdata(end,1:length(obj.SpeciesNames)),[],1);
         catch err
-            warning(err.identifier, 'simulationRunHelper: %s', err.message)
+            warning(err.identifier, 'Task:simulate: %s', err.message)
             statusOK = false;
             simData= [];
             return

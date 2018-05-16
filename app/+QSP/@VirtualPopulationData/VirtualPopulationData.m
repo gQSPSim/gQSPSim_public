@@ -89,6 +89,9 @@ classdef VirtualPopulationData < QSP.abstract.BaseProps & uix.mixin.HasTreeRefer
             end
             
         end
+        
+        function clearData(obj)
+        end
     end
     
     %% Methods

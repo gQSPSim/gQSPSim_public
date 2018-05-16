@@ -43,7 +43,7 @@ if ~isempty(vObj.Data) && isfield(vObj.h,'SpeciesGroup')
                             set(Ch,'LineWidth',2);
                         end
                         % Show
-                        if ~isempty(Show) && Show(k)
+                        if ~isempty(Show) && numel(Show) >= k && Show(k)
                             set(Ch,'Visible','on');
                         else
                             set(Ch,'Visible','off');

@@ -26,6 +26,9 @@ function updateVisualizationView(vObj)
 %   $Revision: 331 $  $Date: 2016-10-05 18:01:36 -0400 (Wed, 05 Oct 2016) $
 % ---------------------------------------------------------------------
 
+if vObj.Selection ~= 3
+    return;
+end
 
 %% Update table contextmenu
 
@@ -279,7 +282,7 @@ if ~isempty(vObj.Data)
     if any(MatchIdx)
         pObj = vObj.Data.Settings.Parameters(MatchIdx);    
         pObj_derivs = AllVPopNames(~cellfun(@isempty, regexp(AllVPopNames, vObj.Data.RefParamName)));
-        PlotParametersSourceOptions = vertcat('N/A',{pObj.Name},pObj_derivs, VPopNames(:));
+        PlotParametersSourceOptions = vertcat('N/A',{pObj.Name},reshape(pObj_derivs,[],1), VPopNames(:));
     else
         PlotParametersSourceOptions = vertcat('N/A',VPopNames(:));
     end

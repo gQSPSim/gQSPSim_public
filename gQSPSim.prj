@@ -1,0 +1,68 @@
+<deployment-project plugin="plugin.apptool" plugin-version="1.0">
+  <configuration build-checksum="805955361" file="C:\Users\feigelmj\Documents\Projects\sandbox\gQSPsim\gQSPSim.prj" location="C:\Users\feigelmj\Documents\Projects\sandbox\gQSPsim" name="gQSPSim" target="target.mlapps" target-name="Package App">
+    <param.appname>gQSPSim</param.appname>
+    <param.authnamewatermark>Genentech</param.authnamewatermark>
+    <param.email />
+    <param.company />
+    <param.icon>${PROJECT_ROOT}\gQSPSim_resources\icon_24.png</param.icon>
+    <param.icons>
+      <file>${PROJECT_ROOT}\gQSPSim_resources\icon_48.png</file>
+      <file>${PROJECT_ROOT}\gQSPSim_resources\icon_24.png</file>
+      <file>${PROJECT_ROOT}\gQSPSim_resources\icon_16.png</file>
+    </param.icons>
+    <param.summary />
+    <param.description />
+    <param.screenshot>${PROJECT_ROOT}\QSP_logo_v2.png</param.screenshot>
+    <param.version>1.2</param.version>
+    <param.products.name />
+    <param.products.id />
+    <param.products.version />
+    <param.platforms />
+    <param.output>C:\Users\feigelmj\Documents\Projects\sandbox\gQSPsim</param.output>
+    <param.guid>fa0f2746-1f54-4e3a-b1d7-1d019a708a10</param.guid>
+    <unset>
+      <param.email />
+      <param.company />
+      <param.summary />
+      <param.description />
+      <param.products.name />
+      <param.products.id />
+      <param.products.version />
+      <param.platforms />
+      <param.output />
+    </unset>
+    <fileset.main>
+      <file>${PROJECT_ROOT}\app\QSPapp.m</file>
+    </fileset.main>
+    <fileset.depfun />
+    <fileset.resources>
+      <file>${PROJECT_ROOT}\app</file>
+      <file>${PROJECT_ROOT}\FromGenentech</file>
+      <file>${PROJECT_ROOT}\utilities</file>
+    </fileset.resources>
+    <fileset.package />
+    <build-deliverables>
+      <file location="C:\Users\feigelmj\Documents\Projects\sandbox" name="gQSPsim" optional="false">C:\Users\feigelmj\Documents\Projects\sandbox\gQSPsim</file>
+    </build-deliverables>
+    <workflow />
+    <matlab>
+      <root>C:\Program Files\MATLAB\R2017b</root>
+      <toolboxes />
+    </matlab>
+    <platform>
+      <unix>false</unix>
+      <mac>false</mac>
+      <windows>true</windows>
+      <win2k>false</win2k>
+      <winxp>false</winxp>
+      <vista>false</vista>
+      <linux>false</linux>
+      <solaris>false</solaris>
+      <osver>10.0</osver>
+      <os32>false</os32>
+      <os64>true</os64>
+      <arch>win64</arch>
+      <matlab>true</matlab>
+    </platform>
+  </configuration>
+</deployment-project>
