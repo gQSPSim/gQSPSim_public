@@ -23,8 +23,17 @@ for index = 1:numel(obj.Task)
         StatusOk = false;
         obj = QSP.Settings.empty;
         delete(hWaitBar)
-        return
+        if nargout==3
+            varargout{1} = true;
+            return
+        end
+    else
+            
     end
+end
+
+if nargout==3
+    varargout{1} = false;
 end
 
 
