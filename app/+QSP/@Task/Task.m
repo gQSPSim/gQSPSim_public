@@ -52,6 +52,7 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
     %% Protected Properties
     properties (GetAccess=public, SetAccess=protected)
         ModelName
+        ModelTimeStamp
         ExportedModelTimeStamp 
         ExportedModel
         Species
@@ -61,12 +62,14 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
     %% Protected Transient Properties
     properties (GetAccess=public, SetAccess=protected, Transient = true)
         VarModelObj
+        ModelObj_
+
     end
     
-    %% Private Transient Properties
-    properties (GetAccess=private, SetAccess=private, Transient = true)
-        ModelObj_
-    end
+%     %% Private Transient Properties
+%     properties (GetAccess=private, SetAccess=private, Transient = true)
+%         ModelObj_
+%     end
     %% Dependent Properties
     properties(SetAccess=protected,Dependent=true)
         ConfigSet
@@ -271,7 +274,7 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 return
             end
             
-            if FileInfo.datenum > datenum(obj.LastSavedTime)
+            if FileInfo.datenum > datenum(obj.ModelTimeStamp)
                 upToDate = false;
             else
                 upToDate = true;
@@ -359,6 +362,7 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 else
                     obj.ModelObj_ = m1;
                     obj.ModelName = ModelName;
+                    obj.ModelTimeStamp = now;
                     obj.MaxWallClockTime = m1.ConfigSet.MaximumWallClock;
                     
                     if isempty(obj.OutputTimesStr)
