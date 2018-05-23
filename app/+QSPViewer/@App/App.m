@@ -293,6 +293,11 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
                 obj.SelectedSessionIdx = find(ThisSessionNode == obj.SessionNode);
             end
             
+            % Disable mouse handler before refresh
+            if ~isempty(obj.ActivePane) && strcmpi(class(obj.ActivePane),'QSPViewer.Optimization')
+                obj.ActivePane.EnableMouseHandler = false;
+            end
+            
             % Update the display
             obj.refresh();
             
@@ -311,6 +316,15 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
                             updateVisualizationView(obj.ActivePane);                                   
                     end                    
                 end                
+            end
+            
+            % Enable mouse handler - Only for visualization view
+            if ~isempty(obj.ActivePane) && strcmpi(class(obj.ActivePane),'QSPViewer.Optimization')
+                if obj.ActivePane.Selection == 3
+                    obj.ActivePane.EnableMouseHandler = true;
+                else
+                    obj.ActivePane.EnableMouseHandler = false;
+                end
             end
             
             % Update pointer
@@ -345,10 +359,18 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
                         obj.h.SessionTree.Enable = true;
                         obj.h.FileMenu.Menu.Enable = 'on';
                         obj.h.QSPMenu.Menu.Enable = 'on';
+                        % Disable mouse handler
+                        if ~isempty(obj.ActivePane) && strcmpi(class(obj.ActivePane),'QSPViewer.Optimization') 
+                            obj.ActivePane.EnableMouseHandler = false;
+                        end
                     case 'Edit'
                         obj.h.SessionTree.Enable = false;
                         obj.h.FileMenu.Menu.Enable = 'off';
                         obj.h.QSPMenu.Menu.Enable = 'off';
+                        % Disable mouse handler
+                        if ~isempty(obj.ActivePane) && strcmpi(class(obj.ActivePane),'QSPViewer.Optimization') 
+                            obj.ActivePane.EnableMouseHandler = false;
+                        end
                     case 'Visualize'  
                         % Check the type
                         % If either Simulation, Optimization, or Virtual Population Generation, re-plot                        
@@ -359,6 +381,10 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
                         obj.h.SessionTree.Enable = true;
                         obj.h.FileMenu.Menu.Enable = 'on';
                         obj.h.QSPMenu.Menu.Enable = 'on';
+                        % Enable mouse handler
+                        if ~isempty(obj.ActivePane) && strcmpi(class(obj.ActivePane),'QSPViewer.Optimization') 
+                            obj.ActivePane.EnableMouseHandler = true;
+                        end
                 end
             end
             
