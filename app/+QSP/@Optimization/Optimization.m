@@ -721,10 +721,11 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                     OptimizationDataFileLastSavedTime = FileInfo.datenum;
                     
                     % Parameter object and file
-                    ParametersLastSavedTime = datenum(pObj.LastSavedTime);
-                    FileInfo = dir(pObj.FilePath);
-                    ParametersFileLastSavedTime = FileInfo.datenum;                    
-                    
+                    if ~isempty(pObj)
+                        ParametersLastSavedTime = datenum(pObj.LastSavedTime);
+                        FileInfo = dir(pObj.FilePath);
+                        ParametersFileLastSavedTime = FileInfo.datenum;                    
+                    end
                     % Results file
                     if length(obj.ExcelResultFileName) < numel(obj.Item) ... % missing some items
                             || isempty(obj.ExcelResultFileName{index}) % no excel file available for this index
