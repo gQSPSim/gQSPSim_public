@@ -354,7 +354,9 @@ while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients
         end % for ixIC
         
     end % for grp
-    
+    if ~StatusOK % exit loop if something went wrong
+        break
+    end
     % at this point, model_outputs should be the same length as the vectors
     % LB_accCrit and UB_accCrit
     
