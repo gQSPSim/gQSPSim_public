@@ -23,12 +23,7 @@ for index = 1:numel(obj.Task)
         StatusOk = false;
         obj = QSP.Settings.empty;
         delete(hWaitBar)
-        if nargout==3
-            varargout{1} = true;
-            return
-        end
-    else
-            
+        error('Settings:CancelledLoad', 'Cancelled load');
     end
 end
 
@@ -51,8 +46,7 @@ for index = 1:numel(obj.VirtualPopulation)
         StatusOk = false;
         obj = QSP.Settings.empty;
         delete(hWaitBar)
-
-        return
+        error('Settings:CancelledLoad', 'Cancelled load');
     end
 end
 
@@ -71,8 +65,7 @@ for index = 1:numel(obj.Parameters)
         StatusOk = false;
         obj = QSP.Settings.empty;
         delete(hWaitBar)
-
-        return
+        error('Settings:CancelledLoad', 'Cancelled load');
     end    
 end
 
@@ -91,8 +84,7 @@ for index = 1:numel(obj.OptimizationData)
         StatusOk = false;
         obj = QSP.Settings.empty;
         delete(hWaitBar)
-
-        return
+        error('Settings:CancelledLoad', 'Cancelled load');
     end        
 end
 
@@ -111,8 +103,7 @@ for index = 1:numel(obj.VirtualPopulationData)
         StatusOk = false;
         obj = QSP.Settings.empty;
         delete(hWaitBar)
-
-        return
+        error('Settings:CancelledLoad', 'Cancelled load');
     end        
 end
 
