@@ -1,0 +1,99 @@
+<deployment-project plugin="plugin.apptool" plugin-version="1.0">
+  <configuration build-checksum="935062894" file="C:\Users\feigelmj\Documents\Projects\gQSPsim\gQSPSim.prj" location="C:\Users\feigelmj\Documents\Projects\gQSPsim" name="gQSPSim" target="target.mlapps" target-name="Package App">
+    <param.appname>gQSPsim</param.appname>
+    <param.authnamewatermark>Iraj Hosseini, Justin Feigelman</param.authnamewatermark>
+    <param.email>iraj.hosseini@gene.com</param.email>
+    <param.company>Genentech</param.company>
+    <param.icon>${PROJECT_ROOT}\gQSPSim_resources\icon_24.png</param.icon>
+    <param.icons>
+      <file>${PROJECT_ROOT}\gQSPSim_resources\icon_48.png</file>
+      <file>${PROJECT_ROOT}\gQSPSim_resources\icon_24.png</file>
+      <file>${PROJECT_ROOT}\gQSPSim_resources\icon_16.png</file>
+    </param.icons>
+    <param.summary />
+    <param.description />
+    <param.screenshot>${PROJECT_ROOT}\Logo\QSP_logo_v2.png</param.screenshot>
+    <param.version>1.3</param.version>
+    <param.products.name />
+    <param.products.id />
+    <param.products.version />
+    <param.platforms />
+    <param.output>C:\Users\feigelmj\Documents\Projects\gQSPsim</param.output>
+    <param.guid>76c8a7e9-e79f-4251-a921-3521d32d5ff7</param.guid>
+    <unset>
+      <param.authnamewatermark />
+      <param.email />
+      <param.company />
+      <param.summary />
+      <param.description />
+      <param.products.name />
+      <param.products.id />
+      <param.products.version />
+      <param.platforms />
+      <param.output />
+    </unset>
+    <fileset.main>
+      <file>${PROJECT_ROOT}\app\QSPapp.m</file>
+    </fileset.main>
+    <fileset.depfun>
+      <file>C:\Users\feigelmj\Documents\MATLAB\Add-Ons\Toolboxes\GUI Layout Toolbox\code\layout\+uix\+mixin\Container.m</file>
+      <file>C:\Users\feigelmj\Documents\MATLAB\Add-Ons\Toolboxes\GUI Layout Toolbox\code\layout\+uix\+mixin\Flex.m</file>
+      <file>C:\Users\feigelmj\Documents\MATLAB\Add-Ons\Toolboxes\GUI Layout Toolbox\code\layout\+uix\+mixin\Panel.m</file>
+      <file>C:\Users\feigelmj\Documents\MATLAB\Add-Ons\Toolboxes\GUI Layout Toolbox\code\layout\+uix\Box.m</file>
+      <file>C:\Users\feigelmj\Documents\MATLAB\Add-Ons\Toolboxes\GUI Layout Toolbox\code\layout\+uix\BoxPanel.m</file>
+      <file>C:\Users\feigelmj\Documents\MATLAB\Add-Ons\Toolboxes\GUI Layout Toolbox\code\layout\+uix\ButtonBox.m</file>
+      <file>C:\Users\feigelmj\Documents\MATLAB\Add-Ons\Toolboxes\GUI Layout Toolbox\code\layout\+uix\calcPixelSizes.m</file>
+      <file>C:\Users\feigelmj\Documents\MATLAB\Add-Ons\Toolboxes\GUI Layout Toolbox\code\layout\+uix\CardPanel.m</file>
+      <file>C:\Users\feigelmj\Documents\MATLAB\Add-Ons\Toolboxes\GUI Layout Toolbox\code\layout\+uix\ChildEvent.m</file>
+      <file>C:\Users\feigelmj\Documents\MATLAB\Add-Ons\Toolboxes\GUI Layout Toolbox\code\layout\+uix\ChildObserver.m</file>
+      <file>C:\Users\feigelmj\Documents\MATLAB\Add-Ons\Toolboxes\GUI Layout Toolbox\code\layout\+uix\Container.m</file>
+      <file>C:\Users\feigelmj\Documents\MATLAB\Add-Ons\Toolboxes\GUI Layout Toolbox\code\layout\+uix\Divider.m</file>
+      <file>C:\Users\feigelmj\Documents\MATLAB\Add-Ons\Toolboxes\GUI Layout Toolbox\code\layout\+uix\Empty.m</file>
+      <file>C:\Users\feigelmj\Documents\MATLAB\Add-Ons\Toolboxes\GUI Layout Toolbox\code\layout\+uix\FigureData.m</file>
+      <file>C:\Users\feigelmj\Documents\MATLAB\Add-Ons\Toolboxes\GUI Layout Toolbox\code\layout\+uix\FigureObserver.m</file>
+      <file>C:\Users\feigelmj\Documents\MATLAB\Add-Ons\Toolboxes\GUI Layout Toolbox\code\layout\+uix\Grid.m</file>
+      <file>C:\Users\feigelmj\Documents\MATLAB\Add-Ons\Toolboxes\GUI Layout Toolbox\code\layout\+uix\HBox.m</file>
+      <file>C:\Users\feigelmj\Documents\MATLAB\Add-Ons\Toolboxes\GUI Layout Toolbox\code\layout\+uix\HBoxFlex.m</file>
+      <file>C:\Users\feigelmj\Documents\MATLAB\Add-Ons\Toolboxes\GUI Layout Toolbox\code\layout\+uix\HButtonBox.m</file>
+      <file>C:\Users\feigelmj\Documents\MATLAB\Add-Ons\Toolboxes\GUI Layout Toolbox\code\layout\+uix\Node.m</file>
+      <file>C:\Users\feigelmj\Documents\MATLAB\Add-Ons\Toolboxes\GUI Layout Toolbox\code\layout\+uix\Panel.m</file>
+      <file>C:\Users\feigelmj\Documents\MATLAB\Add-Ons\Toolboxes\GUI Layout Toolbox\code\layout\+uix\PointerManager.m</file>
+      <file>C:\Users\feigelmj\Documents\MATLAB\Add-Ons\Toolboxes\GUI Layout Toolbox\code\layout\+uix\ScrollingPanel.m</file>
+      <file>C:\Users\feigelmj\Documents\MATLAB\Add-Ons\Toolboxes\GUI Layout Toolbox\code\layout\+uix\SelectionData.m</file>
+      <file>C:\Users\feigelmj\Documents\MATLAB\Add-Ons\Toolboxes\GUI Layout Toolbox\code\layout\+uix\setPosition.m</file>
+      <file>C:\Users\feigelmj\Documents\MATLAB\Add-Ons\Toolboxes\GUI Layout Toolbox\code\layout\+uix\Text.m</file>
+      <file>C:\Users\feigelmj\Documents\MATLAB\Add-Ons\Toolboxes\GUI Layout Toolbox\code\layout\+uix\tracking.m</file>
+      <file>C:\Users\feigelmj\Documents\MATLAB\Add-Ons\Toolboxes\GUI Layout Toolbox\code\layout\+uix\VBox.m</file>
+      <file>C:\Users\feigelmj\Documents\MATLAB\distinguishable_colors.m</file>
+    </fileset.depfun>
+    <fileset.resources>
+      <file>${PROJECT_ROOT}\app</file>
+      <file>${PROJECT_ROOT}\FromGenentech</file>
+      <file>${PROJECT_ROOT}\utilities</file>
+    </fileset.resources>
+    <fileset.package />
+    <build-deliverables>
+      <file location="C:\Users\feigelmj\Documents\Projects" name="gQSPsim" optional="false">C:\Users\feigelmj\Documents\Projects\gQSPsim</file>
+    </build-deliverables>
+    <workflow />
+    <matlab>
+      <root>C:\Program Files\MATLAB\R2017b</root>
+      <toolboxes />
+    </matlab>
+    <platform>
+      <unix>false</unix>
+      <mac>false</mac>
+      <windows>true</windows>
+      <win2k>false</win2k>
+      <winxp>false</winxp>
+      <vista>false</vista>
+      <linux>false</linux>
+      <solaris>false</solaris>
+      <osver>10.0</osver>
+      <os32>false</os32>
+      <os64>true</os64>
+      <arch>win64</arch>
+      <matlab>true</matlab>
+    </platform>
+  </configuration>
+</deployment-project>

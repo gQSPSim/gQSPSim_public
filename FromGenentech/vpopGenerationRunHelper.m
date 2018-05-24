@@ -184,8 +184,8 @@ end % for
 %% Sample parameter sets, simulate, compare to acceptance criteria
 nSim = 0;
 nPat = 0;
-Vpop = zeros(obj.MaxNumVirtualPatients,length(LB_params));
-isValid = zeros(obj.MaxNumVirtualPatients,1);
+Vpop = zeros(obj.MaxNumSimulations,length(LB_params));
+isValid = zeros(obj.MaxNumSimulations,1);
 
 % set up the loop for different initial conditions
 if isempty(ICTable )
@@ -210,7 +210,7 @@ tmp(logInds) = log10(tmp(logInds));
 logInds = logInds(useParam);
 
 param_candidate_old = tmp(useParam);
-tune_param = 0.1; % percent of interval
+tune_param = 0.15; % percent of interval
 
 while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients
     nSim = nSim+1; % tic up the number of simulations
@@ -250,8 +250,9 @@ while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients
         
         if nnz(itemIdx) > 1
             StatusOK = false;
-            Message = sprintf('%s\n\nItem groups must be unique. Please check settings.\n\n', Message);
-            break
+            Message = sprintf('%s\nOnly one task may be assigned to any group. Check task group mappings.\n', Message);
+            delete(hWbar)
+            return
         end
         
         % get task object for this item based on name

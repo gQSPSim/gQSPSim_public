@@ -501,7 +501,7 @@ end
                             tempStatusOK = false;
                             tempThisMessage = sprintf('There is an error in one of the function expressions in the SpeciesData mapping. %s', tempME.message);
                             tempMessage = sprintf('%s\n%s\n',tempMessage,tempThisMessage);
-                            
+                            objective = Inf;
                             if nargout>1
                                 varargout{1} = tempStatusOK;
                                 varargout{2} = tempMessage;

@@ -43,6 +43,9 @@ classdef (Abstract) BaseProps < matlab.mixin.SetGet & matlab.mixin.Heterogeneous
         Name = ''    % Name
         RelativeFilePath = '' % Path to file
         Description = '' % Description
+        
+        bShowTraces = []
+        bShowQuantiles = []
     end
     
     %% Dependent properties
@@ -56,6 +59,7 @@ classdef (Abstract) BaseProps < matlab.mixin.SetGet & matlab.mixin.Heterogeneous
     %% Protected Properties
     properties (SetAccess=protected)
         LastSavedTime = '' % Time at which the view was last saved
+        
     end
     
     %% Public methods

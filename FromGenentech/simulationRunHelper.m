@@ -100,6 +100,7 @@ else
        if ~ThisStatusOK
            StatusOK = false;
            Message = sprintf('%s\n%s\n',Message,ThisMessage);
+           break
        end
 
     end % for ii...
@@ -181,10 +182,22 @@ if ~isempty(ItemModels)
                 % Update ResultFileNames
                 ResultFileNames{ii} = ['Results - Sim = ' options.simName ', Task = ' obj.Item(options.runIndices(ii)).TaskName ' - Vpop = ' obj.Item(options.runIndices(ii)).VPopName ' - Date = ' datestr(now,'dd-mmm-yyyy_HH-MM-SS') '.mat'];
 
-                if isempty(VpopWeights)
-                    save(fullfile(SaveFilePath,ResultFileNames{ii}), 'Results')
-                else
-                    save(fullfile(SaveFilePath,ResultFileNames{ii}), 'Results', 'VpopWeights')
+                try
+                    if isempty(VpopWeights)
+                        save(fullfile(SaveFilePath,ResultFileNames{ii}), 'Results')
+                    else
+                        save(fullfile(SaveFilePath,ResultFileNames{ii}), 'Results', 'VpopWeights')
+                    end
+                catch error
+                    ThisMessage = 'Error encountered saving file. Check that the save file name is valid.';
+                    Message = sprintf('%s\n%s\n\n%s\n',Message,ThisMessage,error.message);        
+                    StatusOK = false;
+                    % close waitbar
+                    uix.utility.CustomWaitbar(1,hWbar2,'Done.');
+                    if ~isempty(hWbar2) && ishandle(hWbar2)
+                        delete(hWbar2);
+                    end
+                    return
                 end
                 % right now it's one line of Message per Simulation Item
                 if nFailedSims == ItemModel.nPatients
@@ -384,6 +397,17 @@ function [ItemModel, VpopWeights, StatusOK, Message] = constructVpopItem(taskObj
             VpopWeights     = vpopTable(:,end);
             vpopTable   = vpopTable(:,1:end-1);
         end 
+        
+        % check if there are parameters which are not contained in the
+        % model
+        
+        if ~isempty(setdiff( params, [taskObj.SpeciesNames; taskObj.ParameterNames; {'PWeight','Group'}']))
+            StatusOK = false;
+            Message = sprintf('%s%s: Invalid parameters contained in the vpop file. Please check for consistency with the selected task model.\n', ...
+                Message, taskObj.Name);
+            return
+        end
+        
         nPatients = size(vpopTable,1);
         Values = vpopTable;
         Names = params;
@@ -416,7 +440,6 @@ function [Results, nFailedSims, StatusOK, Message, Cancelled] = simulateVPatient
         StatusOK = false;
         Message = sprintf('%s\n\n%s', 'Failed to run simulation', Message);
         
-        path(myPath);
         return
     end
 

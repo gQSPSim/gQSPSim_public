@@ -108,7 +108,7 @@ classdef MultiPlatformTable < uix.abstract.Widget & uix.mixin.HasLabel
             if obj.UseJTable
                 validateattributes(rowIdx,{'numeric'},{'scalar'});
                 validateattributes(colIdx,{'numeric'},{'scalar'});
-                validateattributes(Color,{'numeric'},{'size',[1 3]});
+%                 validateattributes(Color,{'numeric'},{'size',[1 3]});
                 DataSize = size(obj.Data);
                 if rowIdx >= 1 && rowIdx <= DataSize(1) && colIdx >= 1 && colIdx <= DataSize(2)                
                     obj.HTable.setCellColor(rowIdx,colIdx,Color);

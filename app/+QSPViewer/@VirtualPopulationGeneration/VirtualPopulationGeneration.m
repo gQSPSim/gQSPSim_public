@@ -372,7 +372,7 @@ classdef VirtualPopulationGeneration < uix.abstract.CardViewPane
                 nCol = size(Raw,2);
                
                 g = uix.Grid('Parent', p); %,  'Units', 'pixels', 'Position', [0 0 200*dims(1) 200*dims(2)], 'Spacing', 1);
-                MatchIdx = find(strcmp(vObj.Data.RefParamName,vObj.Data.Settings.Parameters.Name));
+                MatchIdx = find(strcmp(vObj.Data.RefParamName,{vObj.Data.Settings.Parameters.Name}));
                 
                 LB = [];
                 UB = [];                

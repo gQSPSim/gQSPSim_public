@@ -139,16 +139,32 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
             end
             
             % Plot
-%             hThis = plot(hSpeciesGroup{sIdx,axIdx},Results(itemIdx).Time,Results(itemIdx).Data(:,ColumnIdx),...
-%                 'Color',SelectedItemColors(itemIdx,:),...
-%                 'LineStyle',ThisLineStyle);
+            if ~isnumeric(SelectedItemColors(itemIdx,:))
+                error('Invalid color selected!')
+                return
+            end
             
-            axes(get(hSpeciesGroup{sIdx,axIdx},'Parent'))
-            hThis=shadedErrorBar(Results(itemIdx).Time, mean(Results(itemIdx).Data(:,ColumnIdx), 2), ...
-                std(Results(itemIdx).Data(:,ColumnIdx),[],2));
-            set(hThis.mainLine,'Color',SelectedItemColors(itemIdx,:), 'LineStyle',ThisLineStyle)
-            set(hThis.patch,'FaceColor', SelectedItemColors(itemIdx,:));
-           thisAnnotation = get(hThis.mainLine,'Annotation');
+            if obj.bShowTraces(axIdx)
+                hThis = plot(hSpeciesGroup{sIdx,axIdx},Results(itemIdx).Time,Results(itemIdx).Data(:,ColumnIdx),...
+                    'Color',SelectedItemColors(itemIdx,:),...
+                    'LineStyle',ThisLineStyle);
+                thisAnnotation = get(hThis,'Annotation');
+            end
+            
+            if obj.bShowQuantiles(axIdx)
+                axes(get(hSpeciesGroup{sIdx,axIdx},'Parent'))
+                q50 = quantile(Results(itemIdx).Data(:,ColumnIdx),0.5,2);
+                q75 = quantile(Results(itemIdx).Data(:,ColumnIdx),0.75,2);
+                q25 = quantile(Results(itemIdx).Data(:,ColumnIdx),0.25,2);
+                
+                SE=shadedErrorBar(Results(itemIdx).Time', q50', [q75-q50,q50-q25]');
+                set(SE.mainLine,'Color',SelectedItemColors(itemIdx,:),...
+                    'LineStyle',ThisLineStyle);
+                set(SE.patch,'FaceColor',SelectedItemColors(itemIdx,:));
+                set(SE.edge,'Color',SelectedItemColors(itemIdx,:),'LineWidth',2);
+                thisAnnotation = get(SE.mainLine,'Annotation');
+            end
+            
 
            if iscell(thisAnnotation)
                thisLegendInformation = get([thisAnnotation{:}],'LegendInformation');

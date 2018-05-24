@@ -42,6 +42,8 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         PlotGroupTable = cell(0,3)
         
         SelectedPlotLayout = '1x1'
+        
+        
     end
     
     properties (SetAccess = 'private')
@@ -208,6 +210,12 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                         Message = sprintf('%s\nCould not load dataset file.\n', Message);
                     end
                 end
+            end
+            
+            % Simulation name forbidden characters
+            if any(regexp(obj.Name,'[:*?/]'))
+                Message = sprintf('%s\n* Invalid simulation name.', Message);
+                StatusOK=false;
             end
     
         end %function

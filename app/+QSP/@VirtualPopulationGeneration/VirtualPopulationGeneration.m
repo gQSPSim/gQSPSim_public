@@ -120,9 +120,27 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
 
                     % Default
                     ThisItem = sprintf('%s - %s (%s)',obj.Item(index).TaskName,obj.Item(index).GroupID,ThisResultFilePath);
-                    if StaleFlag(index)
+                    if StaleFlag(index)~=0
+
+                        switch StaleFlag(index)
+                            case 1
+                                StaleMessage = 'Task has been modified';
+                            case 2
+                                StaleMessage = 'Task/Project has been modified';
+                            case 3
+                                StaleMessage = 'Acceptance criteria item has been modified';
+                            case 4
+                                StaleMessage = 'Acceptance criteria file has been modified';
+                            case 5
+                                StaleMessage = 'Parameters item has been modified';
+                            case 6
+                                StaleMessage = 'Parameters file has been modified';
+                            case 7
+                                StaleMessage = 'VPop result has been modified';
+                        end
+                                
                         % Item may be out of date
-                        ThisItem = sprintf('***WARNING*** %s\n%s',ThisItem,'***Item may be out of date***');
+                        ThisItem = sprintf('***WARNING*** %s\n***Item may be out of date (%s)***\n',ThisItem,StaleMessage);
                     elseif ~ValidFlag(index)
                         % Display invalid
                         ThisItem = sprintf('***ERROR*** %s\n***%s***',ThisItem,InvalidMessages{index});
@@ -295,23 +313,24 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
                 
                 
                 %%% Remove the invalid task/group combos if any
-                [TaskItemIndex,MatchTaskIndex] = ismember({obj.Item.TaskName},{obj.Settings.Task.Name});
-                if ~isempty(GroupIDs)
+                if all(isvalid(obj.Item))
+                    [TaskItemIndex,MatchTaskIndex] = ismember({obj.Item.TaskName},{obj.Settings.Task.Name});
                     GroupItemIndex = ismember({obj.Item.GroupID},GroupIDs(:)');
+                    RemoveIndices = ~TaskItemIndex | ~GroupItemIndex;
+                    if any(RemoveIndices)
+                        StatusOK = false;
+                        ThisMessage = sprintf('Task-Group rows %s are invalid.',num2str(find(RemoveIndices)));
+                        Message = sprintf('%s\n* %s\n',Message,ThisMessage);
+                    end
                 else
-                    GroupItemIndex = false(size({obj.Item.GroupID}));
-                end
-                RemoveIndices = ~TaskItemIndex | ~GroupItemIndex;
-                if any(RemoveIndices)
-                    StatusOK = false;
-                    ThisMessage = sprintf('Task-Group rows %s are invalid.',num2str(find(RemoveIndices)));
-                    Message = sprintf('%s\n* %s\n',Message,ThisMessage);
+                    RemoveIndices = 1:length(obj.Item);
+                    MatchTaskIndex = [];
                 end
                 if FlagRemoveInvalid
                     obj.Item(RemoveIndices) = [];
                 end
-                
-                % Check Tasks
+
+            % Check Tasks
                 MatchTaskIndex(MatchTaskIndex == 0) = [];
                 for index = MatchTaskIndex
                     [ThisStatusOK,ThisMessage] = validate(obj.Settings.Task(index),FlagRemoveInvalid);
@@ -380,6 +399,11 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
                 % taken place
                 obj.SimResults = {}; % cached simulation results
 
+                % VpopGeneration name forbidden characters
+                if any(regexp(obj.Name,'[:*?/]'))
+                    Message = sprintf('%s\n* Invalid vpop generation name.', Message);
+                    StatusOK=false;
+                end
                 
             end %if
             
@@ -388,6 +412,8 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
         function clearData(obj)
             obj.SimResults = {};
             obj.SimFlag = [];
+            obj.ExcelResultFileName = '';
+            obj.VPopName = '';
         end
     end
     
@@ -444,7 +470,7 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
         
         function [StaleFlag,ValidFlag,InvalidMessages] = getStaleItemIndices(obj)
             
-            StaleFlag = false(1,numel(obj.Item));
+            StaleFlag = zeros(1,numel(obj.Item));
             ValidFlag = true(1,numel(obj.Item));
             InvalidMessages = cell(1,numel(obj.Item));
             
@@ -509,8 +535,13 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
                     % Compare times
                     
                     % Optimization object (this)
-                    OptimLastSavedTime = datenum(obj.LastSavedTime);
-                    
+                    ResultFileInfo = dir(fullfile(obj.Session.RootDirectory, obj.VPopResultsFolderName, obj.ExcelResultFileName));
+                    if ~isempty(ResultFileInfo)
+                        VpopLastSavedTime = ResultFileInfo.datenum;
+                    else
+                        VpopLastSavedTime = 0;
+                    end
+                                        
                     % Task object (item)
                     TaskLastSavedTime = datenum(ThisTask.LastSavedTime);
                     
@@ -553,17 +584,22 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
                     end
                     
                     % Check
-                    if OptimLastSavedTime < TaskLastSavedTime || ...
-                            OptimLastSavedTime < TaskProjectLastSavedTime || ...   
-                            OptimLastSavedTime < VirtualPopulationDataLastSavedTime || ...
-                            OptimLastSavedTime < VirtualPopulationDataFileLastSavedTime || ...
-                            OptimLastSavedTime < ParametersLastSavedTime || ...
-                            OptimLastSavedTime < ParametersFileLastSavedTime || ...
-                            (~isempty(ResultLastSavedTime) && OptimLastSavedTime > ResultLastSavedTime)
-                        % Item may be out of date
-                        StaleFlag(index) = true;
+                    if VpopLastSavedTime < TaskLastSavedTime 
+                        StaleFlag(index) = 1;
+                    elseif VpopLastSavedTime < TaskProjectLastSavedTime 
+                        StaleFlag(index) = 2;
+                    elseif VpopLastSavedTime < VirtualPopulationDataLastSavedTime
+                        StaleFlag(index) = 3;
+                    elseif VpopLastSavedTime < VirtualPopulationDataFileLastSavedTime
+                        StaleFlag(index) = 4;
+                    elseif VpopLastSavedTime < ParametersLastSavedTime 
+                        StaleFlag(index) = 5;
+                    elseif VpopLastSavedTime < ParametersFileLastSavedTime
+                        StaleFlag(index) = 6;
+                    elseif (~isempty(ResultLastSavedTime) && VpopLastSavedTime > ResultLastSavedTime)
+                        StaleFlag(index) = 7;
                     end
-                    
+                                            
                 elseif ForceMarkAsInvalid
                     % Display invalid
                     ValidFlag(index) = false;                    

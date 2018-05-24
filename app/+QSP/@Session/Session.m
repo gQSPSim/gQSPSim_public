@@ -53,10 +53,12 @@ classdef Session < matlab.mixin.SetGet & uix.mixin.AssignPVPairs & uix.mixin.Has
         RelativeFunctionsPath = ''
         ColorMap1 = QSP.Session.DefaultColorMap
         ColorMap2 = QSP.Session.DefaultColorMap
+        
+        toRemove = false;
     end
     
     properties (Constant=true)
-        DefaultColorMap = repmat(jet(10),5,1)
+        DefaultColorMap = repmat(lines(10),5,1)
     end
         
     properties (Dependent=true, SetAccess='immutable')
@@ -105,7 +107,16 @@ classdef Session < matlab.mixin.SetGet & uix.mixin.AssignPVPairs & uix.mixin.Has
             obj = s;
             
             % Invoke refreshData
-            refreshData(obj.Settings);
+            try 
+                [StatusOK,Message] = refreshData(obj.Settings);
+            catch err
+                if strcmp(err.identifier, 'Settings:CancelledLoad')
+                     % cancelled
+                     obj.toRemove = true;
+                else
+                    rethrow(err)
+                end
+            end
         end %function
         
     end %methods (Static)

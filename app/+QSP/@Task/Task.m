@@ -52,6 +52,7 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
     %% Protected Properties
     properties (GetAccess=public, SetAccess=protected)
         ModelName
+        ModelTimeStamp
         ExportedModelTimeStamp 
         ExportedModel
         Species
@@ -60,10 +61,15 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
     
     %% Protected Transient Properties
     properties (GetAccess=public, SetAccess=protected, Transient = true)
-        ModelObj
         VarModelObj
+        ModelObj_
+
     end
     
+%     %% Private Transient Properties
+%     properties (GetAccess=private, SetAccess=private, Transient = true)
+%         ModelObj_
+%     end
     %% Dependent Properties
     properties(SetAccess=protected,Dependent=true)
         ConfigSet
@@ -77,6 +83,7 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         OutputTimes
         DefaultOutputTimes
         DefaultMaxWallClockTime        
+        ModelObj
     end
     
     %% Constructor
@@ -139,6 +146,18 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         end
         
         function [StatusOK, Message] = validate(obj,FlagRemoveInvalid)
+            
+            if isempty(obj)
+                Message = 'Object is empty!';
+                StatusOK = false;
+                return
+            end
+            
+            % Task name forbidden characters
+            if any(regexp(obj.Name,'[:*?/]'))
+                Message = sprintf('%s\n* Invalid task name.', Message);
+                StatusOK=false;
+            end
             
             FileInfo = dir(obj.FilePath);
             if ~isempty(FileInfo) && ~isempty(obj.ExportedModelTimeStamp) && (obj.ExportedModelTimeStamp > FileInfo.datenum) % built after the model file was saved
@@ -220,11 +239,12 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 StatusOK = false;
                 Message = sprintf('%s\n* Invalid MaxWallClockTime. MaxWallClockTime must be > 0.\n',Message);
             end
+            
+
+            
         end %function
         
         function clearData(obj)
-            obj.ModelObj = [];
-            obj.VarModelObj = [];
         end
     end
     
@@ -239,7 +259,33 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         constructModel(obj)
         
         function upToDate = checkModelCurrent(obj)
+            % check just that the task was saved after the sbproj file was
+            % last modified
             FileInfo = dir(obj.FilePath);
+            if length(FileInfo)>1
+                upToDate=false;
+                return
+            end
+            
+            if isempty(obj.LastSavedTime)
+                upToDate = true;
+                return
+            end
+            
+            if FileInfo.datenum > datenum(obj.ModelTimeStamp)
+                upToDate = false;
+            else
+                upToDate = true;
+            end
+        end
+        
+        function upToDate = checkExportedModelCurrent(obj)
+            FileInfo = dir(obj.FilePath);
+            if length(FileInfo)>1
+                upToDate=false;
+                return
+            end
+            
             if isempty(obj.ExportedModelTimeStamp) || FileInfo.datenum > obj.ExportedModelTimeStamp || datenum(obj.LastSavedTime) > obj.ExportedModelTimeStamp || ...
                     isempty(obj.VarModelObj)
                 upToDate = false;
@@ -286,7 +332,7 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             catch ME
                 StatusOk = false;
                 Message = ME.message;
-                obj.ModelObj = [];
+                obj.ModelObj_ = [];
                 obj.ModelName = '';
                 obj.MaxWallClockTime = [];
                 obj.OutputTimesStr = '';
@@ -307,13 +353,14 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 if isempty(m1)
                     StatusOk = false;
                     Message = sprintf('Model "%s" not found in project',ModelName);
-                    obj.ModelObj = [];
+                    obj.ModelObj_ = [];
                     obj.ModelName = '';
                     obj.MaxWallClockTime = [];
                     obj.OutputTimesStr = '';
                 else
-                    obj.ModelObj = m1;
+                    obj.ModelObj_ = m1;
                     obj.ModelName = ModelName;
+                    obj.ModelTimeStamp = now;
                     obj.MaxWallClockTime = m1.ConfigSet.MaximumWallClock;
                     
                     if isempty(obj.OutputTimesStr)
@@ -324,17 +371,6 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                     end
                 end %if
                 
-                % get inactive reactions from the model
-                allReactionNames = get(obj.ModelObj.Reactions, 'Reaction');
-                obj.InactiveReactionNames = allReactionNames(~cell2mat(get(obj.ModelObj.Reactions,'Active')));
-                
-                % get inactive rules from model
-                allRulesNames = get(obj.ModelObj.Rules, 'Rule');
-                obj.InactiveRuleNames = allRulesNames(~cell2mat(get(obj.ModelObj.Rules,'Active')));
-                
-%                 % get active variant names
-%                 allVariantNames = get(obj.ModelObj.Variants, 'Name');
-%                 obj.ActiveVariantNames = allVariantNames(cell2mat(get(obj.ModelObj.Variants,'Active')));
                 
             end %if
         end %function
@@ -367,6 +403,16 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
     
     %% Get Methods
     methods
+        
+        function ModelObj = get.ModelObj(obj)
+            % model obj is out of date
+            if ~isempty(obj.ModelObj_) && ~checkModelCurrent(obj)
+                % reimport the model
+                importModel(obj,obj.FilePath,obj.ModelName);                                   
+            end
+            ModelObj = obj.ModelObj_;
+            
+        end
         
         function Value = get.ConfigSet(obj)
             if ~isempty(obj.ModelObj)
@@ -404,7 +450,7 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         
         function Value = get.SpeciesNames(obj)
             if ~isempty(obj.ModelObj)
-                Value = obj.ModelObj.Species;
+                Value = sbioselect(obj.ModelObj, 'Type', 'Species');
                 Value = get(Value,'Name');
                 if isempty(Value)
                     Value = cell(0,1);
@@ -418,7 +464,7 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         
         function Value = get.ParameterNames(obj)
             if ~isempty(obj.ModelObj)
-                Value = obj.ModelObj.Parameters;
+                Value = sbioselect(obj.ModelObj,'Type','Parameter');                
                 Value = get(Value,'Name');
                 if isempty(Value)
                     Value = cell(0,1);
@@ -432,7 +478,7 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         
         function Value = get.ParameterValues(obj)
             if ~isempty(obj.ModelObj)
-                Value = obj.ModelObj.Parameters;
+                Value = sbioselect(obj.ModelObj,'Type','Parameter');                                
                 Value = get(Value,'Value');
                 if isempty(Value)
                     Value = cell(0,1);
@@ -446,7 +492,7 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         
         function Value = get.RuleNames(obj)
             if ~isempty(obj.ModelObj)
-                Value = obj.ModelObj.Rules;
+                Value = sbioselect(obj.ModelObj, 'Type', 'Rule');
                 Value = get(Value,'Rule');
                 if isempty(Value)
                     Value = cell(0,1);                
@@ -460,7 +506,7 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         
         function Value = get.ReactionNames(obj)
             if ~isempty(obj.ModelObj)
-                Value = obj.ModelObj.Reactions;
+                Value = sbioselect(obj.ModelObj, 'Type', 'Reaction');                
                 Value = get(Value,'Reaction');
                 if isempty(Value)
                     Value = cell(0,1);                

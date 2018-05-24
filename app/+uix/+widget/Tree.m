@@ -519,7 +519,7 @@ classdef Tree < matlab.mixin.SetGet
             %set(CbProps,'TreeWillCollapseCallback',@(src,e)onCollapse(tObj,e))
             set(CbProps,'TreeCollapsedCallback',@(src,e)onCollapse(tObj,e))
             %set(CbProps,'MouseDraggedCallback',@(src,e)onMouseDrag(tObj,e))
-            set(CbProps,'MouseMovedCallback',@(src,e)onMouseMotion(tObj,e))
+%             set(CbProps,'MouseMovedCallback',@(src,e)onMouseMotion(tObj,e))
             set(CbProps,'ValueChangedCallback',@(src,e)onNodeSelection(tObj,e))
             
             % Set up editability callback

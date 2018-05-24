@@ -571,7 +571,7 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
                         vObj.Data.PlotProfile(end).Source = vObj.Data.PlotProfile(Indices).Source;
                         vObj.Data.PlotProfile(end).Description = vObj.Data.PlotProfile(Indices).Description;
                         vObj.Data.PlotProfile(end).Show = vObj.Data.PlotProfile(Indices).Show;
-                        vObj.Data.PlotProfile(end).Values = sortrows(vObj.Data.PlotProfile(Indices).Values,1);
+                        vObj.Data.PlotProfile(end).Values = vObj.Data.PlotProfile(Indices).Values;
                         vObj.Data.SelectedProfileRow = numel(vObj.Data.PlotProfile);
                 end
 
@@ -796,7 +796,7 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
                 RowIdx = Indices(1,1);
                 ColIdx = Indices(1,2);
 
-                if ~isempty(vObj.Data.SelectedProfileRow) && ~isempty(ThisData{RowIdx,ColIdx})
+                if ~isempty(vObj.Data.SelectedProfileRow) && ~isempty(ThisData{RowIdx,ColIdx}) 
                     ThisProfile = vObj.Data.PlotProfile(vObj.Data.SelectedProfileRow);                
                     if ischar(ThisData{RowIdx,ColIdx})
                         ThisProfile.Values(RowIdx,ColIdx) = {str2double(ThisData{RowIdx,ColIdx})};

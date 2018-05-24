@@ -40,6 +40,7 @@ end
 % Disable warnings
 warning('off','MATLAB:HandleGraphics:ObsoletedProperty:JavaFrame')
 warning('off','MATLAB:Java:DuplicateClass');
+warning('off','MATLAB:javaclasspath:jarAlreadySpecified')
 
 if EchoOutput
     disp('Initializing MATLAB paths');
@@ -128,31 +129,6 @@ end
 Paths = {
     fullfile(RootPath,'app','+uix','+resource','UIExtrasTable.jar')
     fullfile(RootPath,'app','+uix','+resource','UIExtrasTree.jar')
-    fullfile(fileparts(which('xlwrite')),'poi_library','poi-ooxml-3.8-20120326.jar')
-    fullfile(fileparts(which('xlwrite')),'poi_library','poi-ooxml-schemas-3.8-20120326.jar')
-    fullfile(fileparts(which('xlwrite')),'poi_library','xmlbeans-2.3.0.jar')
-    fullfile(fileparts(which('xlwrite')),'poi_library','dom4j-1.6.1.jar')
-    fullfile(fileparts(which('xlwrite')),'poi_library','stax-api-1.0.1.jar')
-    };
-
-% Display
-fprintf('%s\n',Paths{:});
-
-% Add paths
-javaaddpath(Paths);
-
-if EchoOutput
-    disp('---------------------------------------------------');
-end
-
-%% Add java class paths
-
-if EchoOutput
-    disp('Initializing Java paths for UI Widgets');
-    disp('---------------------------------------------------');
-end
-
-Paths = {
     fullfile(fileparts(which('xlwrite')),'poi_library','poi-3.8-20120326.jar')
     fullfile(fileparts(which('xlwrite')),'poi_library','poi-ooxml-3.8-20120326.jar')
     fullfile(fileparts(which('xlwrite')),'poi_library','poi-ooxml-schemas-3.8-20120326.jar')
