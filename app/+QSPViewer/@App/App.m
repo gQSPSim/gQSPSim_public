@@ -670,7 +670,26 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
             
         end %function
 
-        
+        function onNodeDrop(obj,h,e)
+
+            if isa(e.Source.Value,'QSP.Settings') || isa(e.Source.Value,'QSP.Session') 
+                return
+            end
+            SourceNode = e.Source;
+            TargetNode = e.Target;
+            switch e.DropAction
+                case 'move'
+                    if isa(e.Source.Value, class(e.Target.Value))
+                        ix = find(get(TargetNode.Parent,'Children')==TargetNode);
+                        TargetNode.Tree.removeNode(SourceNode);
+                        TargetNode.Tree.insertNode(SourceNode,TargetNode.Parent,max(1,ix-1));                        
+                    end
+                otherwise
+                    % Do nothing
+            end
+
+
+        end
     end %methods
     
     
