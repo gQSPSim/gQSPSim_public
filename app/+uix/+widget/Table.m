@@ -378,6 +378,11 @@ classdef Table < matlab.mixin.SetGet
             %   colIndex: column of cell to set.
             %   color: either a string with the color or an RGB triplet
             
+                        % Turn off callbacks
+            if isvalid(obj)
+                obj.CBEnabled = false;
+            end
+            
             if nargin<4
                 error('Table:setCellColor:BadArgs', ...
                     'Must be called with row,column and color')
@@ -397,6 +402,11 @@ classdef Table < matlab.mixin.SetGet
             
             % Redraw to reflect the color change
             obj.redraw();
+            
+            % Turn on callbacks
+            if isvalid(obj)
+                obj.CBEnabled = true;
+            end
             
         end %setCellColor
         
