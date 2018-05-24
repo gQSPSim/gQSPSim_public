@@ -134,8 +134,6 @@ classdef VirtualPopulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         function clearData(obj)            
         end
         
-        function clearData(obj)
-        end
     end
     
     %% Protected Methods
