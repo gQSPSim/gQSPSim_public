@@ -249,13 +249,15 @@ if strcmp(obj.PlotType, 'Normal') && ~isempty(Results)
                     if ~isempty(Results{itemIdx}.Data(:,setdiff(ColumnIdx, ColumnIdx_invalid)))
 
                         % Plot
-                        if vObj.ShowTraces
+                        if obj.bShowTraces(axIdx)
                             hThis = plot(hSpeciesGroup{sIdx,axIdx},Results{itemIdx}.Time,thisData(:,setdiff(ColumnIdx, ColumnIdx_invalid)),...
                                 'Color',SelectedItemColors(itemIdx,:),...
                                 'LineStyle',ThisLineStyle);
+                            acc_lines = [acc_lines; hThis];                        
+
                         end
                         
-                        if vObj.ShowSEBar
+                        if obj.bShowQuantiles(axIdx)
 %                             axes(get(hSpeciesGroup{sIdx,axIdx},'Parent'))
                             h=shadedErrorBar(Results{itemIdx}.Time, mean(thisData(:,setdiff(ColumnIdx, ColumnIdx_invalid)),2), ...
                                 std(thisData(:,setdiff(ColumnIdx, ColumnIdx_invalid)),[],2));
@@ -277,7 +279,6 @@ if strcmp(obj.PlotType, 'Normal') && ~isempty(Results)
                             hThisAnnLegend = [hThisAnnLegend{:}];
                         end
                         set(hThisAnnLegend,'IconDisplayStyle','off');
-                        acc_lines = [acc_lines; hThis];                        
                         
 %                         acc_lines = [acc_lines; plot(hAxes(axIdx),Results{itemIdx}.Time,Results{itemIdx}.Data(:,setdiff(ColumnIdx, ColumnIdx_invalid)),...
 %                             'LineStyle',ThisLineStyle,...
