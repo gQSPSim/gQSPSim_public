@@ -444,7 +444,7 @@ elseif strcmp(obj.PlotType,'Diagnostic') && ~isempty(Results)
             continue
         end
         warning('off','DISTRIBUTIONPLOT:ERASINGLABELS')
-        distributionPlot(hAxes(currentAxis), axDataArray, 'color', colorArray, 'xNames', xlabArray, 'showMM', 0, 'histOpt', 1.1)
+        distributionPlot(hAxes(currentAxis), axDataArray, 'color', colorArray, 'xNames', xlabArray, 'showMM', 0, 'histOpt', 0)
 
         % add error bars
         for k=1:length(UBArray)
