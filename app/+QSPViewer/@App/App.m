@@ -477,8 +477,10 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
             ItemType = ParentNode.UserData;
             
             % What are the data object and its parent?
-            ThisObj = SelNode.Value;
             ParentObj = ParentNode.Value;
+
+            for nodeIdx = 1:length(SelNode);
+                ThisObj = SelNode(nodeIdx).Value;
             
             % Copy the object
 %             NewObj = ThisObj.copy();
@@ -486,22 +488,22 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
             % Parent the object
 %             ParentObj.(ItemType)(end+1) = NewObj;
 %             
-            % Create the duplicate item
-            DisallowedNames = {ParentObj.(ItemType).Name};
-            NewName = matlab.lang.makeUniqueStrings(ThisObj.Name, DisallowedNames);
-            ThisObj = ThisObj.copy();
-            ThisObj.Name = NewName;
-            ThisObj.clearData();
-            
-            % Place the item and add the tree node
-            if isscalar(ParentNode)
-                ParentObj.(ItemType)(end+1) = ThisObj;
-                obj.createTree(ParentNode, ThisObj);
-                ParentNode.expand();
-            else
-                error('Invalid tree parent');
+                % Create the duplicate item
+                DisallowedNames = {ParentObj.(ItemType).Name};
+                NewName = matlab.lang.makeUniqueStrings(ThisObj.Name, DisallowedNames);
+                ThisObj = ThisObj.copy();
+                ThisObj.Name = NewName;
+                ThisObj.clearData();
+
+                % Place the item and add the tree node
+                if isscalar(ParentNode)
+                    ParentObj.(ItemType)(end+1) = ThisObj;
+                    obj.createTree(ParentNode, ThisObj);
+                    ParentNode.expand();
+                else
+                    error('Invalid tree parent');
+                end
             end
-            
             % Mark the current session dirty
             obj.markDirty();
                         
