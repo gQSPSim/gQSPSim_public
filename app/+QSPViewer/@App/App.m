@@ -282,6 +282,11 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
             Root = h.Root;
             SelNode = e.Nodes;
             ThisSessionNode = SelNode;
+            
+            if length(SelNode)>1
+                % no updates if doing multiselect
+                return
+            end
             while ~isempty(ThisSessionNode) && ThisSessionNode.Parent~=Root
                 ThisSessionNode = ThisSessionNode.Parent;                
             end
@@ -672,18 +677,72 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
 
         function onNodeDrop(obj,h,e)
 
-            if isa(e.Source.Value,'QSP.Settings') || isa(e.Source.Value,'QSP.Session') 
+            if length(unique(arrayfun(@(x) class(x.Value), e.Source, 'UniformOutput', false))) > 1
+                % different types selected
                 return
             end
+            val1 = e.Source(1).Value;
+            
+            if isa(val1,'QSP.Settings') || isa(val1,'QSP.Session') 
+                return
+            end
+            
             SourceNode = e.Source;
             TargetNode = e.Target;
+            if ~isa(val1, class(e.Target.Value))
+                return
+            end
+           
             switch e.DropAction
                 case 'move'
-                    if isa(e.Source.Value, class(e.Target.Value))
-                        ix = find(get(TargetNode.Parent,'Children')==TargetNode);
-                        TargetNode.Tree.removeNode(SourceNode);
-                        TargetNode.Tree.insertNode(SourceNode,TargetNode.Parent,max(1,ix-1));                        
+                    
+                     % Get the session
+                    ThisSession = obj.SelectedSession;
+
+                    % What node is selected? What is its parent?
+                    SelNode = obj.h.SessionTree.SelectedNodes;
+
+                    % What is the data object?
+                    ThisObj = SelNode.Value;
+
+                    % What type of item?
+                    ItemType = strrep(class(ThisObj), 'QSP.', '');
+            
+                    % all data objects of this type
+                    ch = ThisSession.Settings.(ItemType);
+
+                    % indices of source nodes
+                    [~,ix2] = ismember([SourceNode.Value],ch);
+                    [ix2,rank]=sort(ix2);
+                    SourceNode=SourceNode(rank);
+                    
+
+                    % indices of non-source nodes
+                    ixDiff = setdiff(1:length(ch),ix2);
+                    ch2 = ch(ixDiff); % objects without source nodes
+                    
+                    % index of target in remaining nodes 
+                    ix = find(ch==TargetNode.Value);
+                    % rearrange data objects
+                    ch2 = [ch2(1:ix-1), [SourceNode.Value], ch2(ix:end)];
+                    
+                    % update data objects
+                    ThisSession.Settings.(ItemType) = ch2;
+                    
+                    % update tree
+                    for k=length(SourceNode):-1:1
+                        TargetNode.Tree.removeNode(SourceNode(k));
                     end
+                    for k=length(SourceNode):-1:1
+                        TargetNode.Tree.insertNode(SourceNode(k),TargetNode.Parent,max(1,ix));                        
+                    end
+%                     TargetNode.Tree.reload(TargetNode.Parent);
+                    
+                    % Mark the current session dirty
+                    obj.markDirty();
+
+                    % Update the display
+                    obj.refresh();
                 otherwise
                     % Do nothing
             end
