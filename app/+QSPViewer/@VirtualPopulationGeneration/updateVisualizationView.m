@@ -30,6 +30,12 @@ if vObj.Selection ~= 3
     return;
 end
 
+%% update plot style
+if ~isempty(vObj.Data)
+    vObj.Data.bShowTraces = vObj.bShowTraces;
+    vObj.Data.bShowQuantiles = vObj.bShowQuantiles;
+end
+
 %% Update table contextmenu
 
 hFigure = ancestor(vObj.UIContainer,'figure');
