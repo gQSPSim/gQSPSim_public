@@ -575,66 +575,68 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
             % Get the session
             ThisSession = obj.SelectedSession;
             
-            % What node is selected? What is its parent?
-            SelNode = obj.h.SessionTree.SelectedNodes;
+            % What node is selected? What is its parent?            
+            SelNodes = obj.h.SessionTree.SelectedNodes;
+
+            for nodeIdx = 1:length(SelNodes)
+                SelNode = SelNodes(nodeIdx);
+                % What is the data object?
+                ThisObj = SelNode.Value;
+
+                % What type of item?
+                ItemType = strrep(class(ThisObj), 'QSP.', '');
+
+                % Where does the item go?
+                if isprop(ThisSession,ItemType)
+                    ParentObj = ThisSession;
+                else
+                    ParentObj = ThisSession.Settings;
+                end
+
+                % What tree branch does this go under?
+                hChildNodes = ParentObj.TreeNode.Children;
+                ChildTypes = {hChildNodes.UserData};
+                hParentNode = hChildNodes(strcmp(ChildTypes,ItemType));
+
+                % check for duplicate names
+                if any(strcmp( SelNode.Value.Name, {ParentObj.(ItemType).Name} ))
+                    errordlg('Cannot restore deleted item because its name is identical to an existing item.')
+                    return
+                end
+
+                % Move the object from deleted to the new parent 
+                ParentObj.(ItemType)(end+1) = ThisObj;
+                MatchIdx = false(size(ThisSession.Deleted));
+                for idx = 1:numel(ThisSession.Deleted)
+                    MatchIdx(idx) = ThisSession.Deleted(idx)==ThisObj;
+                end
+                ThisSession.Deleted( MatchIdx ) = [];
+
+                 % Update the name to include the timestamp
+                TimeStamp = datestr(now,'dd-mmm-yyyy_HH-MM-SS');
+
+                % Strip out date
+                SplitName = regexp(ThisObj.Name,'\(\d\d-\D\D\D-\d\d\d\d_\d\d-\d\d-\d\d\)','split');
+                if ~isempty(SplitName) && iscell(SplitName)
+                    SplitName = SplitName{1}; % Take first
+                end
+                ThisObj.Name = strtrim(SplitName);
+
+                ThisObj.Name = sprintf('%s (%s)',ThisObj.Name,TimeStamp);
+
+                % Update the tree
+                SelNode.Parent = hParentNode;
+                SelNode.Tree.SelectedNodes = SelNode;
+                hParentNode.expand();
+
+                % Change context menu
+                SelNode.UIContextMenu = obj.h.TreeMenu.Leaf.(ItemType);
             
-            % What is the data object?
-            ThisObj = SelNode.Value;
-            
-            % What type of item?
-            ItemType = strrep(class(ThisObj), 'QSP.', '');
-            
-            % Where does the item go?
-            if isprop(ThisSession,ItemType)
-                ParentObj = ThisSession;
-            else
-                ParentObj = ThisSession.Settings;
+                % Update the display
+                obj.refresh();
             end
-            
-            % What tree branch does this go under?
-            hChildNodes = ParentObj.TreeNode.Children;
-            ChildTypes = {hChildNodes.UserData};
-            hParentNode = hChildNodes(strcmp(ChildTypes,ItemType));
-            
-            % check for duplicate names
-            if any(strcmp( SelNode.Value.Name, {ParentObj.(ItemType).Name} ))
-                errordlg('Cannot restore deleted item because its name is identical to an existing item.')
-                return
-            end
-            
-            % Move the object from deleted to the new parent 
-            ParentObj.(ItemType)(end+1) = ThisObj;
-            MatchIdx = false(size(ThisSession.Deleted));
-            for idx = 1:numel(ThisSession.Deleted)
-                MatchIdx(idx) = ThisSession.Deleted(idx)==ThisObj;
-            end
-            ThisSession.Deleted( MatchIdx ) = [];
-            
-             % Update the name to include the timestamp
-            TimeStamp = datestr(now,'dd-mmm-yyyy_HH-MM-SS');
-            
-            % Strip out date
-            SplitName = regexp(ThisObj.Name,'\(\d\d-\D\D\D-\d\d\d\d_\d\d-\d\d-\d\d\)','split');
-            if ~isempty(SplitName) && iscell(SplitName)
-                SplitName = SplitName{1}; % Take first
-            end
-            ThisObj.Name = strtrim(SplitName);
-            
-            ThisObj.Name = sprintf('%s (%s)',ThisObj.Name,TimeStamp);
-            
-            % Update the tree
-            SelNode.Parent = hParentNode;
-            SelNode.Tree.SelectedNodes = SelNode;
-            hParentNode.expand();
-            
-            % Change context menu
-            SelNode.UIContextMenu = obj.h.TreeMenu.Leaf.(ItemType);
-            
             % Mark the current session dirty
             obj.markDirty();
-                        
-            % Update the display
-            obj.refresh();
             
         end %function
         
