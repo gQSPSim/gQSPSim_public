@@ -520,9 +520,7 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
             % What type of item?
             ItemType = ParentNode.UserData;
             
-            % What are the data object and its parent?
-            ThisObj = SelNode.Value;
-            ParentObj = ParentNode.Value;
+
             
             % Where is the Deleted Items node?
             hSessionNode = ThisSession.TreeNode;
@@ -530,10 +528,19 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
             ChildTypes = {hChildNodes.UserData};
             hDeletedNode = hChildNodes(strcmp(ChildTypes,'Deleted'));
             
-            % Move the object from its parent to deleted
-            ThisSession.Deleted(end+1) = ThisObj;
-            ParentObj.(ItemType)( ParentObj.(ItemType)==ThisObj ) = [];
-            
+            nSelected = length(SelNode);
+            for nodeIdx = 1:nSelected
+                % What are the data object and its parent?
+                ThisObj = SelNode(nodeIdx).Value;
+                ParentObj = ParentNode.Value;            
+                % Move the object from its parent to deleted
+                ThisSession.Deleted(end+1) = ThisObj;
+                ParentObj.(ItemType)( ParentObj.(ItemType)==ThisObj ) = [];
+                SelNode(nodeIdx).Parent = hDeletedNode;
+                SelNode(nodeIdx).Tree.SelectedNodes = SelNode;
+                % Change context menu
+                SelNode(nodeIdx).UIContextMenu = obj.h.TreeMenu.Leaf.Deleted;
+            end
             % Update the tree
             
             % if deleted objective was the active object, reset the active
@@ -544,12 +551,10 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
             
             obj.ActivePane.Selection = 1; % switch to summary view
 
-            SelNode.Parent = hDeletedNode;
-            SelNode.Tree.SelectedNodes = SelNode;
+
             hDeletedNode.expand();
             
-            % Change context menu
-            SelNode.UIContextMenu = obj.h.TreeMenu.Leaf.Deleted;
+
             
             % Mark the current session dirty
             obj.markDirty();
@@ -722,7 +727,7 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
                     ch2 = ch(ixDiff); % objects without source nodes
                     
                     % index of target in remaining nodes 
-                    ix = find(ch==TargetNode.Value);
+                    ix = find(ch2==TargetNode.Value);
                     % rearrange data objects
                     ch2 = [ch2(1:ix-1), [SourceNode.Value], ch2(ix:end)];
                     
