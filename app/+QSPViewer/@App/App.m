@@ -285,6 +285,9 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
             
             if length(SelNode)>1
                 % no updates if doing multiselect
+                % Update pointer
+                set(obj.Figure,'pointer','arrow');
+                drawnow;
                 return
             end
             while ~isempty(ThisSessionNode) && ThisSessionNode.Parent~=Root
