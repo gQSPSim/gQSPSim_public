@@ -293,7 +293,6 @@ classdef Simulation < uix.abstract.CardViewPane
         end %function
         
         function onDataTablePlot(vObj,h,e)
-            
             ThisData = get(h,'Data');
             Indices = e.Indices;
             if isempty(Indices)
