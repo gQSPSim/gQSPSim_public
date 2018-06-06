@@ -43,6 +43,7 @@ classdef Settings < matlab.mixin.SetGet & uix.mixin.AssignPVPairs & uix.mixin.Ha
         Parameters = QSP.Parameters.empty(1,0)
         OptimizationData = QSP.OptimizationData.empty(1,0)
         VirtualPopulationData = QSP.VirtualPopulationData.empty(1,0)
+        VirtualPopulationGenerationData = QSP.VirtualPopulationGenerationData.empty(1,0)
     end
     
     %% Properties

@@ -1,4 +1,4 @@
-classdef VirtualPopulationGeneration < uix.abstract.CardViewPane
+classdef CohortGeneration < uix.abstract.CardViewPane
     % CohortGeneration - View Pane for the object
     % ---------------------------------------------------------------------
     % Display a viewer/editor for the object
@@ -60,7 +60,7 @@ classdef VirtualPopulationGeneration < uix.abstract.CardViewPane
     methods
         
         % Constructor
-        function obj = VirtualPopulationGeneration(varargin)
+        function obj = CohortGeneration(varargin)
             
             % Call superclass constructor
             RunVis = true;
@@ -149,6 +149,26 @@ classdef VirtualPopulationGeneration < uix.abstract.CardViewPane
             refreshParameters(vObj);
             
         end %function
+        
+        function onCohortPopup(vObj,h,e)
+            % select the cohort to use for virtual population generation
+            vObj.TempData.RefParamName = vObj.ParameterPopupItems{get(h,'Value')};
+            
+            % Try importing to load data for Parameters view
+            MatchIdx = strcmp({vObj.TempData.Settings.Parameters.Name},vObj.TempData.RefParamName);
+            if any(MatchIdx)
+                pObj = vObj.TempData.Settings.Parameters(MatchIdx);
+                [StatusOk,Message,vObj.ParametersHeader,vObj.ParametersData] = importData(pObj,pObj.FilePath);
+                if ~StatusOk
+                    hDlg = errordlg(Message,'Parameter Import Failed','modal');
+                    uiwait(hDlg);
+                end
+            end
+
+            
+        end
+        
+        
         
         function onGroupNamePopup(vObj,h,e)
             

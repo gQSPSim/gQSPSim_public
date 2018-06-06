@@ -19,10 +19,12 @@ ItemTypes = {
     'Settings: Optimization Data',      'OptimizationData'
     'Settings: Parameters',             'Parameters'
     'Settings: Task',                   'Task'
-    'Settings: Virtual Population',     'VirtualPopulation'
+    'Settings: Virtual Population',     'VirtualPopulation'    
     'Settings: Acceptance Criteria',    'VirtualPopulationData'
+    'Settings: Virtual Population Generation Data', 'VirtualPopulationGenerationData'
     'Simulation',                       'Simulation'
     'Optimization',                     'Optimization'
+    'Cohort Generation',                'CohortGeneration'
     'Virtual Population Generation',    'VirtualPopulationGeneration'
     };
 

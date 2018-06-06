@@ -317,7 +317,7 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
                 if any(ismember(obj.ActivePane.Selection,[1 3]))
                     % Call updateVisualizationView to disable Visualization button if invalid items                    
                     switch class(thisObj)
-                        case {'QSP.Simulation','QSP.Optimization','QSP.VirtualPopulationGeneration'}
+                        case {'QSP.Simulation','QSP.Optimization','QSP.VirtualPopulationGeneration','QSP.CohortGeneration'}
                             if obj.ActivePane.Selection == 3
                                 plotData(obj.ActivePane);
                             end
@@ -361,6 +361,7 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
                                 'QSP.Simulation',...
                                 'QSP.Optimization',...
                                 'QSP.VirtualPopulationGeneration',...
+                                'QSP.CohortGeneration'...
                                 }))                        
                             updateVisualizationView(obj.ActivePane);
                         end
@@ -383,7 +384,7 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
                         % Check the type
                         % If either Simulation, Optimization, or Virtual Population Generation, re-plot                        
                         switch class(thisObj)
-                            case {'QSP.Simulation','QSP.Optimization','QSP.VirtualPopulationGeneration'}                              
+                            case {'QSP.Simulation','QSP.Optimization','QSP.VirtualPopulationGeneration','QSP.CohortGeneration'}                              
                                 plotData(obj.ActivePane);
                         end
                         obj.h.SessionTree.Enable = true;

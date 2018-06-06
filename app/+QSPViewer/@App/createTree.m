@@ -67,10 +67,12 @@ for idx=1:numel(AllData)
             hVPopDatas = i_addNode(hSettings, Data.Settings, ...
                 'Acceptance Criteria', 'database_24.png',...
                 obj.h.TreeMenu.Branch.VirtualPopulationData, 'VirtualPopulationData', 'Acceptance Criteria');
-
-%                 obj.h.TreeMenu.Branch.VirtualPopulationData, 'VirtualPopulationData', 'Virtual Population Data');
-
             thisFcn(hVPopDatas, Data.Settings.VirtualPopulationData);
+
+            hVPopGenDatas = i_addNode(hSettings, Data.Settings, ...
+                'Virtual Population Generation Data', 'optim_24.png',...
+                obj.h.TreeMenu.Branch.VirtualPopulationGenerationData, 'VirtualPopulationGenerationData', 'Virtual Population Generation Data');
+            thisFcn(hVPopGenDatas, Data.Settings.VirtualPopulationGenerationData);
             
             % Other session children
             hSimulations = i_addNode(hSession, Data, ...
@@ -82,9 +84,14 @@ for idx=1:numel(AllData)
                 'Optimizations', 'optim_24.png',...
                 obj.h.TreeMenu.Branch.Optimization, 'Optimization', 'Optimization');
             thisFcn(hOptims, Data.Optimization);
+
+            hCohortGen = i_addNode(hSession, Data, ...
+                'Cohort Generations', 'datatable_24.png',...
+                obj.h.TreeMenu.Branch.CohortGeneration, 'CohortGeneration', 'Cohort Generation');
+            thisFcn(hCohortGen, Data.VirtualPopulationGeneration);
             
             hVPopGens = i_addNode(hSession, Data, ...
-                'Virtual Population Generations', 'datatable_24.png',...
+                'Virtual Population Generations', 'VP_24.png',...
                 obj.h.TreeMenu.Branch.VirtualPopulationGeneration, 'VirtualPopulationGeneration', 'Virtual Population Generation');
             thisFcn(hVPopGens, Data.VirtualPopulationGeneration);
             
@@ -140,11 +147,24 @@ for idx=1:numel(AllData)
                 obj.h.TreeMenu.Leaf.Optimization, [], '');
             Data.TreeNode = hNode; %Store node in the object for cross-ref
             
+        case 'QSP.CohortGeneration'
+            
+            hNode = i_addNode(Parent, Data, Data.Name, 'datatable_24.png',...
+                obj.h.TreeMenu.Leaf.CohortGeneration, [], '');
+            Data.TreeNode = hNode; %Store node in the object for cross-ref            
+            
         case 'QSP.VirtualPopulationGeneration'
             
             hNode = i_addNode(Parent, Data, Data.Name, 'datatable_24.png',...
                 obj.h.TreeMenu.Leaf.VirtualPopulationGeneration, [], '');
             Data.TreeNode = hNode; %Store node in the object for cross-ref
+        
+        case 'QSP.VirtualPopulationGenerationData'
+            
+            hNode = i_addNode(Parent, Data, Data.Name, 'datatable_24.png',...
+                obj.h.TreeMenu.Leaf.VirtualPopulationGeneration, [], '');
+            Data.TreeNode = hNode; %Store node in the object for cross-ref
+            
             
         otherwise
             

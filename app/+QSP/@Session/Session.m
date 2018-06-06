@@ -47,6 +47,8 @@ classdef Session < matlab.mixin.SetGet & uix.mixin.AssignPVPairs & uix.mixin.Has
         Simulation = QSP.Simulation.empty(1,0)
         Optimization = QSP.Optimization.empty(1,0)
         VirtualPopulationGeneration = QSP.VirtualPopulationGeneration.empty(1,0)
+        CohortGeneration = QSP.CohortGeneration.empty(1,0)
+
         Deleted = QSP.abstract.BaseProps.empty(1,0)
         RootDirectory = pwd
         RelativeResultsPath = ''
