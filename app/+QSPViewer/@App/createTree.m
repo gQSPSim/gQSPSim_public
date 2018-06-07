@@ -70,7 +70,7 @@ for idx=1:numel(AllData)
             thisFcn(hVPopDatas, Data.Settings.VirtualPopulationData);
 
             hVPopGenDatas = i_addNode(hSettings, Data.Settings, ...
-                'Virtual Population Generation Data', 'optim_24.png',...
+                'Virtual Population Generation Data', 'VpopGenData_24.png',...
                 obj.h.TreeMenu.Branch.VirtualPopulationGenerationData, 'VirtualPopulationGenerationData', 'Virtual Population Generation Data');
             thisFcn(hVPopGenDatas, Data.Settings.VirtualPopulationGenerationData);
             
@@ -161,7 +161,7 @@ for idx=1:numel(AllData)
         
         case 'QSP.VirtualPopulationGenerationData'
             
-            hNode = i_addNode(Parent, Data, Data.Name, 'datatable_24.png',...
+            hNode = i_addNode(Parent, Data, Data.Name, 'VpopGenData_24.png',...
                 obj.h.TreeMenu.Leaf.VirtualPopulationGeneration, [], '');
             Data.TreeNode = hNode; %Store node in the object for cross-ref
             

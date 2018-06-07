@@ -52,27 +52,21 @@ StatusOK = true;
 Message = '';
 
 % load acceptance criteria
-Names = {obj.Settings.VirtualPopulationData.Name};
-MatchIdx = strcmpi(Names,obj.DatasetName);
+Names = {obj.Settings.VirtualPopulationGenerationData.Name};
+MatchIdx = strcmpi(Names,obj.VpopGenDataName);
 
 if any(MatchIdx)
-    vpopObj = obj.Settings.VirtualPopulationData(MatchIdx);
+    vpopObj = obj.Settings.VirtualPopulationGenerationData(MatchIdx);
 
-    [ThisStatusOk,ThisMessage,accCritHeader,accCritData] = importData(vpopObj,vpopObj.FilePath);
+    [ThisStatusOk,ThisMessage,vpopGenHeader,vpopGenData] = importData(vpopObj,vpopObj.FilePath);
     if ~ThisStatusOk
         StatusOK = false;
         Message = sprintf('%s\n%s\n',Message,ThisMessage);        
     end
     else
-    accCritHeader = {};
-    accCritData = {};
+    vpopGenHeader = {};
+    vpopGenData = {};
 end
-
-grpVec = cell2mat(accCritData(:,strcmp('Group', accCritHeader)));
-LBVec = cell2mat(accCritData(:,strcmp('LB', accCritHeader)));
-UBVec = cell2mat(accCritData(:,strcmp('UB', accCritHeader)));
-DataVec = accCritData(:,strcmp('Data', accCritHeader));
-TimeVec = cell2mat(accCritData(:,strcmp('Time', accCritHeader)));
 
 
 %% Get the selections and Task-Vpop pairs
@@ -300,56 +294,25 @@ if strcmp(obj.PlotType, 'Normal') && ~isempty(Results)
 
                     end
                     
-
-
-
-                    % add upper and lower bounds if applicable
-                    DataCol = find(strcmp(accCritHeader,'Data'));
-                    accName = obj.PlotSpeciesTable(strcmp(ThisDataName,obj.PlotSpeciesTable(:,4)),4);
-
-                    accDataRows = strcmp(accCritData(:,DataCol), accName) & ...
-                        cell2mat(accCritData(:,strcmp(accCritHeader,'Group'))) == str2num(obj.PlotItemTable{itemNumber,4}) ;
-                    LB = cell2mat(accCritData(accDataRows, strcmp(accCritHeader, 'LB')));
-                    UB = cell2mat(accCritData(accDataRows, strcmp(accCritHeader, 'UB')));
-                    accTime = cell2mat(accCritData(accDataRows, strcmp(accCritHeader, 'Time')));
-
-                    if any(accDataRows)
-                        % Plot
-                        hThis = plot(hSpeciesGroup{sIdx,axIdx},accTime,LB,...
-                            'MarkerFaceColor', SelectedItemColors(itemIdx,:),...
-                            'MarkerEdgeColor','k',...
-                            'LineWidth',2,...
-                            'LineStyle','none');
-                        hThisAnn = get(hThis,'Annotation');
-                        if iscell(hThisAnn)
-                            hThisAnn = [hThisAnn{:}];
-                        end
-                        hThisAnnLegend = get(hThisAnn,'LegendInformation');
-                        if iscell(hThisAnnLegend)
-                            hThisAnnLegend = [hThisAnnLegend{:}];
-                        end
-                        set(hThisAnnLegend,'IconDisplayStyle','off');
-                        ublb_lines = [ublb_lines; hThis];      
-                        
-                        hThis = plot(hSpeciesGroup{sIdx,axIdx},accTime,UB,...
-                            'MarkerFaceColor', SelectedItemColors(itemIdx,:),...
-                            'MarkerEdgeColor','k',...
-                            'LineWidth',2,...
-                            'LineStyle','none');
-                        hThisAnn = get(hThis,'Annotation');
-                        if iscell(hThisAnn)
-                            hThisAnn = [hThisAnn{:}];
-                        end
-                        hThisAnnLegend = get(hThisAnn,'LegendInformation');
-                        if iscell(hThisAnnLegend)
-                            hThisAnnLegend = [hThisAnnLegend{:}];
-                        end
-                        set(hThisAnnLegend,'IconDisplayStyle','off');
-                        ublb_lines = [ublb_lines; hThis];      
-                        
-%                         ublb_lines = [ublb_lines; plot(hAxes(axIdx), accTime, LB, 'ko', 'LineStyle', 'none', 'MarkerFaceColor', SelectedItemColors(itemIdx,:), 'MarkerEdgeColor', 'k', 'LineWidth', 2)];
-%                         ublb_lines = [ublb_lines; plot(hAxes(axIdx), accTime, UB, 'ko', 'LineStyle', 'none', 'MarkerFaceColor', SelectedItemColors(itemIdx,:), 'MarkerEdgeColor', 'k', 'LineWidth', 2)];
+                    
+                    % plot the vpop generation data
+                    
+                    spData = vpopGenData( cell2mat(vpopGenData(:,strcmp(vpopGenHeader,'Group'))) == str2num(obj.PlotItemTable{itemNumber,4}) & ...
+                        strcmp(vpopGenData(:,strcmp(vpopGenHeader,'Species')), ThisName), :); ...
+                    val1 = cell2mat(spData(:, strcmp(vpopGenHeader, 'Value1')));
+                    val2 = cell2mat(spData(:, strcmp(vpopGenHeader, 'Value2')));
+                
+                    type = spData(:, strcmp(vpopGenHeader, 'Type'));
+                    times = cell2mat(spData(:, strcmp(vpopGenHeader, 'Time')));
+                    unqTime = unique(times);
+                    ixMean = strcmp(type,'MEAN');
+                    ixMeanStd = strcmp(type,'MEAN_STD');
+                    
+                    plot(hSpeciesGroup{sIdx,axIdx}, times(ixMean), val1(ixMean), 'o', 'Color', SelectedItemColors(itemIdx,:));
+                    if any(ixMeanStd)
+                        errorbar(hSpeciesGroup{sIdx,axIdx}, times(ixMeanStd), val1(ixMeanStd), val2(ixMeanStd), 'o', 'Color', SelectedItemColors(itemIdx,:));
                     end
+
                 end
             end
 

@@ -525,6 +525,8 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                     ref_obj = obj.Data.Session.Optimization;
                 case 'QSPViewer.VirtualPopulationGeneration'
                     ref_obj = obj.Data.Session.VirtualPopulationGeneration;
+                case 'QSPViewer.VirtualPopulationGenerationData'
+                    ref_obj = obj.Data.Session.Settings.VirtualPopulationGenerationData;
             end
             
             ixDup = find(strcmp( obj.TempData.Name, {ref_obj.Name}));

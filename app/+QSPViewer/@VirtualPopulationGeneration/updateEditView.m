@@ -49,21 +49,3 @@ refreshItemsTable(vObj);
 refreshSpeciesDataTable(vObj);
 
 
-%% Update ParametersPopup
-
-refreshParameters(vObj);
-
-
-%% Update MaxNumSimulations
-
-updateMaxNumSims(vObj);
-
-
-%% Update MaxNumVirtualPatients
-
-updateMaxNumVirtualPatients(vObj);
-
-%% set initial conditions file
-if ~isempty(vObj.Data)
-    set(vObj.h.ICFileSelector,'Value',vObj.Data.ICFileName);
-end

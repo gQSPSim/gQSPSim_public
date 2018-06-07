@@ -55,12 +55,12 @@ AxesOptions = getAxesOptions(vObj);
 
 %% Re-import VirtualPopulationData
 
-if ~isempty(vObj.Data) && ~isempty(vObj.Data.DatasetName) && ~isempty(vObj.Data.Settings.VirtualPopulationData)
-    Names = {vObj.Data.Settings.VirtualPopulationData.Name};
-    MatchIdx = strcmpi(Names,vObj.Data.DatasetName);
+if ~isempty(vObj.Data) && ~isempty(vObj.Data.DatasetName) && ~isempty(vObj.Data.Settings.VirtualPopulationGenerationData)
+    Names = {vObj.Data.Settings.VirtualPopulationGenerationData.Name};
+    MatchIdx = strcmpi(Names,vObj.Data.VpopGenDataName);
     
     if any(MatchIdx)
-        vpopObj = vObj.Data.Settings.VirtualPopulationData(MatchIdx);
+        vpopObj = vObj.Data.Settings.VirtualPopulationGenerationData(MatchIdx);
         
         [~,~,VpopHeader,VpopData] = importData(vpopObj,vpopObj.FilePath);
     else
@@ -73,7 +73,7 @@ else
 end
 
 % Get unique values from Data Column
-MatchIdx = strcmpi(VpopHeader,'Data');
+MatchIdx = strcmpi(VpopHeader,'Species');
 if any(MatchIdx)
     UniqueDataVals = unique(VpopData(:,MatchIdx));
 else

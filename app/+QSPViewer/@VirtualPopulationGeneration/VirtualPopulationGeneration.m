@@ -23,8 +23,11 @@ classdef VirtualPopulationGeneration < uix.abstract.CardViewPane
         DatasetGroupPopupItems = {'-'}        
         DatasetGroupPopupItemsWithInvalid = {'-'}
         
-        ParameterPopupItems = {'-'}
-        ParameterPopupItemsWithInvalid = {'-'}
+        VpopPopupItems = {'-'}   
+        VpopPopupItemsWithInvalid = {'-'}
+
+        MethodItems = {'Maximum likelihood'; 'Bayesian'}   
+        MethodItemsWithInvalid = {'-'}
         
         TaskPopupTableItems = {}
         GroupIDPopupTableItems = {}
@@ -36,9 +39,7 @@ classdef VirtualPopulationGeneration < uix.abstract.CardViewPane
         
         ParametersHeader = {} % From RefParamName
         ParametersData = {} % From RefParamName
-        
-        ObjectiveFunctions = {'defaultObj'}
-        
+               
         PlotSpeciesAsInvalidTable = cell(0,3)
         PlotItemAsInvalidTable = cell(0,4)
         
@@ -119,9 +120,30 @@ classdef VirtualPopulationGeneration < uix.abstract.CardViewPane
   
         end
         
-        function onDatasetPopup(vObj,h,e)
+        function onCohortPopup(vObj,h,e)
             
             vObj.TempData.DatasetName = vObj.DatasetPopupItems{get(h,'Value')};
+            
+            % Update the view
+            refreshDataset(vObj);
+            refreshItemsTable(vObj);
+            refreshSpeciesDataTable(vObj);
+            
+        end %function
+
+        function onVpopGenDataPopup(vObj,h,e)
+            
+            vObj.TempData.VpopGenDataName = vObj.VpopPopupItems{get(h,'Value')};
+            
+            % Update the view
+            refreshDataset(vObj);
+            refreshItemsTable(vObj);
+            refreshSpeciesDataTable(vObj);
+            
+        end %function
+        
+        function onMethodPopup(vObj,h,e)
+            vObj.TempData.MethodName = vObj.MethodItems{get(h,'Value')};
             
             % Update the view
             refreshDataset(vObj);
@@ -189,7 +211,7 @@ classdef VirtualPopulationGeneration < uix.abstract.CardViewPane
                             NewSpeciesData.FunctionExpression = DefaultExpression;
                             vObj.TempData.SpeciesData(end+1) = NewSpeciesData;
                         else
-                            hDlg = errordlg('At least one task with active species and a non-empty ''Data'' column in the dataset must be defined in order to add an optimization item.','Cannot Add','modal');
+                            hDlg = errordlg('At least one task with active species and a non-empty ''Species'' column in the dataset must be defined in order to add an optimization item.','Cannot Add','modal');
                             uiwait(hDlg);
                             FlagRefreshTables = false;
                         end

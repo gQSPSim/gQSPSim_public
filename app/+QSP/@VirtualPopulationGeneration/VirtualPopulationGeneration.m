@@ -30,19 +30,17 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
     properties
         Settings = QSP.Settings.empty(0,1)
         VPopResultsFolderName = 'VPopResults' 
-        ICFileName = ''
         ExcelResultFileName = ''
         VPopName = '' % VPop name from running vpop gen
               
         DatasetName = '' % VirtualPopulationData Name
-        RefParamName = '' % Parameters.Name
+        VpopGenDataName = ''
+        MethodName = 'Maximum likelihood';
+        
         GroupName = ''
         
         Item = QSP.TaskGroup.empty(0,1)
         SpeciesData = QSP.SpeciesData.empty(0,1)
-        
-        MaxNumSimulations = 5000
-        MaxNumVirtualPatients = 500
         
         PlotSpeciesTable = cell(0,4)
         PlotItemTable = cell(0,4) 
@@ -164,35 +162,30 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
                 SpeciesDataItems = {};
             end
             
-            % Get the parameter used            
-            Names = {obj.Settings.Parameters.Name};
-            MatchIdx = strcmpi(Names,obj.RefParamName);
-            if any(MatchIdx)
-                pObj = obj.Settings.Parameters(MatchIdx);
-                [~,~,ParametersHeader,ParametersData] = importData(pObj,pObj.FilePath);                
-            else
-                ParametersHeader = {};
-                ParametersData = {};
-            end
+%             % Get the parameter used            
+%             Names = {obj.Settings.Parameters.Name};
+%             MatchIdx = strcmpi(Names,obj.RefParamName);
+%             if any(MatchIdx)
+%                 pObj = obj.Settings.Parameters(MatchIdx);
+%                 [~,~,ParametersHeader,ParametersData] = importData(pObj,pObj.FilePath);                
+%             else
+%                 ParametersHeader = {};
+%                 ParametersData = {};
+%             end
+%             
+%             if ~isempty(ParametersHeader)
+%                 MatchInclude = find(strcmpi(ParametersHeader,'Include'));
+%                 MatchName = find(strcmpi(ParametersHeader,'Name'));
+%                 if numel(MatchInclude) == 1 && numel(MatchName) == 1
+%                     IsUsed = strcmpi(ParametersData(:,MatchInclude),'yes');
+%                     UsedParamNames = ParametersData(IsUsed,MatchName);
+%                 else
+%                     UsedParamNames = {};
+%                 end
+%             else
+%                 UsedParamNames = {};
+%             end
             
-            if ~isempty(ParametersHeader)
-                MatchInclude = find(strcmpi(ParametersHeader,'Include'));
-                MatchName = find(strcmpi(ParametersHeader,'Name'));
-                if numel(MatchInclude) == 1 && numel(MatchName) == 1
-                    IsUsed = strcmpi(ParametersData(:,MatchInclude),'yes');
-                    UsedParamNames = ParametersData(IsUsed,MatchName);
-                else
-                    UsedParamNames = {};
-                end
-            else
-                UsedParamNames = {};
-            end
-            
-            if isempty(obj.ICFileName)
-                obj.ICFileName = 'N/A';
-            else
-                obj.ICFileName = obj.ICFileName;
-            end
             
             % Populate summary
             Summary = {...
@@ -203,12 +196,7 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
                 'Dataset',obj.DatasetName;
                 'Group Name',obj.GroupName;
                 'Items',VPopGenItems;
-                'Parameter file',obj.RefParamName;
-                'Parameters used for virtual population generation',UsedParamNames;
                 'Species-data mapping',SpeciesDataItems;
-                'Initial conditions file',obj.ICFileName;
-                'Max No of Simulations',num2str(obj.MaxNumSimulations);
-                'Max No of Virtual Patients',num2str(obj.MaxNumVirtualPatients);
                 'Results',obj.ExcelResultFileName;
                 };
             
@@ -222,52 +210,32 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
             % TODO: Validate that params in vpop exist in the file
             if ~isempty(obj.Settings)
                                 
-                % Check that Dataset (VirtualPopulationData) is valid if it exists
-                if ~isempty(obj.Settings.VirtualPopulationData)
-                    MatchIdx = find(strcmpi({obj.Settings.VirtualPopulationData.Name},obj.DatasetName));
+                % Check that Cohort (VirtualPopulation) is valid if it exists
+                if ~isempty(obj.Settings.VirtualPopulation)
+                    MatchIdx = find(strcmpi({obj.Settings.VirtualPopulation.Name},obj.DatasetName));
                     if isempty(MatchIdx) || numel(MatchIdx) > 1
                         StatusOK = false;
-                        Message = sprintf('%s\n* %s\n',Message,'Invalid dataset name specified for Optimization Data.');
+                        Message = sprintf('%s\n* %s\n',Message,'Invalid dataset name specified for cohort.');
                     else
-                        [ThisStatusOK,ThisMessage] = validate(obj.Settings.VirtualPopulationData(MatchIdx),FlagRemoveInvalid);
+                        [ThisStatusOK,ThisMessage] = validate(obj.Settings.VirtualPopulation(MatchIdx),FlagRemoveInvalid);
                         if ~ThisStatusOK
                             StatusOK = false;
                             Message = sprintf('%s\n* %s\n',Message,ThisMessage);
                         end
                     end
                 else
-                    ThisMessage = 'No Acceptance Criteria specified';
+                    ThisMessage = 'No Cohort specified';
                     StatusOK = false;
                     Message = sprintf('%s\n* %s\n',Message,ThisMessage);
                 end                    
                 
-                % Check that RefParamName (Parameters) is valid if it exists
-                if ~isempty(obj.Settings.Parameters)
-                    MatchIdx = find(strcmpi({obj.Settings.Parameters.Name},obj.RefParamName));
-                    if isempty(MatchIdx) || numel(MatchIdx) > 1
-                        StatusOK = false;
-                        Message = sprintf('%s\n* %s\n',Message,'Invalid reference parameter name specified for Parameters.');
-                    else
-                        [ThisStatusOK,ThisMessage] = validate(obj.Settings.Parameters(MatchIdx),FlagRemoveInvalid);
-                        if ~ThisStatusOK
-                            StatusOK = false;
-                            Message = sprintf('%s\n* %s\n',Message,ThisMessage);
-                        end
-                    end
-                else
-                    ThisMessage = 'No Parameters specified';
-                    StatusOK = false;
-                    Message = sprintf('%s\n* %s\n',Message,ThisMessage);
-                end
-                
-                
-                % Import VirtualPopulationData
-                if ~isempty(obj.Settings.VirtualPopulationData)
-                    Names = {obj.Settings.VirtualPopulationData.Name};
+                % Import Cohort
+                if ~isempty(obj.Settings.VirtualPopulation)
+                    Names = {obj.Settings.VirtualPopulation.Name};
                     MatchIdx = strcmpi(Names,obj.DatasetName);
                     
                     if any(MatchIdx)
-                        vpopObj = obj.Settings.VirtualPopulationData(MatchIdx);
+                        vpopObj = obj.Settings.VirtualPopulation(MatchIdx);
                         
                         [~,~,VPopHeader,VPopData] = importData(vpopObj,vpopObj.FilePath);
                     else
@@ -277,6 +245,51 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
                     VPopHeader = {};
                 end
                 
+                
+               % TODO: validate content of the vpop file 
+
+                 % Check that VirtualPopulationGenerationData is valid if it exists
+                if ~isempty(obj.Settings.VirtualPopulationGenerationData)
+                    MatchIdx = find(strcmpi({obj.Settings.VirtualPopulationGenerationData.Name},obj.VpopGenDataName));
+                    if isempty(MatchIdx) || numel(MatchIdx) > 1
+                        StatusOK = false;
+                        Message = sprintf('%s\n* %s\n',Message,'Invalid dataset name specified for cohort.');
+                    else
+                        [ThisStatusOK,ThisMessage] = validate(obj.Settings.VirtualPopulationGenerationData(MatchIdx),FlagRemoveInvalid);
+                        if ~ThisStatusOK
+                            StatusOK = false;
+                            Message = sprintf('%s\n* %s\n',Message,ThisMessage);
+                        end
+                    end
+                else
+                    ThisMessage = 'No Cohort specified';
+                    StatusOK = false;
+                    Message = sprintf('%s\n* %s\n',Message,ThisMessage);
+                end
+                
+                
+                % Import VpopGenData
+                if ~isempty(obj.Settings.VirtualPopulationGenerationData)
+                    Names = {obj.Settings.VirtualPopulationGenerationData.Name};
+                    MatchIdx = strcmpi(Names,obj.VpopGenDataName);
+                    
+                    if any(MatchIdx)
+                        vpopGenDataObj = obj.Settings.VirtualPopulationGenerationData(MatchIdx);
+                        
+                        [~,~,VPopHeader,VPopData] = importData(vpopGenDataObj,vpopGenDataObj.FilePath);
+                    else
+                        VPopHeader = {};
+                    end
+                else
+                    VPopHeader = {};
+                end
+                
+                % TODO: validate content of the vpop gen data file
+               % depends on type of data
+                
+               
+               
+               
                 % Get the group column and data column
                 % GroupID
                 if ~isempty(VPopHeader) && ~isempty(VPopData)
@@ -296,16 +309,31 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
                     end
                     
                     
-                    MatchIdx = find(strcmp(VPopHeader,'Data'));
+                    MatchIdx = find(strcmp(VPopHeader,'Species'));
                     if numel(MatchIdx) == 1
                         DataValues = VPopData(:,MatchIdx);
                         DataValues = unique(DataValues);
                     else
                         StatusOK = false;
-                        ThisMessage = sprintf('The column name "Data" does not exist or exists multiple times within the header of the Excel file.');
+                        ThisMessage = sprintf('The column name "Value1" does not exist or exists multiple times within the header of the Excel file.');
                         Message = sprintf('%s\n* %s\n',Message,ThisMessage);
                         DataValues = {};
+                    end                    
+                    
+                    MatchIdx = find(strcmp(VPopHeader,'Value1'));
+                    if numel(MatchIdx) ~= 1
+                        StatusOK = false;
+                        ThisMessage = sprintf('The column name "Value1" does not exist or exists multiple times within the header of the Excel file.');
+                        Message = sprintf('%s\n* %s\n',Message,ThisMessage);
                     end
+
+                    MatchIdx = find(strcmp(VPopHeader,'Value2'));
+                    if numel(MatchIdx) ~= 1
+                        StatusOK = false;
+                        ThisMessage = sprintf('The column name "Value1" does not exist or exists multiple times within the header of the Excel file.');
+                        Message = sprintf('%s\n* %s\n',Message,ThisMessage);
+                    end
+                    
                 else
                     GroupIDs = [];
                     DataValues = {};
@@ -475,11 +503,11 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
             InvalidMessages = cell(1,numel(obj.Item));
             
             % Check if VirtualPopulationData is valid
-            ThisList = {obj.Settings.VirtualPopulationData.Name};
+            ThisList = {obj.Settings.VirtualPopulation.Name};
             MatchIdx = strcmpi(ThisList,obj.DatasetName);
             GroupIDs = [];
             if any(MatchIdx)
-                dObj = obj.Settings.VirtualPopulationData(MatchIdx);
+                dObj = obj.Settings.VirtualPopulation(MatchIdx);
                 ThisStatusOk = validate(dObj);
                 ForceMarkAsInvalid = ~ThisStatusOk;
                 
@@ -502,23 +530,23 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
                 ForceMarkAsInvalid = false;
             end
             
-            % ONLY if OptimizationData is valid, check Parameters
-            ThisList = {obj.Settings.Parameters.Name};
-            MatchIdx = strcmpi(ThisList,obj.RefParamName);
-            if any(MatchIdx)
-                pObj = obj.Settings.Parameters(MatchIdx);
-            else
-                pObj = QSP.Parameters.empty(0,1);
-            end
-                
-            if ForceMarkAsInvalid                
-                if ~isempty(pObj)
-                    ThisStatusOk = validate(pObj);
-                    ForceMarkAsInvalid = ~ThisStatusOk;
-                else
-                    ForceMarkAsInvalid = false;
-                end
-            end
+%             % ONLY if OptimizationData is valid, check Parameters
+%             ThisList = {obj.Settings.Parameters.Name};
+%             MatchIdx = strcmpi(ThisList,obj.RefParamName);
+%             if any(MatchIdx)
+%                 pObj = obj.Settings.Parameters(MatchIdx);
+%             else
+%                 pObj = QSP.Parameters.empty(0,1);
+%             end
+%                 
+%             if ForceMarkAsInvalid                
+%                 if ~isempty(pObj)
+%                     ThisStatusOk = validate(pObj);
+%                     ForceMarkAsInvalid = ~ThisStatusOk;
+%                 else
+%                     ForceMarkAsInvalid = false;
+%                 end
+%             end
             
             for index = 1:numel(obj.Item)
                 % Validate Task-Group and ExcelFilePath
@@ -529,8 +557,9 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
                 if ~ForceMarkAsInvalid && ...
                         ~isempty(ThisTask) && ...
                         ~isempty(ThisTask.LastSavedTime) && ...
-                        any(MatchGroup) && ...
-                        ~isempty(obj.LastSavedTime)
+                         ~isempty(obj.LastSavedTime)
+%                         any(MatchGroup) && ...
+                       
                     
                     % Compare times
                     
@@ -559,28 +588,14 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
                     if exist(ThisFilePath,'file') == 2
                         FileInfo = dir(ThisFilePath);                        
                         ResultLastSavedTime = FileInfo.datenum;
-                        
-                        % Parameter object and file
-                        if ~isempty(pObj)
-                            ParametersLastSavedTime = datenum(pObj.LastSavedTime);
-                            FileInfo = dir(pObj.FilePath);
-                            ParametersFileLastSavedTime = FileInfo.datenum;         
-                        else
-                            ResultLastSavedTime = Inf;
-                            ParametersLastSavedTime = Inf;
-                            ParametersFileLastSavedTime = Inf;
-                        end
+                                                
                     elseif ~isempty(obj.ExcelResultFileName)
                         ResultLastSavedTime = '';
                         % Display invalid
-                        ValidFlag(index) = false;
-                        ParametersLastSavedTime = Inf;
-                        ParametersFileLastSavedTime = Inf;                        
+                        ValidFlag(index) = false;               
                         InvalidMessages{index} = 'Excel file cannot be found';
                     else
                         ResultLastSavedTime = Inf;
-                        ParametersLastSavedTime = Inf;
-                        ParametersFileLastSavedTime = Inf;
                     end
                     
                     % Check
@@ -592,10 +607,10 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
                         StaleFlag(index) = 3;
                     elseif VpopLastSavedTime < VirtualPopulationDataFileLastSavedTime
                         StaleFlag(index) = 4;
-                    elseif VpopLastSavedTime < ParametersLastSavedTime 
-                        StaleFlag(index) = 5;
-                    elseif VpopLastSavedTime < ParametersFileLastSavedTime
-                        StaleFlag(index) = 6;
+%                     elseif VpopLastSavedTime < ParametersLastSavedTime 
+%                         StaleFlag(index) = 5;
+%                     elseif VpopLastSavedTime < ParametersFileLastSavedTime
+%                         StaleFlag(index) = 6;
                     elseif (~isempty(ResultLastSavedTime) && VpopLastSavedTime > ResultLastSavedTime)
                         StaleFlag(index) = 7;
                     end
@@ -604,7 +619,7 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
                     % Display invalid
                     ValidFlag(index) = false;                    
                     InvalidMessages{index} = 'Invalid reference parameter set';
-                elseif isempty(ThisTask) || ~any(MatchGroup)
+                elseif isempty(ThisTask) %% || ~any(MatchGroup)
                     % Display invalid
                     ValidFlag(index) = false;                    
                     InvalidMessages{index} = 'Invalid Task and/or Group ID';
@@ -636,12 +651,7 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
         function set.GroupName(obj,Value)
             validateattributes(Value,{'char'},{});
             obj.GroupName = Value;
-        end
-        
-        function set.RefParamName(obj,Value)
-            validateattributes(Value,{'char'},{});
-            obj.RefParamName = Value;
-        end
+        end        
         
         function set.Item(obj,Value)
             validateattributes(Value,{'QSP.TaskGroup'},{});
@@ -651,17 +661,7 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
         function set.SpeciesData(obj,Value)
             validateattributes(Value,{'QSP.SpeciesData'},{});
             obj.SpeciesData = Value;
-        end
-        
-        function set.MaxNumSimulations(obj,Value)
-            validateattributes(Value,{'numeric'},{'scalar','nonnegative'});
-            obj.MaxNumSimulations = Value;
-        end
-        
-        function set.MaxNumVirtualPatients(obj,Value)
-            validateattributes(Value,{'numeric'},{'scalar','nonnegative'});
-            obj.MaxNumVirtualPatients = Value;
-        end
+        end        
         
         function set.PlotType(obj,Value)
             Value = validatestring(Value,obj.ValidPlotTypes);

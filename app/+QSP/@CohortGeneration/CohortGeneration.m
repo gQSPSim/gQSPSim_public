@@ -432,7 +432,7 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 % clear cached results if any
                 obj.SimResults = {};
                 obj.SimFlag = [];
-                [StatusOK,Message,ResultsFileName,ThisVPopName] = vpopGenerationRunHelper(obj);
+                [StatusOK,Message,ResultsFileName,ThisVPopName] = cohortGenerationRunHelper(obj);
                 % Update MATFileName in the simulation items
                 obj.ExcelResultFileName = ResultsFileName;
                 obj.VPopName = ThisVPopName;
