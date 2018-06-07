@@ -165,8 +165,8 @@ for spIdx = 1:size(Mappings,1)
             
             % if STD
             if strcmp(thisType, 'MEAN_STD')
-               dataMatrix = [dataMatrix; (spData -  thisData(:,val1Col)).^2];
-                Y = [Y; cell2mat(thisData(:,val2Col))];         
+               dataMatrix = [dataMatrix; (spData -  cell2mat(thisData(:,val1Col))).^2];
+                Y = [Y; cell2mat(thisData(:,val2Col)).^2];         
                 %TODO: use STD to compute uncertainty in the mean? requires
                 %knowledge of sample size to get the std. err.
             end

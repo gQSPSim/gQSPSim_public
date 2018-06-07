@@ -307,10 +307,10 @@ if strcmp(obj.PlotType, 'Normal') && ~isempty(Results)
                     unqTime = unique(times);
                     ixMean = strcmp(type,'MEAN');
                     ixMeanStd = strcmp(type,'MEAN_STD');
-                    
+                    axes(get(hSpeciesGroup{sIdx,axIdx},'Parent'))
                     plot(hSpeciesGroup{sIdx,axIdx}, times(ixMean), val1(ixMean), 'o', 'Color', SelectedItemColors(itemIdx,:));
                     if any(ixMeanStd)
-                        errorbar(hSpeciesGroup{sIdx,axIdx}, times(ixMeanStd), val1(ixMeanStd), val2(ixMeanStd), 'o', 'Color', SelectedItemColors(itemIdx,:));
+                        errorbar(times(ixMeanStd), val1(ixMeanStd), val2(ixMeanStd), 'o', 'Color', SelectedItemColors(itemIdx,:));
                     end
 
                 end
