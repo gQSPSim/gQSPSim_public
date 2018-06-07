@@ -28,7 +28,7 @@ function plotData(vObj)
 
 %                 try
 % Plot
-plotVirtualPopulationGeneration(vObj.Data,vObj.h.MainAxes);
+plotCohortGeneration(vObj.Data,vObj.h.MainAxes);
 %                 catch ME
 %                     hDlg = errordlg(sprintf('Cannot plot. %s',ME.message),'Invalid','modal');
 %                     uiwait(hDlg);

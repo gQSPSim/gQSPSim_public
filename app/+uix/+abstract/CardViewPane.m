@@ -523,6 +523,8 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                     ref_obj = obj.Data.Session.Simulation;
                 case 'QSPViewer.Optimization'
                     ref_obj = obj.Data.Session.Optimization;
+                case 'QSPViewer.CohortGeneration'
+                    ref_obj = obj.Data.Session.CohortGeneration;                    
                 case 'QSPViewer.VirtualPopulationGeneration'
                     ref_obj = obj.Data.Session.VirtualPopulationGeneration;
                 case 'QSPViewer.VirtualPopulationGenerationData'

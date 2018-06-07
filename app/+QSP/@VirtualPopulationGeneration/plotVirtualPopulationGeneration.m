@@ -114,7 +114,7 @@ vObj = obj.Settings.VirtualPopulation(strcmp(obj.VPopName,allVpopNames));
 %% Run the simulations for those that are not cached
 if ~isempty(simObj)
 
-    [ThisStatusOK,Message,ResultFileNames,Cancelled,Results] = simulationRunHelper(simObj, [], {}, TimeVec);
+    [ThisStatusOK,Message,ResultFileNames,Cancelled,Results] = simulationRunHelper(simObj);
     
     if ~ThisStatusOK  && ~Cancelled     
         error('plotVirtualPopulationGeneration: %s',Message);
@@ -243,41 +243,37 @@ if strcmp(obj.PlotType, 'Normal') && ~isempty(Results)
                     if ~isempty(Results{itemIdx}.Data(:,setdiff(ColumnIdx, ColumnIdx_invalid)))
 
                         % Plot
-                        if obj.bShowTraces(axIdx)
-                            hThis = plot(hSpeciesGroup{sIdx,axIdx},Results{itemIdx}.Time,thisData(:,setdiff(ColumnIdx, ColumnIdx_invalid)),...
-                                'Color',SelectedItemColors(itemIdx,:),...
-                                'LineStyle',ThisLineStyle);
-                            acc_lines = [acc_lines; hThis];                        
+%                         if obj.bShowTraces(axIdx)
+%                             hThis = plot(hSpeciesGroup{sIdx,axIdx},Results{itemIdx}.Time,thisData(:,setdiff(ColumnIdx, ColumnIdx_invalid)),...
+%                                 'Color',SelectedItemColors(itemIdx,:),...
+%                                 'LineStyle',ThisLineStyle);
+%                             acc_lines = [acc_lines; hThis];                        
 
-                        end
+%                         end
                         
-                        if obj.bShowQuantiles(axIdx)
-%                             axes(get(hSpeciesGroup{sIdx,axIdx},'Parent'))
-                            h=shadedErrorBar(Results{itemIdx}.Time, mean(thisData(:,setdiff(ColumnIdx, ColumnIdx_invalid)),2), ...
-                                std(thisData(:,setdiff(ColumnIdx, ColumnIdx_invalid)),[],2));
-                            set(h.mainLine,'Parent',hSpeciesGroup{sIdx,axIdx})
-                            set(h.patch,'Parent',hSpeciesGroup{sIdx,axIdx})
-                            set(h.edge,'Parent',hSpeciesGroup{sIdx,axIdx})
-                            set(h.mainLine, 'Color',SelectedItemColors(itemIdx,:),...
-                                'LineStyle',ThisLineStyle);
-                            set(h.patch,'FaceColor',SelectedItemColors(itemIdx,:));
-                            hThis = h.mainLine;
-                        end
+%                         if obj.bShowQuantiles(axIdx)
+% %                             axes(get(hSpeciesGroup{sIdx,axIdx},'Parent'))
+%                             h=shadedErrorBar(Results{itemIdx}.Time, mean(thisData(:,setdiff(ColumnIdx, ColumnIdx_invalid)),2), ...
+%                                 std(thisData(:,setdiff(ColumnIdx, ColumnIdx_invalid)),[],2));
+%                             set(h.mainLine,'Parent',hSpeciesGroup{sIdx,axIdx})
+%                             set(h.patch,'Parent',hSpeciesGroup{sIdx,axIdx})
+%                             set(h.edge,'Parent',hSpeciesGroup{sIdx,axIdx})
+%                             set(h.mainLine, 'Color',SelectedItemColors(itemIdx,:),...
+%                                 'LineStyle',ThisLineStyle);
+%                             set(h.patch,'FaceColor',SelectedItemColors(itemIdx,:));
+%                             hThis = h.mainLine;
+%                         end
                         
-                        hThisAnn = get(hThis,'Annotation');
-                        if iscell(hThisAnn)
-                            hThisAnn = [hThisAnn{:}];
-                        end
-                        hThisAnnLegend = get(hThisAnn,'LegendInformation');
-                        if iscell(hThisAnnLegend)
-                            hThisAnnLegend = [hThisAnnLegend{:}];
-                        end
-                        set(hThisAnnLegend,'IconDisplayStyle','off');
+%                         hThisAnn = get(hThis,'Annotation');
+%                         if iscell(hThisAnn)
+%                             hThisAnn = [hThisAnn{:}];
+%                         end
+%                         hThisAnnLegend = get(hThisAnn,'LegendInformation');
+%                         if iscell(hThisAnnLegend)
+%                             hThisAnnLegend = [hThisAnnLegend{:}];
+%                         end
+%                         set(hThisAnnLegend,'IconDisplayStyle','off');
                         
-%                         acc_lines = [acc_lines; plot(hAxes(axIdx),Results{itemIdx}.Time,Results{itemIdx}.Data(:,setdiff(ColumnIdx, ColumnIdx_invalid)),...
-%                             'LineStyle',ThisLineStyle,...
-%                             'Color',SelectedItemColors(itemIdx,:))];
-
                         % mean
     %                     mean_line = plot(hAxes(axIdx), Results{itemIdx}.Time, thisData(:,ColumnIdx) * obj.PrevalenceWeights/sum(obj.PrevalenceWeights),...
                         if iscell(Results{itemIdx}.VpopWeights)
@@ -286,11 +282,15 @@ if strcmp(obj.PlotType, 'Normal') && ~isempty(Results)
                             vpopWeights = Results{itemIdx}.VpopWeights;
                         end
                     
-                        mean_line = plot(hSpeciesGroup{sIdx,axIdx}, Results{itemIdx}.Time, thisData(:,ColumnIdx) * ...
-                            vpopWeights/sum(vpopWeights),...
-                            'LineStyle',ThisLineStyle,...
+                        thisMean = thisData(:,ColumnIdx) * vpopWeights/sum(vpopWeights);
+                        thisStd = sqrt( (thisData(:,ColumnIdx) - thisMean).^2 * vpopWeights/sum(vpopWeights));
+                        axes(get(hSpeciesGroup{sIdx,axIdx},'Parent'))
+                        mean_line = shadedErrorBar(Results{itemIdx}.Time, thisMean,...
+                           [thisStd, thisStd]');
+                        set(mean_line.mainLine, 'LineStyle',ThisLineStyle,...
                             'Color',SelectedItemColors(itemIdx,:), ...
                             'LineWidth', 3);
+                        set(mean_line.patch, 'FaceColor',SelectedItemColors(itemIdx,:));                        
 
                     end
                     
