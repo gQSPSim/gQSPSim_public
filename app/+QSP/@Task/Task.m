@@ -57,14 +57,17 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         ExportedModel
         Species
         Parameters
+        
+        VarModelObj
+        ModelObj_
     end
     
     %% Protected Transient Properties
-    properties (GetAccess=public, SetAccess=protected, Transient = true)
-        VarModelObj
-        ModelObj_
-
-    end
+%     properties (GetAccess=public, SetAccess=protected, Transient = true)
+%         VarModelObj
+%         ModelObj_
+% 
+%     end
     
 %     %% Private Transient Properties
 %     properties (GetAccess=private, SetAccess=private, Transient = true)
@@ -112,6 +115,15 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         
         [t,x,names] = simulate(obj, varargin) % prototype
         
+        function compile(obj)
+            
+         % rebuild model if necessary
+         if ~obj.checkExportedModelCurrent()
+            obj.constructModel();
+            disp('Rebuilding model')
+         end
+         
+        end
 
     end %methods
     
@@ -175,7 +187,7 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
 %             thisObj = obj.copy();
             
             [ThisStatusOk,ThisMessage] = importModel(obj,obj.FilePath,obj.ModelName);
-            thisObj.MaxWallClockTime = MaxWallClockTime; % override model defaults
+            obj.MaxWallClockTime = MaxWallClockTime; % override model defaults
             if ~ThisStatusOk
                 Message = sprintf('%s\n* Error loading model "%s" in "%s". %s\n',Message,obj.ModelName,obj.FilePath,ThisMessage);
             end            
@@ -285,13 +297,14 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 upToDate=false;
                 return
             end
-            
+           
             if isempty(obj.ExportedModelTimeStamp) || FileInfo.datenum > obj.ExportedModelTimeStamp || datenum(obj.LastSavedTime) > obj.ExportedModelTimeStamp || ...
                     isempty(obj.VarModelObj)
                 upToDate = false;
             else
                 upToDate = true;
             end
+
         end
     end
     
