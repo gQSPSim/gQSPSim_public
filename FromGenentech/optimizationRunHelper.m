@@ -209,7 +209,13 @@ for ii = 1:nItems
         continue
     end       
     
+    tObj_i.compile();
+    
     ItemModels.Task(ii) = tObj_i;
+    
+    
+    
+    
 end % for ii = ...
 
 
@@ -231,7 +237,7 @@ switch obj.AlgorithmName
             LB = estParamData(:,1);
             UB = estParamData(:,2);
             options = optimoptions('ParticleSwarm', 'Display', 'iter', 'FunctionTolerance', .1, 'MaxTime', 12000, ...
-                'UseParallel', false, 'FunValCheck', 'on', 'UseVectorized', false, 'PlotFcn',  @pswplotbestf);
+                'UseParallel', true, 'FunValCheck', 'on', 'UseVectorized', false, 'PlotFcn',  @pswplotbestf);
             VpopParams = particleswarm( @(est_p) objectiveFun(est_p',paramObj,ItemModels,Groups,IDs,Time,optimData,dataNames,obj), N, LB, UB, options);
         catch err
             StatusOK = false;
@@ -477,13 +483,13 @@ end
                         Values = [Values; fixed_p];
                         Names = [Names; fixedParamNames];
                     end
+                    
                     simData_id = ItemModels.Task(grpIdx).simulate(...
                         'Names', Names, ...
                         'Values', Values, ...
                         'OutputTimes', OutputTimes, ...
                         'StopTime', StopTime );
-                    
-                    
+                                        
                     % generate elements of objective vector by comparing model
                     % outputs to data
                     for spec = 1:length(SpeciesData)
@@ -501,7 +507,7 @@ end
                             tempStatusOK = false;
                             tempThisMessage = sprintf('There is an error in one of the function expressions in the SpeciesData mapping. %s', tempME.message);
                             tempMessage = sprintf('%s\n%s\n',tempMessage,tempThisMessage);
-                            objective = Inf;
+                            objective = 1e6;
                             if nargout>1
                                 varargout{1} = tempStatusOK;
                                 varargout{2} = tempMessage;
@@ -542,7 +548,7 @@ end
             end % for grp = ...
             
         catch simErr
-            disp(simErr.message)
+            warning(simErr.message)
             % if objective calculation fails
             objectiveVec = [];
             for grpIdx = 1:length(obj.Item)
@@ -565,11 +571,11 @@ end
                     %
                     for spec = 1:length(SpeciesData)
                         try
-                        optimData_spec = optimData_id(Time_id>=0,strcmp(SpeciesData(spec).DataName,dataNames));
+                            optimData_spec = optimData_id(Time_id>=0,strcmp(SpeciesData(spec).DataName,dataNames));
                         catch err
                             disp(err.message)
                         end
-                        objectiveVec = [objectiveVec;inf(length(optimData_spec(~isnan(optimData_spec))),1)];
+                        objectiveVec = [objectiveVec; 1e6*ones(length(optimData_spec(~isnan(optimData_spec))),1)];
                     end % for spec = ...
                 end % for id
             end % for grp
