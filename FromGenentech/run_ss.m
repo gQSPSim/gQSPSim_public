@@ -37,34 +37,20 @@ parMessage = cell(1,length(objvec));
 % C = parallel.pool.Constant(@(p) objective_handle(p));
 
 parfor l = 1 : length(objvec)
-%     fprintf('worker k=%d\n', l)
-%     [objvec(l)] = objective_handle(Pset(l,:)');
-%     [objvec(l)] = C.value; %objective_handle(Pset(l,:)');
-
-
     [objvec(l),parStatusOK(l),parMessage{l}] = objective_handle(Pset(l,:)');
-%     nEval=nEval+1;
-%     if mod(nEval, 300) == 0
-%         display(sprintf('MaxRgen = %d, nEval = %d', MaxRgen, nEval));
-%     end
 end
 
 StatusOK = all(parStatusOK);
+Message = vertcat(parMessage);
+
 if ~StatusOK
-    Message = vertcat(parMessage);
-    % don't return since we allow some parameter values to fail
-end
-% 
-% % for
-%     if ~StatusOK
-%         if nargout>1
-%             varargout{1} = StatusOK;
-%             varargout{2} = Message;
-%         end % if
-%         return
-%     end % if
-%     
-    
+    if nargout>1
+        varargout{1} = StatusOK;
+        varargout{2} = Message;
+    end % if
+    return
+end % if
+
 % Sort, keep the sets with the b lowest objective function values in the
 % Reference Set
 [PsetObj,RefIndx]=sort(objvec);
@@ -122,19 +108,17 @@ while (MaxRgen>=0)
             
             parfor cs=1:Cdim(1)
                 [CsetObj(cs),parStatusOK(cs),parMessage{cs}] = objective_handle(Cset(cs,:)');
-
-%                 nEval=nEval+1;
-%                 if mod(nEval, 300) == 0
-%                     sort_RefObj = sort(RefObj, 'ascend');
-%                     display(sprintf('MaxRgen = %d, nEval = %d, min(RefObj) = %f, %f, %f, %f, %f', MaxRgen, nEval, sort_RefObj(1:5)));
-%                 end
-                
             end % for\
             StatusOK = all(parStatusOK);
+            Message = vertcat(parMessage);
+            
             if ~StatusOK
-                Message = vertcat(parMessage);
-                % don't return since we allow some parameter values to fail
-            end
+                if nargout>1
+                    varargout{1} = StatusOK;
+                    varargout{2} = Message;
+                end % if
+                return
+            end % if            
             
             [Csrtval,Csrtidx]=sort(CsetObj);
             
@@ -185,11 +169,15 @@ while (MaxRgen>=0)
 %             end
         end % for
         StatusOK = all(parStatusOK);
+        Message = vertcat(parMessage);
+        
         if ~StatusOK
-            Message = vertcat(parMessage);
-            % don't return since we allow some parameter values to fail
-        end
-
+            if nargout>1
+                varargout{1} = StatusOK;
+                varargout{2} = Message;
+            end % if
+            return
+        end % if
         [PsetObj,RefIndx]=sort(objvec);
         RefSet=[RefSet; Pset(RefIndx(1:(b-h)),:)];
         RefObj=[RefObj; PsetObj(1:(b-h))];
