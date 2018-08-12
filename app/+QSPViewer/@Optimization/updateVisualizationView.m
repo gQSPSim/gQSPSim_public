@@ -429,12 +429,14 @@ UniqueSourceData = cell(1,numel(UniqueSourceNames));
 % First import just the unique sources
 for index = 1:numel(UniqueSourceNames)
     % Get values
-    [StatusOk,~,SourceData] = importParametersSource(vObj.Data,UniqueSourceNames{index});
+    [StatusOk,Message,SourceData] = importParametersSource(vObj.Data,UniqueSourceNames{index});
     if StatusOk
         [~,order] = sort(upper(SourceData(:,1)));
         UniqueSourceData{index} = SourceData(order,:);
     else
         UniqueSourceData{index} = cell(0,2);
+        hDlg = errordlg(Message,'Parameter Import Failed','modal');
+        uiwait(hDlg);
     end
 end
 

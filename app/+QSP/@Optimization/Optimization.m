@@ -506,6 +506,10 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                             PlotParametersData(:,1) = Data(:,IsName);
                             PlotParametersData(:,2) = Data(:,IsP0_1);  
                             PlotParametersData(cell2mat(cellfun(@isnan, PlotParametersData(:,2), 'UniformOutput', false)), 2) = {''};
+                        else
+                            StatusOk = false;
+                            Message = sprintf('Parameter file must contain columns for "Name" and "P0_1", %s',Message);
+
                         end
                     elseif strcmpi(class(thisObj),'QSP.VirtualPopulation')
                         % Virtual Population Data

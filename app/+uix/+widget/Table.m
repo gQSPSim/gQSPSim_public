@@ -393,7 +393,9 @@ classdef Table < matlab.mixin.SetGet
                     'Indices must be in [1:%d,1:%d]', ...
                     size(obj.Data,1),size(obj.Data,2))
             end
-            if ~isa(color,'char') && ~isnumeric(color)
+%             if ~isa(color,'char') && ~isnumeric(color)
+            if ~isnumeric(color)
+
                 error('Table:setCellColor:BadArgs', ...
                     'color argument must be a string or an RGB triplet')
             end
@@ -1095,6 +1097,9 @@ classdef Table < matlab.mixin.SetGet
         
         % Data
         function value = get.Data(obj)
+            
+            CBenabled = obj.CBEnabled;
+            obj.CBEnabled = false;
             JTableModel = obj.JTableModel;
             NumRow = JTableModel.getRowCount();
             NumCol = JTableModel.getColumnCount();
@@ -1108,6 +1113,7 @@ classdef Table < matlab.mixin.SetGet
                     end
                 end
             end
+            obj.CBEnabled = CBenabled;
         end % get.Data
         
         function set.Data(obj, value)
