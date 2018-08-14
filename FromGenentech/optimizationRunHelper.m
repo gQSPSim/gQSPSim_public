@@ -76,7 +76,8 @@ if ~isempty(paramData)
     end
     
     % separate into estimated parameters and fixed parameters
-    idxEstimate = strcmpi('Yes',paramData(:,1));
+    colInclude = strcmpi(paramHeaders,'Include')
+    idxEstimate = strcmpi('Yes',paramData(:,colInclude));
     if ~any(idxEstimate)
         StatusOK = false;
         ThisMessage = 'No parameters included in optimization.';
@@ -104,8 +105,8 @@ if ~isempty(paramData)
     % record indices of parameters that will be log-scaled
     logInds = find(strcmpi('log',paramData(idxEstimate,colId.Scale)));
     % extract parameter names
-    estParamNames = paramData(idxEstimate,2);
-    fixedParamNames = paramData(~idxEstimate,2);
+    estParamNames = paramData(idxEstimate,colId.Name);
+    fixedParamNames = paramData(~idxEstimate,colId.Name);
     % extract numeric data
     estParamData = cell2mat(paramData(idxEstimate,4:end));
     if ~isempty(fixedParamNames)
