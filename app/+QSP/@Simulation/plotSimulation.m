@@ -157,12 +157,18 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
                 q75 = quantile(Results(itemIdx).Data(:,ColumnIdx),0.75,2);
                 q25 = quantile(Results(itemIdx).Data(:,ColumnIdx),0.25,2);
                 
-                SE=shadedErrorBar(Results(itemIdx).Time', q50', [q75-q50,q50-q25]');
-                set(SE.mainLine,'Color',SelectedItemColors(itemIdx,:),...
-                    'LineStyle',ThisLineStyle);
-                set(SE.patch,'FaceColor',SelectedItemColors(itemIdx,:));
-                set(SE.edge,'Color',SelectedItemColors(itemIdx,:),'LineWidth',2);
-                thisAnnotation = get(SE.mainLine,'Annotation');
+                if length(Results(itemIdx).Time') > 1
+                    SE=shadedErrorBar(Results(itemIdx).Time', q50', [q75-q50,q50-q25]');
+                    set(SE.mainLine,'Color',SelectedItemColors(itemIdx,:),...
+                        'LineStyle',ThisLineStyle);
+                    set(SE.patch,'FaceColor',SelectedItemColors(itemIdx,:));
+                    set(SE.edge,'Color',SelectedItemColors(itemIdx,:),'LineWidth',2);
+                    thisAnnotation = get(SE.mainLine,'Annotation');
+                else
+                    h = errorbar(Results(itemIdx).Time', q50', q50-q25, q75-q50, 'Color', SelectedItemColors(itemIdx,:), ...
+                        'LineStyle',ThisLineStyle);
+                    thisAnnotation = get(h,'Annotation');
+                end
             end
             
 
