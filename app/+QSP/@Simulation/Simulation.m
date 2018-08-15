@@ -242,9 +242,12 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             % Invoke helper
             if StatusOK
                 % Run helper
-                [ThisStatusOK,Message,ResultFileNames,Cancelled] = simulationRunHelper(obj);
+                [ThisStatusOK,thisMessage,ResultFileNames,Cancelled] = simulationRunHelper(obj);
                 if ~ThisStatusOK && ~Cancelled
-                    error('run: %s',Message);
+%                     error('run: %s',Message);
+                    StatusOK = false;
+                    Message = sprintf('%s\n\n%s', Message, thisMessage);
+                    return
                 end
                 
                 if Cancelled
