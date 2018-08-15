@@ -144,6 +144,8 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
                 return
             end
             
+            thisAnnotation = [];
+            
             if obj.bShowTraces(axIdx)
                 hThis = plot(hSpeciesGroup{sIdx,axIdx},Results(itemIdx).Time,Results(itemIdx).Data(:,ColumnIdx),...
                     'Color',SelectedItemColors(itemIdx,:),...
