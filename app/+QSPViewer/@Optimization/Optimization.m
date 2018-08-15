@@ -106,7 +106,42 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
             obj.Data.SelectedPlotLayout = obj.PlotLayoutOptions{Value};
             
             onPlotConfigChange@uix.abstract.CardViewPane(obj,h,e);
-        end
+       end
+        
+       function onButtonPress(obj,h,e)
+          ThisTag = get(h,'Tag');
+
+          if strcmp(ThisTag, 'Save')
+               % check if there are data points assigned to the same species 
+               % if so do a confirmation
+               dNames = {obj.TempData.SpeciesData.DataName};
+               sNames = {obj.TempData.SpeciesData.SpeciesName};
+               multipleHits = false;
+               for k=1:length(unique(dNames))
+                   mapNames = sNames(strcmp(dNames,dNames(k)));               
+                   if length(unique(mapNames))>1
+                       multipleHits = true;
+                       msg = sprintf('Multiple species were mapped to data set %s. Proceed?', dNames{k});
+                       Result = questdlg(msg,'Continue?','Save','Cancel','Cancel');
+                   
+                       if strcmp(Result,'Save')
+                            onButtonPress@uix.abstract.CardViewPane(obj,h,e);
+                            return
+                       else
+                           return
+                       end
+                   end
+               end
+               if ~multipleHits
+                   onButtonPress@uix.abstract.CardViewPane(obj,h,e);
+               end
+                   
+          else
+              onButtonPress@uix.abstract.CardViewPane(obj,h,e);
+          end
+
+       end
+
     end
     
     
