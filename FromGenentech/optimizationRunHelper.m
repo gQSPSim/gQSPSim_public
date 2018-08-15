@@ -42,7 +42,7 @@ if ~isempty(paramData)
     colId.Name = find(strcmpi(paramHeaders, 'Name'));
     colId.LB = find(strcmpi(paramHeaders, 'LB'));
     colId.UB = find(strcmpi(paramHeaders, 'UB'));
-    colId.P0 = find(contains(upper(paramHeaders), 'P0'));
+    colId.P0 = find(contains(upper(paramHeaders), 'P0'), 1, 'first'); % keep only first column for now!
     colId.Scale = find(strcmpi(paramHeaders, 'SCALE'));
     
     
