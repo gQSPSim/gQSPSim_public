@@ -151,6 +151,15 @@ if ~isempty(obj.ICFileName) && ~strcmp(obj.ICFileName,'N/A') && exist(obj.ICFile
         return
     end
     
+    % check that we are not specifying an initial condition for a species
+    % that is also being sampled
+    [~,ixConflictingParameters] = ismember( ICTable.colheaders, perturbParamNames);
+    if any(ixConflictingParameters)
+        StatusOK = false;
+        Message = sprintf(['%s\nInitial conditions file contains species that are sampled in the cohort generation.  '...
+            'To continue set Include=No for %s or remove them from the parameters file.\n'], ...
+            Message, strjoin(perturbParamNames(ixConflictingParameters(ixConflictingParameters>0)), ','));
+    end
 else 
     ICTable = [];
 end
