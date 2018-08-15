@@ -123,7 +123,8 @@ if ~isempty(simObj)
     [ThisStatusOK,Message,ResultFileNames,Cancelled,Results] = simulationRunHelper(simObj, [], {}, TimeVec);
     
     if ~ThisStatusOK  && ~Cancelled     
-        error('plotVirtualPopulationGeneration: %s',Message);
+        errordlg(Message)
+        return
     end
     
     if Cancelled
@@ -292,6 +293,7 @@ if strcmp(obj.PlotType, 'Normal') && ~isempty(Results)
                             vpopWeights = Results{itemIdx}.VpopWeights;
                         end
                     
+
                         mean_line = plot(hSpeciesGroup{sIdx,axIdx}, Results{itemIdx}.Time, thisData(:,ColumnIdx) * ...
                             vpopWeights/sum(vpopWeights),...
                             'LineStyle',ThisLineStyle,...
