@@ -79,7 +79,7 @@ while (MaxRgen>=0)
         nEval=nEval+1;
         if mod(nEval, 300) == 0
             sort_RefObj = sort(RefObj, 'ascend');
-            display(sprintf('MaxRgen = %d, nEval = %d, min(RefObj) = %f, %f, %f, %f, %f', MaxRgen, nEval, sort_RefObj(1:5)));
+            fprintf('MaxRgen = %d, nEval = %d, min(RefObj) = %f, %f, %f, %f, %f\n', MaxRgen, nEval, sort_RefObj(1:5));
         end
     end % for
 %     display(sprintf('RefObj = %f, %f, %f, %f, %f', RefObj(1:5)));
@@ -108,9 +108,13 @@ while (MaxRgen>=0)
             
             parfor cs=1:Cdim(1)
                 [CsetObj(cs),parStatusOK(cs),parMessage{cs}] = objective_handle(Cset(cs,:)');
-            end % for\
+            end 
+            
+            sort_CsetObj = sort(CsetObj, 'ascend');            
+            display(sprintf('MaxRgen = %d,min(RefObj) = %f, %f, %f, %f, %f\n', MaxRgen, sort_CsetObj(1:5)));
+
             StatusOK = all(parStatusOK);
-            Message = vertcat(parMessage);
+            Message = vertcat(parMessage{:});
             
             if ~StatusOK
                 if nargout>1
@@ -161,15 +165,12 @@ while (MaxRgen>=0)
         objvec=zeros(m,1);
         parfor l=1:m
             [objvec(l),parStatusOK(l),parMessage{l}]=objective_handle(Pset(l,:)');
-   
-%             nEval=nEval+1;
-%             if mod(nEval, 300) == 0
-%                 sort_RefObj = sort(RefObj, 'ascend');
-%                 display(sprintf('MaxRgen = %d, nEval = %d, min(RefObj) = %f, %f, %f, %f, %f', MaxRgen, nEval, sort_RefObj(1:5)));
-%             end
-        end % for
+        end 
+        sort_CsetObj = sort(CsetObj, 'ascend');            
+        fprintf('MaxRgen = %d,min(RefObj) = %f, %f, %f, %f, %f', MaxRgen, sort_CsetObj(1:5));
+        
         StatusOK = all(parStatusOK);
-        Message = vertcat(parMessage);
+        Message = vertcat(parMessage{:});
         
         if ~StatusOK
             if nargout>1
