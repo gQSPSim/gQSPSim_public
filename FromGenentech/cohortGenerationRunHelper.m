@@ -448,7 +448,11 @@ if StatusOK
     % replicate the vpops if multiple initial conditions were specified
     VpopData = [num2cell(Vpop), num2cell(isValid)];
     if ~isempty(ICTable)
-        Vpop=[ICTable.colheaders, VpopHeader];
+        [bSpeciesData,idxSpeciesData] = ismember( ICTable.colheaders, obj.PlotSpeciesTable(:,4));
+        ICTableHeaders = ICTable.colheaders;
+        ICTableHeaders(bSpeciesData) = obj.PlotSpeciesTable( idxSpeciesData(bSpeciesData>0), 3);
+        
+        Vpop=[ICTableHeaders, VpopHeader];
         for k=1:size(ICTable.data,1) % loop over initial conditions
             Vpop = [Vpop; [num2cell(repmat(ICTable.data(k,:), size(VpopData,1),1)), VpopData] ];
         end
