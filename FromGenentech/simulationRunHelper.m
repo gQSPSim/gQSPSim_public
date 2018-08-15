@@ -390,6 +390,12 @@ function [ItemModel, VpopWeights, StatusOK, Message] = constructVpopItem(taskObj
         if hasGroupCol && ~isempty(groupObj)
             groupVec = vpopTable(:,groupCol);
             vpopTable = vpopTable(str2num(groupObj)==groupVec,:); % filter
+            if isempty(vpopTable)
+                % no members of this group in the vpop file
+                StatusOK =  false;
+                Message = sprintf('Vpop file does not any entries with group = %d\n', str2num(groupObj));
+                return
+            end
         end
 
         % check whether the last column is PWeight
