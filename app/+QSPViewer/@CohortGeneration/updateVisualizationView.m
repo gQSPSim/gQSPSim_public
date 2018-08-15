@@ -289,4 +289,7 @@ end
 
 if ~isempty(vObj.Data)
     set(vObj.h.ShowInvalidVirtualPatientsCheckbox,'Value',vObj.Data.ShowInvalidVirtualPatients);
+else
+    set(vObj.h.ShowInvalidVirtualPatientsCheckbox,'Value',true);
+
 end
