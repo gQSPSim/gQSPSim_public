@@ -137,10 +137,10 @@ if ~isempty(ItemModels)
             break
         end
         % update waitbar
-        if isempty(hWbar2)
+%         if isempty(hWbar2)
             set(hWbar2, 'Name', sprintf('Simulating task %d of %d',ii,nRunItems))
             uix.utility.CustomWaitbar(0,hWbar2,'');
-        end
+%         end
         options.WaitBar = hWbar2;
 
         % simulate virtual patients
@@ -407,9 +407,10 @@ function [ItemModel, VpopWeights, StatusOK, Message] = constructVpopItem(taskObj
         % check if there are parameters which are not contained in the
         % model
         
-        if ~isempty(setdiff( params, [taskObj.SpeciesNames; taskObj.ParameterNames; {'PWeight','Group'}']))
+        if ~isempty(setdiff( params, [taskObj.SpeciesNames; taskObj.ParameterNames; {'PWeight','Group','ID'}']))
             StatusOK = false;
-            Message = sprintf('%s%s: Invalid parameters contained in the vpop file. Please check for consistency with the selected task model.\n', ...
+            Message = sprintf(['%s%s: Invalid parameters contained in the vpop file. Valid column names includes "PWeight", "Group", "ID",'...
+                    'and names of parameters/species in the model.\n\nPlease check for consistency with the selected task model.\n'], ...
                 Message, taskObj.Name);
             return
         end
