@@ -538,7 +538,7 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 else
                     Message = sprintf('Could not import from file. %s',Message);
                 end
-            else
+            elseif ~isempty(DataFilePath)
                 StatusOk = false;
                 Message = sprintf('Could not import from file. Validate source''s filepath.');
             end
