@@ -1,4 +1,4 @@
-function [StatusOK,Message,ResultsFileName,VpopName] = vpopGenerationRunHelper(obj)
+function [StatusOK,Message,ResultsFileName,VpopName] = cohortGenerationRunHelper(obj)
 % Function that generates a Virtual population by sampling parameter space,
 % running simulations, and comparing the outputs to Acceptance Criteria.
 
@@ -327,6 +327,13 @@ while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients
                 for spec = 1:length(uniqueSpecies_grp)
                     % find the data species in the Species-Data mapping
                     specInd = strcmp(uniqueSpecies_grp(spec),Mappings(:,2));
+                    
+                    if nnz(specInd) ~= 1
+                        StatusOK = false;
+                        Message = sprintf('%s\nOnly one species may be assigned to any given data set. Please check mappings for validity.\n', Message);
+                        delete(hWbar)
+                        return
+                    end
 
                     % grab data for the corresponding model species from the simulation results
                     [simT,simData_spec,specName] = selectbyname(simData,Mappings(specInd,1));
@@ -336,7 +343,8 @@ while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients
                         simData_spec = obj.SpeciesData(specInd).evaluate(simData_spec);
                     catch ME
                         StatusOK = false;
-                        ThisMessage = sprintf('There is an error in one of the function expressions in the SpeciesData mapping. Validate that all Mappings have been specified for each unique species in dataset. %s', ME.message);
+                        ThisMessage = sprintf(['There is an error in one of the function expressions in the SpeciesData mapping.'...
+                            'Validate that all mappings have been specified for each unique species in dataset. %s'], ME.message);
                         Message = sprintf('%s\n%s\n',Message,ThisMessage);
                         path(myPath);
                         return                    
