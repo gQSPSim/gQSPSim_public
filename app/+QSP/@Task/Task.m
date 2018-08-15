@@ -154,6 +154,7 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 'Output Times',obj.OutputTimesStr;
                 'Run to Steady State',RunToSteadyStateStr;
                 'Time to Steady State',TimeToSteadyStateStr;
+                'Max Wall Clock Time', obj.MaxWallClockTime;
                 };
         end
         
