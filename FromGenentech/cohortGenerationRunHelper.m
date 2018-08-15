@@ -281,6 +281,13 @@ while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients
             ICs = ICTable.data(groupVec==currGrp, ixSpecies );
             IC_species = ICTable.colheaders(ixSpecies);
             nIC = size(ICs,1);
+            if ~any(groupVec==currGrp)
+                StatusOK = false;
+                Message = sprintf('%sInitial conditions file specified contains groups for which no task has been assigned.\n', Message);
+                delete(hWbar)
+                return
+            end
+            
         else
             nIC = 1;
             ICs = [];
