@@ -258,6 +258,12 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         end %function
         
         function clearData(obj)
+            if ~isempty(obj.VarModelObj)
+                obj.VarModelObj = obj.VarModelObj.copyobj();
+            end
+            if ~isempty(obj.ModelObj_)
+                obj.ModelObj_ = obj.ModelObj_.copyobj();
+            end            
         end
     end
     

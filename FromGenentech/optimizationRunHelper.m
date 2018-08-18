@@ -521,7 +521,12 @@ end
                         % objective vector, keeping only time points for which
                         % there is data for that species
                         optimData_spec = optimData_id(Time_id>=0,strcmp(SpeciesData(spec).DataName,dataNames));
-                        simData_spec = simData_spec(~isnan(optimData_spec));
+                        nonNanDataIdx = find(~isnan(optimData_spec));
+                        if isempty(nonNanDataIdx)
+                            % ignore data if it is all missing
+                            continue
+                        end
+                        simData_spec = simData_spec(nonNanDataIdx);
                         dataTime_spec = sort(Time_id(Time_id>=0));
                         dataTime_spec = dataTime_spec(~isnan(optimData_spec));
                         
