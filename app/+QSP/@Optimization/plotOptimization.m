@@ -202,12 +202,14 @@ Show = [obj.PlotProfile.Show];
 HighlightIdx = find(Show) == obj.SelectedProfileRow;
 HighlightIdx = find(HighlightIdx);
 
-for sIdx = 1:size(obj.PlotSpeciesTable,1)
+for sIdxIdx = 1:length(obj.SpeciesData) % 1:size(obj.PlotSpeciesTable,1)
+    sIdx = find( strcmp(obj.SpeciesData(sIdxIdx).SpeciesName, obj.PlotSpeciesTable(:,3)) & ...
+        strcmp(obj.SpeciesData(sIdxIdx).DataName, obj.PlotSpeciesTable(:,4)) )
     axIdx = str2double(obj.PlotSpeciesTable{sIdx,1});
     ThisLineStyle = obj.PlotSpeciesTable{sIdx,2};
     ThisName = obj.PlotSpeciesTable{sIdx,3};    
     
-    if ~isempty(axIdx) && ~isnan(axIdx) && ~isempty(Results)
+    if ~isempty(axIdx) && ~isnan(axIdx) && ~isempty(Results) 
         for runIdx = 1:NumRuns
             for itemIdx = 1:size(Results,2)
                 % Plot the species from the simulation item in the appropriate
