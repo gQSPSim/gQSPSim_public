@@ -157,7 +157,7 @@ if ~isempty(optimHeader) && ~isempty(optimData)
     IDs = cell2mat(optimData(:,strcmp(obj.IDName,optimHeader)));
     Time = cell2mat(optimData(:,strcmp('Time',optimHeader)));
     % find columns corresponding to species data and initial conditions
-    [~, dataInds] = ismember([{obj.SpeciesIC.DataName}, {obj.SpeciesData.DataName}], optimHeader);
+    [~, dataInds] = ismember(union({obj.SpeciesIC.DataName}, {obj.SpeciesData.DataName}), optimHeader);
     
     
     % convert optimData into a matrix of species data
@@ -471,7 +471,7 @@ end
                     [~,spIdx] = ismember({SpeciesIC.DataName},dataNames); % columns in the data table
                     IC = zeros(length(spIdx),1);
                     for k=1:length(spIdx)
-                        IC(k) = SpeciesIC(spIdx(k)).evaluate(optimData_id(Time_id<=0,spIdx));
+                        IC(k) = SpeciesIC(spIdx(k)).evaluate(optimData_id(Time_id<=0,spIdx(k)));
                         IC(k) = nanmean(IC,1);
                     end                    
  
