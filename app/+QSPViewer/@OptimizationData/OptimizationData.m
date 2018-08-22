@@ -63,6 +63,8 @@ classdef OptimizationData < uix.abstract.CardViewPane
             
             % Update the relative file path
             vObj.TempData.RelativeFilePath = DataFilePath;
+            vObj.TempData.clearData();
+            
             
             if exist(vObj.TempData.FilePath,'file')==2
                 

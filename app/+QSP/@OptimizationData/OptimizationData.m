@@ -32,6 +32,11 @@ classdef OptimizationData < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         DatasetType = 'wide'
     end
     
+    properties (Access=private)
+        Data
+        Header        
+    end
+    
     %% Constructor
     methods
         function obj = OptimizationData(varargin)
@@ -94,12 +99,24 @@ classdef OptimizationData < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         end
         
         function clearData(obj)
+            obj.Data = {};
+            obj.Header = {};
         end
     end
     
     %% Methods
     methods
         function [StatusOk,Message,Header,Data] = importData(obj,DataFilePath,varargin)            
+            
+            FileInfo = dir(DataFilePath);
+            if datenum(obj.LastSavedTime) > FileInfo.datenum && ~isempty(obj.Data) && ~isempty(obj.Header)
+                Header = obj.Header;
+                Data = obj.Data;
+                Message = '';
+                StatusOk = true;
+                return
+            end
+                
             
             % Get destination format
             if nargin > 2 && islogical(varargin{1})
@@ -153,7 +170,11 @@ classdef OptimizationData < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 Data = {};
             end
             obj.FilePath = DataFilePath;
-            
+            if StatusOk
+                obj.LastSavedTime = datestr(now);
+                obj.Data = Data;
+                obj.Header = Header;
+            end
         end %function
         
     end
