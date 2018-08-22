@@ -83,6 +83,9 @@ function [simData, statusOK] = simulate(obj, varargin)
                 throw(ME)
             end
             ICValues = reshape(RTSSdata(end,1:length(obj.SpeciesNames)),[],1);
+%             if any(isinf(ICValues))
+%                 disp('Ignoring inf values computed for steady state')
+%             end
         catch err
             warning(err.identifier, 'Task:simulate: %s', err.message)
             statusOK = false;
@@ -93,6 +96,7 @@ function [simData, statusOK] = simulate(obj, varargin)
 
     model.SimulationOptions.StopTime = StopTime;
     model.SimulationOptions.OutputTimes = times;
+    
     simData = simulate(model,[ICValues; paramValues],doses);
 end
 
