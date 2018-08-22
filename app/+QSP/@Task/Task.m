@@ -173,7 +173,7 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             end
             
             FileInfo = dir(obj.FilePath);
-            if length(FileInfo)==1 && ~isempty(obj.ExportedModelTimeStamp) && (obj.ExportedModelTimeStamp > FileInfo.datenum) % built after the model file was saved
+            if length(FileInfo)==1 && ~isempty(obj.LastValidatedTime) && (datenum(obj.LastValidatedTime) > FileInfo.datenum) 
                 StatusOK = true;
                 Message = '';
                 return
@@ -253,6 +253,7 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 Message = sprintf('%s\n* Invalid MaxWallClockTime. MaxWallClockTime must be > 0.\n',Message);
             end
             
+            obj.LastValidatedTime = datestr(now);
 
             
         end %function
