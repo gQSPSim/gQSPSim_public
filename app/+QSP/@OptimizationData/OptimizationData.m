@@ -30,6 +30,8 @@ classdef OptimizationData < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
     %% Public Properties
     properties
         DatasetType = 'wide'
+%         Headers = {};
+%         Data = [];
     end
     
     properties (Access=private)
@@ -187,6 +189,30 @@ classdef OptimizationData < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             obj.DatasetType = Value;
         end
         
+%         function Headers = get.Headers(obj)
+%             % check if the optimization data have changed since the last
+%             % time
+%             FileInfo = dir(obj.FilePath);
+%             if isempty(obj.Headers) || datenum(obj.LastSavedTime) < datenum(FileInfo.date)
+%                 % out of date -- reimport
+%                 [~,~,obj.Headers,obj.Data] = importData(obj,obj.FilePath);
+%             end
+%             Headers = obj.Headers;
+%             obj.LastSavedTime = datestr(now);
+%         end
+%         
+%         function Data = get.Data(obj)
+%             % check if the optimization data have changed since the last
+%             % time
+%             FileInfo = dir(obj.FilePath);
+%             if isempty(obj.Data) || datenum(obj.LastSavedTime) < datenum(FileInfo.date)
+%                 % out of date -- reimport
+%                 [~,~,obj.Headers,obj.Data] = importData(obj,obj.FilePath);
+%             end
+%             Data = obj.Data;
+%             obj.LastSavedTime = datestr(now);
+%         end
+%             
     end %methods
     
 end %classdef
