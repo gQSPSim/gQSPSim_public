@@ -112,14 +112,9 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 [StaleFlag,ValidFlag,InvalidMessages] = getStaleItemIndices(obj);
 
                 for index = 1:numel(obj.Item)
-                    % ONE file
-                    ThisResultFilePath = obj.ExcelResultFileName;
-                    if isempty(ThisResultFilePath)
-                        ThisResultFilePath = 'Results: N/A';
-                    end
 
                     % Default
-                    ThisItem = sprintf('%s - %s (%s)',obj.Item(index).TaskName,obj.Item(index).GroupID,ThisResultFilePath);
+                    ThisItem = sprintf('%s - %s',obj.Item(index).TaskName,obj.Item(index).GroupID);
                     if StaleFlag(index)~=0
 
                         switch StaleFlag(index)

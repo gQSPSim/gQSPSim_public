@@ -111,16 +111,9 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 [StaleFlag,ValidFlag,InvalidMessages] = getStaleItemIndices(obj);
 
                 for index = 1:numel(obj.Item)
-                    ThisResultFilePath = '';
-                    if length(obj.ExcelResultFileName) >= numel(obj.Item) && ~isempty(obj.ExcelResultFileName{index})
-                        ThisResultFilePath = obj.ExcelResultFileName{index};
-                    end
-                    if isempty(ThisResultFilePath)
-                        ThisResultFilePath = 'Results: N/A';
-                    end
 
                     % Default
-                    ThisItem = sprintf('%s - %s (%s)',obj.Item(index).TaskName,obj.Item(index).GroupID,ThisResultFilePath);
+                    ThisItem = sprintf('%s - %s',obj.Item(index).TaskName,obj.Item(index).GroupID);
                     if StaleFlag(index)
                         % Item may be out of date
                         ThisItem = sprintf('***WARNING*** %s\n%s',ThisItem,'***Item may be out of date***');
