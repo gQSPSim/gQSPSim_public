@@ -330,7 +330,7 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                     AllModels = cell2mat(struct2cell(AllModels));
                     m1 = sbioselect(AllModels,'type','sbiomodel');
                     if ~isempty(m1)
-                        ModelNames = {m1.Name};
+                        ModelNames = get(m1,'Name');
                     end
                 end
             end
