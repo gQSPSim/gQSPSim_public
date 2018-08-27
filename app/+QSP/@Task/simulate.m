@@ -1,7 +1,9 @@
-function [simData, statusOK] = simulate(obj, varargin)
+function [simData, statusOK, Message] = simulate(obj, varargin)
     
     statusOK = true;
-
+    Message = '';
+    simData = [];
+    
     p = inputParser;
     p.addOptional('Names', {});
     p.addOptional('Values', {});
@@ -21,11 +23,10 @@ function [simData, statusOK] = simulate(obj, varargin)
     end
     
 %     [~,idxSpecies] = ismember(Names, obj.SpeciesNames);    
-    [~,idxSpecies] = ismember(obj.SpeciesNames, Names);    
+    [hSpecies,idxSpecies] = ismember(Names, obj.SpeciesNames);    
+    ICSpecies = Names(hSpecies);      
+    ICValues = Values(hSpecies);
 
-    ICSpecies = Names(idxSpecies(idxSpecies>0));      
-    ICValues = Values(idxSpecies(idxSpecies>0));
-    
     % indices of each specified parameter in the complete list of
     % parameters
     modelParams = sbioselect(obj.VarModelObj,'Type','Parameter'); 
@@ -36,6 +37,15 @@ function [simData, statusOK] = simulate(obj, varargin)
     pValues = Values(hParam); % parameter values
     ixParam = ixParam(hParam); % keep only indices that are parameters
     
+    idxMisc = ~(hSpecies | hParam);
+    if any(idxMisc)
+        % found some columns which are neither parameter nor species
+        statusOK = false;
+        Message = 'Invalid parameters specified for simulation. Please check virtual population and/or parameters file for consistency with model.';
+        
+        return
+    end
+            
     % get default parameter values for the current variants
     paramValues = cell2mat(get(modelParams,'Value'));
     
@@ -86,6 +96,7 @@ function [simData, statusOK] = simulate(obj, varargin)
         catch err
             warning(err.identifier, 'Task:simulate: %s', err.message)
             statusOK = false;
+            Message = err.message;
             simData= [];
             return
         end % try

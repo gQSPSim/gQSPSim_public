@@ -75,6 +75,12 @@ if ~isempty(paramData)
         return
     end
     
+    % check for parameters that are not in any of the models to be
+    % simulated
+    
+    
+    
+    
     % separate into estimated parameters and fixed parameters
     colInclude = strcmpi(paramHeaders,'Include')
     idxEstimate = strcmpi('Yes',paramData(:,colInclude));
@@ -485,11 +491,16 @@ end
                         Names = [Names; fixedParamNames];
                     end
                     
-                    simData_id = ItemModels.Task(grpIdx).simulate(...
+                    [simData_id, thisStatusOK, thisMessage] = ItemModels.Task(grpIdx).simulate(...
                         'Names', Names, ...
                         'Values', Values, ...
                         'OutputTimes', OutputTimes, ...
                         'StopTime', StopTime );
+                    
+                    if ~thisStatusOK
+                        Message = sprintf('%s\n%s\n', Message, thisMessage);
+                        return
+                    end
                                         
                     % generate elements of objective vector by comparing model
                     % outputs to data
