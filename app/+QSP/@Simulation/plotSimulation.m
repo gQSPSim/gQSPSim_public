@@ -103,7 +103,11 @@ for index = 1:numel(MATResultFilePaths)
 end
 
 % Get the associated colors
-SelectedItemColors = cell2mat(obj.PlotItemTable(IsSelected,2));
+
+garbage = ~cellfun(@isnumeric,obj.PlotItemTable(IsSelected,2));
+colors = obj.PlotItemTable(IsSelected,2);
+colors(garbage,:) = {[0 0 0]};
+SelectedItemColors = cell2mat(colors);
 
 
 %% Plot Simulation Items
