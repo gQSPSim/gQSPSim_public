@@ -52,11 +52,13 @@ classdef MultiPlatformTable < uix.abstract.Widget & uix.mixin.HasLabel
             set(obj.hLabel,'Parent', obj.UIContainer);
             
             % Set according to OS
-            if ispc
-                obj.UseJTable = true;
-            else
-                obj.UseJTable = false;
-            end
+%             if ispc
+%                 obj.UseJTable = true;
+%             else
+%                 obj.UseJTable = false;
+%             end
+
+            obj.UseJTable = false;
             
             % Create the table
             if obj.UseJTable
