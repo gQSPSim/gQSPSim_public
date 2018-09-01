@@ -76,7 +76,7 @@ if ~isempty(paramData)
     end
     
     % separate into estimated parameters and fixed parameters
-    colInclude = strcmpi(paramHeaders,'Include')
+    colInclude = strcmpi(paramHeaders,'Include');
     idxEstimate = strcmpi('Yes',paramData(:,colInclude));
     if ~any(idxEstimate)
         StatusOK = false;
@@ -152,13 +152,33 @@ else
 end
 
 if ~isempty(optimHeader) && ~isempty(optimData)
+    
+    % check for column headers
+    if ~any(strcmp(obj.GroupName,optimHeader)) || ~any(strcmp(obj.IDName,optimHeader)) ...
+        || ~any(strcmp('Time',optimHeader))
+            StatusOK = false;
+        Message = 'Data file is missing columns. Check that the data file has columns named "Group", "ID", and "Time"';
+        return
+    end
+    
+    
     % parse optimData
     Groups = cell2mat(optimData(:,strcmp(obj.GroupName,optimHeader)));
     IDs = cell2mat(optimData(:,strcmp(obj.IDName,optimHeader)));
     Time = cell2mat(optimData(:,strcmp('Time',optimHeader)));
+
+    excludeIdx = find(strcmpi('Exclude',optimHeader));
+    Exclude = false(size(optimData,1),1);
+
+    if ~isempty(excludeIdx)
+        tmp = optimData(:,excludeIdx);
+        Exclude(strcmpi(tmp,'Yes')) = true;
+    end
+    
     % find columns corresponding to species data and initial conditions
     [~, dataInds] = ismember(union({obj.SpeciesIC.DataName}, {obj.SpeciesData.DataName}), optimHeader);
-    
+    % filter
+    optimData = optimData(~Exclude,:);
     
     % convert optimData into a matrix of species data
     optimData = cell2mat(optimData(:,dataInds));
@@ -237,8 +257,12 @@ switch obj.AlgorithmName
             StatusOK = true;
             LB = estParamData(:,1);
             UB = estParamData(:,2);
+            p0 = estParamData(:,3);
+
             options = optimoptions('ParticleSwarm', 'Display', 'iter', 'FunctionTolerance', .1, 'MaxTime', 12000, ...
-                'UseParallel', true, 'FunValCheck', 'on', 'UseVectorized', false, 'PlotFcn',  @pswplotbestf);
+                'UseParallel', true, 'FunValCheck', 'on', 'UseVectorized', false, 'PlotFcn',  @pswplotbestf, ...
+                'InitialSwarmMatrix', p0');
+            
             VpopParams = particleswarm( @(est_p) objectiveFun(est_p',paramObj,ItemModels,Groups,IDs,Time,optimData,dataNames,obj), N, LB, UB, options);
         catch err
             StatusOK = false;
@@ -255,7 +279,8 @@ switch obj.AlgorithmName
         UB = estParamData(:,2);
 
         % options
-        LSQopts = optimoptions(@lsqnonlin,'MaxFunctionEvaluations',1e4,'MaxIterations',1e4,'UseParallel',false,'FunctionTolerance',1e-5,'StepTolerance',1e-3);
+        LSQopts = optimoptions(@lsqnonlin,'MaxFunctionEvaluations',1e4,'MaxIterations',1e4,'UseParallel',false,'FunctionTolerance',1e-5,'StepTolerance',1e-3,...
+            'Display', 'iter', 'PlotFcn', @optimplotfval, 'UseParallel', true );
 
         % fit
         p0 = estParamData(:,3);
