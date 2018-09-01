@@ -76,14 +76,15 @@ function [simData, statusOK] = simulate(obj, varargin)
         try
             model.SimulationOptions.StopTime = StopTime;
             model.SimulationOptions.OutputTimes = [];            
-            [~,RTSSdata,~] = simulate(model,[ICValues; paramValues],[]);
+            [~,RTSSdata,outNames] = simulate(model,[ICValues; paramValues],[]);
             RTSSdata = max(0,RTSSdata); % replace any negative values with zero
+            [hIdx,idxSpecies] = ismember(outNames, get(obj.VarModelObj.Species,'Name'));
             if any(isnan(RTSSdata(:)))
                 ME = MException('Task:simulate', 'Encountered NaN during simulation');
                 throw(ME)
             end
-            ICValues = reshape(RTSSdata(end,1:length(obj.SpeciesNames)),[],1);
-%             if any(isinf(ICValues))
+            ICValues = RTSSdata(end, idxSpecies(hIdx));
+            %             if any(isinf(ICValues))
 %                 disp('Ignoring inf values computed for steady state')
 %             end
         catch err
@@ -97,7 +98,7 @@ function [simData, statusOK] = simulate(obj, varargin)
     model.SimulationOptions.StopTime = StopTime;
     model.SimulationOptions.OutputTimes = times;
     
-    simData = simulate(model,[ICValues; paramValues],doses);
+    simData = simulate(model,[ICValues'; paramValues],doses);
 end
 
 
