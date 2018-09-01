@@ -4,7 +4,7 @@ function PW = computePW_MLE(X,Y,varargin)
 if nargin>2
    SigY = varargin{1};
 else
-   SigY = diag(0.1 * Y);
+   SigY = diag(0.1 * abs(Y));
 end
     
 if nargin>3
