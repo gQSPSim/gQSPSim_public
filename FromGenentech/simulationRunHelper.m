@@ -92,16 +92,18 @@ else
 
         % Load the Vpop and parse contents 
        [ThisItemModel, VpopWeights, ThisStatusOK, ThisMessage] = constructVpopItem(taskObj, vpopObj, groupObj, options, Message);
-       if ii == 1
-           ItemModels = ThisItemModel;
-       else
-           ItemModels(ii) = ThisItemModel;
-       end
        if ~ThisStatusOK
            StatusOK = false;
            Message = sprintf('%s\n%s\n',Message,ThisMessage);
            break
        end
+       
+       if ii == 1
+           ItemModels = ThisItemModel;
+       else
+           ItemModels(ii) = ThisItemModel;
+       end
+
 
     end % for ii...
 end
