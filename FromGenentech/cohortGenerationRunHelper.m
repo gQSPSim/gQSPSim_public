@@ -226,6 +226,8 @@ if any(P<LB | P>UB)
     warning('Initial parameter P0_1 outside search interval. Resetting to boundary.')
 end
 
+bCancelled = false;
+
 while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients
     nSim = nSim+1; % tic up the number of simulations
     
@@ -358,7 +360,7 @@ while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients
 
                     % select simulation time points for which there are acceptance criteria
                     [bSim,okInds] = ismember(simT,Time_grp_spec);
-                    simData_spec = simData_spec(okInds(bSim));
+                    simData_spec = simData_spec(bSim);
                     LB_grp_spec = LB_grp_spec(okInds(bSim));
                     UB_grp_spec = UB_grp_spec(okInds(bSim));
                     Time_grp_spec = Time_grp_spec(okInds(bSim));
@@ -404,6 +406,7 @@ while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients
         LB_violation = [LB_violation; find(model_outputs<LB_outputs)];
         UB_violation = [UB_violation; find(model_outputs>UB_outputs)];
         if ~waitStatus
+            bCancelled = true;
             break
         end
     end      
@@ -454,7 +457,18 @@ if nPat == 0
 end
 
 % Save the Vpop
-if StatusOK
+
+if bCancelled
+    bProceed = questdlg('Cohort generation cancelled. Save virtual cohort?', 'Save virtual cohort?', 'No');
+    if strcmp(bProceed,'Yes')      
+        bProceed = true;
+    else
+        bProceed = false;
+        StatusOK = false;
+    end
+end
+
+if StatusOK && bProceed
     hWbar = uix.utility.CustomWaitbar(0,'Saving virtual population','Saving virtual population...',true);
 
     SaveFlag = true;
