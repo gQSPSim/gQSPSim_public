@@ -722,7 +722,19 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
                     ItemType = strrep(class(ThisObj), 'QSP.', '');
             
                     % all data objects of this type
-                    ch = ThisSession.Settings.(ItemType);
+                    if ismember(ItemType, {'Task', 'VirtualPopulation', 'Parameters', 'OptimizationData', 'VirtualPopulationData', ...
+                            'VirtualPopulationGenerationData'})
+                        nodeType = 'setting';
+                    else
+                        nodeType = 'item';
+                    end
+                    
+                    if strcmp(nodeType,'setting')
+                        ch = ThisSession.Settings.(ItemType);
+                    else
+                        ch = ThisSession.(ItemType);
+                    end
+
 
                     % indices of source nodes
                     [~,ix2] = ismember([SourceNode.Value],ch);
@@ -740,7 +752,11 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
                     ch2 = [ch2(1:ix-1), [SourceNode.Value], ch2(ix:end)];
                     
                     % update data objects
-                    ThisSession.Settings.(ItemType) = ch2;
+                    if strcmp(nodeType,'setting')
+                        ThisSession.Settings.(ItemType) = ch2;
+                    else
+                        ThisSession.(ItemType) = ch2;
+                    end
                     
                     % update tree
                     for k=length(SourceNode):-1:1
