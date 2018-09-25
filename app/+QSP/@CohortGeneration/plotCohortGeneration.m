@@ -260,8 +260,12 @@ if strcmp(obj.PlotType, 'Normal') && ~isempty(Results)
                         
                         if obj.bShowQuantiles(axIdx)
 %                             axes(get(hSpeciesGroup{sIdx,axIdx},'Parent'))
-                            h=shadedErrorBar(Results{itemIdx}.Time, mean(thisData(:,setdiff(ColumnIdx, ColumnIdx_invalid)),2), ...
-                                std(thisData(:,setdiff(ColumnIdx, ColumnIdx_invalid)),[],2));
+                            q50 = median(thisData(:,setdiff(ColumnIdx, ColumnIdx_invalid)),2);
+                            q025 = quantile(thisData(:,setdiff(ColumnIdx, ColumnIdx_invalid)),0.025,2);
+                            q975 = quantile(thisData(:,setdiff(ColumnIdx, ColumnIdx_invalid)),0.975,2);
+
+                            h=shadedErrorBar(Results{itemIdx}.Time, q50, [q975-q50, q50-q025]);
+
                             set(h.mainLine,'Parent',hSpeciesGroup{sIdx,axIdx})
                             set(h.patch,'Parent',hSpeciesGroup{sIdx,axIdx})
                             set(h.edge,'Parent',hSpeciesGroup{sIdx,axIdx})
