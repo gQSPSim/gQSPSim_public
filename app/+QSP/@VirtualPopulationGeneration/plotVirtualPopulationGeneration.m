@@ -282,23 +282,34 @@ if strcmp(obj.PlotType, 'Normal') && ~isempty(Results)
                             vpopWeights = Results{itemIdx}.VpopWeights;
                         end
                     
-                        thisMean = thisData(:,ColumnIdx) * vpopWeights/sum(vpopWeights);
-                        thisStd = sqrt( (thisData(:,ColumnIdx) - thisMean).^2 * vpopWeights/sum(vpopWeights));
+%                         thisMean = thisData(:,ColumnIdx) * vpopWeights/sum(vpopWeights);
+                        w0 = vpopWeights/sum(vpopWeights);
+                        for tIdx = 1:size(thisData,1)
+                            [y,ix] = sort( thisData(tIdx,ColumnIdx), 'Ascend');
+                            q025(tIdx) = y(find(cumsum(w0(ix)) >= 0.025, 1, 'first'));
+                            q975(tIdx) = y(find(cumsum(w0(ix)) >= 0.975, 1, 'first'));
+                            q50(tIdx) = y(find(cumsum(w0(ix)) >= 0.5, 1, 'first'));
+                        
+%                         
+                        end
+%                             thisStd = sqrt( (thisData(:,ColumnIdx) - thisMean).^2 * vpopWeights/sum(vpopWeights));
                         axes(get(hSpeciesGroup{sIdx,axIdx},'Parent'))
-                        mean_line = shadedErrorBar(Results{itemIdx}.Time, thisMean,...
-                           [thisStd, thisStd]');
+                        mean_line = shadedErrorBar(Results{itemIdx}.Time, q50,...
+                           [q975-q50; q50-q025]');
                         set(mean_line.mainLine, 'LineStyle',ThisLineStyle,...
                             'Color',SelectedItemColors(itemIdx,:), ...
                             'LineWidth', 3);
-                        set(mean_line.patch, 'FaceColor',SelectedItemColors(itemIdx,:));                        
-
+                        set(mean_line.patch, 'FaceColor',SelectedItemColors(itemIdx,:));    
                     end
                     
                     
                     % plot the vpop generation data
                     
+%                      obj.SpeciesData(idxSpecies).evaluate(...
+%                 simData.Data(:,strcmp(simData.DataNames,obj.SpeciesData(idxSpecies).SpeciesName)))
+                    
                     spData = vpopGenData( cell2mat(vpopGenData(:,strcmp(vpopGenHeader,'Group'))) == str2num(obj.PlotItemTable{itemNumber,4}) & ...
-                        strcmp(vpopGenData(:,strcmp(vpopGenHeader,'Species')), ThisName), :); ...
+                        strcmp(vpopGenData(:,strcmp(vpopGenHeader,'Species')), ThisDataName), :); 
                     val1 = cell2mat(spData(:, strcmp(vpopGenHeader, 'Value1')));
                     val2 = cell2mat(spData(:, strcmp(vpopGenHeader, 'Value2')));
                 
