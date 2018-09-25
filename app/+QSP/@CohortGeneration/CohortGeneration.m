@@ -559,7 +559,11 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                         if ~isempty(pObj)
                             ParametersLastSavedTime = datenum(pObj.LastSavedTime);
                             FileInfo = dir(pObj.FilePath);
-                            ParametersFileLastSavedTime = FileInfo.datenum;         
+                            if ~isempty(FileInfo)
+                                ParametersFileLastSavedTime = FileInfo.datenum;    
+                            else
+                                ParametersFileLastSavedTime = Inf;
+                            end
                         else
                             ResultLastSavedTime = Inf;
                             ParametersLastSavedTime = Inf;
