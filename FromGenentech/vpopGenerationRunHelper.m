@@ -173,12 +173,12 @@ for spIdx = 1:length(obj.SpeciesData)
             spData = reshape(vpatData{itemIdx}(timeIdx,spIdx,:), 1, []);
             
             dataMatrix = [dataMatrix; spData];
-            Y = [Y; cell2mat(thisData(:,val1Col))];
+            Y = [Y; mean(cell2mat(thisData(:,val1Col)))];
             
             % if STD
             if strcmp(thisType, 'MEAN_STD')
                dataMatrix = [dataMatrix; (spData -  cell2mat(thisData(:,val1Col))).^2];
-                Y = [Y; cell2mat(thisData(:,val2Col)).^2];         
+                Y = [Y; mean(cell2mat(thisData(:,val2Col)).^2)];         
                 %TODO: use STD to compute uncertainty in the mean? requires
                 %knowledge of sample size to get the std. err.
             end
