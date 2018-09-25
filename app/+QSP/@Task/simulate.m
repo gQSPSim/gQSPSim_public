@@ -14,6 +14,10 @@ function [simData, statusOK, Message] = simulate(obj, varargin)
     Names = p.Results.Names;
     Values = p.Results.Values;
     
+    % filter out missing values
+    ixOK = find(~isnan(p.Results.Values));
+    Names = Names(ixOK);
+    Values = Values(ixOK);
     
     % rebuild model if necessary
     if ~obj.checkExportedModelCurrent()
@@ -86,14 +90,23 @@ function [simData, statusOK, Message] = simulate(obj, varargin)
         try
             model.SimulationOptions.StopTime = StopTime;
             model.SimulationOptions.OutputTimes = [];            
-            [~,RTSSdata,~] = simulate(model,[ICValues; paramValues],[]);
+            [~,RTSSdata,outNames] = simulate(model,[ICValues; paramValues],[]);
             RTSSdata = max(0,RTSSdata); % replace any negative values with zero
+            
+            % comparments
+            comps = cellfun(@(x) x.Name, get(obj.VarModelObj.Species,'Parent'), 'UniformOutput', false);
+            specs = get(obj.VarModelObj.Species,'Name');
+            fullSpecName = arrayfun(@(k) sprintf('%s.%s', comps{k}, specs{k}), 1:numel(specs), 'UniformOutput', false);
+            
+            [hIdx,idxSpecies] = ismember(outNames, fullSpecName);
+
+%             [hIdx,idxSpecies] = ismember(outNames, get(obj.VarModelObj.Species,'Name'));
             if any(isnan(RTSSdata(:)))
                 ME = MException('Task:simulate', 'Encountered NaN during simulation');
                 throw(ME)
             end
-            ICValues = reshape(RTSSdata(end,1:length(obj.SpeciesNames)),[],1);
-%             if any(isinf(ICValues))
+            ICValues = RTSSdata(end, idxSpecies(hIdx));
+            %             if any(isinf(ICValues))
 %                 disp('Ignoring inf values computed for steady state')
 %             end
         catch err
@@ -108,7 +121,12 @@ function [simData, statusOK, Message] = simulate(obj, varargin)
     model.SimulationOptions.StopTime = StopTime;
     model.SimulationOptions.OutputTimes = times;
     
-    simData = simulate(model,[ICValues; paramValues],doses);
+    try
+        simData = simulate(model,[ICValues'; paramValues],doses);
+    catch simErr
+        statusOK = false;
+    end
+        
 end
 
 

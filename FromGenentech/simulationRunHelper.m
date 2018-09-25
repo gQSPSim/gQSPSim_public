@@ -16,7 +16,7 @@ Cancelled = false;
 
 %% update path to include everything in subdirectories of the root folder
 myPath = path;
-addpath(genpath(obj.Session.RootDirectory));
+%addpath(genpath(obj.Session.RootDirectory));
 
 
 %% parse inputs and initialize
@@ -182,7 +182,16 @@ if ~isempty(ItemModels)
 
             if SaveFlag
                 % Update ResultFileNames
-                ResultFileNames{ii} = ['Results - Sim = ' options.simName ', Task = ' obj.Item(options.runIndices(ii)).TaskName ' - Vpop = ' obj.Item(options.runIndices(ii)).VPopName ' - Date = ' datestr(now,'dd-mmm-yyyy_HH-MM-SS') '.mat'];
+                if ~isempty(obj.Item(options.runIndices(ii)).Group)
+                    grpStr = obj.Item(options.runIndices(ii)).Group;
+                else
+                    grpStr = '';
+                end
+                ResultFileNames{ii} = ['Results - Sim = ' options.simName ...
+                    ', Task = ' obj.Item(options.runIndices(ii)).TaskName ...
+                    ' - Vpop = ' obj.Item(options.runIndices(ii)).VPopName ...
+                    ' - Group = ' grpStr ...
+                    ' - Date = ' datestr(now,'dd-mmm-yyyy_HH-MM-SS') '.mat'];
 
                 try
                     if isempty(VpopWeights)
@@ -379,7 +388,9 @@ function [ItemModel, VpopWeights, StatusOK, Message] = constructVpopItem(taskObj
             vpopTable = table2array(tmp);
             params = tmp.Properties.VariableNames;
         else
-            [vpopTable,params] = xlsread(vpopObj.FilePath);
+            [vpopTable,params,raw] = xlsread(vpopObj.FilePath);
+            params = raw(1,:);
+            vpopTable = cell2mat(raw(2:end,:));
         end
         params = params(1,:);
 %         T = readtable(vpopObj.FilePath);
@@ -414,7 +425,8 @@ function [ItemModel, VpopWeights, StatusOK, Message] = constructVpopItem(taskObj
             Message = sprintf(['%s%s: Invalid parameters contained in the vpop file. Valid column names includes "PWeight", "Group", "ID",'...
                     'and names of parameters/species in the model.\n\nPlease check for consistency with the selected task model.\n'], ...
                 Message, taskObj.Name);
-            return
+%             return
+
         end
         
         nPatients = size(vpopTable,1);

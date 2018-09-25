@@ -55,11 +55,11 @@ else
 end
 
 %% Prepare species-data Mappings
-Mappings = cell(length(obj.SpeciesData),2);
-for ii = 1:length(obj.SpeciesData)
-    Mappings{ii,1} = obj.SpeciesData(ii).SpeciesName;
-    Mappings{ii,2} = obj.SpeciesData(ii).DataName;
-end
+% Mappings = cell(length(obj.SpeciesData),2);
+% for ii = 1:length(obj.SpeciesData)
+%     Mappings{ii,1} = obj.SpeciesData(ii).SpeciesName;
+%     Mappings{ii,2} = obj.SpeciesData(ii).DataName;
+% end
 
 
 %% For each task/group, load models and prepare for simulations
@@ -79,7 +79,7 @@ end
 ixPW = strcmp(Names,'PWeight');
 if any(ixPW)
     Names = Names(~ixPW);
-    cohortData = cohortData(:, ~ixPW);
+    cohortData = cohortData([cohortData{:,ixPW}]>0, ~ixPW);  % drop zero-weight vpatients
 end
 
 simData = cell(nItems,1);
@@ -103,7 +103,9 @@ for ii = 1:nItems
 
 %     ixGrp =  
     if any(ixGrp)
-        Values = cohortData(~ixGrp, cell2mat(cohortData(:,ixGrp))==str2num(obj.Item(ii).GroupID) ); 
+%         Values = cohortData(~ixGrp, cell2mat(cohortData(:,ixGrp))==str2num(obj.Item(ii).GroupID) ); 
+        Values = cohortData(cell2mat(cohortData(:,ixGrp))==str2num(obj.Item(ii).GroupID),: ); % TODO verify that this is correct
+
     else
         Values = cohortData;
     end
@@ -115,11 +117,15 @@ for ii = 1:nItems
                     'Names', Names, ...
                     'Values', Values(vpatIdx,:), ...
                     'OutputTimes', unqTime);
-        vpatData{ii}(:,:,vpatIdx) = simData.Data;
+        thisData = zeros(length(unqTime), length(obj.SpeciesData)); % temporary object for transforming data for relevant species
+        for idxSpecies = 1:length(obj.SpeciesData)
+            thisData(:,idxSpecies) = obj.SpeciesData(idxSpecies).evaluate(...
+                simData.Data(:,strcmp(simData.DataNames,obj.SpeciesData(idxSpecies).SpeciesName)));
+        end 
+        vpatData{ii}(:,:,vpatIdx) = thisData;
     end
-    spNames = simData.DataNames;
 end
-    
+   
 %% get the desired statistics/distribution from the vpopGen
 
 % loop over species in the mapping
@@ -140,16 +146,21 @@ dataMatrix = [];
 sigY = []; % uncertainty in statistics
 tic
 fprintf('Computing data statistics...')
-for spIdx = 1:size(Mappings,1)
-    thisSpecies = Mappings(spIdx,2);
-
+for spIdx = 1:length(obj.SpeciesData)
+    thisSpecies = obj.SpeciesData(spIdx).SpeciesName;
+    thisDataName = obj.SpeciesData(spIdx).DataName;
+    
     for itemIdx = 1:length(obj.Item)
         thisGrp = str2num(obj.Item(itemIdx).GroupID);
         
         for timeIdx = 1:numel(unqTime)
-            thisData = vpopGenData( strcmp(vpopGenData(:,spCol),thisSpecies) & ...
+            thisData = vpopGenData( strcmp(vpopGenData(:,spCol),thisDataName) & ...
                 dataTimes == unqTime(timeIdx) & ...
                  dataGrps == thisGrp, :);
+             if isempty(thisData)
+                 continue
+             end
+             
             thisType = thisData(:,typeCol);
 
             if numel(unique(thisType)) ~= 1
@@ -159,14 +170,15 @@ for spIdx = 1:size(Mappings,1)
             end
             
             % MEAN only
-            spData = reshape(vpatData{itemIdx}(timeIdx,strcmp(thisSpecies,spNames),:), 1, []);
+            spData = reshape(vpatData{itemIdx}(timeIdx,spIdx,:), 1, []);
+            
             dataMatrix = [dataMatrix; spData];
-            Y = [Y; cell2mat(thisData(:,val1Col))];
+            Y = [Y; mean(cell2mat(thisData(:,val1Col)))];
             
             % if STD
             if strcmp(thisType, 'MEAN_STD')
                dataMatrix = [dataMatrix; (spData -  cell2mat(thisData(:,val1Col))).^2];
-                Y = [Y; cell2mat(thisData(:,val2Col)).^2];         
+                Y = [Y; mean(cell2mat(thisData(:,val2Col)).^2)];         
                 %TODO: use STD to compute uncertainty in the mean? requires
                 %knowledge of sample size to get the std. err.
             end

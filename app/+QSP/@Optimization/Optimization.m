@@ -439,6 +439,8 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             obj.PlotProfile = QSP.Profile.empty(0,1);
             obj.SelectedProfileRow = [];
             obj.LastSavedTime = '';
+            obj.ExcelResultFileName = '';
+            obj.VPopName = '';
         end
     end
     
@@ -498,7 +500,8 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                              PlotParametersData = cell(size(Data,1),2);
                             PlotParametersData(:,1) = Data(:,IsName);
                             PlotParametersData(:,2) = Data(:,IsP0_1);  
-                            PlotParametersData(cell2mat(cellfun(@isnan, PlotParametersData(:,2), 'UniformOutput', false)), 2) = {''};
+
+                            PlotParametersData(cell2mat(cellfun(@(x) isempty(x) | isnan(x), PlotParametersData(:,2), 'UniformOutput', false)), 2) = {''};
                         else
                             StatusOk = false;
                             Message = sprintf('Parameter file must contain columns for "Name" and "P0_1", %s',Message);
@@ -523,6 +526,16 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                         PlotParametersData(isStr,2) = cellfun(@str2num, PlotParametersData(isStr,2), 'UniformOutput', false);
                     end                                       
                     
+                    % include all parameters that are included in the tasks
+                    % for this optimization
+                    if ~isempty(obj.ItemModels)
+                        tmp = arrayfun(@(k) obj.ItemModels(k).Task.ParameterNames, 1:length(obj.ItemModels), 'UniformOutput', false);
+                        allParams = table(unique(vertcat(tmp{:})), 'VariableNames', {'Parameter'});
+                        paramsTable = cell2table(PlotParametersData, 'VariableNames', {'Parameter','Value'});
+                        PlotParametersDataTable = outerjoin( allParams, paramsTable);
+                        PlotParametersData = table2cell(PlotParametersDataTable(:,{'Parameter_allParams','Value'}));
+                        PlotParametersData(cell2mat(cellfun(@isnan, PlotParametersData(:,2), 'UniformOutput',false)), 2) = {''};
+                    end
                     % reorder alphabetically
                     [~,index] = sort(upper(PlotParametersData(:,1)));
                     PlotParametersData = PlotParametersData(index,:);

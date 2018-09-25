@@ -56,6 +56,14 @@ rerunSims = true;
 if ~isempty(varargin{1})
     rerunSims = cell2mat(varargin{1});
 end
+
+if nargin>3
+    refreshAxes = varargin{2};
+else
+    refreshAxes = [];
+end
+    
+
 %% Get the selections and Task-Vpop pairs
 
 % Initialize
@@ -183,7 +191,7 @@ hDatasetGroup = cell(size(obj.PlotSpeciesTable,1),NumAxes);
 
 if ~StatusOK && ~Cancelled
     warning('plotOptimization: %s',Message);
-    return
+%     return
 end
 
 
@@ -204,12 +212,12 @@ HighlightIdx = find(HighlightIdx);
 
 for sIdxIdx = 1:length(obj.SpeciesData) % 1:size(obj.PlotSpeciesTable,1)
     sIdx = find( strcmp(obj.SpeciesData(sIdxIdx).SpeciesName, obj.PlotSpeciesTable(:,3)) & ...
-        strcmp(obj.SpeciesData(sIdxIdx).DataName, obj.PlotSpeciesTable(:,4)) )
+        strcmp(obj.SpeciesData(sIdxIdx).DataName, obj.PlotSpeciesTable(:,4)) );
     axIdx = str2double(obj.PlotSpeciesTable{sIdx,1});
     ThisLineStyle = obj.PlotSpeciesTable{sIdx,2};
     ThisName = obj.PlotSpeciesTable{sIdx,3};    
     
-    if ~isempty(axIdx) && ~isnan(axIdx) && ~isempty(Results) 
+    if ~isempty(axIdx) && ~isnan(axIdx) && ~isempty(Results) && (isempty(refreshAxes) || ismember(axIdx,refreshAxes))
         for runIdx = 1:NumRuns
             for itemIdx = 1:size(Results,2)
                 % Plot the species from the simulation item in the appropriate

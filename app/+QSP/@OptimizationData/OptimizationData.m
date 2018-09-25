@@ -142,8 +142,13 @@ classdef OptimizationData < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             
             if ~isempty(Table)
                 Header = Table.Properties.VariableNames;
-                Data = table2cell(Table);
                 
+                excludeCol = strcmpi(Header,'Exclude');
+                if any(excludeCol)
+                    Table = Table(~strcmpi('Yes',Table{:,excludeCol}),~excludeCol);
+                end
+                
+                Data = table2cell(Table);
                 % Convert between formats if needed
                 if strcmpi(obj.DatasetType,'wide') && strcmpi(DestDatasetType,'tall')
                     % Wide -> Tall
