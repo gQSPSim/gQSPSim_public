@@ -12,6 +12,10 @@ function [simData, statusOK] = simulate(obj, varargin)
     Names = p.Results.Names;
     Values = p.Results.Values;
     
+    % filter out missing values
+    ixOK = find(~isnan(p.Results.Values));
+    Names = Names(ixOK);
+    Values = Values(ixOK);
     
     % rebuild model if necessary
     if ~obj.checkExportedModelCurrent()
@@ -78,7 +82,15 @@ function [simData, statusOK] = simulate(obj, varargin)
             model.SimulationOptions.OutputTimes = [];            
             [~,RTSSdata,outNames] = simulate(model,[ICValues; paramValues],[]);
             RTSSdata = max(0,RTSSdata); % replace any negative values with zero
-            [hIdx,idxSpecies] = ismember(outNames, get(obj.VarModelObj.Species,'Name'));
+            
+            % comparments
+            comps = cellfun(@(x) x.Name, get(obj.VarModelObj.Species,'Parent'), 'UniformOutput', false);
+            specs = get(obj.VarModelObj.Species,'Name');
+            fullSpecName = arrayfun(@(k) sprintf('%s.%s', comps{k}, specs{k}), 1:numel(specs), 'UniformOutput', false);
+            
+            [hIdx,idxSpecies] = ismember(outNames, fullSpecName);
+
+%             [hIdx,idxSpecies] = ismember(outNames, get(obj.VarModelObj.Species,'Name'));
             if any(isnan(RTSSdata(:)))
                 ME = MException('Task:simulate', 'Encountered NaN during simulation');
                 throw(ME)
