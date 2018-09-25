@@ -159,19 +159,47 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
             
             if obj.bShowQuantiles(axIdx)
                 axes(get(hSpeciesGroup{sIdx,axIdx},'Parent'))
-                q50 = quantile(Results(itemIdx).Data(:,ColumnIdx),0.5,2);
-                q75 = quantile(Results(itemIdx).Data(:,ColumnIdx),0.75,2);
-                q25 = quantile(Results(itemIdx).Data(:,ColumnIdx),0.25,2);
+%                 q50 = quantile(Results(itemIdx).Data(:,ColumnIdx),0.5,2);
+%                 q75 = quantile(Results(itemIdx).Data(:,ColumnIdx),0.75,2);
+%                 q25 = quantile(Results(itemIdx).Data(:,ColumnIdx),0.25,2);
+               
+                w0 = Results(itemIdx).VpopWeights;
+                if isempty(w0)
+                    w0 = ones(1, size(Results(itemIdx).Data,2)/length(Results(itemIdx).SpeciesNames));
+                end
+                w0 = w0./sum(w0); % renormalization
+
+                NT = size(Results(itemIdx).Data,1);
+                q50 = zeros(1,NT);
+                q025 = zeros(1,NT);
+                q975 = zeros(1,NT);
+                for tIdx = 1:NT
+                    y = Results(itemIdx).Data(tIdx,ColumnIdx);
+                    [y,ix] = sort(y, 'Ascend');
+                    w = w0(ix);
+                    q50(tIdx) = y(find(cumsum(w)>=0.5, 1, 'first'));
+                    q025(tIdx) = y(find(cumsum(w)>=0.025, 1, 'first'));
+                    idx975 = find(cumsum(w)>=0.975, 1, 'first');
+                    if isempty(idx975)
+                        idx975 = length(y);
+                    end
+                    q975(tIdx) = y(idx975);
+                    
+                end
+
+
+                
+%                 Results(itemIdx).Data
                 
                 if length(Results(itemIdx).Time') > 1
-                    SE=shadedErrorBar(Results(itemIdx).Time', q50', [q75-q50,q50-q25]');
+                    SE=shadedErrorBar(Results(itemIdx).Time', q50, [q975-q50;q50-q025]);
                     set(SE.mainLine,'Color',SelectedItemColors(itemIdx,:),...
                         'LineStyle',ThisLineStyle);
                     set(SE.patch,'FaceColor',SelectedItemColors(itemIdx,:));
                     set(SE.edge,'Color',SelectedItemColors(itemIdx,:),'LineWidth',2);
                     thisAnnotation = get(SE.mainLine,'Annotation');
                 else
-                    h = errorbar(Results(itemIdx).Time', q50', q50-q25, q75-q50, 'Color', SelectedItemColors(itemIdx,:), ...
+                    h = errorbar(Results(itemIdx).Time', q50', q50-q025, q975-q50, 'Color', SelectedItemColors(itemIdx,:), ...
                         'LineStyle',ThisLineStyle);
                     thisAnnotation = get(h,'Annotation');
                 end
