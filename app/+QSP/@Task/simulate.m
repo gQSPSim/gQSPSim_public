@@ -110,7 +110,12 @@ function [simData, statusOK] = simulate(obj, varargin)
     model.SimulationOptions.StopTime = StopTime;
     model.SimulationOptions.OutputTimes = times;
     
-    simData = simulate(model,[ICValues'; paramValues],doses);
+    try
+        simData = simulate(model,[ICValues'; paramValues],doses);
+    catch simErr
+        statusOK = false;
+    end
+        
 end
 
 
