@@ -117,11 +117,11 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         
         function compile(obj)
             
-         % rebuild model if necessary
-         if ~obj.checkExportedModelCurrent()
-            obj.constructModel();
-            disp('Rebuilding model')
-         end
+             % rebuild model if necessary
+             if ~obj.checkExportedModelCurrent()
+                 constructModel(obj);
+                disp('Rebuilding model')
+             end
          
         end
 
@@ -253,7 +253,11 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 Message = sprintf('%s\n* Invalid MaxWallClockTime. MaxWallClockTime must be > 0.\n',Message);
             end
             
-            obj.LastValidatedTime = datestr(now);
+            if StatusOK
+                obj.LastValidatedTime = datestr(now);
+            else
+                obj.LastValidatedTime = '';
+            end
 
             
         end %function
