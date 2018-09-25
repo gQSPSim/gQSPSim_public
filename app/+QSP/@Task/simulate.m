@@ -122,7 +122,7 @@ function [simData, statusOK, Message] = simulate(obj, varargin)
     model.SimulationOptions.OutputTimes = times;
     
     try
-        simData = simulate(model,[ICValues'; paramValues],doses);
+        simData = simulate(model,[reshape(ICValues,[],1); paramValues],doses);
     catch simErr
         statusOK = false;
     end
