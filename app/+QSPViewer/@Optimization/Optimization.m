@@ -207,6 +207,8 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
                 if ~StatusOk
                     hDlg = errordlg(Message,'Parameter Import Failed','modal');
                     uiwait(hDlg);
+                else
+                    vObj.Data.clearData();
                 end
             end
              
@@ -470,11 +472,11 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
                 end
 
                 RowIdx = Indices(1,1);
-
-                h.SelectedRows = RowIdx;
-
-                % Update the view
-                updateVisualizationView(vObj);
+                if h.SelectedRows ~= RowIdx
+                    h.SelectedRows = RowIdx;
+                    % Update the view
+                    updateVisualizationView(vObj);
+                end
             catch ME
             end
 %             vObj.Semaphore = 'free';
