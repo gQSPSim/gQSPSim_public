@@ -207,7 +207,7 @@ else
 end
 
 %% loop over the candidates until enough are generated
-hWbar = uix.utility.CustomWaitbar(0,'Virtual population generation','Generating virtual population...',true);
+hWbar = uix.utility.CustomWaitbar(0,'Virtual cohort generation','Generating virtual cohort...',true);
 
 
 ViolationTable = [];
@@ -446,7 +446,7 @@ isValid = isValid(1:nSim);
 Vpop = Vpop(1:nSim,:);
 
 if nPat == 0
-    bProceed = questdlg('No valid virtual patients generated. Save virtual population?', 'Save virtual population?', 'No');
+    bProceed = questdlg('No valid virtual patients generated. Save virtual cohort?', 'Save virtual cohort?', 'No');
     if strcmp(bProceed,'Yes')
         StatusOK = true;
     else
@@ -469,7 +469,7 @@ if bCancelled
 end
 
 if StatusOK && bProceed
-    hWbar = uix.utility.CustomWaitbar(0,'Saving virtual population','Saving virtual population...',true);
+    hWbar = uix.utility.CustomWaitbar(0,'Saving virtual cohort','Saving virtual cohort...',true);
 
     SaveFlag = true;
     % add prevalence weight
@@ -505,7 +505,7 @@ if StatusOK && bProceed
     obj.SimFlag = repmat(isValid, nIC, 1);
     
     if SaveFlag
-        VpopName = ['Results - Vpop Generation = ' obj.Name ' - Date = ' datestr(now,'dd-mmm-yyyy_HH-MM-SS')];
+        VpopName = ['Results - Cohort Generation = ' obj.Name ' - Date = ' datestr(now,'dd-mmm-yyyy_HH-MM-SS')];
         ResultsFileName = [VpopName '.xlsx'];
         if ispc
             [ThisStatusOk,ThisMessage] = xlswrite(fullfile(SaveFilePath,ResultsFileName),Vpop);
@@ -518,7 +518,7 @@ if StatusOK && bProceed
         end
     else
         StatusOK = false;
-        ThisMessage = 'Could not save the output of virtual population generation.';
+        ThisMessage = 'Could not save the output of virtual cohort generation.';
         Message = sprintf('%s\n%s\n',Message,ThisMessage);
     end
         
