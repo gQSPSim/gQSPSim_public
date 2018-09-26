@@ -196,6 +196,7 @@ end
 
 
 % Get the associated colors
+
 try
     SelectedItemColors = cell2mat(obj.PlotItemTable(IsSelected,2));
 catch thisError

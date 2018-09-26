@@ -283,23 +283,26 @@ if strcmp(obj.PlotType, 'Normal') && ~isempty(Results)
                         end
                     
 %                         thisMean = thisData(:,ColumnIdx) * vpopWeights/sum(vpopWeights);
+                        x = thisData(:,ColumnIdx);
                         w0 = vpopWeights/sum(vpopWeights);
-                        for tIdx = 1:size(thisData,1)
-                            [y,ix] = sort( thisData(tIdx,ColumnIdx), 'Ascend');
-                            q025(tIdx) = y(find(cumsum(w0(ix)) >= 0.025, 1, 'first'));
-                            q975(tIdx) = y(find(cumsum(w0(ix)) >= 0.975, 1, 'first'));
-                            q50(tIdx) = y(find(cumsum(w0(ix)) >= 0.5, 1, 'first'));
                         
-%                         
-                        end
-%                             thisStd = sqrt( (thisData(:,ColumnIdx) - thisMean).^2 * vpopWeights/sum(vpopWeights));
+%                         for tIdx = 1:size(thisData,1)
+%                             [y,ix] = sort( thisData(tIdx,ColumnIdx), 'Ascend');
+%                             q025(tIdx) = y(find(cumsum(w0(ix)) >= 0.025, 1, 'first'));
+%                             q975(tIdx) = y(find(cumsum(w0(ix)) >= 0.975, 1, 'first'));
+%                             q50(tIdx) = y(find(cumsum(w0(ix)) >= 0.5, 1, 'first'));
+%                         end
+% %                             thisStd = sqrt( (thisData(:,ColumnIdx) - thisMean).^2 * vpopWeights/sum(vpopWeights));
                         axes(get(hSpeciesGroup{sIdx,axIdx},'Parent'))
-                        mean_line = shadedErrorBar(Results{itemIdx}.Time, q50,...
-                           [q975-q50; q50-q025]');
-                        set(mean_line.mainLine, 'LineStyle',ThisLineStyle,...
-                            'Color',SelectedItemColors(itemIdx,:), ...
-                            'LineWidth', 3);
-                        set(mean_line.patch, 'FaceColor',SelectedItemColors(itemIdx,:));    
+%                         mean_line = shadedErrorBar(Results{itemIdx}.Time, q50,...
+%                            [q975-q50; q50-q025]');
+%                         set(mean_line.mainLine, 'LineStyle',ThisLineStyle,...
+%                             'Color',SelectedItemColors(itemIdx,:), ...
+%                             'LineWidth', 3);
+                        
+                        weightedQuantilePlot(Results{itemIdx}.Time,  x, w0, SelectedItemColors(itemIdx,:), ThisLineStyle);
+                        
+%                         set(mean_line.patch, 'FaceColor',SelectedItemColors(itemIdx,:));    
                     end
                     
                     

@@ -259,19 +259,22 @@ if strcmp(obj.PlotType, 'Normal') && ~isempty(Results)
                         end
                         
                         if obj.bShowQuantiles(axIdx)
-%                             axes(get(hSpeciesGroup{sIdx,axIdx},'Parent'))
-                            q50 = median(thisData(:,setdiff(ColumnIdx, ColumnIdx_invalid)),2);
-                            q025 = quantile(thisData(:,setdiff(ColumnIdx, ColumnIdx_invalid)),0.025,2);
-                            q975 = quantile(thisData(:,setdiff(ColumnIdx, ColumnIdx_invalid)),0.975,2);
-
-                            h=shadedErrorBar(Results{itemIdx}.Time, q50, [q975-q50, q50-q025]);
-
-                            set(h.mainLine,'Parent',hSpeciesGroup{sIdx,axIdx})
-                            set(h.patch,'Parent',hSpeciesGroup{sIdx,axIdx})
-                            set(h.edge,'Parent',hSpeciesGroup{sIdx,axIdx})
-                            set(h.mainLine, 'Color',SelectedItemColors(itemIdx,:),...
-                                'LineStyle',ThisLineStyle);
-                            set(h.patch,'FaceColor',SelectedItemColors(itemIdx,:));
+                            axes(get(hSpeciesGroup{sIdx,axIdx},'Parent'))
+%                             q50 = median(thisData(:,setdiff(ColumnIdx, ColumnIdx_invalid)),2);
+%                             q025 = quantile(thisData(:,setdiff(ColumnIdx, ColumnIdx_invalid)),0.025,2);
+%                             q975 = quantile(thisData(:,setdiff(ColumnIdx, ColumnIdx_invalid)),0.975,2);
+% 
+%                             h=shadedErrorBar(Results{itemIdx}.Time, q50, [q975-q50, q50-q025]);
+% 
+%                             set(h.mainLine,'Parent',hSpeciesGroup{sIdx,axIdx})
+%                             set(h.patch,'Parent',hSpeciesGroup{sIdx,axIdx})
+%                             set(h.edge,'Parent',hSpeciesGroup{sIdx,axIdx})
+%                             set(h.mainLine, 'Color',SelectedItemColors(itemIdx,:),...
+%                                 'LineStyle',ThisLineStyle);
+%                             set(h.patch,'FaceColor',SelectedItemColors(itemIdx,:));
+                            x = thisData(:,setdiff(ColumnIdx, ColumnIdx_invalid));
+                            w = ones(length(x),1) * 1/length(x);
+                            h = weightedQuantilePlot(Results{itemIdx}.Time, x, w, SelectedItemColors(itemIdx,:), ThisLineStyle);
                             hThis = h.mainLine;
                         end
                         
