@@ -91,7 +91,7 @@ end
     % If Vpop is selected, must provide names the of the Vpops associated
     % with each Task-Group
     VPopNames = {obj.Settings.VirtualPopulation.Name};
-    
+
 %     if any(strcmp(obj.PlotParametersSource,VPopNames)) 
         % TODO: Review with Justin - how should this change for multiple
         % parameter sources (history table)
@@ -104,12 +104,14 @@ end
                 NonEmpty = ~cellfun(@isempty, IndCell);
 
                 % only 1 Vpop should match
-                if nnz(NonEmpty)~=1
+                if nnz(NonEmpty)>1
                     Message = 'Multiple Vpops share the same group.';
                     error('plotOptimization: %s',Message);
                 end
-                % assign the vpop name
-                simObj.Item(ii).VPopName = obj.VPopName{NonEmpty};
+                if ~isempty(obj.VPopName)
+                    % assign the vpop name
+                    simObj.Item(ii).VPopName = obj.VPopName{NonEmpty};
+                end
             end
                 
         else
@@ -172,7 +174,7 @@ if any(IsSelected)
         end       
     end
     
-    if rerunSims
+    if rerunSims && ~isempty(obj.PlotProfile) % need at least one profile 
         [StatusOK,Message,~,Cancelled,Results,ItemModels] = simulationRunHelper(simObj,ParamValues,ParamNames,[],ItemModels,find(IsSelected));
 %         [StatusOK,Message,~,Results,ItemModels] = simulationRunHelper(simObj,ParamValues,ParamNames,[],[],find(IsSelected));
 
