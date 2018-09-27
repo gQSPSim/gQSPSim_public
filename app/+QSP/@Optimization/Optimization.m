@@ -529,10 +529,19 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                     % include all parameters that are included in the tasks
                     % for this optimization
                     if ~isempty(obj.ItemModels)
-                        tmp = arrayfun(@(k) obj.ItemModels(k).Task.ParameterNames, 1:length(obj.ItemModels), 'UniformOutput', false);
-                        allParams = table(unique(vertcat(tmp{:})), 'VariableNames', {'Parameter'});
+                        taskParams = arrayfun(@(k) obj.ItemModels(k).Task.ParameterNames, 1:length(obj.ItemModels), 'UniformOutput', false);
+                        taskSpecies = arrayfun(@(k) obj.ItemModels(k).Task.SpeciesNames, 1:length(obj.ItemModels), 'UniformOutput', false);
+                        
+                        allParams = table(unique(vertcat(taskParams{:})), 'VariableNames', {'Parameter'});
+                        allSpecies = table(unique(vertcat(taskSpecies{:})),  'VariableNames', {'Parameter'});
+                        
                         paramsTable = cell2table(PlotParametersData, 'VariableNames', {'Parameter','Value'});
+
+                        tableSpecies = innerjoin(allSpecies, paramsTable);
+                        allParams = [allParams; tableSpecies.Parameter];
+                        
                         PlotParametersDataTable = outerjoin( allParams, paramsTable);
+
                         PlotParametersData = table2cell(PlotParametersDataTable(:,{'Parameter_allParams','Value'}));
                         PlotParametersData(cell2mat(cellfun(@isnan, PlotParametersData(:,2), 'UniformOutput',false)), 2) = {''};
                     end

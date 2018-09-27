@@ -100,18 +100,20 @@ end
                 % find the group associated with this task
                 ThisGroupName = obj.PlotItemTable{ii,4}; %{SelectedInds(ii),4};
                 % find the name of the vpop generated for this task + group
-                IndCell = strfind(obj.VPopName,['Group = ' ThisGroupName]);
-                NonEmpty = ~cellfun(@isempty, IndCell);
-
-                % only 1 Vpop should match
-                if nnz(NonEmpty)>1
-                    Message = 'Multiple Vpops share the same group.';
-                    error('plotOptimization: %s',Message);
-                end
                 if ~isempty(obj.VPopName)
                     % assign the vpop name
                     simObj.Item(ii).VPopName = obj.VPopName{NonEmpty};
+                    IndCell = strfind(obj.VPopName,['Group = ' ThisGroupName]);
+                    NonEmpty = ~cellfun(@isempty, IndCell);
+
+                    % only 1 Vpop should match
+                    if nnz(NonEmpty)>1
+                        Message = 'Multiple Vpops share the same group.';
+                        error('plotOptimization: %s',Message);
+                    end
                 end
+
+                
             end
                 
         else

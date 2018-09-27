@@ -910,6 +910,61 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
             
         end %function
         
+        function onResetParametersVPopButton(vObj,h,e)
+            % reset parameters to the original source values
+            
+            % Source
+            % Re-import the source values for
+            % ThisProfile.Source (before changing)
+            hFigure = ancestor(vObj.h.MainLayout,'Figure');
+            set(hFigure,'pointer','watch');
+            drawnow;
+                           
+            ThisProfile = vObj.Data.PlotProfile(vObj.Data.SelectedProfileRow);
+            
+            Prompt = 'This action will clear overriden source parameters. Do you want to continue? Press Cancel to save.';
+            Result = questdlg(Prompt,'Continue?','Yes','Cancel','Cancel');                                
+
+           if strcmpi(Result,'Yes')
+              obj = vObj.Data;
+                Names = {obj.Settings.Parameters.Name};
+                MatchIdx = strcmpi(Names,obj.RefParamName);
+                if any(MatchIdx)
+                    pObj = obj.Settings.Parameters(MatchIdx);
+                    [ThisStatusOk,ThisMessage,paramHeader,paramData] = importData(pObj,pObj.FilePath);
+                    if ~ThisStatusOk
+                        StatusOK = false;
+                        Message = sprintf('%s\n%s\n',Message,ThisMessage);
+                        path(myPath);
+                        return
+                    end
+                else
+                    warning('Could not find match for specified parameter file')
+                    paramData = {};
+                end
+
+                % parameters that are being optimized
+                idxInclude = strcmp(paramHeader,'Include');
+                idxName = strcmp(paramHeader,'Name');
+                idx_p0 = strcmpi(paramHeader,'P0_1');
+
+                optParams = paramData(strcmpi(paramData(:,idxInclude),'yes'),:);
+
+
+                ThisSourceData = {};
+                if ~isempty(ThisProfile.Source) && ~any(strcmpi(ThisProfile.Source,{'','N/A'}))
+                    [~,~,ThisSourceData] = importParametersSource(vObj.Data,ThisProfile.Source);
+                end  
+                [~,index] = sort(upper(ThisSourceData(:,1)));
+                ThisProfile.Values = ThisSourceData(index,:);
+           end
+           % Update the view
+           updateVisualizationView(vObj);
+
+           set(hFigure,'pointer','arrow');
+           drawnow;
+        end
+        
         function onPlotItemsTableContextMenu(vObj,h,e)
             
             SelectedRow = get(vObj.h.PlotItemsTable,'SelectedRows');
