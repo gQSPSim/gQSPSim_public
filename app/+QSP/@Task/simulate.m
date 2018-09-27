@@ -9,10 +9,12 @@ function [simData, statusOK, Message] = simulate(obj, varargin)
     p.addOptional('Values', {});
     p.addParameter('OutputTimes', obj.OutputTimes);
     p.addParameter('StopTime', obj.TimeToSteadyState);
+    p.addParameter('Waitbar', []);
 
     parse(p, varargin{:});
     Names = p.Results.Names;
     Values = p.Results.Values;
+    Waitbar = p.Results.Waitbar;
     
     % filter out missing values
     ixOK = find(~isnan(p.Results.Values));
@@ -22,6 +24,9 @@ function [simData, statusOK, Message] = simulate(obj, varargin)
     % rebuild model if necessary
     if ~obj.checkExportedModelCurrent()
 %         uix.utility.CustomWaitbar(ii/nBuildItems,hWbar1,sprintf('Configuring model for %s', obj.Name);        
+        if ~isempty(Waitbar)
+            uix.utility.CustomWaitbar(0,Waitbar,'Rebuilding model');
+        end
         obj.constructModel();
         disp('Rebuilding model')
     end

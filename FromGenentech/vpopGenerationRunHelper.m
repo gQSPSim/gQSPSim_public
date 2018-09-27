@@ -85,6 +85,9 @@ end
 simData = cell(nItems,1);
 unqTime = unique(cell2mat(vpopGenData(:,strcmp(vpopGenHeader,'Time'))));
 vpatData = cell(1,nItems);
+Title2 = sprintf('Simulating tasks...');
+hWbar2 = uix.utility.CustomWaitbar(0,Title2,'',true);
+Cancelled = false;
 
 for ii = 1:nItems
     
@@ -112,7 +115,18 @@ for ii = 1:nItems
     Values = cell2mat(Values);
         
 %     OutputTimes = union(taskObj.OutputTimes, unique(vpopGenData(:,strcmp(vpopGenHeader,'Time'))));
-    for vpatIdx = 1:size(Values,1)
+    set(hWbar2, 'Name', sprintf('Simulating task %d of %d',ii,nItems))
+    uix.utility.CustomWaitbar(0,hWbar2,'');
+    nPatients = size(Values,1);
+    for vpatIdx = 1:nPatients
+            StatusOK = uix.utility.CustomWaitbar(vpatIdx/nPatients, hWbar2, sprintf('Simulating vpatient %d/%d', vpatIdx, nPatients));
+
+         % update wait bar
+            if ~StatusOK
+                Cancelled=true;
+                break
+            end
+        
         simData = taskObj.simulate(...
                     'Names', Names, ...
                     'Values', Values(vpatIdx,:), ...
@@ -124,8 +138,19 @@ for ii = 1:nItems
         end 
         vpatData{ii}(:,:,vpatIdx) = thisData;
     end
+    if Cancelled
+        break
+    end
 end
-   
+
+if ~isempty(hWbar2)
+    delete(hWbar2)
+end
+
+if Cancelled
+    Message = 'Simulation cancelled';
+    return
+end
 %% get the desired statistics/distribution from the vpopGen
 
 % loop over species in the mapping
