@@ -889,7 +889,8 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
                     vpopObj.FilePath = ThisFilePath;                 
                     
                     ThisProfile = vObj.Data.PlotProfile(vObj.Data.SelectedProfileRow);
-                    Values = ThisProfile.Values'; % Take first 2 rows and transpose
+                    
+                    Values = ThisProfile.Values(~cellfun(@isempty, ThisProfile.Values(:,2)), :)'; % Take first 2 rows and transpose
                     
                     xlwrite(vpopObj.FilePath,Values); 
 
