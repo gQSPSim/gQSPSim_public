@@ -95,17 +95,6 @@ else
 end
 
 
-%% Plot Type
-
-if ~isempty(vObj.Data)
-    if strcmpi(vObj.Data.PlotType,'Normal')
-        set(vObj.h.PlotTypeRadioButtonGroup,'SelectedObject',vObj.h.NormalPlotTypeRadioButton);
-    else
-        set(vObj.h.PlotTypeRadioButtonGroup,'SelectedObject',vObj.h.DiagnosticPlotTypeRadioButton);
-    end
-end
-
-
 %% Refresh Items
 
 if ~isempty(vObj.Data)
