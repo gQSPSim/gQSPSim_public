@@ -444,6 +444,7 @@ Message = sprintf('%s\n%s\n',Message,ThisMessage);
 
 isValid = isValid(1:nSim);
 Vpop = Vpop(1:nSim,:);
+bProceed = true;
 
 if nPat == 0
     bProceed = questdlg('No valid virtual patients generated. Save virtual cohort?', 'Save virtual cohort?', 'No');
