@@ -175,8 +175,8 @@ classdef VirtualPopulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 MatchPW = find(strcmpi(Header,'PWeight'));
                 if ~isempty(MatchPW)
                     MatchPW = MatchPW(1);
-                    PWWeights = Raw(2:end,MatchPW);
-                    if sum(obj.PrevalenceWeights) == 1
+                    PWWeights = cell2mat(Raw(2:end,MatchPW));
+                    if abs(sum(PWWeights) - 1) < 1e-12
                         PrevalenceWeights = PWWeights;
                         obj.PrevalenceWeightsStr = 'yes';
                     else

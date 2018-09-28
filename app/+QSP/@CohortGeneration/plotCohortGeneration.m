@@ -273,7 +273,7 @@ if strcmp(obj.PlotType, 'Normal') && ~isempty(Results)
 %                                 'LineStyle',ThisLineStyle);
 %                             set(h.patch,'FaceColor',SelectedItemColors(itemIdx,:));
                             x = thisData(:,setdiff(ColumnIdx, ColumnIdx_invalid));
-                            w = ones(length(x),1) * 1/length(x);
+                            w = ones(size(x,2),1) * 1/size(x,2);
                             h = weightedQuantilePlot(Results{itemIdx}.Time, x, w, SelectedItemColors(itemIdx,:), ThisLineStyle);
                             hThis = h.mainLine;
                         end

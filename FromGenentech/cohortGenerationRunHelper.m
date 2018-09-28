@@ -477,7 +477,7 @@ if StatusOK && bProceed
     VpopHeader = [Names0; 'PWeight']';
 
     % replicate the vpops if multiple initial conditions were specified
-    VpopData = [num2cell(Vpop), num2cell(isValid)];
+    VpopData = [num2cell(Vpop), num2cell(isValid/nnz(isValid))];
     if ~isempty(ICTable)
         [bSpeciesData,idxSpeciesData] = ismember( ICTable.colheaders, obj.PlotSpeciesTable(:,4));
         ICTableHeaders = ICTable.colheaders;

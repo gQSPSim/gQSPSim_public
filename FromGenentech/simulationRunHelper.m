@@ -349,13 +349,14 @@ if isempty(Pin)
             tmpObj = obj.Settings.VirtualPopulation(strcmp(vpopName,options.allVpopNames));
             if isempty(tmpObj) 
                 StatusOK = false;
-                error('The virtual population named %s is invalid.', vpopName) % TODO: Replace with ThisMessage/Message?
+                ThisMessage = sprintf('The virtual population named %s is invalid.', vpopName); % TODO: Replace with ThisMessage/Message?
+                Message = sprintf('%s\n%s\n',Message,ThisMessage);
                 break
             elseif isempty(tmpObj.FilePath)
                 StatusOK = false;
-%                 ThisMessage = sprintf('The virtual population named %s is incomplete.',vpopName);
-%                 Message = sprintf('%s\n%s\n',Message,ThisMessage);
-                error('The virtual population named %s is incomplete.', vpopName) % TODO: Replace with ThisMessage/Message?
+                ThisMessage = sprintf('The virtual population named %s is incomplete.',vpopName);
+                Message = sprintf('%s\n%s\n',Message,ThisMessage);
+%                 error('The virtual population named %s is incomplete.', vpopName) % TODO: Replace with ThisMessage/Message?
                 break
             end % if
         else
