@@ -157,8 +157,9 @@ classdef VirtualPopulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             
             % Load from file
             try
-                Raw = readtable(DataFilePath);
-                Raw = [Raw.Properties.VariableNames;table2cell(Raw)];
+                [~,~,Raw] = xlsread(DataFilePath);
+%                 Raw = readtable(DataFilePath);
+%                 Raw = [Raw.Properties.VariableNames;table2cell(Raw)];
             catch ME
                 Raw = {};
                 StatusOk = false;
@@ -171,7 +172,7 @@ classdef VirtualPopulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 Header = Raw(1,:);
                 Data = Raw(2:end,:);
                 
-                MatchPW = find(strcmpi(Header,'PWWeight'));
+                MatchPW = find(strcmpi(Header,'PWeight'));
                 if ~isempty(MatchPW)
                     MatchPW = MatchPW(1);
                     PWWeights = Raw(2:end,MatchPW);

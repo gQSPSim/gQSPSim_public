@@ -49,6 +49,8 @@ if ~isempty(options.ItemModels)
     ItemModels = options.ItemModels;
 else
     % Configure models for each (task, vpop) pair (i.e. for each simulation item)
+    ItemModels = struct('Vpop', [], 'Task', [], 'Group', '', 'Names', {}, 'Values', [], 'nPatients', []);
+    
     for ii = 1:nBuildItems
         % update waitbar
         uix.utility.CustomWaitbar(ii/nBuildItems,hWbar1,sprintf('Configuring model for task %d of %d...',ii,nBuildItems));
@@ -73,10 +75,12 @@ else
         vpopObj = [];    
         if ~isempty(vpopName) && ~strcmp(vpopName,QSP.Simulation.NullVPop)
             vpopObj = obj.Settings.VirtualPopulation(strcmp(vpopName,options.allVpopNames));
-            if isempty(vpopObj)
-                ThisStatusOK = false;
-                ThisMessage = sprintf('Invalid vpop "%s". VPop does not exist.',vpopName);
-            else
+%             if isempty(vpopObj)
+%                 StatusOK = false;
+%                 Message = sprintf('Invalid vpop "%s". VPop does not exist.',vpopName);
+%                 continue
+%             else
+            if ~isempty(vpopObj)
                 [ThisStatusOK,ThisMessage] = validate(vpopObj,false);
             end
             if ~ThisStatusOK

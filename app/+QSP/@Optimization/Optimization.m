@@ -429,6 +429,9 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                     StatusOK=false;
                 end
                 
+                % check that the vpop is valid
+                
+                
             end
             
         end %function
@@ -529,8 +532,10 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                     % include all parameters that are included in the tasks
                     % for this optimization
                     if ~isempty(obj.ItemModels)
-                        taskParams = arrayfun(@(k) obj.ItemModels(k).Task.ParameterNames, 1:length(obj.ItemModels), 'UniformOutput', false);
-                        taskSpecies = arrayfun(@(k) obj.ItemModels(k).Task.SpeciesNames, 1:length(obj.ItemModels), 'UniformOutput', false);
+                        
+                        ItemModels = obj.ItemModels(~arrayfun(@(X) isempty(X.Task) || isempty(X.Vpop), obj.ItemModels));
+                        taskParams = arrayfun(@(k) ItemModels(k).Task.ParameterNames, 1:length(ItemModels), 'UniformOutput', false);
+                        taskSpecies = arrayfun(@(k) ItemModels(k).Task.SpeciesNames, 1:length(ItemModels), 'UniformOutput', false);
                         
                         allParams = table(unique(vertcat(taskParams{:})), 'VariableNames', {'Parameter'});
                         allSpecies = table(unique(vertcat(taskSpecies{:})),  'VariableNames', {'Parameter'});
@@ -541,8 +546,11 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                         allParams = [allParams; tableSpecies.Parameter];
                         
                         PlotParametersDataTable = outerjoin( allParams, paramsTable);
-
-                        PlotParametersData = table2cell(PlotParametersDataTable(:,{'Parameter_allParams','Value'}));
+                        PlotParametersDataTable.Parameter = PlotParametersDataTable.Parameter_allParams;
+                        PlotParametersDataTable(cell2mat(cellfun(@isempty, PlotParametersDataTable.Parameter, 'UniformOutput',false)), 'Parameter') = ...
+                            PlotParametersDataTable(cell2mat(cellfun(@isempty, PlotParametersDataTable.Parameter, 'UniformOutput',false)), 'Parameter_paramsTable');
+                        
+                        PlotParametersData = table2cell(PlotParametersDataTable(:,{'Parameter','Value'}));
                         PlotParametersData(cell2mat(cellfun(@isnan, PlotParametersData(:,2), 'UniformOutput',false)), 2) = {''};
                     end
                     % reorder alphabetically

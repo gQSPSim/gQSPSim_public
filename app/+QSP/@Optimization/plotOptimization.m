@@ -102,9 +102,9 @@ end
                 % find the name of the vpop generated for this task + group
                 if ~isempty(obj.VPopName)
                     % assign the vpop name
-                    simObj.Item(ii).VPopName = obj.VPopName{NonEmpty};
                     IndCell = strfind(obj.VPopName,['Group = ' ThisGroupName]);
                     NonEmpty = ~cellfun(@isempty, IndCell);
+                    simObj.Item(ii).VPopName = obj.VPopName{NonEmpty};
 
                     % only 1 Vpop should match
                     if nnz(NonEmpty)>1
@@ -194,8 +194,9 @@ hSpeciesGroup = cell(size(obj.PlotSpeciesTable,1),NumAxes, NumRuns);
 hDatasetGroup = cell(size(obj.PlotSpeciesTable,1),NumAxes);
 
 if ~StatusOK && ~Cancelled
-    warning('plotOptimization: %s',Message);
-%     return
+    hDlg = errordlg(Message,'Error on plot optimization','modal');
+    uiwait(hDlg);
+    return
 end
 
 
