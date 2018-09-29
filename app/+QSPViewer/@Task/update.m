@@ -91,7 +91,12 @@ end
 if ~isempty(vObj.TempData)
     
     InvalidNames = getInvalidActiveVariantNames(vObj.TempData);
-    ListItems = vertcat( sort(vObj.TempData.VariantNames),InvalidNames);
+    if iscell(vObj.TempData.VariantNames)
+        VariantNames = sort(vObj.TempData.VariantNames);
+    else
+        VariantNames = vObj.TempData.VariantNames;
+    end
+    ListItems = vertcat(VariantNames, InvalidNames);
     [~,AddedIndex] = ismember(vObj.TempData.ActiveVariantNames,ListItems);
     [~,InvalidIndex] = ismember(InvalidNames,ListItems);
     set(vObj.h.VariantsSelector,...
@@ -101,7 +106,12 @@ if ~isempty(vObj.TempData)
         'Enable',uix.utility.tf2onoff(FlagValidModel));
     
     InvalidNames = getInvalidActiveDoseNames(vObj.TempData);
-    ListItems = vertcat( sort(vObj.TempData.DoseNames),InvalidNames);
+    if iscell(vObj.TempData.DoseNames)
+        DoseNames = sort(vObj.TempData.DoseNames);
+    else
+        DoseNames = vObj.TempData.DoseNames;
+    end
+    ListItems = vertcat( DoseNames,InvalidNames);
     [~,AddedIndex] = ismember(vObj.TempData.ActiveDoseNames,ListItems);
     [~,InvalidIndex] = ismember(InvalidNames,ListItems);
     set(vObj.h.DosesSelector,...
@@ -111,7 +121,13 @@ if ~isempty(vObj.TempData)
         'Enable',uix.utility.tf2onoff(FlagValidModel));
     
     InvalidNames = getInvalidActiveSpeciesNames(vObj.TempData);
-    ListItems = vertcat( sort(vObj.TempData.SpeciesNames),InvalidNames);
+     if iscell(vObj.TempData.SpeciesNames)
+        SpeciesNames = sort(vObj.TempData.SpeciesNames);
+     else
+        SpeciesNames = vObj.TempData.SpeciesNames;
+     end
+    
+    ListItems = vertcat( SpeciesNames,InvalidNames);
     [~,AddedIndex] = ismember(vObj.TempData.ActiveSpeciesNames,ListItems);
     [~,InvalidIndex] = ismember(InvalidNames,ListItems);
     set(vObj.h.SpeciesSelector,...
@@ -121,7 +137,13 @@ if ~isempty(vObj.TempData)
         'Enable',uix.utility.tf2onoff(FlagValidModel));
     
     InvalidNames = getInvalidInactiveReactionNames(vObj.TempData);
-    ListItems = vertcat(sort(vObj.TempData.ReactionNames),InvalidNames);
+    if iscell(vObj.TempData.ReactionNames)
+        ReactionNames = sort(vObj.TempData.ReactionNames);
+    else
+        ReactionNames = vObj.TempData.ReactionNames;
+    end
+     
+    ListItems = vertcat(ReactionNames,InvalidNames);
     [~,AddedIndex] = ismember(vObj.TempData.InactiveReactionNames,ListItems);
     [~,InvalidIndex] = ismember(InvalidNames,ListItems);
     set(vObj.h.ReactionsSelector,...
@@ -131,7 +153,13 @@ if ~isempty(vObj.TempData)
         'Enable',uix.utility.tf2onoff(FlagValidModel));
     
     InvalidNames = getInvalidInactiveRuleNames(vObj.TempData);
-    ListItems = vertcat(sort(vObj.TempData.RuleNames),InvalidNames);
+    if iscell(vObj.TempData.RuleNames)
+        RuleNames = sort(vObj.TempData.RuleNames);
+    else
+        RuleNames = vObj.TempData.RuleNames;
+    end
+     
+    ListItems = vertcat(RuleNames,InvalidNames);
     [~,AddedIndex] = ismember(vObj.TempData.InactiveRuleNames,ListItems);
     [~,InvalidIndex] = ismember(InvalidNames,ListItems);
     set(vObj.h.RulesSelector,...
