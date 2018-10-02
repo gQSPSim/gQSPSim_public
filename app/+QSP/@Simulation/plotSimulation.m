@@ -164,6 +164,7 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
 %                 q25 = quantile(Results(itemIdx).Data(:,ColumnIdx),0.25,2);
                
                 w0 = Results(itemIdx).VpopWeights;
+                w0 = w0(w0>0); % filter out the zero weight simulations
                 if isempty(w0)
                     w0 = ones(1, size(Results(itemIdx).Data,2)/length(Results(itemIdx).SpeciesNames));
                 end
