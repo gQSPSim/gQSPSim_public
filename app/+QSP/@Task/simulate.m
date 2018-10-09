@@ -96,7 +96,17 @@ function [simData, statusOK, Message] = simulate(obj, varargin)
             model.SimulationOptions.StopTime = StopTime;
             model.SimulationOptions.OutputTimes = [];            
             [~,RTSSdata,outNames] = simulate(model,[ICValues; paramValues],[]);
+            
+            comps = get(obj.ModelObj, 'Compartments');
+            nComp = length(comps);
+            if nComp==1
+                outNames = cellfun(@(s) sprintf('%s.%s', comps(1).Name, s), outNames, 'UniformOutput', false);
+            end
+            
             RTSSdata = max(0,RTSSdata); % replace any negative values with zero
+            
+            
+
             
             % comparments
             comps = cellfun(@(x) x.Name, get(obj.VarModelObj.Species,'Parent'), 'UniformOutput', false);
