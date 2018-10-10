@@ -385,8 +385,10 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 else
                     obj.ModelObj_ = m1;
                     obj.ModelName = ModelName;
+                    if isempty(obj.ModelTimeStamp)
+                        obj.MaxWallClockTime = m1.ConfigSet.MaximumWallClock;
+                    end
                     obj.ModelTimeStamp = now;
-                    obj.MaxWallClockTime = m1.ConfigSet.MaximumWallClock;
                     
                     if isempty(obj.OutputTimesStr)
                         % Use StopTime to compute
