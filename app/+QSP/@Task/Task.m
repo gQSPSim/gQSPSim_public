@@ -47,6 +47,7 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         RunToSteadyState = true
         TimeToSteadyState = 100
         Resample = true
+        ModelObj_ = QSP.Model % Need default for copy to work (QSP.Model)
     end
     
     %% Protected Properties
@@ -58,8 +59,12 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         Species
         Parameters
         
-        VarModelObj
-        ModelObj_
+        VarModelObj        
+    end
+    
+    %% Protected Transient Properties
+    properties (GetAccess=public, SetAccess=protected, Transient = true)
+        ModelList = {}        
     end
     
     %% Protected Transient Properties
@@ -75,6 +80,7 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
 %     end
     %% Dependent Properties
     properties(SetAccess=protected,Dependent=true)
+        ModelObj
         ConfigSet
         VariantNames
         DoseNames
@@ -86,7 +92,6 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         OutputTimes
         DefaultOutputTimes
         DefaultMaxWallClockTime        
-        ModelObj
     end
     
     %% Constructor
@@ -143,7 +148,7 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             % Populate summary
             Summary = {...
                 'Name',obj.Name;
-                'Last Saved',obj.LastSavedTime;
+                'Last Saved',obj.LastSavedTimeStr;
                 'Description',obj.Description;
                 'Model',obj.RelativeFilePath;                
                 'Active Variants',obj.ActiveVariantNames;
@@ -160,6 +165,9 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         
         function [StatusOK, Message] = validate(obj,FlagRemoveInvalid)
             
+            StatusOK = true;
+            Message = '';
+            
             if isempty(obj)
                 Message = 'Object is empty!';
                 StatusOK = false;
@@ -169,7 +177,8 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             % Task name forbidden characters
             if any(regexp(obj.Name,'[:*?/]'))
                 Message = sprintf('%s\n* Invalid task name.', Message);
-                StatusOK=false;
+                StatusOK = false;
+                return;
             end
             
             FileInfo = dir(obj.FilePath);
@@ -179,16 +188,15 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 return
             end
             
-            
-            StatusOK = true;
+            % Default message            
             Message = sprintf('Task: %s\n%s\n',obj.Name,repmat('-',1,75));
             
             % Import model
-            MaxWallClockTime = obj.MaxWallClockTime;
+            ThisMaxWallClockTime = obj.MaxWallClockTime;
 %             thisObj = obj.copy();
             
             [ThisStatusOk,ThisMessage] = importModel(obj,obj.FilePath,obj.ModelName);
-            obj.MaxWallClockTime = MaxWallClockTime; % override model defaults
+            obj.MaxWallClockTime = ThisMaxWallClockTime; % override model defaults
             if ~ThisStatusOk
                 Message = sprintf('%s\n* Error loading model "%s" in "%s". %s\n',Message,obj.ModelName,obj.FilePath,ThisMessage);
             end            
@@ -266,9 +274,11 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             if ~isempty(obj.VarModelObj)
                 obj.VarModelObj = obj.VarModelObj.copyobj();
             end
-            if ~isempty(obj.ModelObj_)
-                obj.ModelObj_ = obj.ModelObj_.copyobj();
-            end            
+            % AG: @Justin - removing the lines below. New instance should
+            % point to the same QSP.Model
+%             if ~isempty(obj.ModelObj_)
+%                 obj.ModelObj_ = obj.ModelObj_.copyobj();
+%             end            
         end
     end
     
@@ -282,26 +292,26 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         
         constructModel(obj)
         
-        function upToDate = checkModelCurrent(obj)
-            % check just that the task was saved after the sbproj file was
-            % last modified
-            FileInfo = dir(obj.FilePath);
-            if length(FileInfo)>1
-                upToDate=false;
-                return
-            end
-            
-            if isempty(obj.LastSavedTime)
-                upToDate = true;
-                return
-            end
-            
-            if FileInfo.datenum > datenum(obj.ModelTimeStamp)
-                upToDate = false;
-            else
-                upToDate = true;
-            end
-        end
+%         function upToDate = checkModelCurrent(obj)
+%             % check just that the task was saved after the sbproj file was
+%             % last modified
+%             FileInfo = dir(obj.FilePath);
+%             if length(FileInfo)>1
+%                 upToDate=false;
+%                 return
+%             end
+%             
+%             if isempty(obj.LastSavedTime)
+%                 upToDate = true;
+%                 return
+%             end
+%             
+%             if FileInfo.datenum > datenum(obj.ModelTimeStamp)
+%                 upToDate = false;
+%             else
+%                 upToDate = true;
+%             end
+%         end
         
         function upToDate = checkExportedModelCurrent(obj)
             FileInfo = dir(obj.FilePath);
@@ -310,7 +320,7 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 return
             end
            
-            if isempty(obj.ExportedModelTimeStamp) || FileInfo.datenum > obj.ExportedModelTimeStamp || datenum(obj.LastSavedTime) > obj.ExportedModelTimeStamp || ...
+            if isempty(obj.ExportedModelTimeStamp) || FileInfo.datenum > obj.ExportedModelTimeStamp || obj.LastSavedTime > obj.ExportedModelTimeStamp || ...
                     isempty(obj.VarModelObj)
                 upToDate = false;
             else
@@ -323,22 +333,15 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
    
     %% Methods
     methods
+        
         function ModelNames = getModelList(obj)
-            ModelNames = {};
-            if ~isempty(obj.FilePath) && ~isdir(obj.FilePath) && exist(obj.FilePath,'file')
-                try
-                    AllModels = sbioloadproject(obj.FilePath);
-                catch
-                    AllModels = [];
-                end     
-                if ~isempty(AllModels) && isstruct(AllModels)
-                    AllModels = cell2mat(struct2cell(AllModels));
-                    m1 = sbioselect(AllModels,'type','sbiomodel');
-                    if ~isempty(m1)
-                        ModelNames = get(m1,'Name');
-                    end
-                end
+            
+            if ~isempty(obj.ModelObj)
+                ModelNames = obj.ModelObj.ModelList;
+            else
+                ModelNames = {};
             end
+            
         end %function
         
         function [StatusOk,Message] = importModel(obj,ProjectPath,ModelName)
@@ -346,61 +349,180 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             % Defaults
             StatusOk = true;
             Message = '';
-            warning('off', 'SimBiology:sbioloadproject:Version')
             
-            % Store path
-            obj.FilePath = ProjectPath;
-            
-            % Load project
-            try
-                AllModels = sbioloadproject(ProjectPath);
-            catch ME
-                StatusOk = false;
-                Message = ME.message;
-                obj.ModelObj_ = [];
-                obj.ModelName = '';
-                obj.MaxWallClockTime = [];
-                obj.OutputTimesStr = '';
+            % Check if a QSP.Model already exists by matching ProjectPath
+            % and ModelName
+            MatchIdx = [];
+            if ~isempty(ProjectPath) && ~isempty(ModelName)
+                
+                theseModels = obj.Session.Settings.Model;
+                TheseFilePaths = {theseModels.FilePath};
+                TheseModelNames = {theseModels.ModelName};
+                
+                % Find the matching model
+                MatchIdx = find(...
+                    ismember(TheseFilePaths,ProjectPath) & ...
+                    ismember(TheseModelNames,ModelName));
+                
+                % In case there are duplicates... (unlikely)
+                if numel(MatchIdx) > 1
+                    % Clean-up
+                    delete(theseModels(MatchIdx(2:end)));
+                    theseModels(MatchIdx(2:end)) = [];
+                    MatchIdx = MatchIdx(1);
+                end
             end
             
-            if StatusOk
-                AllModels = cell2mat(struct2cell(AllModels));
-                if ~isempty(ModelName)
-                    m1 = sbioselect(AllModels,'Name',ModelName,'type','sbiomodel');
+            
+            if ~isempty(MatchIdx)
+                % Assign to an existing model
+                obj.ModelObj_ = theseModels(MatchIdx);
+                
+            else
+                % Create a new model
+                
+                thisObj = QSP.Model();
+                [StatusOK,Message] = importModel(thisObj,ProjectPath,ModelName);
+                % If import errors for 
+                if StatusOK
+                    obj.ModelObj_ = thisObj;
+                    % Store into Settings
+                    obj.Session.Settings.Model(end+1) = thisObj;
                 else
-                    m1 = sbioselect(AllModels,'type','sbiomodel');
-                    if ~isempty(m1)
-                        m1 = m1(1);
-                        ModelName = m1.Name;
-                    end
+                    obj.ModelObj_ = QSP.Model.empty(0,1);
                 end
-                
-                if isempty(m1)
-                    StatusOk = false;
-                    Message = sprintf('Model "%s" not found in project',ModelName);
-                    obj.ModelObj_ = [];
-                    obj.ModelName = '';
-                    obj.MaxWallClockTime = [];
-                    obj.OutputTimesStr = '';
-                else
-                    obj.ModelObj_ = m1;
-                    obj.ModelName = ModelName;
-                    if isempty(obj.ModelTimeStamp)
-                        obj.MaxWallClockTime = m1.ConfigSet.MaximumWallClock;
-                    end
-                    obj.ModelTimeStamp = now;
-                    
-                    if isempty(obj.OutputTimesStr)
-                        % Use StopTime to compute
-                        StopTime = obj.ConfigSet.StopTime;
-                        % Update OutputTimesStr and actual value
-                        obj.OutputTimesStr = sprintf('[0:%2f/100:%2f]',StopTime,StopTime);
-                    end
-                end %if
-                
-                
-            end %if
+            end
         end %function
+        
+%         function ModelNames = getModelList(obj)
+%             % Check timestamp - make sure model is older than the task's
+%             % LastSavedTime
+%             
+%             ModelSavedRecently = false;
+%             FileInfo = dir(obj.FilePath);
+%             if ~isempty(FileInfo)
+%                 ModelLastSavedTime = FileInfo.datenum;
+%                 % Check if the model was saved after the task
+%                 if ModelLastSavedTime > datenum(obj.LastSavedTime)
+%                     ModelSavedRecently = true;
+%                 end
+%             end
+%             
+%             ModelNames = {};
+%             % If ModelList is empty or model was saved after the task was saved
+%             if ~isempty(obj.FilePath) && ~isdir(obj.FilePath) && exist(obj.FilePath,'file') && ...
+%                     (isempty(obj.ModelList) || ModelSavedRecently) 
+%                 try
+%                     AllModels = sbioloadproject(obj.FilePath);
+%                 catch
+%                     AllModels = [];
+%                 end     
+%                 if ~isempty(AllModels) && isstruct(AllModels)
+%                     AllModels = cell2mat(struct2cell(AllModels));
+%                     m1 = sbioselect(AllModels,'type','sbiomodel');
+%                     if ~isempty(m1)
+%                         ModelNames = get(m1,'Name');
+%                     end
+%                 end
+%             elseif ~isempty(obj.FilePath) && ~isdir(obj.FilePath) && exist(obj.FilePath,'file')
+%                 ModelNames = obj.ModelList;            
+%             end
+%             
+%         end %function
+%         
+%         function [StatusOk,Message] = importModel(obj,ProjectPath,ModelName)
+%             
+%             % Defaults
+%             StatusOk = true;
+%             Message = '';
+%             warning('off', 'SimBiology:sbioloadproject:Version')
+%             
+%             % Clear LastValidatedTime only if paths changed
+%             if ~isequal(obj.FilePath,ProjectPath)                
+%                 obj.LastValidatedTime = '';
+%             end
+%             % Store path
+%             obj.FilePath = ProjectPath;
+%             
+%             % Load project
+%             try
+%                 AllModels = sbioloadproject(ProjectPath);
+%             catch ME
+%                 StatusOk = false;
+%                 Message = ME.message;
+%                 obj.ModelObj_ = [];
+%                 obj.ModelName = '';
+%                 obj.ModelList = {};
+%                 obj.MaxWallClockTime = [];
+%                 obj.OutputTimesStr = '';
+%             end
+%             
+%             if StatusOk
+%                 AllModels = cell2mat(struct2cell(AllModels));
+%                 m1 = sbioselect(AllModels,'type','sbiomodel');
+%                 
+%                 if isempty(m1)
+%                     StatusOk = false;
+%                     Message = sprintf('Model "%s" not found in project',ModelName);
+%                     obj.ModelObj_ = [];
+%                     obj.ModelName = '';
+%                     obj.ModelList = {};
+%                     obj.MaxWallClockTime = [];
+%                     obj.OutputTimesStr = '';
+%                 else
+%                     ThisModelList = {m1.Name};
+%                     % Filter according to ModelName
+%                     if ~isempty(ModelName)
+%                         m1 = m1(strcmpi(ThisModelList,ModelName));
+%                         %                     m1 = sbioselect(AllModels,'Name',ModelName,'type','sbiomodel');
+%                     else
+%                         m1 = m1(1);
+%                     end
+%                     ModelName = m1.Name;
+%                 
+%                     obj.ModelObj_ = m1;
+%                     obj.ModelName = ModelName;
+%                     obj.ModelList = ThisModelList;
+%                     if isempty(obj.ModelTimeStamp)
+%                         obj.MaxWallClockTime = m1.ConfigSet.MaximumWallClock;
+%                     end
+%                     obj.ModelTimeStamp = now;                    
+%                     
+%                     if isempty(obj.OutputTimesStr)
+%                         % Use StopTime to compute
+%                         StopTime = obj.ConfigSet.StopTime;
+%                         % Update OutputTimesStr and actual value
+%                         obj.OutputTimesStr = sprintf('[0:%2f/100:%2f]',StopTime,StopTime);
+%                     end
+%                 end %if
+%                 
+%                 
+%             end %if
+%         end %function
+        
+%         function [StatusOk,Message] = copyModel(obj,srcObj)            
+%             
+%             % Defaults
+%             StatusOk = true;
+%             Message = '';
+%             
+%             if isempty(obj.FilePath) || strcmpi(obj.FilePath,srcObj.FilePath)
+%                 obj.FilePath = srcObj.FilePath;
+%                 if ~isempty(srcObj.ModelObj_)
+%                     obj.ModelObj_ = copyobj(srcObj.ModelObj_);
+%                 else
+%                     obj.ModelObj_ = QSP.Model.empty(0,1);
+%                 end
+%                 obj.ModelName = srcObj.ModelName;
+%                 obj.MaxWallClockTime = srcObj.MaxWallClockTime;
+%                 obj.OutputTimesStr = srcObj.OutputTimesStr;
+%                 obj.ModelList = srcObj.ModelList;
+%             else
+%                 StatusOk = false;
+%                 Message = 'Could not copy since source and destination SimBiology project filepaths are different.';
+%             end
+%             
+%         end %function
         
         function [Value,MatchIndex] = getInvalidActiveVariantNames(obj)
             MatchIndex = ~ismember(obj.ActiveVariantNames,obj.VariantNames);
@@ -426,24 +548,22 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             MatchIndex = ~ismember(obj.InactiveReactionNames,obj.ReactionNames);
             Value = obj.InactiveReactionNames(MatchIndex);
         end %function
+        
     end
     
     %% Get Methods
     methods
         
-        function ModelObj = get.ModelObj(obj)
-            % model obj is out of date
-            if ~isempty(obj.ModelObj_) && ~checkModelCurrent(obj)
-                % reimport the model
-                importModel(obj,obj.FilePath,obj.ModelName);                                   
-            end
-            ModelObj = obj.ModelObj_;
-            
+        function Value = get.ModelObj(obj)
+            % NOTE: importModel (obj.ModelObj_) is quick if NOT stale (all
+            % timestamp validation occurs inside
+            importModel(obj,obj.FilePath,obj.ModelName);
+            Value = obj.ModelObj_;
         end
         
         function Value = get.ConfigSet(obj)
             if ~isempty(obj.ModelObj)
-                Value = getconfigset(obj.ModelObj,'active');
+                Value = obj.ModelObj.ConfigSet;
             else
                 Value = [];
             end
@@ -451,11 +571,7 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         
         function Value = get.VariantNames(obj)
             if ~isempty(obj.ModelObj)
-                Value = getvariant(obj.ModelObj);
-                Value = get(Value,'Name');
-                if isempty(Value)
-                    Value = cell(0,1);
-                end
+                Value = obj.ModelObj.VariantNames;
             else
                 Value = cell(0,1);
             end
@@ -463,13 +579,7 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         
         function Value = get.DoseNames(obj)
             if ~isempty(obj.ModelObj)
-                Value = getdose(obj.ModelObj);
-                Value = get(Value,'Name');
-                if isempty(Value)
-                    Value = cell(0,1);
-                elseif ischar(Value)
-                    Value = {Value};
-                end
+                Value = obj.ModelObj.DoseNames;
             else
                 Value = cell(0,1);
             end
@@ -477,13 +587,7 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         
         function Value = get.SpeciesNames(obj)
             if ~isempty(obj.ModelObj)
-                Value = sbioselect(obj.ModelObj, 'Type', 'Species');
-                Value = get(Value,'Name');
-                if isempty(Value)
-                    Value = cell(0,1);
-                elseif ischar(Value)
-                    Value = {Value};
-                end
+                Value = obj.ModelObj.SpeciesNames;
             else
                 Value = cell(0,1);
             end
@@ -491,13 +595,7 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         
         function Value = get.ParameterNames(obj)
             if ~isempty(obj.ModelObj)
-                Value = sbioselect(obj.ModelObj,'Type','Parameter');                
-                Value = get(Value,'Name');
-                if isempty(Value)
-                    Value = cell(0,1);
-                elseif ischar(Value)
-                    Value = {Value};
-                end
+                Value = obj.ModelObj.ParameterNames;
             else
                 Value = cell(0,1);
             end
@@ -505,13 +603,7 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         
         function Value = get.ParameterValues(obj)
             if ~isempty(obj.ModelObj)
-                Value = sbioselect(obj.ModelObj,'Type','Parameter');                                
-                Value = get(Value,'Value');
-                if isempty(Value)
-                    Value = cell(0,1);
-                elseif ischar(Value)
-                    Value = {Value};
-                end
+                Value = obj.ModelObj.ParameterValues;
             else
                 Value = cell(0,1);
             end
@@ -519,13 +611,7 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         
         function Value = get.RuleNames(obj)
             if ~isempty(obj.ModelObj)
-                Value = sbioselect(obj.ModelObj, 'Type', 'Rule');
-                Value = get(Value,'Rule');
-                if isempty(Value)
-                    Value = cell(0,1);                
-                elseif ischar(Value)
-                    Value = {Value};
-                end
+                Value = obj.ModelObj.RuleNames;
             else
                 Value = cell(0,1);
             end
@@ -533,49 +619,31 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         
         function Value = get.ReactionNames(obj)
             if ~isempty(obj.ModelObj)
-                Value = sbioselect(obj.ModelObj, 'Type', 'Reaction');                
-                Value = get(Value,'Reaction');
-                if isempty(Value)
-                    Value = cell(0,1);                
-                elseif ischar(Value)
-                    Value = {Value};
-                end
+                Value = obj.ModelObj.ReactionNames;
             else
                 Value = cell(0,1);
             end
         end % get.ReactionNames
         
         function Value = get.OutputTimes(obj)
-            if isempty(obj.OutputTimesStr) && ~isempty(obj.ModelObj) && ~isempty(obj.ConfigSet)
-                
-                % Use StopTime to compute
-                StopTime = obj.ConfigSet.StopTime;
-                
-                % Update OutputTimesStr and actual value
-                obj.OutputTimesStr = sprintf('[0:%2f/100:%2f]',StopTime,StopTime);
-                Value = 0:StopTime/100:StopTime;
-                
-            elseif isempty(obj.OutputTimesStr)
-                % Use the default output times from the model if possible
-                Value = obj.DefaultOutputTimes;
-                
+           if ~isempty(obj.ModelObj)
+                Value = obj.ModelObj.OutputTimes;
             else
-                Value = evalin('base',obj.OutputTimesStr);
-            end
-            
+                Value = [];
+           end
         end % get.OutputTimes
         
         function Value = get.DefaultOutputTimes(obj)
-            if ~isempty(obj.ModelObj) && ~isempty(obj.ConfigSet)
-                Value = get(obj.ConfigSet.SolverOptions,'OutputTimes');
+            if ~isempty(obj.ModelObj)
+                Value = obj.ModelObj.DefaultOutputTimes;
             else
                 Value = [];
             end
         end % get.DefaultOutputTimes
         
         function Value = get.DefaultMaxWallClockTime(obj)
-            if ~isempty(obj.ModelObj) && ~isempty(obj.ConfigSet)
-                Value = obj.ConfigSet.MaximumWallClock;
+            if ~isempty(obj.ModelObj)
+                Value = obj.ModelObj.ParameterNames;
             else
                 Value = 60;
             end

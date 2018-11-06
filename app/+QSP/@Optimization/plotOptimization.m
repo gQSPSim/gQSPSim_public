@@ -33,12 +33,24 @@ StatusOK = true;
 for index = 1:numel(hAxes)
 %     XLimMode{index} = get(hAxes(index),'XLimMode');
 %     YLimMode{index} = get(hAxes(index),'YLimMode');
-    XLimMode{index} = 'auto';
-    YLimMode{index} = 'auto';
+%     XLimMode{index} = 'auto';
+%     YLimMode{index} = 'auto';
     
     cla(hAxes(index));
     legend(hAxes(index),'off')
-    set(hAxes(index),'XLimMode',XLimMode{index},'YLimMode',YLimMode{index})
+%     set(hAxes(index),'XLimMode',XLimMode{index},'YLimMode',YLimMode{index})
+    set(hAxes(index),...
+        'XLimMode',obj.PlotSettings(index).XLimMode,...
+        'YLimMode',obj.PlotSettings(index).YLimMode);
+    if strcmpi(obj.PlotSettings(index).XLimMode,'manual')
+        set(hAxes(index),...
+            'XLim',obj.PlotSettings(index).CustomXLim);
+    end
+    if strcmpi(obj.PlotSettings(index).YLimMode,'manual')
+        set(hAxes(index),...
+            'YLim',obj.PlotSettings(index).CustomYLim);
+    end
+    
     hold(hAxes(index),'on')    
     
     hFigure = ancestor(hAxes(index),'Figure');
@@ -370,8 +382,6 @@ end %if any
 
 %% Legend
 
-hLegend = cell(1,NumAxes);
-hLegendChildren = cell(1,NumAxes);
 % Force a drawnow, to avoid legend issues
 drawnow;
 for axIndex = 1:NumAxes
@@ -385,7 +395,23 @@ for axIndex = 1:NumAxes
     if ~isempty(LegendItems)
         % Add legend
        try
-        [hLegend{axIndex},hLegendChildren{axIndex}] = legend(hAxes(axIndex),LegendItems);
+           [hLegend{axIndex},hLegendChildren{axIndex}] = legend(hAxes(axIndex),LegendItems);
+           set(hLegend{axIndex},...
+               'EdgeColor','none',...
+               'Visible',obj.PlotSettings(axIndex).LegendVisibility,...
+               'Location',obj.PlotSettings(axIndex).LegendLocation,...
+               'FontSize',obj.PlotSettings(axIndex).LegendFontSize,...
+               'FontWeight',obj.PlotSettings(axIndex).LegendFontWeight);
+           
+           % Color, FontSize, FontWeight
+           for cIndex = 1:numel(hLegendChildren{axIndex})
+               if isprop(hLegendChildren{axIndex}(cIndex),'FontSize')
+                   hLegendChildren{axIndex}(cIndex).FontSize = obj.PlotSettings(axIndex).LegendFontSize;
+               end
+               if isprop(hLegendChildren{axIndex}(cIndex),'FontWeight')
+                   hLegendChildren{axIndex}(cIndex).FontWeight = obj.PlotSettings(axIndex).LegendFontWeight;
+               end
+           end
        catch ME
            warning(ME.message)
        end
@@ -400,15 +426,38 @@ end
 %% Turn off hold
 
 for index = 1:numel(hAxes)
-    title(hAxes(index),sprintf('Plot %d',index));
-    xlabel(hAxes(index),'Time');
-    ylabel(hAxes(index),'States');
+    title(hAxes(index),obj.PlotSettings(index).Title,...
+        'FontSize',obj.PlotSettings(index).TitleFontSize,...
+        'FontWeight',obj.PlotSettings(index).TitleFontWeight); % sprintf('Plot %d',index));
+    xlabel(hAxes(index),obj.PlotSettings(index).XLabel,...
+        'FontSize',obj.PlotSettings(index).XLabelFontSize,...
+        'FontWeight',obj.PlotSettings(index).XLabelFontWeight); % 'Time');
+    ylabel(hAxes(index),obj.PlotSettings(index).YLabel,...
+        'FontSize',obj.PlotSettings(index).YLabelFontSize,...
+        'FontWeight',obj.PlotSettings(index).YLabelFontWeight); % 'States');
+    set(hAxes(index),...
+        'XGrid',obj.PlotSettings(index).XGrid,...
+        'YGrid',obj.PlotSettings(index).YGrid,...
+        'XMinorGrid',obj.PlotSettings(index).XMinorGrid,...
+        'YMinorGrid',obj.PlotSettings(index).YMinorGrid);
+    set(hAxes(index).XAxis,...
+        'FontSize',obj.PlotSettings(index).XTickLabelFontSize,...
+        'FontWeight',obj.PlotSettings(index).XTickLabelFontWeight);    
+    set(hAxes(index).YAxis,...
+        'FontSize',obj.PlotSettings(index).YTickLabelFontSize,...
+        'FontWeight',obj.PlotSettings(index).YTickLabelFontWeight);
+    set(hAxes(index),'YScale',obj.PlotSettings(index).YScale);
+    
     hold(hAxes(index),'off')
      % Reset zoom state
     hFigure = ancestor(hAxes(index),'Figure');
-    if ~isempty(hFigure) && strcmpi(XLimMode{index},'auto') && strcmpi(YLimMode{index},'auto')
+    if ~isempty(hFigure) && strcmpi(obj.PlotSettings(index).XLimMode,'auto') && strcmpi(obj.PlotSettings(index).YLimMode,'auto')
         axes(hAxes(index));
-        zoom(hFigure,'out');
-        zoom(hFigure,'reset');        
+        try
+            zoom(hFigure,'out');
+            zoom(hFigure,'reset');        
+        catch ME
+            warning(ME.message);
+        end
     end
 end

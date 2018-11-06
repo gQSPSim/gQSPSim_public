@@ -20,6 +20,7 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
         Selection = 1
         IsDeleted = false
         SelectedPlotLayout = '1x1'
+        PlotSettings = QSP.PlotSettings.empty(0,1)
     end
     
     properties (SetAccess=protected)
@@ -201,11 +202,17 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                     'Parent',obj.h.VisualizeLayout,...
                     'Padding',5);
                 for index = 1:obj.MaxNumPlots
+                    % Add container and axes
                     obj.h.MainAxesContainer(index) = uicontainer(...
                         'Parent',obj.h.PlotGrid);
                     obj.h.MainAxes(index) = axes(...
                         'Parent',obj.h.MainAxesContainer(index),...
                         'Visible','off');
+                    
+                    % Assign plot settings
+                    obj.PlotSettings(index) = QSP.PlotSettings(obj.h.MainAxes(index));
+                    
+                    % Add contextmenu
                     obj.h.ContextMenu(index) = uicontextmenu('Parent',hFigure);
                     obj.h.ContextMenuYScale(index) = uimenu(obj.h.ContextMenu(index),...
                         'Label','Y-Scale',...
@@ -314,6 +321,12 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                 'CData', uix.utility.loadIcon( 'visualize_24.png' ), ...
                 'TooltipString', 'Visualize the selected item',...
                 'Callback', @(h,e)onNavigation(obj,'Visualize') );
+            obj.h.PlotSettingsButton = uicontrol( ...
+                'Parent', obj.h.ButtonLayout, ...
+                'Style', 'pushbutton', ...
+                'CData', uix.utility.loadIcon( 'settings_24.png' ), ...
+                'TooltipString', 'Customize plot settings for the selected item',...
+                'Callback', @(h,e)onNavigation(obj,'CustomizeSettings') );
             CData = load('zoom.mat');
             CData = CData.zoomCData;
             obj.h.ZoomInButton = uicontrol( ...
@@ -348,7 +361,7 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                 'Callback', @(h,e)onNavigation(obj,'Datacursor') );
             uix.Empty('Parent',obj.h.ButtonLayout);
             
-            obj.h.ButtonLayout.Widths = [WidgetSize WidgetSize WidgetSize WidgetSize WidgetSize WidgetSize WidgetSize WidgetSize WidgetSize -1];
+            obj.h.ButtonLayout.Widths = [WidgetSize WidgetSize WidgetSize WidgetSize WidgetSize WidgetSize WidgetSize WidgetSize WidgetSize WidgetSize -1];
             
         end %function
         
@@ -412,7 +425,7 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                         obj.Data = copy(obj.TempData,obj.Data); % This triggers a refresh                        
                         
                         obj.Selection = 1;
-                        set([obj.h.SummaryButton,obj.h.EditButton,obj.h.RunButton,obj.h.VisualizeButton],'Enable','on');
+                        set([obj.h.SummaryButton,obj.h.EditButton,obj.h.RunButton,obj.h.VisualizeButton,obj.h.PlotSettingsButton],'Enable','on');
                         % Notify
                         View = 'Summary';
                         EventData = uix.abstract.NavigationEventData('Name',View);
@@ -445,7 +458,7 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                                                         
                             if StatusOK
                                 obj.Selection = 1;
-                                set([obj.h.SummaryButton,obj.h.EditButton,obj.h.RunButton,obj.h.VisualizeButton],'Enable','on');
+                                set([obj.h.SummaryButton,obj.h.EditButton,obj.h.RunButton,obj.h.VisualizeButton,obj.h.PlotSettingsButton],'Enable','on');
                                 % Copy from TempData into Data, using obj.Data as a
                                 % starting point
                                 % Update time
@@ -474,7 +487,7 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                             
                         elseif strcmpi(Result,'Don''t Save')
                             obj.Selection = 1;
-                            set([obj.h.SummaryButton,obj.h.EditButton,obj.h.RunButton,obj.h.VisualizeButton],'Enable','on');
+                            set([obj.h.SummaryButton,obj.h.EditButton,obj.h.RunButton,obj.h.VisualizeButton,obj.h.PlotSettingsButton],'Enable','on');
                             % Copy from Data into TempData, using obj.TempData as a
                             % starting point
                             obj.TempData = copy(obj.Data,obj.TempData);                            
@@ -485,7 +498,7 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                         end %Else, do nothing
                     else
                         obj.Selection = 1;
-                        set([obj.h.SummaryButton,obj.h.EditButton,obj.h.RunButton,obj.h.VisualizeButton],'Enable','on');
+                        set([obj.h.SummaryButton,obj.h.EditButton,obj.h.RunButton,obj.h.VisualizeButton,obj.h.PlotSettingsButton],'Enable','on');
                         % Copy from Data into TempData, using obj.TempData as a
                         % starting point
                         obj.TempData = copy(obj.Data,obj.TempData);
@@ -569,7 +582,7 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                         end
                     else
                         obj.Selection = 1;
-                        set([obj.h.SummaryButton,obj.h.EditButton,obj.h.RunButton,obj.h.VisualizeButton],'Enable','on');                        
+                        set([obj.h.SummaryButton,obj.h.EditButton,obj.h.RunButton,obj.h.VisualizeButton,obj.h.PlotSettingsButton],'Enable','on');                        
                     end
                     
                     % Update the view
@@ -593,7 +606,7 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
 %                     care of updating the editing panel
             
                     obj.Selection = 2;
-                    set([obj.h.SummaryButton,obj.h.EditButton,obj.h.RunButton,obj.h.VisualizeButton,obj.h.ZoomInButton,obj.h.ZoomOutButton,obj.h.PanButton,obj.h.DatacursorButton],'Enable','off');
+                    set([obj.h.SummaryButton,obj.h.EditButton,obj.h.RunButton,obj.h.VisualizeButton,obj.h.PlotSettingsButton,obj.h.ZoomInButton,obj.h.ZoomOutButton,obj.h.PanButton,obj.h.DatacursorButton],'Enable','off');
                     
                     % Update the view
                     update(obj);
@@ -609,7 +622,7 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                     set(hFigure,'pointer','watch');
                     drawnow;
                     
-                    set([obj.h.SummaryButton,obj.h.EditButton,obj.h.RunButton,obj.h.VisualizeButton],'Enable','on');                    
+                    set([obj.h.SummaryButton,obj.h.EditButton,obj.h.RunButton,obj.h.VisualizeButton,obj.h.PlotSettingsButton],'Enable','on');                    
                     
                     [StatusOK,Message,vpopObj] = run(obj.Data);
                     if ~StatusOK
@@ -648,12 +661,12 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                         Result = questdlg(Prompt,'Continue','Yes','Cancel','Yes');
                         if strcmpi(Result,'Yes')
                             obj.Selection = 3;
-                            set([obj.h.SummaryButton,obj.h.EditButton,obj.h.RunButton,obj.h.VisualizeButton],'Enable','on');
+                            set([obj.h.SummaryButton,obj.h.EditButton,obj.h.RunButton,obj.h.VisualizeButton,obj.h.PlotSettingsButton],'Enable','on');
                             updateVisualizationView(obj);
                         end
                     else
                         obj.Selection = 3;
-                        set([obj.h.SummaryButton,obj.h.EditButton,obj.h.RunButton,obj.h.VisualizeButton],'Enable','on');
+                        set([obj.h.SummaryButton,obj.h.EditButton,obj.h.RunButton,obj.h.VisualizeButton,obj.h.PlotSettingsButton],'Enable','on');
                         updateVisualizationView(obj);
                     end
                     
@@ -663,6 +676,20 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                     % Notify
                     EventData = uix.abstract.NavigationEventData('Name',View);
                     notify(obj,'NavigationChanged',EventData);
+                    
+                case 'CustomizeSettings'
+                    
+                    [StatusOk,NewSettings] = CustomizePlots(...
+                        'Settings',obj.PlotSettings);                    
+                    if StatusOk
+                        obj.PlotSettings = NewSettings;
+                        
+                        % Update the view
+                        update(obj);
+                        
+                        % Mark Dirty
+                        notify(obj,'MarkDirty');
+                    end
                     
                 case 'ZoomIn'
                     
@@ -749,7 +776,7 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                     % Manage context menu states here for ease
                     set(get(get(h,'Parent'),'Children'),'Checked','off');
                     set(h,'Checked','on')
-                    set(obj.h.MainAxes(axIndex),'YScale','log');
+                    set(obj.h.MainAxes(axIndex),'YScale','log');                    
                 case 'ExportSingleAxes'
                     % Prompt the user for a filename
                     Spec = {...
@@ -759,111 +786,182 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                         '*.fig','MATLAB Figure';...
                         };
                     Title = 'Save as';
-                    SaveFilePath = obj.LastPath;
+                    SaveFilePath = pwd; % obj.LastPath;
                     [SaveFileName,SavePathName] = uiputfile(Spec,Title,SaveFilePath);
                     if ~isequal(SaveFileName,0)
-                        SaveFilePath = fullfile(SavePathName,SaveFileName);
-                        hTempFig = figure('Visible','off');
-                        ThisAxes = get(obj.h.MainAxesContainer(axIndex),'Children');
-                        hNewAxes = copyobj(ThisAxes,hTempFig);
-                        set(hTempFig,'Color','white');
                         
-                        % Print using option
-                        [~,~,FileExt] = fileparts(SaveFilePath);
-                        if strcmpi(FileExt,'.fig')
-                            % Delete the legend from hThisAxes
-                            delete(hNewAxes(strcmpi(get(hNewAxes,'Tag'),'legend')));
-                            hNewAxes = hNewAxes(ishandle(hNewAxes));
-                            % Create a new legend
-                            OrigLegend = ThisAxes(strcmpi(get(ThisAxes,'Tag'),'legend'));
-                            if ~isempty(OrigLegend)
-                                % Make current axes and place legend
-                                axes(hNewAxes);                                
-                                legend(OrigLegend.String{:});
-                            end
-                            set(hTempFig,'Visible','on')
-                            saveas(hTempFig,SaveFilePath);
-                        else
-                            if strcmpi(FileExt,'.png')
-                                Option = '-dpng';
-                            elseif strcmpi(FileExt,'.eps')
-                                Option = '-depsc';
-                            else
-                                Option = '-dtiff';
-                            end
-                            print(hTempFig,Option,SaveFilePath)
-                        end
-                        close(hTempFig)                        
-                    end
+                        SaveFilePath = fullfile(SavePathName,SaveFileName);
+                        ThisAxes = get(obj.h.MainAxesContainer(axIndex),'Children');
+                        
+                        % Call helper to copy axes, format, and print
+                        printAxesHelper(obj,ThisAxes,SaveFilePath,obj.PlotSettings(axIndex))                        
+                        
+                    end %if
+                    
                 case 'ExportAllAxes'
                     % Prompt the user for a filename
-                     Spec = {...
+                    Spec = {...
                         '*.png','PNG';
                         '*.tif;*.tiff','TIFF';...
                         '*.eps','EPS';...
                         '*.fig','MATLAB Figure'...
                         };
                     Title = 'Save as';
-                    SaveFilePath = obj.LastPath;
+                    SaveFilePath = pwd; %obj.LastPath;
                     [SaveFileName,SavePathName] = uiputfile(Spec,Title,SaveFilePath);
                     if ~isequal(SaveFileName,0)
-                        SaveFilePath = fullfile(SavePathName,SaveFileName);
                         
                         % Print using option
-                        [~,~,FileExt] = fileparts(SaveFilePath);
+                        [~,~,FileExt] = fileparts(SaveFileName);
                         
-                        if strcmpi(FileExt,'.fig')
-                            hTempFig = figure('Visible','off');
-                            Pos = get(obj.h.PlotGrid,'Position');
-                            set(hTempFig,'Units',obj.Figure.Units,'Position',[obj.Figure.Position(1:2) Pos(3) Pos(4)],'Color','white');
-                            
-                            Ch = get(obj.h.PlotGrid,'Children');
-                            for index = 1:numel(Ch)
-                                hThisContainer = uicontainer('Parent',hTempFig,'Units','pixels','Position',get(Ch(index),'Position'));
-                                
-                                ThisAxes = get(Ch(index),'Children');
-                                hNewAxes = copyobj(ThisAxes,hThisContainer);
-                                
-                                % Delete the legend from hThisAxes
-                                delete(hNewAxes(strcmpi(get(hNewAxes,'Tag'),'legend')));
-                                hNewAxes = hNewAxes(ishandle(hNewAxes));
-                                % Create a new legend
-                                OrigLegend = ThisAxes(strcmpi(get(ThisAxes,'Tag'),'legend'));
-                                if ~isempty(OrigLegend)
-                                    % Make current axes and place legend
-                                    axes(hNewAxes); %#ok<LAXES>
-                                    legend(OrigLegend.String{:});
-                                end
-                                set(hThisContainer,'BackgroundColor','white','Units','normalized');
-                            end
-                            
-                            set(hTempFig,'Visible','on')
-                            saveas(hTempFig,SaveFilePath);
-                            
-                        else
-                            
-                            hTempFig = figure('Visible','off');
-                            hGrid = copyobj(obj.h.PlotGrid,hTempFig);
-                            Units = get(obj.h.PlotGrid,'Units');
-                            Pos = get(obj.h.PlotGrid,'Position');
-                            set(hGrid,'BackgroundColor','white','Units',Units,'Position',[0 0 Pos(3) Pos(4)]);
-                            hContainers = get(hGrid,'Children');
-                            set(hContainers,'BackgroundColor','white');
-                            hFigure = ancestor(obj.UIContainer,'Figure');
-                            set(hTempFig,'Units',hFigure.Units,'Position',[hFigure.Position(1:2) Pos(3) Pos(4)],'Color','white');
-                            
-                            if strcmpi(FileExt,'.png')
-                                Option = '-dpng';
-                            elseif strcmpi(FileExt,'.eps')
-                                Option = '-depsc';
-                            else
-                                Option = '-dtiff';
-                            end
-                            print(hTempFig,Option,SaveFilePath)
-                            
-                            close(hTempFig)
+                        % Get children and remove not-shown axes
+                        Ch = flip(get(obj.h.PlotGrid,'Children'));
+                        
+                        switch obj.SelectedPlotLayout
+                            case '1x1'
+                                Ch = Ch(1);
+                            case '1x2'     
+                                Ch = Ch(1:2);
+                            case '2x1'     
+                                Ch = Ch(1:2);
+                            case '2x2'
+                                Ch = Ch(1:4);
+                            case '3x2'
+                                Ch = Ch(1:6);
+                            case '3x3'
+                                Ch = Ch(1:9);
+                            case '3x4'
+                                Ch = Ch(1:12);
                         end
-                    end
+                        
+                        for index = 1:numel(Ch)
+                            
+                            % Append _# to file name
+                            [~,BaseSaveFileName] = fileparts(SaveFileName);
+                            SaveFilePath = fullfile(SavePathName,[BaseSaveFileName,'_',num2str(index),FileExt]);
+                            
+                            ThisAxes = get(Ch(index),'Children');
+                            
+                            % Call helper to copy axes and format
+                            printAxesHelper(obj,ThisAxes,SaveFilePath,obj.PlotSettings(index))                            
+                          
+                        end % for
+                    end %if
+                    
+%                 case 'ExportSingleAxes'
+%                     % Prompt the user for a filename
+%                     Spec = {...
+%                         '*.png','PNG';
+%                         '*.tif;*.tiff','TIFF';...
+%                         '*.eps','EPS';...
+%                         '*.fig','MATLAB Figure';...
+%                         };
+%                     Title = 'Save as';
+%                     SaveFilePath = obj.LastPath;
+%                     [SaveFileName,SavePathName] = uiputfile(Spec,Title,SaveFilePath);
+%                     if ~isequal(SaveFileName,0)
+%                         SaveFilePath = fullfile(SavePathName,SaveFileName);
+%                         hTempFig = figure('Visible','off');
+%                         ThisAxes = get(obj.h.MainAxesContainer(axIndex),'Children');
+%                         hNewAxes = copyobj(ThisAxes,hTempFig);
+%                         set(hTempFig,'Color','white');
+%                         
+%                         % Print using option
+%                         [~,~,FileExt] = fileparts(SaveFilePath);
+%                         if strcmpi(FileExt,'.fig')
+%                             % Delete the legend from hThisAxes
+%                             delete(hNewAxes(strcmpi(get(hNewAxes,'Tag'),'legend')));
+%                             hNewAxes = hNewAxes(ishandle(hNewAxes));
+%                             % Create a new legend
+%                             OrigLegend = ThisAxes(strcmpi(get(ThisAxes,'Tag'),'legend'));
+%                             if ~isempty(OrigLegend)
+%                                 % Make current axes and place legend
+%                                 axes(hNewAxes);                                
+%                                 legend(OrigLegend.String{:});
+%                             end
+%                             set(hTempFig,'Visible','on')
+%                             saveas(hTempFig,SaveFilePath);
+%                         else
+%                             if strcmpi(FileExt,'.png')
+%                                 Option = '-dpng';
+%                             elseif strcmpi(FileExt,'.eps')
+%                                 Option = '-depsc';
+%                             else
+%                                 Option = '-dtiff';
+%                             end
+%                             print(hTempFig,Option,SaveFilePath)
+%                         end
+%                         close(hTempFig)                        
+%                     end
+%                 case 'ExportAllAxes'
+%                     % Prompt the user for a filename
+%                      Spec = {...
+%                         '*.png','PNG';
+%                         '*.tif;*.tiff','TIFF';...
+%                         '*.eps','EPS';...
+%                         '*.fig','MATLAB Figure'...
+%                         };
+%                     Title = 'Save as';
+%                     SaveFilePath = obj.LastPath;
+%                     [SaveFileName,SavePathName] = uiputfile(Spec,Title,SaveFilePath);
+%                     if ~isequal(SaveFileName,0)
+%                         SaveFilePath = fullfile(SavePathName,SaveFileName);
+%                         
+%                         % Print using option
+%                         [~,~,FileExt] = fileparts(SaveFilePath);
+%                         
+%                         if strcmpi(FileExt,'.fig')
+%                             hTempFig = figure('Visible','off');
+%                             Pos = get(obj.h.PlotGrid,'Position');
+%                             set(hTempFig,'Units',obj.Figure.Units,'Position',[obj.Figure.Position(1:2) Pos(3) Pos(4)],'Color','white');
+%                             
+%                             Ch = get(obj.h.PlotGrid,'Children');
+%                             for index = 1:numel(Ch)
+%                                 hThisContainer = uicontainer('Parent',hTempFig,'Units','pixels','Position',get(Ch(index),'Position'));
+%                                 
+%                                 ThisAxes = get(Ch(index),'Children');
+%                                 hNewAxes = copyobj(ThisAxes,hThisContainer);
+%                                 
+%                                 % Delete the legend from hThisAxes
+%                                 delete(hNewAxes(strcmpi(get(hNewAxes,'Tag'),'legend')));
+%                                 hNewAxes = hNewAxes(ishandle(hNewAxes));
+%                                 % Create a new legend
+%                                 OrigLegend = ThisAxes(strcmpi(get(ThisAxes,'Tag'),'legend'));
+%                                 if ~isempty(OrigLegend)
+%                                     % Make current axes and place legend
+%                                     axes(hNewAxes); %#ok<LAXES>
+%                                     legend(OrigLegend.String{:});
+%                                 end
+%                                 set(hThisContainer,'BackgroundColor','white','Units','normalized');
+%                             end
+%                             
+%                             set(hTempFig,'Visible','on')
+%                             saveas(hTempFig,SaveFilePath);
+%                             
+%                         else
+%                             
+%                             hTempFig = figure('Visible','off');
+%                             hGrid = copyobj(obj.h.PlotGrid,hTempFig);
+%                             Units = get(obj.h.PlotGrid,'Units');
+%                             Pos = get(obj.h.PlotGrid,'Position');
+%                             set(hGrid,'BackgroundColor','white','Units',Units,'Position',[0 0 Pos(3) Pos(4)]);
+%                             hContainers = get(hGrid,'Children');
+%                             set(hContainers,'BackgroundColor','white');
+%                             hFigure = ancestor(obj.UIContainer,'Figure');
+%                             set(hTempFig,'Units',hFigure.Units,'Position',[hFigure.Position(1:2) Pos(3) Pos(4)],'Color','white');
+%                             
+%                             if strcmpi(FileExt,'.png')
+%                                 Option = '-dpng';
+%                             elseif strcmpi(FileExt,'.eps')
+%                                 Option = '-depsc';
+%                             else
+%                                 Option = '-dtiff';
+%                             end
+%                             print(hTempFig,Option,SaveFilePath)
+%                             
+%                             close(hTempFig)
+%                         end
+%                     end
                 case 'ShowTraces'
                     obj.bShowTraces(axIndex) = ~obj.bShowTraces(axIndex);
                     if strcmp(h.Checked,'on')
@@ -895,7 +993,15 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
             if ~isempty(obj.Data)
                 % Copy from Data into TempData, using obj.TempData as a
                 % starting point
-                obj.TempData = copy(obj.Data,obj.TempData);                
+                obj.TempData = copy(obj.Data,obj.TempData);
+                
+                if obj.UseRunVis
+                   % Copy Data's PlotSettings struct (backend) to PlotSettings (frontend)
+                   for index = 1:obj.MaxNumPlots
+                       Summary = obj.Data.PlotSettings(index);
+                       set(obj.PlotSettings(index),fieldnames(Summary),struct2cell(Summary)');
+                   end
+                end
             end
             
         end %function
@@ -951,7 +1057,7 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
             
             %%% Buttons
             % Toggle visibility
-            set([obj.h.RunButton,obj.h.VisualizeButton],'Visible',uix.utility.tf2onoff(obj.UseRunVis));            
+            set([obj.h.RunButton,obj.h.VisualizeButton,obj.h.PlotSettingsButton],'Visible',uix.utility.tf2onoff(obj.UseRunVis));            
             set([obj.h.ZoomInButton,obj.h.ZoomOutButton,obj.h.PanButton,obj.h.DatacursorButton],'Visible',uix.utility.tf2onoff(obj.UseRunVis));
             if obj.Selection == 3
                 set([obj.h.ZoomInButton,obj.h.ZoomOutButton,obj.h.PanButton,obj.h.DatacursorButton],'Enable','on');
@@ -974,9 +1080,18 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
             
             %%%% Plots
             if obj.UseRunVis
+                
+                % Copy PlotSettings (frontend) back to Data struct
+                % (backend)
+                if ~isempty(obj.Data)
+                    obj.Data.PlotSettings = getSummary(obj.PlotSettings);
+                end
+                
+                % Plot configuration
                 MatchIndex = find(strcmp(obj.SelectedPlotLayout,obj.PlotLayoutOptions));
                 set(obj.h.PlotConfigPopup,'String',obj.PlotLayoutOptions,'Value',MatchIndex);
                 
+                % Attach contextmenu
                 hFigure = ancestor(obj.UIContainer,'Figure');
                 for index = 1:obj.MaxNumPlots
                     obj.h.ContextMenu(index).Parent = hFigure;                
@@ -1019,6 +1134,13 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                         obj.h.PlotGrid.Widths = [-1 -1 -1 -1];
                         set(obj.h.MainAxes(1:end),'Visible','on');                        
                 end
+                
+                % Update legends from PlotSettings
+                updateLegends(obj);
+
+                % Update lines from PlotSettings
+                updateLines(obj);
+
             end
             
         end %function
@@ -1034,19 +1156,240 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
         
     end
     
+    
+    methods (Access=protected)
+        
+        function updateLines(obj)
+            
+            % Iterate through each axes and turn on SelectedProfileRow
+            if isfield(obj.h,'SpeciesGroup') && ~isempty(obj.h.SpeciesGroup)
+                for axIndex = 1:size(obj.h.SpeciesGroup,2)
+                    LineWidth = obj.Data.PlotSettings(axIndex).LineWidth;
+                    
+                    hPlots = obj.h.SpeciesGroup(:,axIndex);
+                    hPlots = horzcat(hPlots{:});
+                    hPlots(~ishandle(hPlots)) = [];
+                    set(hPlots,...
+                        'LineWidth',LineWidth);
+                end
+            end
+            
+            % Dataset line
+            if isfield(obj.h,'DatasetGroup') && ~isempty(obj.h.DatasetGroup)
+                for axIndex = 1:size(obj.h.DatasetGroup,2)
+                    DataSymbolSize = obj.Data.PlotSettings(axIndex).DataSymbolSize;
+                    
+                    hPlots = obj.h.DatasetGroup(:,axIndex);
+                    hPlots = horzcat(hPlots{:});
+                    hPlots(~ishandle(hPlots)) = [];
+                    set(hPlots,...
+                        'MarkerSize',DataSymbolSize);
+                end
+            end
+            
+        end %function
+        
+        function updateLegends(obj)
+            
+            if isfield(obj.h,'AxesLegend') && ~isempty(obj.h.AxesLegend)
+                for axIndex = 1:numel(obj.Data.PlotSettings)
+                    if ~isempty(obj.h.AxesLegend{axIndex}) && ishandle(obj.h.AxesLegend{axIndex})
+                        % Visible, Location
+                        obj.h.AxesLegend{axIndex}.Visible = obj.Data.PlotSettings(axIndex).LegendVisibility;
+                        obj.h.AxesLegend{axIndex}.Location = obj.Data.PlotSettings(axIndex).LegendLocation;
+                        obj.h.AxesLegend{axIndex}.FontSize = obj.Data.PlotSettings(axIndex).LegendFontSize;
+                        obj.h.AxesLegend{axIndex}.FontWeight = obj.Data.PlotSettings(axIndex).LegendFontWeight;
+                        
+                        % FontSize, FontWeight
+                        if isfield(obj.h,'AxesLegendChildren') && ~isempty(obj.h.AxesLegendChildren)
+                            
+                            ch = obj.h.AxesLegendChildren{axIndex};
+                            if all(ishandle(ch))
+                                for cIndex = 1:numel(ch)
+                                    if isprop(ch(cIndex),'FontSize')
+                                        ch(cIndex).FontSize = obj.Data.PlotSettings(axIndex).LegendFontSize;
+                                    end
+                                    if isprop(ch(cIndex),'FontWeight')
+                                        ch(cIndex).FontWeight = obj.Data.PlotSettings(axIndex).LegendFontWeight;
+                                    end
+                                end %legend chidlren
+                            end %ishandle
+                        end
+                    end %ishandle
+                end %for
+            end %if
+            
+        end %function
+        
+        function printAxesHelper(obj,hAxes,SaveFilePath,PlotSettings)
+            
+            % Print using option
+            [~,~,FileExt] = fileparts(SaveFilePath);
+                        
+            hNewFig = figure('Visible','off');
+            set(hNewFig,'Color','white');
+            
+            % Use current axes to determine which line handles should be
+            % used for the legend
+            hUIAxes = hAxes(~strcmpi(get(hAxes,'Tag'),'legend'));
+            ch = get(hUIAxes,'Children');
+            
+            % Keep all annotation-on
+            hAnn = get(ch,'Annotation');
+            if ~iscell(hAnn)
+                hAnn = {hAnn};
+            end
+            hAnn = cellfun(@(x)get(x,'LegendInformation'),hAnn,'UniformOutput',false);
+            hAnn = cellfun(@(x)get(x,'IconDisplayStyle'),hAnn,'UniformOutput',false);
+            KeepIdxOn = strcmpi(hAnn,'on');
+            
+            % Remove all UI legend only handles
+            ThisTag = get(ch,'Tag');
+            if ~iscell(ThisTag)
+                ThisTag = {ThisTag};
+            end
+            KeepExportIdx = ~strcmpi(ThisTag,'ForUILegendOnly');
+            
+            % Aggregate
+            KeepIdx = KeepIdxOn & KeepExportIdx;
+            
+            % Copy axes to figure
+            hNewAxes = copyobj(hAxes,hNewFig);
+            
+            % Delete the legend from hThisAxes
+            delete(hNewAxes(strcmpi(get(hNewAxes,'Tag'),'legend')));
+            hNewAxes = hNewAxes(ishandle(hNewAxes));
+            
+            % Create new plot settings and initialize with values from
+            % original plot settings
+            NewPlotSettings = QSP.PlotSettings(hNewAxes);
+            Summary = getSummary(PlotSettings);
+            set(NewPlotSettings,fieldnames(Summary),struct2cell(Summary)');
+            
+            % Create a new legend
+            OrigLegend = hAxes(strcmpi(get(hAxes,'Tag'),'legend'));
+            if ~isempty(OrigLegend)
+                hLine = get(hNewAxes,'Children');
+                UserData = get(hLine,'UserData');
+                if ~iscell(UserData)
+                    UserData = {UserData};
+                end
+                
+                % Format display name
+                for idx = 1:numel(hLine)
+                    % Replace _ with \_
+                    hLine(idx).DisplayName = regexprep(hLine(idx).DisplayName,'_','\\_');
+                    % In case there is now a \\_ (if previous formatted in plotting code), replace it with \_
+                    hLine(idx).DisplayName = regexprep(hLine(idx).DisplayName,'\\\\_','\\_');
+                end
+                
+                Location = OrigLegend.Location;
+                Visible = OrigLegend.Visible;
+                FontSize = OrigLegend.FontSize;
+                FontWeight = OrigLegend.FontWeight;
+                
+                % Make current axes and place legend
+                axes(hNewAxes);
+                hLine = hLine(KeepIdx);
+                hLine = flipud(hLine(:));
+                [hLegend,hLegendChildren] = legend(hLine);
+                % Set the legend - location and visibility
+                hLegend.Location = Location;
+                hLegend.Visible = Visible;
+                hLegend.EdgeColor = 'none';
+                
+                % Set the fontsize and fontweight
+                hLegend.FontSize = FontSize;
+                hLegend.FontWeight = FontWeight;
+                [hLegendChildren(arrayfun(@(x)isprop(x,'FontSize'),hLegendChildren)).FontSize] = deal(FontSize);
+                [hLegendChildren(arrayfun(@(x)isprop(x,'FontWeight'),hLegendChildren)).FontWeight] = deal(FontWeight);
+                
+                % Fit axes in Figure
+                uix.abstract.CardViewPane.fixAxesInFigure(hNewFig,[hNewAxes hLegend]);
+            else
+                % Fit axes in Figure
+                uix.abstract.CardViewPane.fixAxesInFigure(hNewFig,hNewAxes);
+            end
+            
+            if strcmpi(FileExt,'.fig')
+                set(hNewFig,'Visible','on')
+                saveas(hNewFig,SaveFilePath);
+            else
+                if strcmpi(FileExt,'.png')
+                    Option = '-dpng';
+                elseif strcmpi(FileExt,'.eps')
+                    Option = '-depsc';
+                else
+                    Option = '-dtiff';
+                end
+                print(hNewFig,Option,SaveFilePath,'-r300')
+            end
+            
+            close(hNewFig)
+        end %function
+    end %methods (protected)
+    
+    
+    methods (Static)
+        
+        function fixAxesInFigure(hFigure,hAxes)
+            % Fixed pixels dimensions for axes
+            AxesDestW = 434; % Desired axes width
+            AxesDestH = 342; % Desired axes height
+            Buffer = 20; % Buffer within figure
+            
+            % Update main axes
+            hMainAxes = hAxes(~strcmpi(get(hAxes,'Tag'),'legend'));
+            set(hMainAxes,'Units','pixels');
+            set(hMainAxes,'ActivePositionProperty','outerposition')  % needed?
+            Position = get(hMainAxes,'Position');            
+            set(hMainAxes,'Position',[Position(1:2) AxesDestW AxesDestH]);
+            set(hMainAxes,'Units','normalized');
+%             OuterPosition = get(hMainAxes,'OuterPosition');
+%             set(hMainAxes,'OuterPosition',[0 0 OuterPosition(3:4)]);
+            
+            % Set Units to be pixels
+            MaxW = 0;
+            MaxH = 0;
+            for index = 1:numel(hAxes)
+                hAxes(index).Units = 'pixels';
+                ThisPos = get(hAxes(index),'Position');
+                if (ThisPos(1)+ThisPos(3)) > MaxW
+                    MaxW = ThisPos(1)+ThisPos(3);
+                end
+                if (ThisPos(2)+ThisPos(4)) > MaxH
+                    MaxH = ThisPos(2)+ThisPos(4);
+                end
+            end
+            % Check against OuterPosition
+            OuterPosition = get(hMainAxes,'OuterPosition');
+            MaxW = max(MaxW,OuterPosition(1)+OuterPosition(3));
+            MaxH = max(MaxH,OuterPosition(2)+OuterPosition(4));
+            
+            % Update main figure            
+            set(hFigure,'Position',[50 50 MaxW+Buffer MaxH+Buffer]);
+            
+            % Set units to normalized
+            for index = 1:numel(hAxes)
+                set(hAxes(index),'Units','normalized');
+            end
+            
+        end %function
+    end % methods (Static)
+    
     methods
         
         function set.IsDeleted(obj,Value)
             validateattributes(Value,{'logical'},{'scalar'})
             obj.IsDeleted = Value;
             if obj.IsDeleted
-                set([obj.h.SummaryButton,obj.h.EditButton,obj.h.RunButton,obj.h.VisualizeButton],'Enable','off');
+                set([obj.h.SummaryButton,obj.h.EditButton,obj.h.RunButton,obj.h.VisualizeButton,obj.h.PlotSettingsButton],'Enable','off');
                 obj.Selection = 1; %#ok<MCSUP>
             else
                 if obj.Selection == 2 %#ok<MCSUP>
-                    set([obj.h.SummaryButton,obj.h.EditButton,obj.h.RunButton,obj.h.VisualizeButton],'Enable','off');                
+                    set([obj.h.SummaryButton,obj.h.EditButton,obj.h.RunButton,obj.h.VisualizeButton,obj.h.PlotSettingsButton],'Enable','off');                
                 else
-                    set([obj.h.SummaryButton,obj.h.EditButton,obj.h.RunButton,obj.h.VisualizeButton],'Enable','on');                
+                    set([obj.h.SummaryButton,obj.h.EditButton,obj.h.RunButton,obj.h.VisualizeButton,obj.h.PlotSettingsButton],'Enable','on');                
                 end
             end
         end

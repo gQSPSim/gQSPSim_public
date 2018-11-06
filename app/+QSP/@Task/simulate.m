@@ -97,7 +97,7 @@ function [simData, statusOK, Message] = simulate(obj, varargin)
             model.SimulationOptions.OutputTimes = [];            
             [~,RTSSdata,outNames] = simulate(model,[ICValues; paramValues],[]);
             
-            comps = get(obj.ModelObj, 'Compartments');
+            comps = get(obj.ModelObj.mObj, 'Compartments');
             nComp = length(comps);
             if nComp==1
                 outNames = cellfun(@(s) sprintf('%s.%s', comps(1).Name, s), outNames, 'UniformOutput', false);

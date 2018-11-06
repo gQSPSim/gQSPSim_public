@@ -54,11 +54,12 @@ classdef (Abstract) BaseProps < matlab.mixin.SetGet & matlab.mixin.Heterogeneous
     end
     properties (Dependent=true)
         FilePath
+        LastSavedTimeStr
     end
     
     %% Protected Properties
     properties (SetAccess=protected)
-        LastSavedTime = '' % Time at which the view was last saved
+        LastSavedTime = [] % Time at which the view was last saved        
         LastValidatedTime = ''
     end
     
@@ -99,7 +100,7 @@ classdef (Abstract) BaseProps < matlab.mixin.SetGet & matlab.mixin.Heterogeneous
         
         function updateLastSavedTime(obj)
             
-            obj.LastSavedTime = datestr(now);
+            obj.LastSavedTime = now;
             
         end %function
         
@@ -166,8 +167,10 @@ classdef (Abstract) BaseProps < matlab.mixin.SetGet & matlab.mixin.Heterogeneous
                         %RAJ - again this okpList is a bit slow. Would be better to
                         %persist the needed info for each utilized class somewhere.
                         defaultValue = okpList(isThisProp).DefaultValue;
-                    else
+                    elseif ~isempty(obj)
                         defaultValue = obj(1).(thisProp);
+                    else
+                        defaultValue = [];
                     end
                 elseif ~any(strcmp(noSetProps, thisProp)) && ~any(isprop(obj,thisProp))
                     % Try adding dynamic properties
@@ -324,9 +327,19 @@ classdef (Abstract) BaseProps < matlab.mixin.SetGet & matlab.mixin.Heterogeneous
             obj.Description = value;
         end
         
-        function set.LastSavedTime(obj,value)
-            validateattributes(value,{'char'},{})
+        function set.LastSavedTime(obj,value)    
+            if ischar(value)
+                if isempty(value)
+                    value = [];
+                else
+                    value = datenum(value);
+                end
+            end
             obj.LastSavedTime = value;
+        end
+        
+        function value = get.LastSavedTimeStr(obj)
+            value = datestr(obj.LastSavedTime);
         end
         
         function value = get.SessionRoot(obj)
@@ -344,7 +357,7 @@ classdef (Abstract) BaseProps < matlab.mixin.SetGet & matlab.mixin.Heterogeneous
             validateattributes(value,{'char'},{})
             obj.RelativeFilePath = uix.utility.getRelativeFilePath(value, obj.SessionRoot, false);
         end
-                
+        
     end
     
 end % classdef

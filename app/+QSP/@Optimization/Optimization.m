@@ -53,7 +53,7 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         
         SelectedPlotLayout = '1x1'        
         
-
+        PlotSettings = repmat(struct(),1,12)
     end
     
     properties (SetAccess = 'private')
@@ -174,7 +174,7 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             % Populate summary
             Summary = {...
                 'Name',obj.Name;
-                'Last Saved',obj.LastSavedTime;
+                'Last Saved',obj.LastSavedTimeStr;
                 'Description',obj.Description;
                 'Results Path',obj.OptimResultsFolderName;
                 'Optimization algorithm',obj.AlgorithmName;
@@ -441,7 +441,7 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             obj.Results = [];
             obj.PlotProfile = QSP.Profile.empty(0,1);
             obj.SelectedProfileRow = [];
-            obj.LastSavedTime = '';
+            obj.LastSavedTime = [];
             obj.ExcelResultFileName = '';
             obj.VPopName = '';
         end
@@ -735,23 +735,23 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                     % Compare times
                     
                     % Optimization object (this)
-                    OptimLastSavedTime = datenum(obj.LastSavedTime);
+                    OptimLastSavedTime = obj.LastSavedTime;
                     
                     % Task object (item)
-                    TaskLastSavedTime = datenum(ThisTask.LastSavedTime);
+                    TaskLastSavedTime = ThisTask.LastSavedTime;
                     
                     % SimBiology Project file from Task
                     FileInfo = dir(ThisTask.FilePath);
                     TaskProjectLastSavedTime = FileInfo.datenum;
                     
                     % OptimizationData object and file
-                    OptimizationDataLastSavedTime = datenum(dObj.LastSavedTime);
+                    OptimizationDataLastSavedTime = dObj.LastSavedTime;
                     FileInfo = dir(dObj.FilePath);
                     OptimizationDataFileLastSavedTime = FileInfo.datenum;
                     
                     % Parameter object and file
                     if ~isempty(pObj)
-                        ParametersLastSavedTime = datenum(pObj.LastSavedTime);
+                        ParametersLastSavedTime = pObj.LastSavedTime;
                         FileInfo = dir(pObj.FilePath);
                         ParametersFileLastSavedTime = FileInfo.datenum;                    
                     end
@@ -869,6 +869,11 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         function set.SelectedProfileRow(obj,Value)
             validateattributes(Value,{'numeric'},{});
             obj.SelectedProfileRow = Value;
+        end
+        
+        function set.PlotSettings(obj,Value)
+            validateattributes(Value,{'struct'},{});
+            obj.PlotSettings = Value;
         end
         
     end %methods

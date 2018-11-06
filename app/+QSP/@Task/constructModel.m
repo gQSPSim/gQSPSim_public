@@ -2,7 +2,11 @@ function constructModel(obj)
 % construct the model and export it for simulation
 
     % extract model
-    model = obj.ModelObj;
+    if ~isempty(obj.ModelObj)
+        model = copyobj(obj.ModelObj.mObj);
+    else
+        model = [];
+    end
 
     % apply the active variants (if specified)
     if ~isempty(obj.ActiveVariantNames)

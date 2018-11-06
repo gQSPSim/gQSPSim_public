@@ -60,7 +60,7 @@ classdef VirtualPopulationData < QSP.abstract.BaseProps & uix.mixin.HasTreeRefer
             % Populate summary
             Summary = {...
                 'Name',obj.Name;
-                'Last Saved',obj.LastSavedTime;
+                'Last Saved',obj.LastSavedTimeStr;
                 'Description',obj.Description;       
                 'File name',obj.RelativeFilePath;                         
                 };

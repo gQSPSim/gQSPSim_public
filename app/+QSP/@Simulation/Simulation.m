@@ -43,7 +43,7 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         
         SelectedPlotLayout = '1x1'
         
-        
+        PlotSettings = repmat(struct(),1,12)
     end
     
     properties (SetAccess = 'private')
@@ -74,7 +74,7 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             %    aObj = QSP.Simulation();
             
             % Populate public properties from P-V input pairs
-            obj.assignPVPairs(varargin{:});
+            obj.assignPVPairs(varargin{:});            
             
         end %function obj = Simulation(varargin)
         
@@ -120,7 +120,7 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             % Populate summary
             Summary = {...
                 'Name',obj.Name;
-                'Last Saved',obj.LastSavedTime;
+                'Last Saved',obj.LastSavedTimeStr;
                 'Description',obj.Description;
                 'Results Path',obj.SimResultsFolderName;
                 'Dataset',obj.DatasetName;       
@@ -292,10 +292,10 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                     % Compare times
                     
                     % Simulation object (this)
-                    SimLastSavedTime = datenum(obj.LastSavedTime);
+                    SimLastSavedTime = obj.LastSavedTime;
                     
                     % Task object (item)
-                    TaskLastSavedTime = datenum(ThisTask.LastSavedTime);
+                    TaskLastSavedTime = ThisTask.LastSavedTime;
                     
                     % SimBiology Project file from Task
                     FileInfo = dir(ThisTask.FilePath);                    
@@ -303,7 +303,7 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                     
                     % VPop object (item) and file
                     if ~isempty(ThisVPop) % Guard for NullVPop
-                        VPopLastSavedTime = datenum(ThisVPop.LastSavedTime);
+                        VPopLastSavedTime = ThisVPop.LastSavedTime;
                         FileInfo = dir(ThisVPop.FilePath);
                         VPopFileLastSavedTime = FileInfo.datenum;
                     end
@@ -390,6 +390,10 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             obj.PlotGroupTable = Value;
         end
         
+        function set.PlotSettings(obj,Value)
+            validateattributes(Value,{'struct'},{});
+            obj.PlotSettings = Value;
+        end
     end %methods
     
 end %classdef

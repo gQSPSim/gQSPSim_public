@@ -192,7 +192,7 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             % Populate summary
             Summary = {...
                 'Name',obj.Name;
-                'Last Saved',obj.LastSavedTime;
+                'Last Saved',obj.LastSavedTimeStr;
                 'Description',obj.Description;
                 'Results Path',obj.VPopResultsFolderName;
                 'Dataset',obj.DatasetName;
@@ -538,14 +538,14 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                     end
                                         
                     % Task object (item)
-                    TaskLastSavedTime = datenum(ThisTask.LastSavedTime);
+                    TaskLastSavedTime = ThisTask.LastSavedTime;
                     
                     % SimBiology Project file from Task
                     FileInfo = dir(ThisTask.FilePath);
                     TaskProjectLastSavedTime = FileInfo.datenum;
                     
                     % VirtualPopulationData object and file
-                    VirtualPopulationDataLastSavedTime = datenum(dObj.LastSavedTime);
+                    VirtualPopulationDataLastSavedTime = dObj.LastSavedTime;
                     FileInfo = dir(dObj.FilePath);
                     VirtualPopulationDataFileLastSavedTime = FileInfo.datenum;
                                         
@@ -557,7 +557,7 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                         
                         % Parameter object and file
                         if ~isempty(pObj)
-                            ParametersLastSavedTime = datenum(pObj.LastSavedTime);
+                            ParametersLastSavedTime = pObj.LastSavedTime;
                             FileInfo = dir(pObj.FilePath);
                             if ~isempty(FileInfo)
                                 ParametersFileLastSavedTime = FileInfo.datenum;    

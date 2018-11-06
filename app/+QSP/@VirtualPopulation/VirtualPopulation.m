@@ -76,7 +76,7 @@ classdef VirtualPopulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             % Populate summary
             Summary = {...
                 'Name',obj.Name;
-                'Last Saved',obj.LastSavedTime;
+                'Last Saved',obj.LastSavedTimeStr;
                 'Description',obj.Description;
                 'File name',obj.RelativeFilePath;                
                 'No of virtual patients',obj.NumVirtualPatients;
