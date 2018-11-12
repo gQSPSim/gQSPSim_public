@@ -54,6 +54,8 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         SelectedPlotLayout = '1x1'   
         
         ShowInvalidVirtualPatients = true
+        
+        PlotSettings = repmat(struct(),1,12)
     end
     
     properties (SetAccess = 'private')
@@ -670,6 +672,11 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         function set.ShowInvalidVirtualPatients(obj,Value)
             validateattributes(Value,{'logical'},{'scalar'});
             obj.ShowInvalidVirtualPatients = Value;
+        end
+        
+        function set.PlotSettings(obj,Value)
+            validateattributes(Value,{'struct'},{});
+            obj.PlotSettings = Value;
         end
     end %methods
     

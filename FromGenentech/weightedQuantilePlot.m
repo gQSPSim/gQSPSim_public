@@ -1,15 +1,20 @@
 function h = weightedQuantilePlot(t, x, w, col, varargin)
-if nargin>5
-    q = varargin{1};
-else
-    q = [0.025, 0.975];
-end
 
-if nargin > 5
-    style = varargin{2};
-else
-    style = '-';
-end
+params = inputParser;
+params.CaseSensitive = false;
+params.addParameter('quantile',[0.025, 0.975],@(x)isnumeric(x));
+params.addParameter('linestyle','-',@(x)ischar(x));
+params.addParameter('linewidth',0.5,@(x)isnumeric(x));
+params.addParameter('parent',[]);
+
+params.parse(varargin{:});
+
+%Extract values from the inputParser
+q =  params.Results.quantile;
+style =  params.Results.linestyle;
+linewidth = params.Results.linewidth;
+parent = params.Results.parent;
+
 if isrow(w)
     w = reshape(w,[],1);
 end
@@ -32,6 +37,6 @@ for tIdx = 1:size(x,1)
     end
 end
 
-h = shadedErrorBar(t, m, [q_u-m; m-q_l], 'lineprops', {'Color', col, 'LineStyle', style});
+h = shadedErrorBar(t, m, [q_u-m; m-q_l], 'lineprops', {'Color', col, 'LineStyle', style}, 'linewidth', linewidth, 'parent', parent);
 
 

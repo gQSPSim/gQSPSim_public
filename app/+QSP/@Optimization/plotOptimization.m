@@ -268,9 +268,9 @@ for sIdxIdx = 1:length(obj.SpeciesData) % 1:size(obj.PlotSpeciesTable,1)
                         
                         % Apply thicker line width if needed
                         if runIdx == HighlightIdx
-                            ThisLineWidth = 2;
+                            ThisLineWidth = obj.PlotSettings(axIdx).LineWidth + 2;
                         else
-                            ThisLineWidth = 0.5;
+                            ThisLineWidth = obj.PlotSettings(axIdx).LineWidth; % 0.5;
                         end
                         
                         % Plot
@@ -293,6 +293,27 @@ for sIdxIdx = 1:length(obj.SpeciesData) % 1:size(obj.PlotSpeciesTable,1)
                 end %if
             end %for itemIdx
         end %for runIdx
+        
+        % Ensure only one legend entry is added per run
+        TheseGroups = hSpeciesGroup(sIdx,axIdx,:);
+        if iscell(TheseGroups)
+            TheseGroups = horzcat(TheseGroups{:});
+        end
+        if ~isempty(TheseGroups)
+            % Turn on first
+            set(get(get(TheseGroups(1),'Annotation'),'LegendInformation'),'IconDisplayStyle','on')
+            % Turn off legend for the remaining items
+            TheseAnnotations = get(TheseGroups(2:end),'Annotation');
+            if iscell(TheseAnnotations)
+                TheseAnnotations = horzcat(TheseAnnotations{:});
+            end
+            TheseAnnotationsInfo = get(TheseAnnotations,'LegendInformation');
+            if iscell(TheseAnnotationsInfo)
+                TheseAnnotationsInfo = horzcat(TheseAnnotationsInfo{:});
+            end
+            set(TheseAnnotationsInfo,'IconDisplayStyle','off');
+        end
+            
     end %if
 end %for sIdx
         
@@ -349,6 +370,7 @@ if any(MatchIdx)
                             hDatasetGroup{dIdx,axIdx} = hggroup(hAxes(axIdx),...
                                 'DisplayName',regexprep(ThisName,'_','\\_'),...
                                 'HitTest','off');
+                            set(get(get(hDatasetGroup{dIdx,axIdx},'Annotation'),'LegendInformation'),'IconDisplayStyle','on')
                             % Add dummy line for legend
                             line(nan,nan,'Parent',hDatasetGroup{dIdx,axIdx},...
                                 'LineStyle','none',...
@@ -361,6 +383,7 @@ if any(MatchIdx)
                             'Color',SelectedItemColors(gIdx,:),...
                             'LineStyle','none',...
                             'Marker',ThisMarker,...
+                            'MarkerSize',obj.PlotSettings(axIdx).DataSymbolSize,...
                             'HitTest','off',...
                             'DisplayName',regexprep(ThisName,'_','\\_'));
                         set(get(get(hThis,'Annotation'),'LegendInformation'),'IconDisplayStyle','off');

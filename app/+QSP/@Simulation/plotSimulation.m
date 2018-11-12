@@ -148,6 +148,7 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
             if isempty(hSpeciesGroup{sIdx,axIdx})
                 hSpeciesGroup{sIdx,axIdx} = hggroup(hAxes(axIdx),...
                     'DisplayName',regexprep(ThisName,'_','\\_')); 
+                set(get(get(hSpeciesGroup{sIdx,axIdx},'Annotation'),'LegendInformation'),'IconDisplayStyle','on')
                 % Add dummy line for legend
                 line(nan,nan,'Parent',hSpeciesGroup{sIdx,axIdx},...
                     'LineStyle',ThisLineStyle,...
@@ -156,17 +157,18 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
             
             % Plot
             if ~isnumeric(SelectedItemColors(itemIdx,:))
-                error('Invalid color selected!')
-                return
+                error('Invalid color selected!')                
             end
             
-            thisAnnotation = [];
+            thisTraceAnnotation = [];
+            thisQuantileAnnotation = [];
             
             if obj.bShowTraces(axIdx)
                 hThis = plot(hSpeciesGroup{sIdx,axIdx},Results(itemIdx).Time,Results(itemIdx).Data(:,ColumnIdx),...
                     'Color',SelectedItemColors(itemIdx,:),...
-                    'LineStyle',ThisLineStyle);
-                thisAnnotation = get(hThis,'Annotation');
+                    'LineStyle',ThisLineStyle,...
+                    'LineWidth',obj.PlotSettings(axIdx).LineWidth);
+                thisTraceAnnotation = get(hThis,'Annotation');
             end
             
             if obj.bShowQuantiles(axIdx)
@@ -211,34 +213,47 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
 %                     set(SE.patch,'FaceColor',SelectedItemColors(itemIdx,:));
 %                     set(SE.edge,'Color',SelectedItemColors(itemIdx,:),'LineWidth',2);
                     x = Results(itemIdx).Data(:,ColumnIdx);
-                    SE = weightedQuantilePlot(Results(itemIdx).Time, x, w0, SelectedItemColors(itemIdx,:), ThisLineStyle);
-                    thisAnnotation = get(SE.mainLine,'Annotation');
+                    SE = weightedQuantilePlot(Results(itemIdx).Time, x, w0, SelectedItemColors(itemIdx,:), ...
+                        'linestyle',ThisLineStyle,...
+                        'linewidth',obj.PlotSettings(axIdx).LineWidth,...
+                        'parent',hSpeciesGroup{sIdx,axIdx});
+                    thisQuantileAnnotation = get(SE.mainLine,'Annotation');
                 else
+                    % NOTE: Justin - code does not enter here (i.e. q50,
+                    % etc are not computed)
                     h = errorbar(Results(itemIdx).Time', q50', q50-q025, q975-q50, 'Color', SelectedItemColors(itemIdx,:), ...
                         'LineStyle',ThisLineStyle);
-                    thisAnnotation = get(h,'Annotation');
+                    thisQuantileAnnotation = get(h,'Annotation');
                 end
             end
             
-
-           if iscell(thisAnnotation)
-               thisLegendInformation = get([thisAnnotation{:}],'LegendInformation');
-           else
-               thisLegendInformation = get(thisAnnotation,'LegendInformation');
-           end
-           
-           if iscell(thisLegendInformation)
-               set([thisLegendInformation{:}],'IconDisplayStyle','off'); 
-           else
-               set(thisLegendInformation,'IconDisplayStyle','off'); 
-           end
-
-       
-           
+            % Process this trace
+            if iscell(thisTraceAnnotation)
+                thisLegendInformation = get([thisTraceAnnotation{:}],'LegendInformation');
+            else
+                thisLegendInformation = get(thisTraceAnnotation,'LegendInformation');
+            end
+            if iscell(thisLegendInformation)
+                set([thisLegendInformation{:}],'IconDisplayStyle','off');
+            else
+                set(thisLegendInformation,'IconDisplayStyle','off');
+            end
             
-        end
-    end
-end
+            % Process this quantile
+            if iscell(thisQuantileAnnotation)
+                thisLegendInformation = get([thisQuantileAnnotation{:}],'LegendInformation');
+            else
+                thisLegendInformation = get(thisQuantileAnnotation,'LegendInformation');
+            end
+            if iscell(thisLegendInformation)
+                set([thisLegendInformation{:}],'IconDisplayStyle','off');
+            else
+                set(thisLegendInformation,'IconDisplayStyle','off');
+            end
+
+        end %for itemIdx = 1:numel(Results)
+    end %if ~isempty
+end %for sIdx = 1:size(obj.PlotSpeciesTable,1)
 
 
 %% Plot Dataset
@@ -297,6 +312,7 @@ if any(MatchIdx)
                         if isempty(hDatasetGroup{dIdx,axIdx})
                             hDatasetGroup{dIdx,axIdx} = hggroup(hAxes(axIdx),...
                                 'DisplayName',regexprep(ThisName,'_','\\_'));
+                            set(get(get(hDatasetGroup{dIdx,axIdx},'Annotation'),'LegendInformation'),'IconDisplayStyle','on')
                             % Add dummy line for legend
                             line(nan,nan,'Parent',hDatasetGroup{dIdx,axIdx},...
                                 'LineStyle','none',...
@@ -309,6 +325,7 @@ if any(MatchIdx)
                             'Color',SelectedGroupColors(gIdx,:),...
                             'LineStyle','none',...
                             'Marker',ThisMarker,...
+                            'MarkerSize',obj.PlotSettings(axIdx).DataSymbolSize,...
                             'DisplayName',regexprep(sprintf('%s %s',ThisName,SelectedGroupIDs(gIdx)),'_','\\_'));
                         set(get(get(hThis,'Annotation'),'LegendInformation'),'IconDisplayStyle','off');
                             

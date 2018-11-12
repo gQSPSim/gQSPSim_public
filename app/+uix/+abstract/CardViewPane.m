@@ -1166,9 +1166,15 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                 for axIndex = 1:size(obj.h.SpeciesGroup,2)
                     LineWidth = obj.Data.PlotSettings(axIndex).LineWidth;
                     
-                    hPlots = obj.h.SpeciesGroup(:,axIndex);
-                    hPlots = horzcat(hPlots{:});
+                    hPlots = obj.h.SpeciesGroup(:,axIndex,:);
+                    if iscell(hPlots)
+                        hPlots = horzcat(hPlots{:});
+                    end
                     hPlots(~ishandle(hPlots)) = [];
+                    if ~isempty(hPlots) && isa(hPlots,'matlab.graphics.primitive.Group')
+                        hPlots = vertcat(hPlots.Children);
+                        hPlots(~ishandle(hPlots)) = [];
+                    end                    
                     set(hPlots,...
                         'LineWidth',LineWidth);
                 end
@@ -1180,8 +1186,14 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                     DataSymbolSize = obj.Data.PlotSettings(axIndex).DataSymbolSize;
                     
                     hPlots = obj.h.DatasetGroup(:,axIndex);
-                    hPlots = horzcat(hPlots{:});
+                    if iscell(hPlots)
+                        hPlots = horzcat(hPlots{:});
+                    end
                     hPlots(~ishandle(hPlots)) = [];
+                    if ~isempty(hPlots) && isa(hPlots,'matlab.graphics.primitive.Group')
+                        hPlots = vertcat(hPlots.Children);
+                        hPlots(~ishandle(hPlots)) = [];
+                    end
                     set(hPlots,...
                         'MarkerSize',DataSymbolSize);
                 end
@@ -1250,8 +1262,10 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
             end
             KeepExportIdx = ~strcmpi(ThisTag,'ForUILegendOnly');
             
-            % Aggregate
+            % Aggregate - No need to use KeepIdxOn since groups are used
+            % (to validate)
             KeepIdx = KeepIdxOn & KeepExportIdx;
+%             KeepIdx = KeepExportIdx;
             
             % Copy axes to figure
             hNewAxes = copyobj(hAxes,hNewFig);

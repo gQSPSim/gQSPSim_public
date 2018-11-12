@@ -211,6 +211,7 @@ if strcmp(obj.PlotType, 'Normal') && ~isempty(Results)
                     if isempty(hSpeciesGroup{sIdx,axIdx})
                         hSpeciesGroup{sIdx,axIdx} = hggroup(hAxes(axIdx),...
                             'DisplayName',regexprep(ThisName,'_','\\_'));
+                        set(get(get(hSpeciesGroup{sIdx,axIdx},'Annotation'),'LegendInformation'),'IconDisplayStyle','on')
                         % Add dummy line for legend
                         line(nan,nan,'Parent',hSpeciesGroup{sIdx,axIdx},...
                             'LineStyle',ThisLineStyle,...
@@ -274,7 +275,8 @@ if strcmp(obj.PlotType, 'Normal') && ~isempty(Results)
 %                             set(h.patch,'FaceColor',SelectedItemColors(itemIdx,:));
                             x = thisData(:,setdiff(ColumnIdx, ColumnIdx_invalid));
                             w = ones(size(x,2),1) * 1/size(x,2);
-                            h = weightedQuantilePlot(Results{itemIdx}.Time, x, w, SelectedItemColors(itemIdx,:), ThisLineStyle);
+                            h = weightedQuantilePlot(Results{itemIdx}.Time, x, w, SelectedItemColors(itemIdx,:),...
+                                'linestyle',ThisLineStyle);
                             hThis = h.mainLine;
                         end
                         
@@ -522,6 +524,7 @@ if strcmp(obj.PlotType,'Normal') && any(MatchIdx)
                         if isempty(hDatasetGroup{dIdx,axIdx})
                             hDatasetGroup{dIdx,axIdx} = hggroup(hAxes(axIdx),...
                                 'DisplayName',regexprep(sprintf('%s',ThisName),'_','\\_'));
+                            set(get(get(hDatasetGroup{dIdx,axIdx},'Annotation'),'LegendInformation'),'IconDisplayStyle','on')
                             % Add dummy line for legend
                             line(nan,nan,'Parent',hDatasetGroup{dIdx,axIdx},...
                                 'LineStyle','none',...
