@@ -208,6 +208,7 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                     obj.h.MainAxes(index) = axes(...
                         'Parent',obj.h.MainAxesContainer(index),...
                         'Visible','off');
+                    title(obj.h.MainAxes(index),sprintf('Plot %d',index));
                     
                     % Assign plot settings
                     obj.PlotSettings(index) = QSP.PlotSettings(obj.h.MainAxes(index));

@@ -481,7 +481,7 @@ elseif strcmp(obj.PlotType,'Diagnostic') && ~isempty(Results)
         for k=1:length(UBArray)
             errorbar(hAxes(currentAxis), k, (UBArray(k)+LBArray(k))/2, (UBArray(k)-LBArray(k))/2, 'Marker', 's', 'LineStyle', 'none',  ..., ...
                             'Color', 'k',...
-                            'LineWidth',obj.PlotSettings(currentAxis).MeanLineWidth);
+                            'LineWidth',obj.PlotSettings(currentAxis).LineWidth);
 %                             'LineWidth', 2) % colorArray{k} TODO: Ask Iraj
         end
 
