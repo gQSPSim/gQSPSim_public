@@ -1164,6 +1164,8 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
             % Iterate through each axes and turn on SelectedProfileRow
             if isfield(obj.h,'SpeciesGroup') && ~isempty(obj.h.SpeciesGroup)
                 for axIndex = 1:size(obj.h.SpeciesGroup,2)
+                    MeanLineWidth = obj.Data.PlotSettings(axIndex).MeanLineWidth;
+                    BoundaryLineWidth = obj.Data.PlotSettings(axIndex).BoundaryLineWidth;
                     LineWidth = obj.Data.PlotSettings(axIndex).LineWidth;
                     
                     hPlots = obj.h.SpeciesGroup(:,axIndex,:);
@@ -1174,9 +1176,18 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                     if ~isempty(hPlots) && isa(hPlots,'matlab.graphics.primitive.Group')
                         hPlots = vertcat(hPlots.Children);
                         hPlots(~ishandle(hPlots)) = [];
-                    end                    
-                    set(hPlots,...
-                        'LineWidth',LineWidth);
+                    end         
+                    ThisTag = get(hPlots,'Tag');
+                    IsMeanLine = strcmpi(ThisTag,'MeanLine');
+                    IsBoundaryLine = strcmpi(ThisTag,'BoundaryLine');
+                    if ~isempty(hPlots)
+                        set(hPlots(IsMeanLine),...
+                            'LineWidth',MeanLineWidth);
+                        set(hPlots(IsBoundaryLine),...
+                            'LineWidth',BoundaryLineWidth);
+                        set(hPlots(~IsMeanLine&~IsBoundaryLine),...
+                            'LineWidth',LineWidth);
+                    end
                 end
             end
             

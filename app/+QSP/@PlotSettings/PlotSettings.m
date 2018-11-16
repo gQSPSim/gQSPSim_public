@@ -93,6 +93,8 @@ classdef PlotSettings < matlab.mixin.SetGet & uix.mixin.AssignPVPairs
         LegendFontWeight = 'normal'    
         
         LineWidth = 0.5         
+        BoundaryLineWidth = 2
+        MeanLineWidth = 3
         DataSymbolSize = 6
     end
 
@@ -217,6 +219,8 @@ classdef PlotSettings < matlab.mixin.SetGet & uix.mixin.AssignPVPairs
         
         SettablePropertiesGroup4 = {
             'LineWidth','numeric';
+            'BoundaryLineWidth','numeric';
+            'MeanLineWidth','numeric';
             'DataSymbolSize','numeric';
             'LegendVisibility',QSP.PlotSettings.LegendOptions(:)';
             'LegendLocation',QSP.PlotSettings.LegendLocationOptions(:)';
@@ -707,6 +711,18 @@ classdef PlotSettings < matlab.mixin.SetGet & uix.mixin.AssignPVPairs
         function set.LineWidth(obj,Value)            
             validateattributes(Value,{'numeric'},{'scalar','nonnegative','nonnan'})
             obj.LineWidth = Value;
+        end %function
+        
+        
+        function set.BoundaryLineWidth(obj,Value)            
+            validateattributes(Value,{'numeric'},{'scalar','nonnegative','nonnan'})
+            obj.BoundaryLineWidth = Value;
+        end %function
+        
+        
+        function set.MeanLineWidth(obj,Value)            
+            validateattributes(Value,{'numeric'},{'scalar','nonnegative','nonnan'})
+            obj.MeanLineWidth = Value;
         end %function
         
         

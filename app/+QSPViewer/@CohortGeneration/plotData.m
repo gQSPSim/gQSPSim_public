@@ -28,7 +28,8 @@ function plotData(vObj)
 
 %                 try
 % Plot
-plotCohortGeneration(vObj.Data,vObj.h.MainAxes);
+[vObj.h.SpeciesGroup,vObj.h.DatasetGroup,vObj.h.AxesLegend,vObj.h.AxesLegendChildren] = ...
+    plotCohortGeneration(vObj.Data,vObj.h.MainAxes);
 %                 catch ME
 %                     hDlg = errordlg(sprintf('Cannot plot. %s',ME.message),'Invalid','modal');
 %                     uiwait(hDlg);

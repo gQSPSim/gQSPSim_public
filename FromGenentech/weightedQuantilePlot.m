@@ -4,7 +4,8 @@ params = inputParser;
 params.CaseSensitive = false;
 params.addParameter('quantile',[0.025, 0.975],@(x)isnumeric(x));
 params.addParameter('linestyle','-',@(x)ischar(x));
-params.addParameter('linewidth',0.5,@(x)isnumeric(x));
+params.addParameter('meanlinewidth',0.5,@(x)isnumeric(x));
+params.addParameter('boundarylinewidth',0.5,@(x)isnumeric(x));
 params.addParameter('parent',[]);
 
 params.parse(varargin{:});
@@ -12,7 +13,8 @@ params.parse(varargin{:});
 %Extract values from the inputParser
 q =  params.Results.quantile;
 style =  params.Results.linestyle;
-linewidth = params.Results.linewidth;
+meanlinewidth = params.Results.meanlinewidth;
+boundarylinewidth = params.Results.boundarylinewidth;
 parent = params.Results.parent;
 
 if isrow(w)
@@ -37,6 +39,6 @@ for tIdx = 1:size(x,1)
     end
 end
 
-h = shadedErrorBar(t, m, [q_u-m; m-q_l], 'lineprops', {'Color', col, 'LineStyle', style}, 'linewidth', linewidth, 'parent', parent);
+h = shadedErrorBar(t, m, [q_u-m; m-q_l], 'lineprops', {'Color', col, 'LineStyle', style}, 'meanlinewidth', meanlinewidth, 'boundarylinewidth', boundarylinewidth, 'parent', parent);
 
 
