@@ -224,6 +224,7 @@ if strcmp(obj.PlotType, 'Normal') && ~isempty(Results)
                     
                     if isempty(hSpeciesGroup{sIdx,axIdx})
                         hSpeciesGroup{sIdx,axIdx} = hggroup(hAxes(axIdx),...
+                            'Tag','Species',...
                             'DisplayName',regexprep(ThisName,'_','\\_'));
                         set(get(get(hSpeciesGroup{sIdx,axIdx},'Annotation'),'LegendInformation'),'IconDisplayStyle','on')
                         % Add dummy line for legend
@@ -296,7 +297,7 @@ if strcmp(obj.PlotType, 'Normal') && ~isempty(Results)
                                 'meanlinewidth',obj.PlotSettings(axIdx).MeanLineWidth,...
                                 'boundarylinewidth',obj.PlotSettings(axIdx).BoundaryLineWidth,...
                                 'parent',hSpeciesGroup{sIdx,axIdx});
-                            hThis = h.mainLine;
+                            hThis = [h.mainLine,h.edge,h.patch];                            
                         end
                         
                         hThisAnn = get(hThis,'Annotation');
@@ -321,14 +322,22 @@ if strcmp(obj.PlotType, 'Normal') && ~isempty(Results)
                             vpopWeights = Results{itemIdx}.VpopWeights;
                         end
                     
-
-                        mean_line = plot(hSpeciesGroup{sIdx,axIdx}, Results{itemIdx}.Time, thisData(:,ColumnIdx) * ...
+                        % Mean line
+                        hThis = plot(hSpeciesGroup{sIdx,axIdx}, Results{itemIdx}.Time, thisData(:,ColumnIdx) * ...
                             vpopWeights/sum(vpopWeights),...
                             'LineStyle',ThisLineStyle,...
                             'Color',SelectedItemColors(itemIdx,:), ...
                             'LineWidth',obj.PlotSettings(axIdx).MeanLineWidth);
                             % 'LineWidth', 3); % TODO: Ask Iraj
-
+                        hThisAnn = get(hThis,'Annotation');
+                        if iscell(hThisAnn)
+                            hThisAnn = [hThisAnn{:}];
+                        end
+                        hThisAnnLegend = get(hThisAnn,'LegendInformation');
+                        if iscell(hThisAnnLegend)
+                            hThisAnnLegend = [hThisAnnLegend{:}];
+                        end
+                        set(hThisAnnLegend,'IconDisplayStyle','off');
                     end
                     
 
@@ -545,6 +554,7 @@ if strcmp(obj.PlotType,'Normal') && any(MatchIdx)
                         % Create a group                        
                         if isempty(hDatasetGroup{dIdx,axIdx})
                             hDatasetGroup{dIdx,axIdx} = hggroup(hAxes(axIdx),...shaded
+                                'Tag','Data',...
                                 'DisplayName',regexprep(sprintf('%s',ThisName),'_','\\_'));
                             set(get(get(hDatasetGroup{dIdx,axIdx},'Annotation'),'LegendInformation'),'IconDisplayStyle','on')
                             % Add dummy line for legend
@@ -583,27 +593,9 @@ end %if
 
 %% Legend
 
-hLegend = cell(1,NumAxes);
-hLegendChildren = cell(1,NumAxes);
 % Force a drawnow, to avoid legend issues
 drawnow;
-for axIndex = 1:NumAxes
-    
-    % Append
-    LegendItems = [horzcat(hSpeciesGroup{:,axIndex}) horzcat(hDatasetGroup{:,axIndex})];
-    
-    if ~isempty(LegendItems)
-        % Add legend
-        try
-            [hLegend{axIndex},hLegendChildren{axIndex}] = legend(hAxes(axIndex),LegendItems);
-        catch
-            warning('Error drawing legends')
-        end
-    else
-        hLegend{axIndex} = [];
-        hLegendChildren{axIndex} = [];        
-    end
-end
+[hLegend,hLegendChildren] = redrawLegend(obj,hAxes,hSpeciesGroup,hDatasetGroup);
 
 
 %% Turn off hold

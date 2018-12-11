@@ -90,7 +90,9 @@ classdef PlotSettings < matlab.mixin.SetGet & uix.mixin.AssignPVPairs
         LegendVisibility = 'on'
         LegendLocation = 'northeast'
         LegendFontSize = 10
-        LegendFontWeight = 'normal'    
+        LegendFontWeight = 'normal'
+        
+        LegendDataGroup = 'on'
         
         LineWidth = 0.5         
         BoundaryLineWidth = 2
@@ -225,7 +227,8 @@ classdef PlotSettings < matlab.mixin.SetGet & uix.mixin.AssignPVPairs
             'LegendVisibility',QSP.PlotSettings.LegendOptions(:)';
             'LegendLocation',QSP.PlotSettings.LegendLocationOptions(:)';
             'LegendFontSize','numeric';
-            'LegendFontWeight',QSP.PlotSettings.FontWeightOptions(:)';            
+            'LegendFontWeight',QSP.PlotSettings.FontWeightOptions(:)';
+            'LegendDataGroup',QSP.PlotSettings.LegendOptions(:)';
             }
     
         SettableProperties = vertcat(...
@@ -705,6 +708,12 @@ classdef PlotSettings < matlab.mixin.SetGet & uix.mixin.AssignPVPairs
         function set.LegendFontWeight(obj,Value)
             Value = validatestring(Value,obj.FontWeightOptions);
             obj.LegendFontWeight = Value;
+        end %function
+        
+        
+        function set.LegendDataGroup(obj,Value)
+            Value = validatestring(Value,obj.LegendOptions);
+            obj.LegendDataGroup = Value;
         end %function
         
        

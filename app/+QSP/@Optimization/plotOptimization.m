@@ -258,6 +258,7 @@ for sIdxIdx = 1:length(obj.SpeciesData) % 1:size(obj.PlotSpeciesTable,1)
                     if ~isempty(ColumnIdx)
                         if isempty(hSpeciesGroup{sIdx,axIdx,runIdx})
                             hSpeciesGroup{sIdx,axIdx,runIdx} = hggroup(hAxes(axIdx),...
+                                'Tag','Species',...
                                 'DisplayName',regexprep(ThisName,'_','\\_'),...
                                 'HitTest','off');
                             % Add dummy line for legend
@@ -268,7 +269,7 @@ for sIdxIdx = 1:length(obj.SpeciesData) % 1:size(obj.PlotSpeciesTable,1)
                         
                         % Apply thicker line width if needed
                         if runIdx == HighlightIdx
-                            ThisLineWidth = obj.PlotSettings(axIdx).LineWidth + 2;
+                            ThisLineWidth = obj.PlotSettings(axIdx).LineWidth * 2;
                         else
                             ThisLineWidth = obj.PlotSettings(axIdx).LineWidth; % 0.5;
                         end
@@ -368,6 +369,7 @@ if any(MatchIdx)
                         % Create a group
                         if isempty(hDatasetGroup{dIdx,axIdx})
                             hDatasetGroup{dIdx,axIdx} = hggroup(hAxes(axIdx),...
+                                'Tag','Data',...
                                 'DisplayName',regexprep(ThisName,'_','\\_'),...
                                 'HitTest','off');
                             set(get(get(hDatasetGroup{dIdx,axIdx},'Annotation'),'LegendInformation'),'IconDisplayStyle','on')
@@ -407,43 +409,7 @@ end %if any
 
 % Force a drawnow, to avoid legend issues
 drawnow;
-for axIndex = 1:NumAxes
-    
-    % Append
-    if size(hSpeciesGroup,3) > 0
-        LegendItems = [horzcat(hSpeciesGroup{:,axIndex,1}) horzcat(hDatasetGroup{:,axIndex})];
-    else
-        LegendItems = [];
-    end
-    if ~isempty(LegendItems)
-        % Add legend
-       try
-           [hLegend{axIndex},hLegendChildren{axIndex}] = legend(hAxes(axIndex),LegendItems);
-           set(hLegend{axIndex},...
-               'EdgeColor','none',...
-               'Visible',obj.PlotSettings(axIndex).LegendVisibility,...
-               'Location',obj.PlotSettings(axIndex).LegendLocation,...
-               'FontSize',obj.PlotSettings(axIndex).LegendFontSize,...
-               'FontWeight',obj.PlotSettings(axIndex).LegendFontWeight);
-           
-           % Color, FontSize, FontWeight
-           for cIndex = 1:numel(hLegendChildren{axIndex})
-               if isprop(hLegendChildren{axIndex}(cIndex),'FontSize')
-                   hLegendChildren{axIndex}(cIndex).FontSize = obj.PlotSettings(axIndex).LegendFontSize;
-               end
-               if isprop(hLegendChildren{axIndex}(cIndex),'FontWeight')
-                   hLegendChildren{axIndex}(cIndex).FontWeight = obj.PlotSettings(axIndex).LegendFontWeight;
-               end
-           end
-       catch ME
-           warning(ME.message)
-       end
-           
-    else
-        hLegend{axIndex} = [];
-        hLegendChildren{axIndex} = [];        
-    end
-end
+[hLegend,hLegendChildren] = redrawLegend(obj,hAxes,hSpeciesGroup,hDatasetGroup);
 
 
 %% Turn off hold

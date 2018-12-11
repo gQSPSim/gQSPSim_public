@@ -216,6 +216,7 @@ if strcmp(obj.PlotType, 'Normal') && ~isempty(Results)
                     
                     if isempty(hSpeciesGroup{sIdx,axIdx})
                         hSpeciesGroup{sIdx,axIdx} = hggroup(hAxes(axIdx),...
+                            'Tag','Species',...
                             'DisplayName',regexprep(ThisName,'_','\\_'));
                         set(get(get(hSpeciesGroup{sIdx,axIdx},'Annotation'),'LegendInformation'),'IconDisplayStyle','on')
                         % Add dummy line for legend
@@ -315,12 +316,23 @@ if strcmp(obj.PlotType, 'Normal') && ~isempty(Results)
 %                             'Color',SelectedItemColors(itemIdx,:), ...
 %                             'LineWidth', 3);
 
-                        weightedQuantilePlot(Results{itemIdx}.Time,  x, w0, SelectedItemColors(itemIdx,:),...
+                        SE = weightedQuantilePlot(Results{itemIdx}.Time,  x, w0, SelectedItemColors(itemIdx,:),...
                             'linestyle',ThisLineStyle,...
                             'meanlinewidth',obj.PlotSettings(axIdx).MeanLineWidth,...
                             'boundarylinewidth',obj.PlotSettings(axIdx).BoundaryLineWidth,...
                             'parent',hSpeciesGroup{sIdx,axIdx});
-                        
+                        thisQuantileAnnotation = get([SE.mainLine,SE.edge,SE.patch],'Annotation');
+                        % Process this quantile
+                        if iscell(thisQuantileAnnotation)
+                            thisLegendInformation = get([thisQuantileAnnotation{:}],'LegendInformation');
+                        else
+                            thisLegendInformation = get(thisQuantileAnnotation,'LegendInformation');
+                        end
+                        if iscell(thisLegendInformation)
+                            set([thisLegendInformation{:}],'IconDisplayStyle','off');
+                        else
+                            set(thisLegendInformation,'IconDisplayStyle','off');
+                        end
 %                         set(mean_line.patch, 'FaceColor',SelectedItemColors(itemIdx,:));    
                     end
                     
@@ -509,6 +521,7 @@ if strcmp(obj.PlotType,'Normal') && any(MatchIdx)
                         % Create a group                        
                         if isempty(hDatasetGroup{dIdx,axIdx})
                             hDatasetGroup{dIdx,axIdx} = hggroup(hAxes(axIdx),...
+                                'Tag','Data',...
                                 'DisplayName',regexprep(sprintf('%s',ThisName),'_','\\_'));
                             set(get(get(hDatasetGroup{dIdx,axIdx},'Annotation'),'LegendInformation'),'IconDisplayStyle','on')
                             % Add dummy line for legend
@@ -549,39 +562,7 @@ end %if
 
 % Force a drawnow, to avoid legend issues
 drawnow;
-for axIndex = 1:NumAxes
-    
-    % Append
-    LegendItems = [horzcat(hSpeciesGroup{:,axIndex}) horzcat(hDatasetGroup{:,axIndex})];
-    
-    if ~isempty(LegendItems)
-        % Add legend
-        try
-            [hLegend{axIndex},hLegendChildren{axIndex}] = legend(hAxes(axIndex),LegendItems);
-            set(hLegend{axIndex},...
-                'EdgeColor','none',...
-                'Visible',obj.PlotSettings(axIndex).LegendVisibility,...
-                'Location',obj.PlotSettings(axIndex).LegendLocation,...
-                'FontSize',obj.PlotSettings(axIndex).LegendFontSize,...
-                'FontWeight',obj.PlotSettings(axIndex).LegendFontWeight);
-            
-            % Color, FontSize, FontWeight
-            for cIndex = 1:numel(hLegendChildren{axIndex})
-                if isprop(hLegendChildren{axIndex}(cIndex),'FontSize')
-                    hLegendChildren{axIndex}(cIndex).FontSize = obj.PlotSettings(axIndex).LegendFontSize;
-                end
-                if isprop(hLegendChildren{axIndex}(cIndex),'FontWeight')
-                    hLegendChildren{axIndex}(cIndex).FontWeight = obj.PlotSettings(axIndex).LegendFontWeight;
-                end
-            end
-        catch
-            warning('Error drawing legends')
-        end
-    else
-        hLegend{axIndex} = [];
-        hLegendChildren{axIndex} = [];        
-    end
-end
+[hLegend,hLegendChildren] = redrawLegend(obj,hAxes,hSpeciesGroup,hDatasetGroup);
 
 
 %% Turn off hold

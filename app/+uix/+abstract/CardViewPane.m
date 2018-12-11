@@ -1256,27 +1256,56 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
             % Use current axes to determine which line handles should be
             % used for the legend
             hUIAxes = hAxes(~strcmpi(get(hAxes,'Tag'),'legend'));
-            ch = get(hUIAxes,'Children');
+            theseGroups = get(hUIAxes,'Children');
             
-            % Keep all annotation-on
-            hAnn = get(ch,'Annotation');
-            if ~iscell(hAnn)
-                hAnn = {hAnn};
+            for index = 1:numel(theseGroups)
+                ch = get(theseGroups(index),'Children');
+                
+                % Turn off all and turn on 
+                hAnn = get(ch,'Annotation');
+                if ~iscell(hAnn)
+                    hAnn = {hAnn};
+                end
+                hAnn = cellfun(@(x)get(x,'LegendInformation'),hAnn,'UniformOutput',false);
+                IconDisplayStyle = cellfun(@(x)get(x,'IconDisplayStyle'),hAnn,'UniformOutput',false);
+                ForRestoreAnn{index} = IconDisplayStyle; %#ok<AGROW>
+                
+                % Set icondisplaystyle for export
+                if strcmpi(get(theseGroups(index),'Tag'),'Data') && strcmpi(PlotSettings.LegendDataGroup,'off')
+                    % If Data and legend data group is off
+                    KeepIdxOn = false(1,numel(hAnn));
+                else
+                    % Species or Data Group is on
+                    if numel(ch) > 1
+                        KeepIdxOn = ~strcmpi(get(ch,'Tag'),'DummyLine') & ~cellfun(@isempty,(get(ch,'DisplayName')));
+                    else
+                        KeepIdxOn = ~strcmpi(get(ch,'Tag'),'DummyLine') & ~isempty(get(ch,'DisplayName'));
+                    end
+                end
+                cellfun(@(x)set(x,'IconDisplayStyle','on'),hAnn(KeepIdxOn),'UniformOutput',false);
+                cellfun(@(x)set(x,'IconDisplayStyle','off'),hAnn(~KeepIdxOn),'UniformOutput',false);
+                
             end
-            hAnn = cellfun(@(x)get(x,'LegendInformation'),hAnn,'UniformOutput',false);
-            hAnn = cellfun(@(x)get(x,'IconDisplayStyle'),hAnn,'UniformOutput',false);
-            KeepIdxOn = strcmpi(hAnn,'on');
             
-            % Remove all UI legend only handles
-            ThisTag = get(ch,'Tag');
-            if ~iscell(ThisTag)
-                ThisTag = {ThisTag};
-            end
-            KeepExportIdx = ~strcmpi(ThisTag,'ForUILegendOnly');
+%             % Keep all annotation-on
+%             hAnn = get(theseGroups,'Annotation');
+%             if ~iscell(hAnn)
+%                 hAnn = {hAnn};
+%             end
+%             hAnn = cellfun(@(x)get(x,'LegendInformation'),hAnn,'UniformOutput',false);
+%             hAnn = cellfun(@(x)get(x,'IconDisplayStyle'),hAnn,'UniformOutput',false);
+%             KeepIdxOn = strcmpi(hAnn,'on');
+            
+%             % Remove all UI legend only handles
+%             ThisTag = get(theseGroups,'Tag');
+%             if ~iscell(ThisTag)
+%                 ThisTag = {ThisTag};
+%             end
+%             KeepExportIdx = strcmpi(ThisTag,'ForExportLegend');
             
             % Aggregate - No need to use KeepIdxOn since groups are used
             % (to validate)
-            KeepIdx = KeepIdxOn & KeepExportIdx;
+%             KeepIdx = KeepIdxOn & KeepExportIdx;
 %             KeepIdx = KeepExportIdx;
             
             % Copy axes to figure
@@ -1296,10 +1325,10 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
             OrigLegend = hAxes(strcmpi(get(hAxes,'Tag'),'legend'));
             if ~isempty(OrigLegend)
                 hLine = get(hNewAxes,'Children');
-                UserData = get(hLine,'UserData');
-                if ~iscell(UserData)
-                    UserData = {UserData};
-                end
+%                 UserData = get(hLine,'UserData');
+%                 if ~iscell(UserData)
+%                     UserData = {UserData};
+%                 end
                 
                 % Format display name
                 for idx = 1:numel(hLine)
@@ -1316,22 +1345,37 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                 
                 % Make current axes and place legend
                 axes(hNewAxes);
-                hLine = hLine(KeepIdx);
+%                 hLine = hLine(KeepIdx);
                 hLine = flipud(hLine(:));
-                [hLegend,hLegendChildren] = legend(hLine);
-                % Set the legend - location and visibility
-                hLegend.Location = Location;
-                hLegend.Visible = Visible;
-                hLegend.EdgeColor = 'none';
+                hLine = vertcat(hLine.Children);
                 
-                % Set the fontsize and fontweight
-                hLegend.FontSize = FontSize;
-                hLegend.FontWeight = FontWeight;
-                [hLegendChildren(arrayfun(@(x)isprop(x,'FontSize'),hLegendChildren)).FontSize] = deal(FontSize);
-                [hLegendChildren(arrayfun(@(x)isprop(x,'FontWeight'),hLegendChildren)).FontWeight] = deal(FontWeight);
+                hAnn = get(hLine,'Annotation');
+                if ~iscell(hAnn)
+                    hAnn = {hAnn};
+                end
+                hAnn = cellfun(@(x)get(x,'LegendInformation'),hAnn,'UniformOutput',false);
+                hAnn = cellfun(@(x)get(x,'IconDisplayStyle'),hAnn,'UniformOutput',false);
+                KeepIdx = strcmpi(hAnn,'on');
                 
-                % Fit axes in Figure
-                uix.abstract.CardViewPane.fixAxesInFigure(hNewFig,[hNewAxes hLegend]);
+                if any(KeepIdx)
+                    [hLegend,hLegendChildren] = legend(hLine(KeepIdx));
+                    % Set the legend - location and visibility
+                    hLegend.Location = Location;
+                    hLegend.Visible = Visible;
+                    hLegend.EdgeColor = 'none';
+
+                    % Set the fontsize and fontweight
+                    hLegend.FontSize = FontSize;
+                    hLegend.FontWeight = FontWeight;
+                    [hLegendChildren(arrayfun(@(x)isprop(x,'FontSize'),hLegendChildren)).FontSize] = deal(FontSize);
+                    [hLegendChildren(arrayfun(@(x)isprop(x,'FontWeight'),hLegendChildren)).FontWeight] = deal(FontWeight);
+
+                    % Fit axes in Figure
+                    uix.abstract.CardViewPane.fixAxesInFigure(hNewFig,[hNewAxes hLegend]);
+                else
+                    % Fit axes in Figure
+                    uix.abstract.CardViewPane.fixAxesInFigure(hNewFig,hNewAxes);
+                end
             else
                 % Fit axes in Figure
                 uix.abstract.CardViewPane.fixAxesInFigure(hNewFig,hNewAxes);
@@ -1349,6 +1393,22 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                     Option = '-dtiff';
                 end
                 print(hNewFig,Option,SaveFilePath,'-r300')
+            end
+            
+            % Restore
+            for index = 1:numel(theseGroups)
+                ch = get(theseGroups(index),'Children');
+                
+                % Turn off all and turn on 
+                hAnn = get(ch,'Annotation');
+                if ~iscell(hAnn)
+                    hAnn = {hAnn};
+                end
+                hAnn = cellfun(@(x)get(x,'LegendInformation'),hAnn,'UniformOutput',false);
+                IsOn = strcmpi(ForRestoreAnn{index},'on');
+                IsOff = strcmpi(ForRestoreAnn{index},'off');
+                cellfun(@(x)set(x,'IconDisplayStyle','on'),hAnn(IsOn),'UniformOutput',false);
+                cellfun(@(x)set(x,'IconDisplayStyle','off'),hAnn(IsOff),'UniformOutput',false);
             end
             
             close(hNewFig)
