@@ -207,6 +207,8 @@ if strcmp(obj.PlotType, 'Normal') && ~isempty(Results)
                 % Get the match in Sim 1 (Virtual Patient 1) in this VPop
                 ColumnIdx = find(strcmp(Results{itemIdx}.SpeciesNames,ThisName));
 
+                FullDisplayName = sprintf('%s %s',ThisDisplayName,obj.PlotItemTable{itemIdx,5});
+                
                 % since not all tasks will contain all species...
                 if ~isempty(ColumnIdx)
                     % Update ColumnIdx to get species for ALL virtual patients
@@ -355,7 +357,17 @@ if strcmp(obj.PlotType, 'Normal') && ~isempty(Results)
                     ixMean = strcmp(type,'MEAN');
                     ixMeanStd = strcmp(type,'MEAN_STD');
                     axes(get(hSpeciesGroup{sIdx,axIdx},'Parent'))
-                    plot(hSpeciesGroup{sIdx,axIdx}, times(ixMean), val1(ixMean), 'o', 'Color', SelectedItemColors(itemIdx,:)); % TODO: Ask Iraj
+                    % Mean line
+                    hThis = plot(hSpeciesGroup{sIdx,axIdx}, times(ixMean), val1(ixMean), 'o', ...
+                        'LineStyle',ThisLineStyle,...
+                        'Color',SelectedItemColors(itemIdx,:),...
+                        'LineWidth',obj.PlotSettings(axIdx).MeanLineWidth); % TODO: Ask Iraj
+                    
+                    % Only allow one display name - don't attach to
+                    % traces and quantiles and instead attach to mean
+                    % line
+                    set(hThis(1),'DisplayName',regexprep(sprintf('%s [Sim]',FullDisplayName),'_','\\_')); % For export, use patch since line width is not applied
+                    
                     if any(ixMeanStd)
                         errorbar(times(ixMeanStd), val1(ixMeanStd), val2(ixMeanStd), 'o', 'Color', SelectedItemColors(itemIdx,:));
                     end
@@ -486,6 +498,7 @@ if strcmp(obj.PlotType,'Normal') && any(MatchIdx)
         if any(IsSelected)            
             SelectedGroupColors = vertcat(obj.PlotItemTable{IsSelected,2});
             SelectedGroupIDs = categorical(obj.PlotItemTable(IsSelected,4));
+            SelectedItemNames = obj.PlotItemTable(IsSelected,5);
             
             % Get the Group Column from the imported dataset
             GroupColumn = AccCritData(:,strcmp(AccCritHeader,obj.GroupName));
@@ -537,13 +550,15 @@ if strcmp(obj.PlotType,'Normal') && any(MatchIdx)
                         
                         % Plot but remove from the legend
                         if any(MatchIdx)
+                            FullDisplayName = sprintf('%s %s',ThisDisplayName,SelectedItemNames{gIdx});
+                            
                             hThis = plot(hDatasetGroup{dIdx,axIdx},[TimeColumn{MatchIdx}],[AccCritData{MatchIdx,strcmp(AccCritHeader,'LB')}], ...
                                 [TimeColumn{MatchIdx}],[AccCritData{MatchIdx,strcmp(AccCritHeader,'UB')}],...
                                 'LineStyle','none',...
                                 'Marker',ThisMarker,...
                                 'MarkerSize',obj.PlotSettings(axIdx).DataSymbolSize,...
                                 'Color',SelectedGroupColors(gIdx,:),...
-                                'DisplayName',regexprep(sprintf('%s [Data] %s',ThisDisplayName,SelectedGroupIDs(gIdx)),'_','\\_')); % For export 'DisplayName',regexprep(sprintf('%s',ThisName),'_','\\_'));
+                                'DisplayName',regexprep(sprintf('%s [Data]',FullDisplayName),'_','\\_')); % For export % 'DisplayName',regexprep(ThisName,'_','\\_'));
                             hThisAnn = get(hThis,'Annotation');
                             if iscell(hThisAnn)
                                 hThisAnn = [hThisAnn{:}];
