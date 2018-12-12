@@ -234,6 +234,7 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
             % Only allow one display name between traces and quantiles
             FormattedFullDisplayName = regexprep(FullDisplayName,'_','\\_'); % For export, use patch since line width is not applied
             if obj.bShowTraces(axIdx)
+                % Use the first line only!
                 set(hThisTrace(1),'DisplayName',FormattedFullDisplayName);                
             elseif ~isempty(SE) && isstruct(SE) && isfield(SE,'patch')
                 set(SE.patch,'DisplayName',FormattedFullDisplayName);
@@ -292,6 +293,7 @@ if any(MatchIdx)
         if any(IsSelected)
             SelectedGroupColors = cell2mat(obj.PlotGroupTable(IsSelected,2));
             SelectedGroupIDs = categorical(obj.PlotGroupTable(IsSelected,3));            
+            SelectedGroupNames = obj.PlotGroupTable(IsSelected,4);
             
             % Get the Group Column from the imported dataset
             GroupColumn = OptimData(:,strcmp(OptimHeader,obj.GroupName));
@@ -342,7 +344,7 @@ if any(MatchIdx)
                             'LineStyle','none',...
                             'Marker',ThisMarker,...
                             'MarkerSize',obj.PlotSettings(axIdx).DataSymbolSize,...
-                            'DisplayName',regexprep(sprintf('%s %s',ThisDisplayName,SelectedGroupIDs(gIdx)),'_','\\_')); % For export
+                            'DisplayName',regexprep(sprintf('%s %s',ThisDisplayName,SelectedGroupNames{gIdx}),'_','\\_')); % For export
                         set(get(get(hThis,'Annotation'),'LegendInformation'),'IconDisplayStyle','off');
                             
                     end %for gIdx

@@ -42,8 +42,8 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
         Item = QSP.TaskGroup.empty(0,1)
         SpeciesData = QSP.SpeciesData.empty(0,1)
         
-        PlotSpeciesTable = cell(0,4)
-        PlotItemTable = cell(0,4) 
+        PlotSpeciesTable = cell(0,5)
+        PlotItemTable = cell(0,5) 
         
         PrevalenceWeights = [];
         
@@ -94,6 +94,16 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
             
             % Populate public properties from P-V input pairs
             obj.assignPVPairs(varargin{:});
+            
+            % For compatibility
+            if size(obj.PlotSpeciesTable,2) == 4
+                obj.PlotSpeciesTable(:,5) = obj.PlotSpeciesTable(:,3);
+            end
+            
+            % For compatibility
+            if size(obj.PlotItemTable,2) == 4
+                obj.PlotItemTable(:,5) = obj.PlotItemTable(:,3);
+            end
             
         end %function obj = VirtualPopulationGeneration(varargin)
         

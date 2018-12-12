@@ -189,6 +189,10 @@ if ~isempty(vObj.Data)
         NewColors = getItemColors(vObj.Data.Session,numel(TaskNames));
         NewPlotTable(:,2) = num2cell(NewColors,2);   
         
+        if size(vObj.Data.PlotItemTable,2) == 4
+            vObj.Data.PlotItemTable(:,5) = cellfun(@(x,y)sprintf('%s - %s',x,y),vObj.Data.PlotItemTable(:,3),vObj.Data.PlotItemTable(:,4),'UniformOutput',false);
+        end
+        
         % Update Table
         KeyColumn = [3 4];
         [vObj.Data.PlotItemTable,vObj.PlotItemAsInvalidTable,vObj.PlotItemInvalidRowIndices] = QSPViewer.updateVisualizationTable(vObj.Data.PlotItemTable,NewPlotTable,InvalidItemIndices,KeyColumn);

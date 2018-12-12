@@ -233,7 +233,8 @@ for sIdxIdx = 1:length(obj.SpeciesData) % 1:size(obj.PlotSpeciesTable,1)
         strcmp(obj.SpeciesData(sIdxIdx).DataName, obj.PlotSpeciesTable(:,4)) );
     axIdx = str2double(obj.PlotSpeciesTable{sIdx,1});
     ThisLineStyle = obj.PlotSpeciesTable{sIdx,2};
-    ThisName = obj.PlotSpeciesTable{sIdx,3};    
+    ThisName = obj.PlotSpeciesTable{sIdx,3};   
+    ThisDisplayName = obj.PlotSpeciesTable{sIdx,5};
     
     if ~isempty(axIdx) && ~isnan(axIdx) && ~isempty(Results) && (isempty(refreshAxes) || ismember(axIdx,refreshAxes))
         for runIdx = 1:NumRuns
@@ -259,12 +260,13 @@ for sIdxIdx = 1:length(obj.SpeciesData) % 1:size(obj.PlotSpeciesTable,1)
                         if isempty(hSpeciesGroup{sIdx,axIdx,runIdx})
                             hSpeciesGroup{sIdx,axIdx,runIdx} = hggroup(hAxes(axIdx),...
                                 'Tag','Species',...
-                                'DisplayName',regexprep(ThisName,'_','\\_'),...
+                                'DisplayName',regexprep(sprintf('%s [Sim]',ThisDisplayName),'_','\\_'),...
                                 'HitTest','off');
                             % Add dummy line for legend
                             line(nan,nan,'Parent',hSpeciesGroup{sIdx,axIdx,runIdx},...
                                 'LineStyle',ThisLineStyle,...
-                                'Color',[0 0 0]);
+                                'Color',[0 0 0],...
+                                'Tag','DummyLine');
                         end
                         
                         % Apply thicker line width if needed
@@ -360,6 +362,7 @@ if any(MatchIdx)
                 axIdx = str2double(obj.PlotSpeciesTable{dIdx,1});
                 ThisName = obj.PlotSpeciesTable{dIdx,4};
                 ColumnIdx = find(strcmp(OptimHeader,ThisName));
+                ThisDisplayName = obj.PlotSpeciesTable{dIdx,5};
                 
                 if ~isempty(ColumnIdx) && ~isempty(axIdx) && ~isnan(axIdx)
                     for gIdx = 1:numel(SelectedGroupIDs)
@@ -370,14 +373,15 @@ if any(MatchIdx)
                         if isempty(hDatasetGroup{dIdx,axIdx})
                             hDatasetGroup{dIdx,axIdx} = hggroup(hAxes(axIdx),...
                                 'Tag','Data',...
-                                'DisplayName',regexprep(ThisName,'_','\\_'),...
+                                'DisplayName',regexprep(sprintf('%s [Data]',ThisDisplayName),'_','\\_'),...
                                 'HitTest','off');
                             set(get(get(hDatasetGroup{dIdx,axIdx},'Annotation'),'LegendInformation'),'IconDisplayStyle','on')
                             % Add dummy line for legend
                             line(nan,nan,'Parent',hDatasetGroup{dIdx,axIdx},...
                                 'LineStyle','none',...
                                 'Marker',ThisMarker,...
-                                'Color',[0 0 0]);
+                                'Color',[0 0 0],...
+                                'Tag','DummyLine');
                         end
                         
                         % Plot but remove from the legend
@@ -387,7 +391,7 @@ if any(MatchIdx)
                             'Marker',ThisMarker,...
                             'MarkerSize',obj.PlotSettings(axIdx).DataSymbolSize,...
                             'HitTest','off',...
-                            'DisplayName',regexprep(ThisName,'_','\\_'));
+                            'DisplayName',regexprep(sprintf('%s [Data] %s',ThisDisplayName,SelectedGroupIDs(gIdx)),'_','\\_')); % For export % 'DisplayName',regexprep(ThisName,'_','\\_'));
                         set(get(get(hThis,'Annotation'),'LegendInformation'),'IconDisplayStyle','off');
                         
 %                         % Plot the selected column by GroupID

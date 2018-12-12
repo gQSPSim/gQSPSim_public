@@ -45,8 +45,8 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         SpeciesData = QSP.SpeciesData.empty(0,1)
         SpeciesIC = QSP.SpeciesData.empty(0,1) % Initial Conditions        
         
-        PlotSpeciesTable = cell(0,4)
-        PlotItemTable = cell(0,4)
+        PlotSpeciesTable = cell(0,5)
+        PlotItemTable = cell(0,5)
         
         PlotProfile = QSP.Profile.empty(0,1)
         SelectedProfileRow = []
@@ -95,6 +95,16 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             
             % Populate public properties from P-V input pairs
             obj.assignPVPairs(varargin{:});
+            
+            % For compatibility
+            if size(obj.PlotSpeciesTable,2) == 4
+                obj.PlotSpeciesTable(:,5) = obj.PlotSpeciesTable(:,3);
+            end
+            
+            % For compatibility
+            if size(obj.PlotItemTable,2) == 4
+                obj.PlotItemTable(:,5) = obj.PlotItemTable(:,3);
+            end
             
         end %function obj = Optimization(varargin)
         

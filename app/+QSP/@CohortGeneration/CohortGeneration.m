@@ -44,8 +44,8 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         MaxNumSimulations = 5000
         MaxNumVirtualPatients = 500
         
-        PlotSpeciesTable = cell(0,4)
-        PlotItemTable = cell(0,4) 
+        PlotSpeciesTable = cell(0,5)
+        PlotItemTable = cell(0,5) 
         
         PrevalenceWeights = [];
         
@@ -79,25 +79,35 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
     
     %% Constructor
     methods
-        function obj = VirtualPopulationGeneration(varargin)
-            % VirtualPopulationGeneration - Constructor for QSP.VirtualPopulationGeneration
+        function obj = CohortGeneration(varargin)
+            % CohortGeneration - Constructor for QSP.CohortGeneration
             % -------------------------------------------------------------------------
-            % Abstract: Constructs a new QSP.VirtualPopulationGeneration object.
+            % Abstract: Constructs a new QSP.CohortGeneration object.
             %
             % Syntax:
-            %           obj = QSP.VirtualPopulationGeneration('Parameter1',Value1,...)
+            %           obj = QSP.CohortGeneration('Parameter1',Value1,...)
             %
             % Inputs:
             %           Parameter-value pairs
             %
             % Outputs:
-            %           obj - QSP.VirtualPopulationGeneration object
+            %           obj - QSP.CohortGeneration object
             %
             % Example:
-            %    aObj = QSP.VirtualPopulationGeneration();
+            %    aObj = QSP.CohortGeneration();
             
             % Populate public properties from P-V input pairs
             obj.assignPVPairs(varargin{:});
+            
+            % For compatibility
+            if size(obj.PlotSpeciesTable,2) == 4
+                obj.PlotSpeciesTable(:,5) = obj.PlotSpeciesTable(:,3);
+            end
+            
+            % For compatibility
+            if size(obj.PlotItemTable,2) == 4
+                obj.PlotItemTable(:,5) = obj.PlotItemTable(:,3);
+            end
             
         end %function obj = VirtualPopulationGeneration(varargin)
         
