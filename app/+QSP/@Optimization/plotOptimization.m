@@ -284,6 +284,7 @@ for sIdxIdx = 1:length(obj.SpeciesData) % 1:size(obj.PlotSpeciesTable,1)
                             'LineStyle',ThisLineStyle,...
                             'LineWidth',ThisLineWidth,...
                             'HitTest','on',...
+                            'UserData',itemIdx,...
                             'Tag',num2str(runIdx));
                         set(get(get(hThis,'Annotation'),'LegendInformation'),'IconDisplayStyle','off');
                         
@@ -303,10 +304,20 @@ for sIdxIdx = 1:length(obj.SpeciesData) % 1:size(obj.PlotSpeciesTable,1)
             TheseGroups = horzcat(TheseGroups{:});
         end
         if ~isempty(TheseGroups)
-            % Turn on first
-            set(get(get(TheseGroups(1),'Annotation'),'LegendInformation'),'IconDisplayStyle','on')
+            ch = TheseGroups(1).Children;
+            ch = ch(~strcmpi(get(ch,'Tag'),'DummyLine'));
+            ItemIndices = get(ch,'UserData');
+            if iscell(ItemIndices)
+                ItemIndices = cell2mat(ItemIndices);
+            end
+            for chIdx = 1:numel(ch)
+                itemIdx = ItemIndices(chIdx);
+                FullDisplayName = sprintf('%s %s',ThisDisplayName,obj.PlotItemTable{itemIdx,5});
+                set(ch(chIdx),'DisplayName',regexprep(sprintf('%s [Sim]',FullDisplayName),'_','\\_')); % For export, use patch since line width is not applied
+            end
+            
             % Turn off legend for the remaining items
-            TheseAnnotations = get(TheseGroups(2:end),'Annotation');
+            TheseAnnotations = get(TheseGroups,'Annotation');
             if iscell(TheseAnnotations)
                 TheseAnnotations = horzcat(TheseAnnotations{:});
             end
@@ -340,6 +351,7 @@ if any(MatchIdx)
         if any(IsSelected)
             %SelectedGroupColors = getGroupColors(obj.Session,sum(IsSelected));
             SelectedGroupIDs = categorical(obj.PlotItemTable(IsSelected,4));
+            SelectedItemNames = obj.PlotItemTable(IsSelected,5);
             
             % Get the Group Column from the imported dataset
             GroupColumn = OptimData(:,strcmp(OptimHeader,obj.GroupName));
@@ -384,6 +396,8 @@ if any(MatchIdx)
                                 'Tag','DummyLine');
                         end
                         
+                        FullDisplayName = sprintf('%s %s',ThisDisplayName,SelectedItemNames{gIdx});
+                        
                         % Plot but remove from the legend
                         hThis = plot(hDatasetGroup{dIdx,axIdx},TimeColumn(MatchIdx),cell2mat(OptimData(MatchIdx,ColumnIdx)),...
                             'Color',SelectedItemColors(gIdx,:),...
@@ -391,7 +405,7 @@ if any(MatchIdx)
                             'Marker',ThisMarker,...
                             'MarkerSize',obj.PlotSettings(axIdx).DataSymbolSize,...
                             'HitTest','off',...
-                            'DisplayName',regexprep(sprintf('%s [Data] %s',ThisDisplayName,SelectedGroupIDs(gIdx)),'_','\\_')); % For export % 'DisplayName',regexprep(ThisName,'_','\\_'));
+                            'DisplayName',regexprep(sprintf('%s [Data]',FullDisplayName),'_','\\_')); % For export % 'DisplayName',regexprep(ThisName,'_','\\_'));
                         set(get(get(hThis,'Annotation'),'LegendInformation'),'IconDisplayStyle','off');
                         
 %                         % Plot the selected column by GroupID
