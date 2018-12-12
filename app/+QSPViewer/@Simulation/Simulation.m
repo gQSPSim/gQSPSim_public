@@ -234,16 +234,16 @@ classdef Simulation < uix.abstract.CardViewPane
                 
                 vObj.Data.PlotSpeciesTable(RowIdx,ColIdx) = ThisData(RowIdx,ColIdx);
                 
-                if ColIdx == 4
-                    % Display name
-                    for sIdx = 1:size(vObj.Data.PlotSpeciesTable,1)
-                        axIdx = str2double(vObj.Data.PlotSpeciesTable{sIdx,1});
-                        if ~isnan(axIdx)
-                            set(vObj.h.SpeciesGroup{sIdx,axIdx},'DisplayName',regexprep(vObj.Data.PlotSpeciesTable{sIdx,4},'_','\\_')); 
-                        end
-                    end           
-                    % No need to call redraw legend
-                elseif ColIdx == 2
+%                 if ColIdx == 4
+%                     % Display name
+%                     for sIdx = 1:size(vObj.Data.PlotSpeciesTable,1)
+%                         axIdx = str2double(vObj.Data.PlotSpeciesTable{sIdx,1});
+%                         if ~isnan(axIdx)
+%                             set(vObj.h.SpeciesGroup{sIdx,axIdx},'DisplayName',regexprep(vObj.Data.PlotSpeciesTable{sIdx,4},'_','\\_')); 
+%                         end
+%                     end           
+%                     % No need to call redraw legend
+                if ColIdx == 2
                     % Style
                     for sIdx = 1:size(vObj.Data.PlotSpeciesTable,1)
                         axIdx = str2double(vObj.Data.PlotSpeciesTable{sIdx,1});
@@ -254,7 +254,7 @@ classdef Simulation < uix.abstract.CardViewPane
                         end
                     end   
                     [vObj.h.AxesLegend,vObj.h.AxesLegendChildren] = redrawLegend(vObj.Data,vObj.h.MainAxes,vObj.h.SpeciesGroup,vObj.h.DatasetGroup);
-                elseif ColIdx == 1
+                elseif ColIdx == 1 || ColIdx == 4
                     
                     % Plot
                     plotData(vObj);
