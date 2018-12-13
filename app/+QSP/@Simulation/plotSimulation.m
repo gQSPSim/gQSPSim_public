@@ -236,8 +236,8 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
             if obj.bShowTraces(axIdx)
                 % Use the first line only!
                 set(hThisTrace(1),'DisplayName',FormattedFullDisplayName);                
-            elseif ~isempty(SE) && isstruct(SE) && isfield(SE,'patch')
-                set(SE.patch,'DisplayName',FormattedFullDisplayName);
+            elseif ~isempty(SE) && isstruct(SE) && isfield(SE,'mainLine')
+                set(SE.mainLine,'DisplayName',FormattedFullDisplayName);
             end
             
             
