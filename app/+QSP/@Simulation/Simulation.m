@@ -36,14 +36,14 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         
         Item = QSP.TaskVirtualPopulation.empty(0,1)
         
-        PlotSpeciesTable = cell(0,3)
-        PlotItemTable = cell(0,4)
-        PlotDataTable = cell(0,2)
-        PlotGroupTable = cell(0,3)
+        PlotSpeciesTable = cell(0,4)
+        PlotItemTable = cell(0,5)
+        PlotDataTable = cell(0,4)
+        PlotGroupTable = cell(0,4)
         
         SelectedPlotLayout = '1x1'
         
-        
+        PlotSettings = repmat(struct(),1,12)
     end
     
     properties (SetAccess = 'private')
@@ -74,7 +74,23 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             %    aObj = QSP.Simulation();
             
             % Populate public properties from P-V input pairs
-            obj.assignPVPairs(varargin{:});
+            obj.assignPVPairs(varargin{:});       
+            
+            % For compatibility
+            if size(obj.PlotSpeciesTable,2) == 3
+                obj.PlotSpeciesTable(:,4) = obj.PlotSpeciesTable(:,3);
+            end
+            if size(obj.PlotItemTable,2) == 4
+                TaskNames = obj.PlotItemTable(:,3);
+                VPopNames = obj.PlotItemTable(:,4);
+                obj.PlotSpeciesTable(:,5) = cellfun(@(x,y)sprintf('%s - %s',x,y),TaskNames,VPopNames,'UniformOutput',false);
+            end
+            if size(obj.PlotDataTable,2) == 3
+                obj.PlotDataTable(:,4) = obj.PlotDataTable(:,3);
+            end
+            if size(obj.PlotGroupTable,2) == 3
+                obj.PlotGroupTable(:,4) = obj.PlotGroupTable(:,3);
+            end
             
         end %function obj = Simulation(varargin)
         
@@ -120,7 +136,7 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             % Populate summary
             Summary = {...
                 'Name',obj.Name;
-                'Last Saved',obj.LastSavedTime;
+                'Last Saved',obj.LastSavedTimeStr;
                 'Description',obj.Description;
                 'Results Path',obj.SimResultsFolderName;
                 'Dataset',obj.DatasetName;       
@@ -292,10 +308,10 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                     % Compare times
                     
                     % Simulation object (this)
-                    SimLastSavedTime = datenum(obj.LastSavedTime);
+                    SimLastSavedTime = obj.LastSavedTime;
                     
                     % Task object (item)
-                    TaskLastSavedTime = datenum(ThisTask.LastSavedTime);
+                    TaskLastSavedTime = ThisTask.LastSavedTime;
                     
                     % SimBiology Project file from Task
                     FileInfo = dir(ThisTask.FilePath);                    
@@ -303,7 +319,7 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                     
                     % VPop object (item) and file
                     if ~isempty(ThisVPop) % Guard for NullVPop
-                        VPopLastSavedTime = datenum(ThisVPop.LastSavedTime);
+                        VPopLastSavedTime = ThisVPop.LastSavedTime;
                         FileInfo = dir(ThisVPop.FilePath);
                         VPopFileLastSavedTime = FileInfo.datenum;
                     end
@@ -376,7 +392,7 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         end
         
         function set.PlotItemTable(obj,Value)
-            validateattributes(Value,{'cell'},{'size',[nan 4]});
+            validateattributes(Value,{'cell'},{'size',[nan 5]});
             obj.PlotItemTable = Value;
         end
         
@@ -386,10 +402,14 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         end
         
         function set.PlotGroupTable(obj,Value)
-            validateattributes(Value,{'cell'},{'size',[nan 3]});
+            validateattributes(Value,{'cell'},{'size',[nan 4]});
             obj.PlotGroupTable = Value;
         end
         
+        function set.PlotSettings(obj,Value)
+            validateattributes(Value,{'struct'},{});
+            obj.PlotSettings = Value;
+        end
     end %methods
     
 end %classdef

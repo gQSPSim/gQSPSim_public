@@ -133,10 +133,11 @@ if ~isempty(vObj.Data)
             GroupIDNames(InvalidIndices) = [];
         end
         
-        vObj.Data.PlotItemTable = cell(numel(TaskNames),4);
+        vObj.Data.PlotItemTable = cell(numel(TaskNames),5);
         vObj.Data.PlotItemTable(:,1) = {false};
         vObj.Data.PlotItemTable(:,3) = TaskNames;
         vObj.Data.PlotItemTable(:,4) = GroupIDNames;
+        vObj.Data.PlotItemTable(:,5) = TaskNames;
         
         % Update the item colors
         ItemColors = getItemColors(vObj.Data.Session,numel(TaskNames));
@@ -145,13 +146,18 @@ if ~isempty(vObj.Data)
         vObj.PlotItemAsInvalidTable = vObj.Data.PlotItemTable;
         vObj.PlotItemInvalidRowIndices = [];
     else
-        NewPlotTable = cell(numel(TaskNames),4);
+        NewPlotTable = cell(numel(TaskNames),5);
         NewPlotTable(:,1) = {false};
         NewPlotTable(:,3) = TaskNames;
         NewPlotTable(:,4) = GroupIDNames;
+        NewPlotTable(:,5) = TaskNames;
         
         NewColors = getItemColors(vObj.Data.Session,numel(TaskNames));
         NewPlotTable(:,2) = num2cell(NewColors,2);   
+        
+        if size(vObj.Data.PlotItemTable,2) == 4
+            vObj.Data.PlotItemTable(:,5) = vObj.Data.PlotItemTable(:,3);
+        end
         
         % Update Table
         KeyColumn = [3 4];
@@ -186,9 +192,9 @@ if ~isempty(vObj.Data)
     % Items table
     set(vObj.h.PlotItemsTable,...
         'Data',TableData,...
-        'ColumnName',{'Include','Color','Task','Group'},...
-        'ColumnFormat',{'boolean','char','char','char'},...
-        'ColumnEditable',[true,false,false,false]...
+        'ColumnName',{'Include','Color','Task','Group','Display'},...
+        'ColumnFormat',{'boolean','char','char','char','char'},...
+        'ColumnEditable',[true,false,false,false,true]...
         );
     % Set cell color
     for index = 1:size(TableData,1)
@@ -200,10 +206,10 @@ if ~isempty(vObj.Data)
 else
     % Items table
     set(vObj.h.PlotItemsTable,...
-        'Data',cell(0,4),...
-        'ColumnName',{'Include','Color','Task','Group'},...
-        'ColumnFormat',{'boolean','char','char','char'},...
-        'ColumnEditable',[true,false,false,false]...
+        'Data',cell(0,5),...
+        'ColumnName',{'Include','Color','Task','Group','Display'},...
+        'ColumnFormat',{'boolean','char','char','char','char'},...
+        'ColumnEditable',[true,false,false,false,true]...
         );
 end
 
@@ -238,29 +244,35 @@ if ~isempty(vObj.Data)
         end
         
         % If empty, populate, but first update line styles
-        vObj.Data.PlotSpeciesTable = cell(numel(SpeciesNames),4);
+        vObj.Data.PlotSpeciesTable = cell(numel(SpeciesNames),5);
         updateSpeciesLineStyles(vObj.Data);
         
         vObj.Data.PlotSpeciesTable(:,1) = {' '};
         vObj.Data.PlotSpeciesTable(:,2) = vObj.Data.SpeciesLineStyles(:);
         vObj.Data.PlotSpeciesTable(:,3) = SpeciesNames;
         vObj.Data.PlotSpeciesTable(:,4) = DataNames;
+        vObj.Data.PlotSpeciesTable(:,5) = SpeciesNames;
         
         vObj.PlotSpeciesAsInvalidTable = vObj.Data.PlotSpeciesTable;
         vObj.PlotSpeciesInvalidRowIndices = [];
     else
-        NewPlotTable = cell(numel(SpeciesNames),4);
+        NewPlotTable = cell(numel(SpeciesNames),5);
         NewPlotTable(:,1) = {' '};
         NewPlotTable(:,2) = {'-'}; % vObj.Data.SpeciesLineStyles(:); % TODO: !!
         NewPlotTable(:,3) = SpeciesNames;
         NewPlotTable(:,4) = DataNames;
+        NewPlotTable(:,5) = SpeciesNames;
         
         % Adjust size if from an old saved session
         if size(vObj.Data.PlotSpeciesTable,2) == 3
+            vObj.Data.PlotSpeciesTable(:,5) = vObj.Data.PlotSpeciesTable(:,3);
             vObj.Data.PlotSpeciesTable(:,4) = vObj.Data.PlotSpeciesTable(:,3);
             vObj.Data.PlotSpeciesTable(:,3) = vObj.Data.PlotSpeciesTable(:,2);
             vObj.Data.PlotSpeciesTable(:,2) = {'-'};  % TODO: !!
+        elseif size(vObj.Data.PlotSpeciesTable,2) == 4
+            vObj.Data.PlotSpeciesTable(:,5) = vObj.Data.PlotSpeciesTable(:,3);
         end
+        
         % Update Table
         KeyColumn = [3 4];
         [vObj.Data.PlotSpeciesTable,vObj.PlotSpeciesAsInvalidTable,vObj.PlotSpeciesInvalidRowIndices] = QSPViewer.updateVisualizationTable(vObj.Data.PlotSpeciesTable,NewPlotTable,InvalidIndices,KeyColumn);
@@ -271,16 +283,16 @@ if ~isempty(vObj.Data)
      % Species table
     set(vObj.h.PlotSpeciesTable,...
         'Data',vObj.PlotSpeciesAsInvalidTable,...
-        'ColumnName',{'Plot','Style','Species','Data'},...
-        'ColumnFormat',{AxesOptions,vObj.Data.Settings.LineStyleMap,'char','char'},...
-        'ColumnEditable',[true,true,false,false]...
+        'ColumnName',{'Plot','Style','Species','Data','Display'},...
+        'ColumnFormat',{AxesOptions,vObj.Data.Settings.LineStyleMap,'char','char','char'},...
+        'ColumnEditable',[true,true,false,false,true]...
         );    
 else
     set(vObj.h.PlotSpeciesTable,...
-        'Data',cell(0,4),...
-        'ColumnName',{'Plot','Style','Species','Data'},...
-        'ColumnFormat',{AxesOptions,'char','char','char'},...
-        'ColumnEditable',[true,true,false,false]...
+        'Data',cell(0,5),...
+        'ColumnName',{'Plot','Style','Species','Data','Display'},...
+        'ColumnFormat',{AxesOptions,'char','char','char','char'},...
+        'ColumnEditable',[true,true,false,false,true]...
         );
 end
 

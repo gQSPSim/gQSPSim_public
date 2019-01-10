@@ -29,11 +29,24 @@ function [hSpeciesGroup,hDatasetGroup,hLegend,hLegendChildren] = plotVirtualPopu
 %% Turn on hold
 
 for index = 1:numel(hAxes)
-    XLimMode{index} = get(hAxes(index),'XLimMode');
-    YLimMode{index} = get(hAxes(index),'YLimMode');
+%     XLimMode{index} = get(hAxes(index),'XLimMode');
+%     YLimMode{index} = get(hAxes(index),'YLimMode');
     cla(hAxes(index));
     legend(hAxes(index),'off')
-    set(hAxes(index),'XLimMode',XLimMode{index},'YLimMode',YLimMode{index})
+%     set(hAxes(index),'XLimMode',XLimMode{index},'YLimMode',YLimMode{index})
+
+    set(hAxes(index),...
+        'XLimMode',obj.PlotSettings(index).XLimMode,...
+        'YLimMode',obj.PlotSettings(index).YLimMode);
+    if strcmpi(obj.PlotSettings(index).XLimMode,'manual')
+        set(hAxes(index),...
+            'XLim',obj.PlotSettings(index).CustomXLim);
+    end
+    if strcmpi(obj.PlotSettings(index).YLimMode,'manual')
+        set(hAxes(index),...
+            'YLim',obj.PlotSettings(index).CustomYLim);
+    end
+    
     hold(hAxes(index),'on')    
 end
 
@@ -177,6 +190,7 @@ if strcmp(obj.PlotType, 'Normal') && ~isempty(Results)
         ThisLineStyle = obj.PlotSpeciesTable{sIdx,2};
         ThisName = obj.PlotSpeciesTable{sIdx,3};
         ThisDataName = obj.PlotSpeciesTable{sIdx,4};
+        ThisDisplayName = obj.PlotSpeciesTable{sIdx,5};
         
         acc_lines = [];
         rej_lines = [];
@@ -193,6 +207,8 @@ if strcmp(obj.PlotType, 'Normal') && ~isempty(Results)
                 % Get the match in Sim 1 (Virtual Patient 1) in this VPop
                 ColumnIdx = find(strcmp(Results{itemIdx}.SpeciesNames,ThisName));
 
+                FullDisplayName = sprintf('%s %s',ThisDisplayName,obj.PlotItemTable{itemIdx,5});
+                
                 % since not all tasks will contain all species...
                 if ~isempty(ColumnIdx)
                     % Update ColumnIdx to get species for ALL virtual patients
@@ -203,11 +219,14 @@ if strcmp(obj.PlotType, 'Normal') && ~isempty(Results)
                     
                     if isempty(hSpeciesGroup{sIdx,axIdx})
                         hSpeciesGroup{sIdx,axIdx} = hggroup(hAxes(axIdx),...
-                            'DisplayName',regexprep(ThisName,'_','\\_'));
+                            'Tag','Species',...
+                            'DisplayName',regexprep(sprintf('%s [Sim]',ThisDisplayName),'_','\\_'));
+                        set(get(get(hSpeciesGroup{sIdx,axIdx},'Annotation'),'LegendInformation'),'IconDisplayStyle','on')
                         % Add dummy line for legend
                         line(nan,nan,'Parent',hSpeciesGroup{sIdx,axIdx},...
                             'LineStyle',ThisLineStyle,...
-                            'Color',[0 0 0]);
+                            'Color',[0 0 0],...
+                            'Tag','DummyLine');
                     end                    
                     
                     % Plot
@@ -222,6 +241,7 @@ if strcmp(obj.PlotType, 'Normal') && ~isempty(Results)
                         % Plot
                         hThis = plot(hSpeciesGroup{sIdx,axIdx},Results{itemIdx}.Time,thisData(:,ColumnIdx_invalid),...
                             'Color',[0.5,0.5,0.5],...
+                            'LineWidth',obj.PlotSettings(axIdx).LineWidth,...
                             'LineStyle',ThisLineStyle);
                         hThisAnn = get(hThis,'Annotation');
                         if iscell(hThisAnn)
@@ -299,9 +319,24 @@ if strcmp(obj.PlotType, 'Normal') && ~isempty(Results)
 %                         set(mean_line.mainLine, 'LineStyle',ThisLineStyle,...
 %                             'Color',SelectedItemColors(itemIdx,:), ...
 %                             'LineWidth', 3);
-                        
-                        weightedQuantilePlot(Results{itemIdx}.Time,  x, w0, SelectedItemColors(itemIdx,:), ThisLineStyle);
-                        
+
+                        SE = weightedQuantilePlot(Results{itemIdx}.Time,  x, w0, SelectedItemColors(itemIdx,:),...
+                            'linestyle',ThisLineStyle,...
+                            'meanlinewidth',obj.PlotSettings(axIdx).MeanLineWidth,...
+                            'boundarylinewidth',obj.PlotSettings(axIdx).BoundaryLineWidth,...
+                            'parent',hSpeciesGroup{sIdx,axIdx});
+                        thisQuantileAnnotation = get([SE.mainLine,SE.edge,SE.patch],'Annotation');
+                        % Process this quantile
+                        if iscell(thisQuantileAnnotation)
+                            thisLegendInformation = get([thisQuantileAnnotation{:}],'LegendInformation');
+                        else
+                            thisLegendInformation = get(thisQuantileAnnotation,'LegendInformation');
+                        end
+                        if iscell(thisLegendInformation)
+                            set([thisLegendInformation{:}],'IconDisplayStyle','off');
+                        else
+                            set(thisLegendInformation,'IconDisplayStyle','off');
+                        end
 %                         set(mean_line.patch, 'FaceColor',SelectedItemColors(itemIdx,:));    
                     end
                     
@@ -322,7 +357,17 @@ if strcmp(obj.PlotType, 'Normal') && ~isempty(Results)
                     ixMean = strcmp(type,'MEAN');
                     ixMeanStd = strcmp(type,'MEAN_STD');
                     axes(get(hSpeciesGroup{sIdx,axIdx},'Parent'))
-                    plot(hSpeciesGroup{sIdx,axIdx}, times(ixMean), val1(ixMean), 'o', 'Color', SelectedItemColors(itemIdx,:));
+                    % Mean line
+                    hThis = plot(hSpeciesGroup{sIdx,axIdx}, times(ixMean), val1(ixMean), 'o', ...
+                        'LineStyle',ThisLineStyle,...
+                        'Color',SelectedItemColors(itemIdx,:),...
+                        'LineWidth',obj.PlotSettings(axIdx).MeanLineWidth); % TODO: Ask Iraj
+                    
+                    % Only allow one display name - don't attach to
+                    % traces and quantiles and instead attach to mean
+                    % line
+                    set(hThis(1),'DisplayName',regexprep(sprintf('%s [Sim]',FullDisplayName),'_','\\_')); % For export, use patch since line width is not applied
+                    
                     if any(ixMeanStd)
                         errorbar(times(ixMeanStd), val1(ixMeanStd), val2(ixMeanStd), 'o', 'Color', SelectedItemColors(itemIdx,:));
                     end
@@ -426,7 +471,8 @@ elseif strcmp(obj.PlotType,'Diagnostic') && ~isempty(Results)
         % add error bars
         for k=1:length(UBArray)
             errorbar(hAxes(currentAxis), k, (UBArray(k)+LBArray(k))/2, (UBArray(k)-LBArray(k))/2, 'Marker', 's', 'LineStyle', 'none',  ..., ...
-                            'Color', 'k', 'LineWidth', 2) % colorArray{k}
+                            'Color', 'k',...
+                            'LineWidth',obj.PlotSettings(currentAxis).MeanLineWidth); % 'LineWidth', 2) % colorArray{k}
         end
 
     end
@@ -452,6 +498,7 @@ if strcmp(obj.PlotType,'Normal') && any(MatchIdx)
         if any(IsSelected)            
             SelectedGroupColors = vertcat(obj.PlotItemTable{IsSelected,2});
             SelectedGroupIDs = categorical(obj.PlotItemTable(IsSelected,4));
+            SelectedItemNames = obj.PlotItemTable(IsSelected,5);
             
             % Get the Group Column from the imported dataset
             GroupColumn = AccCritData(:,strcmp(AccCritHeader,obj.GroupName));
@@ -476,6 +523,7 @@ if strcmp(obj.PlotType,'Normal') && any(MatchIdx)
                 axIdx = str2double(obj.PlotSpeciesTable{dIdx,1});
                 ThisName = obj.PlotSpeciesTable{dIdx,4};
                 ThisMarker = '*';
+                ThisDisplayName = obj.PlotSpeciesTable{dIdx,5};
                 
                 if ~isempty(axIdx) && ~isnan(axIdx)
                     for gIdx = 1:numel(SelectedGroupIDs)
@@ -489,22 +537,28 @@ if strcmp(obj.PlotType,'Normal') && any(MatchIdx)
                         % Create a group                        
                         if isempty(hDatasetGroup{dIdx,axIdx})
                             hDatasetGroup{dIdx,axIdx} = hggroup(hAxes(axIdx),...
-                                'DisplayName',regexprep(sprintf('%s',ThisName),'_','\\_'));
+                                'Tag','Data',...
+                                'DisplayName',regexprep(sprintf('%s [Data]',ThisDisplayName),'_','\\_'));
+                            set(get(get(hDatasetGroup{dIdx,axIdx},'Annotation'),'LegendInformation'),'IconDisplayStyle','on')
                             % Add dummy line for legend
                             line(nan,nan,'Parent',hDatasetGroup{dIdx,axIdx},...
                                 'LineStyle','none',...
                                 'Marker',ThisMarker,...
-                                'Color',[0 0 0]);                            
+                                'Color',[0 0 0],...
+                                'Tag','DummyLine');
                         end
                         
                         % Plot but remove from the legend
                         if any(MatchIdx)
+                            FullDisplayName = sprintf('%s %s',ThisDisplayName,SelectedItemNames{gIdx});
+                            
                             hThis = plot(hDatasetGroup{dIdx,axIdx},[TimeColumn{MatchIdx}],[AccCritData{MatchIdx,strcmp(AccCritHeader,'LB')}], ...
                                 [TimeColumn{MatchIdx}],[AccCritData{MatchIdx,strcmp(AccCritHeader,'UB')}],...
                                 'LineStyle','none',...
                                 'Marker',ThisMarker,...
+                                'MarkerSize',obj.PlotSettings(axIdx).DataSymbolSize,...
                                 'Color',SelectedGroupColors(gIdx,:),...
-                                'DisplayName',regexprep(sprintf('%s',ThisName),'_','\\_'));
+                                'DisplayName',regexprep(sprintf('%s [Data]',FullDisplayName),'_','\\_')); % For export % 'DisplayName',regexprep(ThisName,'_','\\_'));
                             hThisAnn = get(hThis,'Annotation');
                             if iscell(hThisAnn)
                                 hThisAnn = [hThisAnn{:}];
@@ -525,39 +579,40 @@ end %if
 
 %% Legend
 
-hLegend = cell(1,NumAxes);
-hLegendChildren = cell(1,NumAxes);
 % Force a drawnow, to avoid legend issues
 drawnow;
-for axIndex = 1:NumAxes
-    
-    % Append
-    LegendItems = [horzcat(hSpeciesGroup{:,axIndex}) horzcat(hDatasetGroup{:,axIndex})];
-    
-    if ~isempty(LegendItems)
-        % Add legend
-        try
-            [hLegend{axIndex},hLegendChildren{axIndex}] = legend(hAxes(axIndex),LegendItems);
-        catch
-            warning('Error drawing legends')
-        end
-    else
-        hLegend{axIndex} = [];
-        hLegendChildren{axIndex} = [];        
-    end
-end
+[hLegend,hLegendChildren] = redrawLegend(obj,hAxes,hSpeciesGroup,hDatasetGroup);
 
 
 %% Turn off hold
 
 for index = 1:numel(hAxes)
-    title(hAxes(index),sprintf('Plot %d',index));
-    xlabel(hAxes(index),'Time');
-    ylabel(hAxes(index),'States');
+    title(hAxes(index),obj.PlotSettings(index).Title,...
+        'FontSize',obj.PlotSettings(index).TitleFontSize,...
+        'FontWeight',obj.PlotSettings(index).TitleFontWeight); % sprintf('Plot %d',index));
+    xlabel(hAxes(index),obj.PlotSettings(index).XLabel,...
+        'FontSize',obj.PlotSettings(index).XLabelFontSize,...
+        'FontWeight',obj.PlotSettings(index).XLabelFontWeight); % 'Time');
+    ylabel(hAxes(index),obj.PlotSettings(index).YLabel,...
+        'FontSize',obj.PlotSettings(index).YLabelFontSize,...
+        'FontWeight',obj.PlotSettings(index).YLabelFontWeight); % 'States');
+    set(hAxes(index),...
+        'XGrid',obj.PlotSettings(index).XGrid,...
+        'YGrid',obj.PlotSettings(index).YGrid,...
+        'XMinorGrid',obj.PlotSettings(index).XMinorGrid,...
+        'YMinorGrid',obj.PlotSettings(index).YMinorGrid);
+    set(hAxes(index).XAxis,...
+        'FontSize',obj.PlotSettings(index).XTickLabelFontSize,...
+        'FontWeight',obj.PlotSettings(index).XTickLabelFontWeight);    
+    set(hAxes(index).YAxis,...
+        'FontSize',obj.PlotSettings(index).YTickLabelFontSize,...
+        'FontWeight',obj.PlotSettings(index).YTickLabelFontWeight);
+    set(hAxes(index),'YScale',obj.PlotSettings(index).YScale);
+    
     hold(hAxes(index),'off')
      % Reset zoom state
     hFigure = ancestor(hAxes(index),'Figure');
-    if ~isempty(hFigure) && strcmpi(XLimMode{index},'auto') && strcmpi(YLimMode{index},'auto')
+    if ~isempty(hFigure) && strcmpi(obj.PlotSettings(index).XLimMode,'auto') && strcmpi(obj.PlotSettings(index).YLimMode,'auto')
         axes(hAxes(index));
         try
             zoom(hFigure,'out');

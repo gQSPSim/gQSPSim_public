@@ -447,7 +447,7 @@ classdef CohortGeneration < uix.abstract.CardViewPane
             h.SelectedRows = RowIdx;
             
             if ~isequal(vObj.Data.PlotSpeciesTable,[ThisData(:,1) ThisData(:,2) ThisData(:,3) ThisData(:,4)]) || ...
-                    ColIdx == 2
+                    ColIdx == 2 || ColIdx == 5
                 
                 if ~isempty(RowIdx) && ColIdx == 2
                     NewLineStyle = ThisData{RowIdx,2};
@@ -456,11 +456,36 @@ classdef CohortGeneration < uix.abstract.CardViewPane
                 
                 vObj.Data.PlotSpeciesTable(RowIdx,ColIdx) = ThisData(RowIdx,ColIdx);
                 
-                % Plot
-                plotData(vObj);
-                
-                % Update the view
-                updateVisualizationView(vObj);
+%                 if ColIdx == 5
+%                     % Display name
+%                     for sIdx = 1:size(vObj.Data.PlotSpeciesTable,1)
+%                         axIdx = str2double(vObj.Data.PlotSpeciesTable{sIdx,1});
+%                         if ~isnan(axIdx)
+%                             set(vObj.h.SpeciesGroup{sIdx,axIdx},'DisplayName',regexprep(vObj.Data.PlotSpeciesTable{sIdx,5},'_','\\_')); 
+%                         end
+%                     end           
+%                     % No need to call redraw legend
+                    
+                if ColIdx == 2
+                    % Style
+                    for sIdx = 1:size(vObj.Data.PlotSpeciesTable,1)
+                        axIdx = str2double(vObj.Data.PlotSpeciesTable{sIdx,1});
+                        if ~isnan(axIdx)
+                            Ch = get(vObj.h.SpeciesGroup{sIdx,axIdx},'Children');
+                            HasLineStyle = isprop(Ch,'LineStyle');
+                            set(Ch(HasLineStyle),'LineStyle',vObj.Data.PlotSpeciesTable{sIdx,2});
+                        end
+                    end   
+                    [vObj.h.AxesLegend,vObj.h.AxesLegendChildren] = redrawLegend(vObj.Data,vObj.h.MainAxes,vObj.h.SpeciesGroup,vObj.h.DatasetGroup);
+                elseif ColIdx == 1 || ColIdx == 5
+                    
+                    % Plot
+                    plotData(vObj);
+                    
+                    % Update the view
+                    updateVisualizationView(vObj);
+
+                end
                 
             end
             
@@ -477,8 +502,10 @@ classdef CohortGeneration < uix.abstract.CardViewPane
             
             h.SelectedRows = RowIdx;
             
-            % Update the view
-            updateVisualizationView(vObj);
+            % This line is causing issues with edit and selection callbacks
+            % with uitables
+%             % Update the view
+%             updateVisualizationView(vObj);
         end %function
         
         function onEditTypePlot(vObj,h,e)
