@@ -197,7 +197,7 @@ classdef Model < QSP.abstract.BaseProps
                 else
                     ThisModelList = {m1.Name};
                     % Filter according to ModelName
-                    if ~isempty(ModelName)
+                    if ~isempty(ModelName) && any(strcmpi(ThisModelList,ModelName))
                         m1 = m1(strcmpi(ThisModelList,ModelName));
                         %                     m1 = sbioselect(AllModels,'Name',ModelName,'type','sbiomodel');
                     else

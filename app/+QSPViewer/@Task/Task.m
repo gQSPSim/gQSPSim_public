@@ -82,8 +82,12 @@ classdef Task < uix.abstract.CardViewPane
         function onModelSelection(vObj,h,e)
             
             % Get model name
-%             ModelNameOptions = get(h,'String');
-            ModelName = get(h,'String'); %ModelNameOptions{get(h,'Value')};            
+            ModelNameOptions = get(h,'String');
+            ModelName = ModelNameOptions{get(h,'Value')}; %get(h,'String');
+            
+            if strcmpi(ModelName,QSP.makeInvalid('-'))
+                ModelName = '';
+            end
             
             [StatusOK,Message] = importModel(vObj.TempData,vObj.TempData.FilePath,ModelName);
             if ~StatusOK

@@ -350,37 +350,69 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             StatusOk = true;
             Message = '';
             
+            % Clean-up
+            theseModels = obj.Session.Settings.Model;
+            TheseFilePaths = {theseModels.FilePath};
+            TheseFilePaths = TheseFilePaths(:);
+            TheseModelNames = {theseModels.ModelName};
+            TheseModelNames = TheseModelNames(:);
+            
+            % Delete any entries with empty model names
+            IsEmpty = cellfun(@isempty,TheseModelNames);
+            delete(theseModels(IsEmpty))
+            theseModels(IsEmpty) = [];
+            obj.Session.Settings.Model = theseModels;
+            TheseFilePaths(IsEmpty) = [];
+            TheseModelNames(IsEmpty) = [];
+            
+            % If model name is empty, use the model name from an existing
+            % node
+            if isempty(ModelName)
+                MatchIdx = find(strcmpi(ProjectPath,TheseFilePaths),1,'first');
+                if ~isempty(MatchIdx)
+                    ModelName = TheseModelNames{MatchIdx};
+                    obj.ModelName = ModelName;
+                end
+            end
+            
+            ThisData = [TheseFilePaths TheseModelNames];
+            AllKeepIdx = [];
+            SkipIdx = [];
+            for rowIdx = 1:size(ThisData,1)
+                if ~ismember(rowIdx,SkipIdx)
+                    KeepIdx = find(strcmpi(ThisData(rowIdx,1),TheseFilePaths) & strcmpi(ThisData(rowIdx,2),TheseModelNames));
+                    AllKeepIdx = [AllKeepIdx,KeepIdx(1)]; %#ok<AGROW>
+                    SkipIdx = [SkipIdx KeepIdx(2:end)]; %#ok<AGROW>
+                end
+            end
+            delete(theseModels(SkipIdx));
+            theseModels(SkipIdx) = [];
+            obj.Session.Settings.Model = theseModels;
+            
+            TheseFilePaths = TheseFilePaths(AllKeepIdx);
+            TheseModelNames = TheseModelNames(AllKeepIdx);
+            
             % Check if a QSP.Model already exists by matching ProjectPath
             % and ModelName
             MatchIdx = [];
             if ~isempty(ProjectPath) && ~isempty(ModelName)
                 
-                theseModels = obj.Session.Settings.Model;
-                TheseFilePaths = {theseModels.FilePath};
-                TheseModelNames = {theseModels.ModelName};
-                
                 % Find the matching model
                 MatchIdx = find(...
                     ismember(TheseFilePaths,ProjectPath) & ...
                     ismember(TheseModelNames,ModelName));
-                
-                % In case there are duplicates... (unlikely)
-                if numel(MatchIdx) > 1
-                    % Clean-up
-                    delete(theseModels(MatchIdx(2:end)));
-                    theseModels(MatchIdx(2:end)) = [];
-                    MatchIdx = MatchIdx(1);
-                end
             end
             
-            
-            if ~isempty(MatchIdx)
+            if ~isfile(ProjectPath) || isempty(ModelName)
+                % Clear
+                obj.ModelObj_ = QSP.Model.empty(0,1);
+                
+            elseif ~isempty(MatchIdx)
                 % Assign to an existing model
                 obj.ModelObj_ = theseModels(MatchIdx);
                 
             else
                 % Create a new model
-                
                 thisObj = QSP.Model();
                 [StatusOK,Message] = importModel(thisObj,ProjectPath,ModelName);
                 % If import errors for 

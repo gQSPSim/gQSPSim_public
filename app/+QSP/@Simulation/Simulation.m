@@ -83,7 +83,7 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             if size(obj.PlotItemTable,2) == 4
                 TaskNames = obj.PlotItemTable(:,3);
                 VPopNames = obj.PlotItemTable(:,4);
-                obj.PlotSpeciesTable(:,5) = cellfun(@(x,y)sprintf('%s - %s',x,y),TaskNames,VPopNames,'UniformOutput',false);
+                obj.PlotItemTable(:,5) = cellfun(@(x,y)sprintf('%s - %s',x,y),TaskNames,VPopNames,'UniformOutput',false);
             end
             if size(obj.PlotDataTable,2) == 3
                 obj.PlotDataTable(:,4) = obj.PlotDataTable(:,3);
