@@ -39,8 +39,17 @@ function [simData, statusOK, Message] = simulate(obj, varargin)
     % indices of each specified parameter in the complete list of
     % parameters
     modelParams = sbioselect(obj.VarModelObj,'Type','Parameter'); 
-
-    [hParam, ixParam] = ismember(Names,get(modelParams,'Name'));
+    modelParamNames = get(modelParams, 'Name');
+    % need to add the reaction scoping to parameters if they are
+    % reaction-scoped
+    
+    idxReactionScoped = strcmp('SimBiology.KineticLaw', cellfun(@class, get(modelParams,'Parent'), 'UniformOutput', false));
+     
+    modelParamNames(idxReactionScoped) = arrayfun(@(k) sprintf('%s.%s', get(get(get(modelParams(k),'Parent'),'Parent'), 'Name'), ...
+        modelParamNames{k}),  find(idxReactionScoped), ...
+        'UniformOutput', false);
+    
+    [hParam, ixParam] = ismember(Names,modelParamNames);
     
     pNames = Names(hParam); % parameter names
     pValues = Values(hParam); % parameter values
@@ -50,7 +59,8 @@ function [simData, statusOK, Message] = simulate(obj, varargin)
     if any(idxMisc)
         % found some columns which are neither parameter nor species
         statusOK = false;
-        Message = 'Invalid parameters specified for simulation. Please check virtual population and/or parameters file for consistency with model.';
+        Message = ['Invalid parameters specified for simulation. Please check virtual population and/or parameters file for consistency with model.' ... 
+            '  Note that reaction-scoped parameters must be named [reaction name].[parameter name]'];
         
         return
     end
