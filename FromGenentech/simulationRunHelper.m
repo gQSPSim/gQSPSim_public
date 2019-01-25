@@ -507,14 +507,18 @@ function [Results, nFailedSims, StatusOK, Message, Cancelled] = simulateVPatient
                 else
                     theseValues = Values(jj,:);
                 end
-                [simData,simOK]  = taskObj.simulate(...
+                [simData,simOK,errMessage]  = taskObj.simulate(...
                         'Names', Names, ...
                         'Values', theseValues, ...
                         'OutputTimes', Results.Time, ...
                         'Waitbar', options.WaitBar);
                 if ~simOK
-                    ME = MException('simulationRunHelper:simulateVPatients', 'Simulation failed');
-                    throw(ME)
+                    
+%                     ME = MException('simulationRunHelper:simulateVPatients', 'Simulation failed with error: %s', errMessage );
+%                     throw(ME)
+                    StatusOK = false;
+                    Message = sprintf('Simulation failed with error: %s', errMessage);
+                    return
                 end
                 % extract active species data, if specified
                 if ~isempty(taskObj.ActiveSpeciesNames)

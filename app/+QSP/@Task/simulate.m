@@ -140,6 +140,9 @@ function [simData, statusOK, Message] = simulate(obj, varargin)
         simData = simulate(model,[reshape(ICValues,[],1); paramValues],doses);
     catch simErr
         statusOK = false;
+        Message = simErr.message;
+        simData= [];
+        return
     end
         
 end
