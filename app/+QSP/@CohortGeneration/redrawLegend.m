@@ -1,10 +1,10 @@
-function [hLegend,hLegendChildren] = redrawLegend(obj,hAxes,hSpeciesGroup,hDatasetGroup)
-% redrawLegend - Redraws the legend
+function [hLegend,hLegendChildren] = updatePlots(obj,hAxes,hSpeciesGroup,hDatasetGroup)
+% updatePlots - Redraws the legend
 % -------------------------------------------------------------------------
 % Abstract: Redraws the legend
 %
 % Syntax:
-%           redrawLegend(aObj,hAxes)
+%           updatePlots(aObj,hAxes)
 %
 % Inputs:
 %           obj - QSP.Simulation object

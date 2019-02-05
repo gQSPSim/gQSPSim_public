@@ -403,7 +403,7 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                     ismember(TheseModelNames,ModelName));
             end
             
-            if ~isfile(ProjectPath) || isempty(ModelName)
+            if ~isfile(ProjectPath) % || isempty(ModelName)
                 % Clear
                 obj.ModelObj_ = QSP.Model.empty(0,1);
                 
