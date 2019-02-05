@@ -278,8 +278,20 @@ for axIndex = AxIndices(:)'
     LegendItems = [horzcat(hSpeciesGroup{:,axIndex}) horzcat(hDatasetGroup{:,axIndex})];
     
     if RedrawLegend
-        if ~isempty(LegendItems) && all(isvalid(LegendItems))
+        
+        % Filter based on what is plotted (non-empty parent) and what is
+        % valid
+        if ~isempty(LegendItems)
+            HasParent = ~cellfun(@isempty,{LegendItems.Parent});
+            IsValid = isvalid(LegendItems);
+            LegendItems = LegendItems(HasParent & IsValid);
+        else
+            LegendItems = [];
+        end
+        
+        if ~isempty(LegendItems)
             try
+                
                 % Add legend
                 [hLegend{axIndex},hLegendChildren{axIndex}] = legend(hAxes(axIndex),LegendItems);
                 

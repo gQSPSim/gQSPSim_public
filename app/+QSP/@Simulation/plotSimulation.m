@@ -362,16 +362,16 @@ if any(MatchIdx)
         Time = OptimData(:,strcmp(OptimHeader,'Time'));
 
         for dIdx = 1:size(obj.PlotDataTable,1)
-            axIdx = str2double(obj.PlotDataTable{dIdx,1});
+            origAxIdx = str2double(obj.PlotDataTable{dIdx,1});
+            axIdx = origAxIdx;
             ThisMarker = obj.PlotDataTable{dIdx,2};
             ThisName = obj.PlotDataTable{dIdx,3};
             ThisDisplayName = obj.PlotDataTable{dIdx,4};
-
-            ColumnIdx = find(strcmp(OptimHeader,ThisName));
-
             if isempty(axIdx) || isnan(axIdx)
                 axIdx = 1;
             end
+            
+            ColumnIdx = find(strcmp(OptimHeader,ThisName));
 
             if ~isempty(ColumnIdx) % && ~isempty(axIdx) && ~isnan(axIdx)
                 for gIdx = 1:numel(SelectedGroupIDs)
@@ -387,7 +387,14 @@ if any(MatchIdx)
 
                     % Create a group
                     if isempty(hDatasetGroup{dIdx,axIdx})
-                        hDatasetGroup{dIdx,axIdx} = hggroup(hAxes(axIdx),...
+                        % Un-parent if not-selected
+                        if isempty(origAxIdx) || isnan(origAxIdx)
+                            ThisParent = matlab.graphics.GraphicsPlaceholder.empty();
+                        else
+                            ThisParent = hAxes(axIdx);
+                        end
+                        
+                        hDatasetGroup{dIdx,axIdx} = hggroup(ThisParent,...
                             'Tag','Data',...
                             'DisplayName',regexprep(ThisDisplayName,'_','\\_'),...
                             'UserData',dIdx);
