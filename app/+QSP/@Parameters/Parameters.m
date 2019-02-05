@@ -130,7 +130,7 @@ classdef Parameters < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             
             % Load from file
             try            
-%                 Raw = readtable(DataFilePath);  
+%                 Raw = readtable(DataFilePath);
 %                 Raw = [Raw.Properties.VariableNames;table2cell(Raw)];
                 [~,~,Raw] = xlsread(DataFilePath);
 
