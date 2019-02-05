@@ -36,11 +36,18 @@ NumAxes = numel(hAxes);
 hLegend = cell(1,NumAxes);
 hLegendChildren = cell(1,NumAxes);
 
-if nargin > 4 && isnumeric(varargin{1})
-    AxIndices = varargin{1};
-else
-    AxIndices = 1:NumAxes;
-end
+p = inputParser;
+p.KeepUnmatched = false;
+
+% Define defaults and requirements for each parameter
+p.addParameter('AxIndices',1:NumAxes); %#ok<*NVREPL>
+p.addParameter('RedrawLegend',true);
+
+p.parse(varargin{:});
+
+AxIndices = p.Results.AxIndices;
+RedrawLegend = p.Results.RedrawLegend;
+
 
 for axIndex = AxIndices(:)'
     
@@ -250,6 +257,19 @@ for axIndex = AxIndices(:)'
                 % Set display name for selection only
                 set(TheseChildren(thisIdx),'DisplayName',FormattedFullDisplayName,'Marker',ThisMarkerStyle);
             end
+            
+            % Toggle visibility
+            ItemIndices = cell2mat(obj.PlotGroupTable(:,1));
+            VisibleItemIndices = find(ItemIndices);
+            InvisibleItemIndices = find(~ItemIndices);
+            
+            % Set visible on
+            MatchIdx = ismember(SelectedUserData(:,2),VisibleItemIndices);
+            set(TheseChildren(MatchIdx),'Visible','on');
+            % Set visible off
+            MatchIdx = ismember(SelectedUserData(:,2),InvisibleItemIndices);
+            set(TheseChildren(MatchIdx),'Visible','off');
+            
         end
     end %if ~isempty(ch)
     
@@ -257,32 +277,34 @@ for axIndex = AxIndices(:)'
     % Append
     LegendItems = [horzcat(hSpeciesGroup{:,axIndex}) horzcat(hDatasetGroup{:,axIndex})];
     
-    if ~isempty(LegendItems) && all(isvalid(LegendItems))
-        try
-            % Add legend
-            [hLegend{axIndex},hLegendChildren{axIndex}] = legend(hAxes(axIndex),LegendItems);            
-            
-            % Color, FontSize, FontWeight
-            for cIndex = 1:numel(hLegendChildren{axIndex})
-                if isprop(hLegendChildren{axIndex}(cIndex),'FontSize')
-                    hLegendChildren{axIndex}(cIndex).FontSize = obj.PlotSettings(axIndex).LegendFontSize;
+    if RedrawLegend
+        if ~isempty(LegendItems) && all(isvalid(LegendItems))
+            try
+                % Add legend
+                [hLegend{axIndex},hLegendChildren{axIndex}] = legend(hAxes(axIndex),LegendItems);
+                
+                % Color, FontSize, FontWeight
+                for cIndex = 1:numel(hLegendChildren{axIndex})
+                    if isprop(hLegendChildren{axIndex}(cIndex),'FontSize')
+                        hLegendChildren{axIndex}(cIndex).FontSize = obj.PlotSettings(axIndex).LegendFontSize;
+                    end
+                    if isprop(hLegendChildren{axIndex}(cIndex),'FontWeight')
+                        hLegendChildren{axIndex}(cIndex).FontWeight = obj.PlotSettings(axIndex).LegendFontWeight;
+                    end
                 end
-                if isprop(hLegendChildren{axIndex}(cIndex),'FontWeight')
-                    hLegendChildren{axIndex}(cIndex).FontWeight = obj.PlotSettings(axIndex).LegendFontWeight;
-                end
+                
+                set(hLegend{axIndex},...
+                    'EdgeColor','none',...
+                    'Visible',obj.PlotSettings(axIndex).LegendVisibility,...
+                    'Location',obj.PlotSettings(axIndex).LegendLocation,...
+                    'FontSize',obj.PlotSettings(axIndex).LegendFontSize,...
+                    'FontWeight',obj.PlotSettings(axIndex).LegendFontWeight);
+            catch ME
+                warning('Cannot draw legend')
             end
-            
-            set(hLegend{axIndex},...
-                'EdgeColor','none',...
-                'Visible',obj.PlotSettings(axIndex).LegendVisibility,...
-                'Location',obj.PlotSettings(axIndex).LegendLocation,...
-                'FontSize',obj.PlotSettings(axIndex).LegendFontSize,...
-                'FontWeight',obj.PlotSettings(axIndex).LegendFontWeight);
-        catch ME
-            warning('Cannot draw legend')
+        else
+            hLegend{axIndex} = [];
+            hLegendChildren{axIndex} = [];
         end
-    else
-        hLegend{axIndex} = [];
-        hLegendChildren{axIndex} = [];        
-    end
-end
+    end %if RedrawLegend
+end %for axIndex

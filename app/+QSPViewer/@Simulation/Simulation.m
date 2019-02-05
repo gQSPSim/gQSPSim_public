@@ -239,16 +239,7 @@ classdef Simulation < uix.abstract.CardViewPane
                 end
                 
                 vObj.Data.PlotSpeciesTable(RowIdx,ColIdx) = ThisData(RowIdx,ColIdx);
-                
-%                 if ColIdx == 4
-%                     % Display name
-%                     for sIdx = 1:size(vObj.Data.PlotSpeciesTable,1)
-%                         axIdx = str2double(vObj.Data.PlotSpeciesTable{sIdx,1});
-%                         if ~isnan(axIdx)
-%                             set(vObj.h.SpeciesGroup{sIdx,axIdx},'DisplayName',regexprep(vObj.Data.PlotSpeciesTable{sIdx,4},'_','\\_')); 
-%                         end
-%                     end           
-%                     % No need to call redraw legend
+
                 if ColIdx == 2
                     % Style
                     for sIdx = 1:size(vObj.Data.PlotSpeciesTable,1)
@@ -266,7 +257,8 @@ classdef Simulation < uix.abstract.CardViewPane
                     end
                     % Redraw legend
                     [UpdatedAxesLegend,UpdatedAxesLegendChildren] = updatePlots(...
-                        vObj.Data,vObj.h.MainAxes,vObj.h.SpeciesGroup,vObj.h.DatasetGroup,AxIndices);
+                        vObj.Data,vObj.h.MainAxes,vObj.h.SpeciesGroup,vObj.h.DatasetGroup,...
+                        'AxIndices',AxIndices);
                     vObj.h.AxesLegend(AxIndices) = UpdatedAxesLegend(AxIndices);
                     vObj.h.AxesLegendChildren(AxIndices) = UpdatedAxesLegendChildren(AxIndices);
                     
@@ -277,7 +269,8 @@ classdef Simulation < uix.abstract.CardViewPane
                     end
                     % Redraw legend
                     [UpdatedAxesLegend,UpdatedAxesLegendChildren] = updatePlots(...
-                        vObj.Data,vObj.h.MainAxes,vObj.h.SpeciesGroup,vObj.h.DatasetGroup,AxIndices);
+                        vObj.Data,vObj.h.MainAxes,vObj.h.SpeciesGroup,vObj.h.DatasetGroup,...
+                        'AxIndices',AxIndices);
                     vObj.h.AxesLegend(AxIndices) = UpdatedAxesLegend(AxIndices);
                     vObj.h.AxesLegendChildren(AxIndices) = UpdatedAxesLegendChildren(AxIndices);
                     
@@ -311,15 +304,10 @@ classdef Simulation < uix.abstract.CardViewPane
                     
                     % Redraw legend
                     [UpdatedAxesLegend,UpdatedAxesLegendChildren] = updatePlots(...
-                        vObj.Data,vObj.h.MainAxes,vObj.h.SpeciesGroup,vObj.h.DatasetGroup,AxIndices);
+                        vObj.Data,vObj.h.MainAxes,vObj.h.SpeciesGroup,vObj.h.DatasetGroup,...
+                        'AxIndices',AxIndices);
                     vObj.h.AxesLegend(AxIndices) = UpdatedAxesLegend(AxIndices);
                     vObj.h.AxesLegendChildren(AxIndices) = UpdatedAxesLegendChildren(AxIndices);
-                    
-%                     % Plot
-%                     plotData(vObj);
-%                     
-%                     % Update the view
-%                     updateVisualizationView(vObj);
 
                 end
                 
@@ -373,64 +361,9 @@ classdef Simulation < uix.abstract.CardViewPane
             elseif ColIdx == 1
                 % Include
                 
-                ItemIndices = cell2mat(vObj.Data.PlotItemTable(:,1));
-                VisibleItemIndices = find(ItemIndices);
-                InvisibleItemIndices = find(~ItemIndices);
-                TheseGroups = [vObj.h.SpeciesGroup{:}];
-                for index = 1:numel(TheseGroups)
-                    ThisGroup = TheseGroups(index);
-                    TheseChildren = get(ThisGroup,'Children');
-                    KeepIdx = ~strcmpi(get(TheseChildren,'Tag'),'DummyLine');
-                    TheseChildren = TheseChildren(KeepIdx);
-                    
-                    TheseUserData = get(TheseChildren,'UserData');
-                    if iscell(TheseUserData)
-                        TheseUserData = vertcat(TheseUserData{:});
-                    end
-                    % Set visible on
-                    MatchIdx = ismember(TheseUserData(:,2),VisibleItemIndices);
-                    TheseMatches = TheseChildren(MatchIdx);
-                    
-                    IsTrace = strcmpi(get(TheseMatches,'Tag'),'TraceLine');
-                    chTrace = TheseMatches(IsTrace);
-                    IsQuantile = strcmpi(get(TheseMatches,'Tag'),'MeanLine');
-                    chQuantile = TheseMatches(IsQuantile);
-                    IsBoundaryLine = strcmpi(get(TheseMatches,'Tag'),'BoundaryLine');
-                    chIsBoundaryLine = TheseMatches(IsBoundaryLine);
-                    IsBoundaryPatch = strcmpi(get(TheseMatches,'Tag'),'BoundaryPatch');
-                    chBoundaryPatch = TheseMatches(IsBoundaryPatch);
-                    
-                    axIdx = ismember(vObj.h.MainAxes,ThisGroup.Parent);
-                    if any(axIdx)
-                        if vObj.Data.bShowTraces(axIdx)
-                            set(chTrace,'Visible','on');
-                        else
-                            set(chTrace,'Visible','off');
-                        end
-                        if vObj.Data.bShowQuantiles(axIdx)
-                            set(chQuantile,'Visible','on');
-                            set(chIsBoundaryLine,'Visible','on');
-                            set(chBoundaryPatch,'Visible','on');
-                        else
-                            set(chQuantile,'Visible','off');
-                            set(chIsBoundaryLine,'Visible','off');
-                            set(chBoundaryPatch,'Visible','off');
-                        end
-                    end
-                    
-                    % Set visible off
-                    MatchIdx = ismember(TheseUserData(:,2),InvisibleItemIndices);
-                    TheseMatches = TheseChildren(MatchIdx);
-                    set(TheseMatches,'Visible','off');
-                end
-                % No need to redraw legend
-                
-           
-%                 % Plot
-%                 plotData(vObj);
-%                 
-%                 % Update the view
-%                 updateVisualizationView(vObj);
+                % Don't overwrite the output
+                updatePlots(vObj.Data,vObj.h.MainAxes,vObj.h.SpeciesGroup,vObj.h.DatasetGroup,...
+                    'RedrawLegend',false);
             end
             
             % Enable column 1
@@ -465,17 +398,11 @@ classdef Simulation < uix.abstract.CardViewPane
                 end
                 % Redraw legend
                 [UpdatedAxesLegend,UpdatedAxesLegendChildren] = updatePlots(...
-                    vObj.Data,vObj.h.MainAxes,vObj.h.SpeciesGroup,vObj.h.DatasetGroup,AxIndices);
+                    vObj.Data,vObj.h.MainAxes,vObj.h.SpeciesGroup,vObj.h.DatasetGroup,...
+                    'AxIndices',AxIndices);
                 vObj.h.AxesLegend(AxIndices) = UpdatedAxesLegend(AxIndices);
                 vObj.h.AxesLegendChildren(AxIndices) = UpdatedAxesLegendChildren(AxIndices);
-%                 % Display name
-%                 for dIdx = 1:size(vObj.Data.PlotDataTable,1)
-%                     axIdx = str2double(vObj.Data.PlotDataTable{dIdx,1});
-%                     if ~isnan(axIdx)
-%                         set(vObj.h.DatasetGroup{dIdx,axIdx},'DisplayName',regexprep(vObj.Data.PlotDataTable{dIdx,4},'_','\\_'));
-%                     end
-%                 end
-%                 % No need to call redraw legend
+
             elseif ColIdx == 2
                 % Style
                 for dIdx = 1:size(vObj.Data.PlotDataTable,1)
@@ -488,55 +415,49 @@ classdef Simulation < uix.abstract.CardViewPane
                 end
                 
                 AxIndices = NewAxIdx;
-                    if isempty(AxIndices)
-                        AxIndices = 1:numel(vObj.h.MainAxes);
-                    end
-                    % Redraw legend
-                    [UpdatedAxesLegend,UpdatedAxesLegendChildren] = updatePlots(...
-                        vObj.Data,vObj.h.MainAxes,vObj.h.SpeciesGroup,vObj.h.DatasetGroup,AxIndices);
-                    vObj.h.AxesLegend(AxIndices) = UpdatedAxesLegend(AxIndices);
-                    vObj.h.AxesLegendChildren(AxIndices) = UpdatedAxesLegendChildren(AxIndices);
+                if isempty(AxIndices)
+                    AxIndices = 1:numel(vObj.h.MainAxes);
+                end
+                % Redraw legend
+                [UpdatedAxesLegend,UpdatedAxesLegendChildren] = updatePlots(...
+                    vObj.Data,vObj.h.MainAxes,vObj.h.SpeciesGroup,vObj.h.DatasetGroup,...
+                    'AxIndices',AxIndices);
+                vObj.h.AxesLegend(AxIndices) = UpdatedAxesLegend(AxIndices);
+                vObj.h.AxesLegendChildren(AxIndices) = UpdatedAxesLegendChildren(AxIndices);
                     
             elseif ColIdx == 1
                 
-                % Need to handle if deselected or selected for the
-                    % first time! (need to run plotdata initially)
-                    dIdx = RowIdx;
-                    OldAxIdx = find(~cellfun(@isempty,vObj.h.DatasetGroup(dIdx,:)),1,'first');
-                    
-                    % If originally not plotted
-                    if isempty(OldAxIdx) && ~isempty(NewAxIdx)
-                        vObj.h.DatasetGroup{dIdx,NewAxIdx} = vObj.h.DatasetGroup{dIdx,1};
-                        % Parent
-                        vObj.h.DatasetGroup{dIdx,NewAxIdx}.Parent = vObj.h.MainAxes(NewAxIdx);
-                    elseif ~isempty(OldAxIdx) && isempty(NewAxIdx)
-                        vObj.h.DatasetGroup{dIdx,1} = vObj.h.DatasetGroup{dIdx,OldAxIdx};
-                        % Un-parent
-                        vObj.h.DatasetGroup{dIdx,1}.Parent = matlab.graphics.GraphicsPlaceholder.empty();
-                        if OldAxIdx ~= 1
-                            vObj.h.DatasetGroup{dIdx,OldAxIdx} = [];
-                        end
-                    elseif ~isempty(OldAxIdx) && ~isempty(NewAxIdx)
-                        vObj.h.DatasetGroup{dIdx,NewAxIdx} = vObj.h.DatasetGroup{dIdx,OldAxIdx};
-                        % Re-parent
-                        vObj.h.DatasetGroup{dIdx,NewAxIdx}.Parent = vObj.h.MainAxes(NewAxIdx);                        
+                dIdx = RowIdx;
+                OldAxIdx = find(~cellfun(@isempty,vObj.h.DatasetGroup(dIdx,:)),1,'first');
+                
+                % If originally not plotted
+                if isempty(OldAxIdx) && ~isempty(NewAxIdx)
+                    vObj.h.DatasetGroup{dIdx,NewAxIdx} = vObj.h.DatasetGroup{dIdx,1};
+                    % Parent
+                    vObj.h.DatasetGroup{dIdx,NewAxIdx}.Parent = vObj.h.MainAxes(NewAxIdx);
+                elseif ~isempty(OldAxIdx) && isempty(NewAxIdx)
+                    vObj.h.DatasetGroup{dIdx,1} = vObj.h.DatasetGroup{dIdx,OldAxIdx};
+                    % Un-parent
+                    vObj.h.DatasetGroup{dIdx,1}.Parent = matlab.graphics.GraphicsPlaceholder.empty();
+                    if OldAxIdx ~= 1
                         vObj.h.DatasetGroup{dIdx,OldAxIdx} = [];
                     end
-                    
-                    AxIndices = [OldAxIdx,NewAxIdx];
-                    AxIndices(isnan(AxIndices)) = [];
-                    
-                    % Redraw legend
-                    [UpdatedAxesLegend,UpdatedAxesLegendChildren] = updatePlots(...
-                        vObj.Data,vObj.h.MainAxes,vObj.h.SpeciesGroup,vObj.h.DatasetGroup,AxIndices);
-                    vObj.h.AxesLegend(AxIndices) = UpdatedAxesLegend(AxIndices);
-                    vObj.h.AxesLegendChildren(AxIndices) = UpdatedAxesLegendChildren(AxIndices);
+                elseif ~isempty(OldAxIdx) && ~isempty(NewAxIdx)
+                    vObj.h.DatasetGroup{dIdx,NewAxIdx} = vObj.h.DatasetGroup{dIdx,OldAxIdx};
+                    % Re-parent
+                    vObj.h.DatasetGroup{dIdx,NewAxIdx}.Parent = vObj.h.MainAxes(NewAxIdx);
+                    vObj.h.DatasetGroup{dIdx,OldAxIdx} = [];
+                end
                 
-%                 % Plot
-%                 plotData(vObj);
-%                 
-%                 % Update the view
-%                 updateVisualizationView(vObj);
+                AxIndices = [OldAxIdx,NewAxIdx];
+                AxIndices(isnan(AxIndices)) = [];
+                
+                % Redraw legend
+                [UpdatedAxesLegend,UpdatedAxesLegendChildren] = updatePlots(...
+                    vObj.Data,vObj.h.MainAxes,vObj.h.SpeciesGroup,vObj.h.DatasetGroup,...
+                    'AxIndices',AxIndices);
+                vObj.h.AxesLegend(AxIndices) = UpdatedAxesLegend(AxIndices);
+                vObj.h.AxesLegendChildren(AxIndices) = UpdatedAxesLegendChildren(AxIndices);
 
             end
             
@@ -581,36 +502,11 @@ classdef Simulation < uix.abstract.CardViewPane
             elseif ColIdx == 1
                 % Include
                 
-                ItemIndices = cell2mat(vObj.Data.PlotGroupTable(:,1));
-                VisibleItemIndices = find(ItemIndices);
-                InvisibleItemIndices = find(~ItemIndices);
-                TheseGroups = [vObj.h.DatasetGroup{:}];
-                for index = 1:numel(TheseGroups)
-                    ThisGroup = TheseGroups(index);
-                    TheseChildren = get(ThisGroup,'Children');
-                    KeepIdx = ~strcmpi(get(TheseChildren,'Tag'),'DummyLine');
-                    TheseChildren = TheseChildren(KeepIdx);
-                    
-                    TheseUserData = get(TheseChildren,'UserData');
-                    if iscell(TheseUserData)
-                        TheseUserData = vertcat(TheseUserData{:});
-                    end
-                    % Set visible on
-                    MatchIdx = ismember(TheseUserData(:,2),VisibleItemIndices);
-                    set(TheseChildren(MatchIdx),'Visible','on');
-                    % Set visible off
-                    MatchIdx = ismember(TheseUserData(:,2),InvisibleItemIndices);
-                    set(TheseChildren(MatchIdx),'Visible','off');
-                end
-                % No need to redraw legend
+                % Don't overwrite the output
+                updatePlots(vObj.Data,vObj.h.MainAxes,vObj.h.SpeciesGroup,vObj.h.DatasetGroup,...
+                    'RedrawLegend',false);
                 
             end
-            
-%             % Plot
-%             plotData(vObj);
-%             
-%             % Update the view
-%             updateVisualizationView(vObj);
             
         end %function
         
@@ -648,9 +544,6 @@ classdef Simulation < uix.abstract.CardViewPane
                     
                     [vObj.h.AxesLegend,vObj.h.AxesLegendChildren] = updatePlots(vObj.Data,vObj.h.MainAxes,vObj.h.SpeciesGroup,vObj.h.DatasetGroup);
                     
-%                     % Plot
-%                     plotData(vObj);
-%                     
                     % Update the view
                     updateVisualizationView(vObj);
                     
@@ -696,9 +589,6 @@ classdef Simulation < uix.abstract.CardViewPane
                     
                     [vObj.h.AxesLegend,vObj.h.AxesLegendChildren] = updatePlots(vObj.Data,vObj.h.MainAxes,vObj.h.SpeciesGroup,vObj.h.DatasetGroup);
                     
-%                     % Plot
-%                     plotData(vObj);
-%                     
                     % Update the view
                     updateVisualizationView(vObj);
                     

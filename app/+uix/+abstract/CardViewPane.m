@@ -985,7 +985,8 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
             if strcmp(ThisTag,'ShowTraces') || strcmp(ThisTag,'ShowQuantiles')
                 if strcmpi(class(obj),'QSPViewer.Simulation')
                     [UpdatedAxesLegend,UpdatedAxesLegendChildren] = updatePlots(...
-                        obj.Data,obj.h.MainAxes,obj.h.SpeciesGroup,obj.h.DatasetGroup,axIndex);
+                        obj.Data,obj.h.MainAxes,obj.h.SpeciesGroup,obj.h.DatasetGroup,...
+                        'AxIndices',axIndex);
                     obj.h.AxesLegend(axIndex) = UpdatedAxesLegend(axIndex);
                     obj.h.AxesLegendChildren(axIndex) = UpdatedAxesLegendChildren(axIndex);
                 else
