@@ -55,7 +55,7 @@ function [simData, statusOK, Message] = simulate(obj, varargin)
     pValues = Values(hParam); % parameter values
     ixParam = ixParam(hParam); % keep only indices that are parameters
     
-    idxMisc = ~(hSpecies | hParam);
+    idxMisc = ~(hSpecies | hParam) & ~(strcmpi(Names,'GROUP') | strcmpi(Names, 'ID'));
     if any(idxMisc)
         % found some columns which are neither parameter nor species
         statusOK = false;
