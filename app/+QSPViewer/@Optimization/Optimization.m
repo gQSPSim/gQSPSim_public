@@ -425,11 +425,6 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
         
         function onSpeciesDataTablePlot(vObj,h,e)
                          
-            % Update the view
-%             vObj.semaphore.wait();
-%             vObj.semaphore.lock();
-            ME = [];
-            try
             ThisData = get(h,'Data');
             Indices = e.Indices;
             if isempty(Indices)
@@ -441,49 +436,65 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
             
             h.SelectedRows = RowIdx;
             
-            vObj.Data.PlotSpeciesTable(RowIdx,ColIdx) = ThisData(RowIdx,ColIdx);
-            
-            % Plot
-            plotData(vObj, false); % don't re-run simulations since we are just changing visualization options
+            if ~isequal(vObj.Data.PlotSpeciesTable,[ThisData(:,1) ThisData(:,2) ThisData(:,3) ThisData(:,4)]) || ...
+                    ColIdx == 2 || ColIdx == 5
+                
+                if ~isempty(RowIdx) && ColIdx == 2
+                    NewLineStyle = ThisData{RowIdx,2};
+                    setSpeciesLineStyles(vObj.Data,RowIdx,NewLineStyle);
+                end
+                
+                vObj.Data.PlotSpeciesTable(RowIdx,ColIdx) = ThisData(RowIdx,ColIdx);
+                
+%                 if ColIdx == 5
+%                     % Display name
+%                     for sIdx = 1:size(vObj.Data.PlotSpeciesTable,1)
+%                         axIdx = str2double(vObj.Data.PlotSpeciesTable{sIdx,1});
+%                         if ~isnan(axIdx)
+%                             set(vObj.h.SpeciesGroup{sIdx,axIdx},'DisplayName',regexprep(vObj.Data.PlotSpeciesTable{sIdx,5},'_','\\_')); 
+%                         end
+%                     end           
+%                     % No need to call redraw legend
+                    
+                if ColIdx == 2
+                    % Style
+                    for sIdx = 1:size(vObj.Data.PlotSpeciesTable,1)
+                        axIdx = str2double(vObj.Data.PlotSpeciesTable{sIdx,1});
+                        if ~isnan(axIdx)
+                            Ch = get(vObj.h.SpeciesGroup{sIdx,axIdx},'Children');
+                            HasLineStyle = isprop(Ch,'LineStyle');
+                            set(Ch(HasLineStyle),'LineStyle',vObj.Data.PlotSpeciesTable{sIdx,2});
+                        end
+                    end   
+                    [vObj.h.AxesLegend,vObj.h.AxesLegendChildren] = redrawLegend(vObj.Data,vObj.h.MainAxes,vObj.h.SpeciesGroup,vObj.h.DatasetGroup);
+                elseif ColIdx == 1 || ColIdx == 5
+                    
+                    % Plot
+                    plotData(vObj);
+                    
+                    % Update the view
+                    updateVisualizationView(vObj);
 
-
-                updateVisualizationView(vObj);
-            catch ME
-            end
-%             vObj.semaphore.release();
-            if ~isempty(ME)
-                rethrow(ME)
+                end
+                
             end
             
         end %function
         
         function onItemsTableSelectionPlot(vObj,h,e)
-%             pause(0.25)
-%             waitfor(vObj, 'Semaphore', 'free');
-%             vObj.Semaphore = 'locked';
-%             vObj.semaphore.wait();
-%             vObj.semaphore.lock();
+            Indices = e.Indices;
+            if isempty(Indices)
+                return;
+            end
             
-            ME = [];
-            try
-                Indices = e.Indices;
-                if isempty(Indices)
-                    return;
-                end
-
-                RowIdx = Indices(1,1);
-                if h.SelectedRows ~= RowIdx
-                    h.SelectedRows = RowIdx;
-                    % Update the view
-                    updateVisualizationView(vObj);
-                end
-            catch ME
-            end
-%             vObj.Semaphore = 'free';
-%             vObj.semaphore.release();
-            if ~isempty(ME)
-                rethrow(ME);
-            end
+            RowIdx = Indices(1,1);
+            
+            h.SelectedRows = RowIdx;
+            
+            % This line is causing issues with edit and selection callbacks
+            % with uitables
+            %             % Update the view
+            %             updateVisualizationView(vObj);
             
         end %function  
         

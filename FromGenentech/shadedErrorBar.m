@@ -73,15 +73,23 @@ params = inputParser;
 params.CaseSensitive = false;
 params.addParameter('lineProps', '-k', @(x) ischar(x) | iscell(x));
 params.addParameter('transparent', true, @(x) islogical (x) || x==0 || x==1);
+params.addParameter('meanlinewidth',0.5, @(x) isnumeric(x));
+params.addParameter('boundarylinewidth',0.5, @(x) isnumeric(x));
+params.addParameter('parent',[]);
 
 params.parse(varargin{:});
 
 %Extract values from the inputParser
 lineProps =  params.Results.lineProps;
 transparent =  params.Results.transparent;
+meanlinewidth =  params.Results.meanlinewidth;
+boundarylinewidth =  params.Results.boundarylinewidth;
+parent = params.Results.parent;
+if isempty(parent)
+    parent = gca;
+end
 
 if ~iscell(lineProps), lineProps={lineProps}; end
-
 
 %Process y using function handles if needed to make the error bar
 %dynamically
@@ -119,7 +127,7 @@ end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Plot to get the parameters of the line
-H.mainLine=plot(x,y,lineProps{:});
+H.mainLine=plot(x,y,lineProps{:},'linewidth',meanlinewidth,'parent',parent,'Tag','MeanLine');
 
 
 % Work out the color of the shaded region and associated lines.
@@ -159,12 +167,13 @@ yP(isnan(yP))=[];
 
 H.patch=patch(xP,yP,1,'facecolor',patchColor, ...
               'edgecolor','none', ...
-              'facealpha',faceAlpha);
+              'facealpha',faceAlpha,...
+              'parent',parent);
 
 
 %Make pretty edges around the patch. 
-H.edge(1)=plot(x,lE,'-','color',edgeColor);
-H.edge(2)=plot(x,uE,'-','color',edgeColor);
+H.edge(1)=plot(x,lE,'-','color',edgeColor,'linewidth',boundarylinewidth,'parent',parent,'Tag','BoundaryLine');
+H.edge(2)=plot(x,uE,'-','color',edgeColor,'linewidth',boundarylinewidth,'parent',parent,'Tag','BoundaryLine');
 
 
 %Now replace the line (this avoids having to bugger about with z coordinates)

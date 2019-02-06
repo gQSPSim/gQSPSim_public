@@ -38,9 +38,9 @@ if ~isempty(vObj.Data) && isfield(vObj.h,'SpeciesGroup')
                     if numel(Ch) > 1
                         % Skip first (dummy line)
                         Ch = Ch(2:end);
-                        set(Ch,'LineWidth',0.5);
+                        set(Ch,'LineWidth',vObj.Data.PlotSettings(j).LineWidth);
                         if (k==vObj.Data.SelectedProfileRow)
-                            set(Ch,'LineWidth',2);
+                            set(Ch,'LineWidth',vObj.Data.PlotSettings(j).LineWidth+2);
                         end
                         % Show
                         if ~isempty(Show) && numel(Show) >= k && Show(k)

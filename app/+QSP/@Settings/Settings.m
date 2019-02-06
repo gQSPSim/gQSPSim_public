@@ -37,13 +37,18 @@ classdef Settings < matlab.mixin.SetGet & uix.mixin.AssignPVPairs & uix.mixin.Ha
     
     %% Properties
     properties
-        Session = QSP.Session.empty(1,0)
+        Session = QSP.Session.empty(1,0)        
         Task = QSP.Task.empty(1,0)
         VirtualPopulation = QSP.VirtualPopulation.empty(1,0)
         Parameters = QSP.Parameters.empty(1,0)
         OptimizationData = QSP.OptimizationData.empty(1,0)
         VirtualPopulationData = QSP.VirtualPopulationData.empty(1,0)
         VirtualPopulationGenerationData = QSP.VirtualPopulationGenerationData.empty(1,0)
+    end
+    
+    %% Properties (Transient)
+    properties (Transient=true)
+        Model = QSP.Model.empty(1,0)
     end
     
     %% Properties
@@ -70,7 +75,7 @@ classdef Settings < matlab.mixin.SetGet & uix.mixin.AssignPVPairs & uix.mixin.Ha
             'hexagram',...
             };
     end
-
+   
     %% Constructor
     methods
         function obj = Settings(varargin)

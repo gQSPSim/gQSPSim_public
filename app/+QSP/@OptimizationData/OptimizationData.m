@@ -73,7 +73,7 @@ classdef OptimizationData < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             % Populate summary
             Summary = {...
                 'Name',obj.Name;
-                'Last Saved',obj.LastSavedTime;
+                'Last Saved',obj.LastSavedTimeStr;
                 'Description',obj.Description;
                 'File name',obj.RelativeFilePath;                
                 'Dataset Type',obj.DatasetType;
@@ -112,7 +112,7 @@ classdef OptimizationData < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             
             FileInfo = dir(DataFilePath);
             if ~isempty(obj.LastSavedTime) && ~isempty(FileInfo) && ...
-                    datenum(obj.LastSavedTime) > FileInfo.datenum && ...
+                    obj.LastSavedTime > FileInfo.datenum && ...
                     ~isempty(obj.Data) && ~isempty(obj.Header)
                 Header = obj.Header;
                 Data = obj.Data;
@@ -180,7 +180,7 @@ classdef OptimizationData < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             end
             obj.FilePath = DataFilePath;
             if StatusOk
-                obj.LastSavedTime = datestr(now);
+                obj.LastSavedTime = now;
                 obj.Data = Data;
                 obj.Header = Header;
             end
@@ -205,7 +205,7 @@ classdef OptimizationData < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
 %                 [~,~,obj.Headers,obj.Data] = importData(obj,obj.FilePath);
 %             end
 %             Headers = obj.Headers;
-%             obj.LastSavedTime = datestr(now);
+%             obj.LastSavedTime = now;
 %         end
 %         
 %         function Data = get.Data(obj)
@@ -217,7 +217,7 @@ classdef OptimizationData < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
 %                 [~,~,obj.Headers,obj.Data] = importData(obj,obj.FilePath);
 %             end
 %             Data = obj.Data;
-%             obj.LastSavedTime = datestr(now);
+%             obj.LastSavedTime = now;
 %         end
 %             
     end %methods

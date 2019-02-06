@@ -28,7 +28,8 @@ function plotData(vObj, varargin)
 
 %             try
 % Plot
-[vObj.h.SpeciesGroup,vObj.h.DatasetGroup] = plotOptimization(vObj.Data,vObj.h.MainAxes, varargin);
+[vObj.h.SpeciesGroup,vObj.h.DatasetGroup,vObj.h.AxesLegend,vObj.h.AxesLegendChildren] = ...
+    plotOptimization(vObj.Data,vObj.h.MainAxes, varargin);
 %             catch ME
 %                 hDlg = errordlg(sprintf('Cannot plot. %s',ME.message),'Invalid','modal');
 %                 uiwait(hDlg);

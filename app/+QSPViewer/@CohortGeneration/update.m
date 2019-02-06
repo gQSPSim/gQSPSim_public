@@ -54,12 +54,16 @@ end
 
 %% Update Edit View
 
-updateEditView(vObj);
+if vObj.Selection == 2
+    updateEditView(vObj);
+end
 
 
 %% Update Visualization View
 
-updateVisualizationView(vObj);
+if vObj.Selection == 3
+    updateVisualizationView(vObj);
+end
 
 
 

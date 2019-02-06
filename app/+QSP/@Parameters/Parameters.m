@@ -69,7 +69,7 @@ classdef Parameters < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             % Populate summary
             Summary = {...
                 'Name',obj.Name;
-                'Last Saved',obj.LastSavedTime;
+                'Last Saved',obj.LastSavedTimeStr;
                 'Description',obj.Description;
                 'File name',obj.RelativeFilePath;                
                 'No of parameters',obj.NumParameters;
@@ -130,8 +130,9 @@ classdef Parameters < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             
             % Load from file
             try            
-                Raw = readtable(DataFilePath);
-                Raw = [Raw.Properties.VariableNames;table2cell(Raw)];
+%                 Raw = readtable(DataFilePath);
+%                 Raw = [Raw.Properties.VariableNames;table2cell(Raw)];
+                [~,~,Raw] = xlsread(DataFilePath);
 
             catch ME
                 Raw = {};

@@ -83,7 +83,11 @@ classdef Task < uix.abstract.CardViewPane
             
             % Get model name
             ModelNameOptions = get(h,'String');
-            ModelName = ModelNameOptions{get(h,'Value')};            
+            ModelName = ModelNameOptions{get(h,'Value')}; %get(h,'String');
+            
+            if strcmpi(ModelName,QSP.makeInvalid('-'))
+                ModelName = '';
+            end
             
             [StatusOK,Message] = importModel(vObj.TempData,vObj.TempData.FilePath,ModelName);
             if ~StatusOK
@@ -91,27 +95,27 @@ classdef Task < uix.abstract.CardViewPane
                 uiwait(hDlg);
             end
             
-            if ~isempty(vObj.TempData.ModelObj)
+            if ~isempty(vObj.TempData.ModelObj) && ~isempty(vObj.TempData.ModelObj.mObj)
                 % get active variant names
-                allVariantNames = get(vObj.TempData.ModelObj.Variants, 'Name');
+                allVariantNames = get(vObj.TempData.ModelObj.mObj.Variants, 'Name');
                 if isempty(allVariantNames)
                     allVariantNames = {};
                 end
-                vObj.TempData.ActiveVariantNames = allVariantNames(cell2mat(get(vObj.TempData.ModelObj.Variants,'Active')));
+                vObj.TempData.ActiveVariantNames = allVariantNames(cell2mat(get(vObj.TempData.ModelObj.mObj.Variants,'Active')));
 
                  % get inactive reactions from the model
                 allReactionNames = vObj.TempData.ReactionNames; 
                 if isempty(allReactionNames)
                     allReactionNames = {};
                 end
-                vObj.TempData.InactiveReactionNames = allReactionNames(~cell2mat(get(vObj.TempData.ModelObj.Reactions,'Active')));
+                vObj.TempData.InactiveReactionNames = allReactionNames(~cell2mat(get(vObj.TempData.ModelObj.mObj.Reactions,'Active')));
 
                 % get inactive rules from model
                 allRulesNames = vObj.TempData.RuleNames;
                 if isempty(allRulesNames)
                     allRulesNames = {};
                 end
-                vObj.TempData.InactiveRuleNames = allRulesNames(~cell2mat(get(vObj.TempData.ModelObj.Rules,'Active')));
+                vObj.TempData.InactiveRuleNames = allRulesNames(~cell2mat(get(vObj.TempData.ModelObj.mObj.Rules,'Active')));
             end
             % Update the view
             update(vObj);

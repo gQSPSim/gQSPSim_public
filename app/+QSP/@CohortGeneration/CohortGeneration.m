@@ -44,8 +44,8 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         MaxNumSimulations = 5000
         MaxNumVirtualPatients = 500
         
-        PlotSpeciesTable = cell(0,4)
-        PlotItemTable = cell(0,4) 
+        PlotSpeciesTable = cell(0,5)
+        PlotItemTable = cell(0,5) 
         
         PrevalenceWeights = [];
         
@@ -54,6 +54,8 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         SelectedPlotLayout = '1x1'   
         
         ShowInvalidVirtualPatients = true
+        
+        PlotSettings = repmat(struct(),1,12)
     end
     
     properties (SetAccess = 'private')
@@ -77,25 +79,35 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
     
     %% Constructor
     methods
-        function obj = VirtualPopulationGeneration(varargin)
-            % VirtualPopulationGeneration - Constructor for QSP.VirtualPopulationGeneration
+        function obj = CohortGeneration(varargin)
+            % CohortGeneration - Constructor for QSP.CohortGeneration
             % -------------------------------------------------------------------------
-            % Abstract: Constructs a new QSP.VirtualPopulationGeneration object.
+            % Abstract: Constructs a new QSP.CohortGeneration object.
             %
             % Syntax:
-            %           obj = QSP.VirtualPopulationGeneration('Parameter1',Value1,...)
+            %           obj = QSP.CohortGeneration('Parameter1',Value1,...)
             %
             % Inputs:
             %           Parameter-value pairs
             %
             % Outputs:
-            %           obj - QSP.VirtualPopulationGeneration object
+            %           obj - QSP.CohortGeneration object
             %
             % Example:
-            %    aObj = QSP.VirtualPopulationGeneration();
+            %    aObj = QSP.CohortGeneration();
             
             % Populate public properties from P-V input pairs
             obj.assignPVPairs(varargin{:});
+            
+            % For compatibility
+            if size(obj.PlotSpeciesTable,2) == 4
+                obj.PlotSpeciesTable(:,5) = obj.PlotSpeciesTable(:,3);
+            end
+            
+            % For compatibility
+            if size(obj.PlotItemTable,2) == 4
+                obj.PlotItemTable(:,5) = obj.PlotItemTable(:,3);
+            end
             
         end %function obj = VirtualPopulationGeneration(varargin)
         
@@ -192,7 +204,7 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             % Populate summary
             Summary = {...
                 'Name',obj.Name;
-                'Last Saved',obj.LastSavedTime;
+                'Last Saved',obj.LastSavedTimeStr;
                 'Description',obj.Description;
                 'Results Path',obj.VPopResultsFolderName;
                 'Dataset',obj.DatasetName;
@@ -538,14 +550,14 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                     end
                                         
                     % Task object (item)
-                    TaskLastSavedTime = datenum(ThisTask.LastSavedTime);
+                    TaskLastSavedTime = ThisTask.LastSavedTime;
                     
                     % SimBiology Project file from Task
                     FileInfo = dir(ThisTask.FilePath);
                     TaskProjectLastSavedTime = FileInfo.datenum;
                     
                     % VirtualPopulationData object and file
-                    VirtualPopulationDataLastSavedTime = datenum(dObj.LastSavedTime);
+                    VirtualPopulationDataLastSavedTime = dObj.LastSavedTime;
                     FileInfo = dir(dObj.FilePath);
                     VirtualPopulationDataFileLastSavedTime = FileInfo.datenum;
                                         
@@ -557,7 +569,7 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                         
                         % Parameter object and file
                         if ~isempty(pObj)
-                            ParametersLastSavedTime = datenum(pObj.LastSavedTime);
+                            ParametersLastSavedTime = pObj.LastSavedTime;
                             FileInfo = dir(pObj.FilePath);
                             if ~isempty(FileInfo)
                                 ParametersFileLastSavedTime = FileInfo.datenum;    
@@ -670,6 +682,11 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         function set.ShowInvalidVirtualPatients(obj,Value)
             validateattributes(Value,{'logical'},{'scalar'});
             obj.ShowInvalidVirtualPatients = Value;
+        end
+        
+        function set.PlotSettings(obj,Value)
+            validateattributes(Value,{'struct'},{});
+            obj.PlotSettings = Value;
         end
     end %methods
     
