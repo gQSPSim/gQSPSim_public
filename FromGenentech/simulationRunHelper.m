@@ -399,6 +399,7 @@ function [ItemModel, VpopWeights, StatusOK, Message] = constructVpopItem(taskObj
 %         end
         
         [params, vpopTable, StatusOK, Message] = xlread(vpopObj.FilePath);
+        vpopTable = cell2mat(vpopTable);
         if ~StatusOK
             return
         end

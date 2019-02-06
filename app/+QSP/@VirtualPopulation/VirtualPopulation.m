@@ -160,6 +160,7 @@ classdef VirtualPopulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
 %                 [num,txt,Raw] = xlsread(DataFilePath);
 %                 Raw = readtable(DataFilePath);
               [Header,Data,StatusOk,Message] = xlread(DataFilePath);
+              Data = cell2mat(Data);
               if ~StatusOk
                   return
               end

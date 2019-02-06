@@ -19,7 +19,10 @@ if ~isempty(data.Properties.VariableDescriptions)
     end
 end
 
-Data = table2array(data);
-
+try
+Data = table2cell(data);
+catch error
+    warning(error.message)
+end
     
     
