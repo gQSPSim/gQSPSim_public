@@ -296,7 +296,9 @@ classdef Simulation < uix.abstract.CardViewPane
                         vObj.h.SpeciesGroup{sIdx,NewAxIdx} = vObj.h.SpeciesGroup{sIdx,OldAxIdx};
                         % Re-parent
                         vObj.h.SpeciesGroup{sIdx,NewAxIdx}.Parent = vObj.h.MainAxes(NewAxIdx);                        
-                        vObj.h.SpeciesGroup{sIdx,OldAxIdx} = [];
+                        if OldAxIdx ~= NewAxIdx
+                            vObj.h.SpeciesGroup{sIdx,OldAxIdx} = [];
+                        end
                     end
                     
                     AxIndices = [OldAxIdx,NewAxIdx];
@@ -309,9 +311,8 @@ classdef Simulation < uix.abstract.CardViewPane
                     vObj.h.AxesLegend(AxIndices) = UpdatedAxesLegend(AxIndices);
                     vObj.h.AxesLegendChildren(AxIndices) = UpdatedAxesLegendChildren(AxIndices);
 
-                end
-                
-            end
+                end %if ColIdx
+            end %if ~isequal
             
         end %function
         
@@ -446,7 +447,9 @@ classdef Simulation < uix.abstract.CardViewPane
                     vObj.h.DatasetGroup{dIdx,NewAxIdx} = vObj.h.DatasetGroup{dIdx,OldAxIdx};
                     % Re-parent
                     vObj.h.DatasetGroup{dIdx,NewAxIdx}.Parent = vObj.h.MainAxes(NewAxIdx);
-                    vObj.h.DatasetGroup{dIdx,OldAxIdx} = [];
+                    if OldAxIdx ~= NewAxIdx
+                        vObj.h.DatasetGroup{dIdx,OldAxIdx} = [];
+                    end
                 end
                 
                 AxIndices = [OldAxIdx,NewAxIdx];
