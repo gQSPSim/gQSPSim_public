@@ -1,10 +1,10 @@
-function [hLegend,hLegendChildren] = redrawLegend(obj,hAxes,hSpeciesGroup,hDatasetGroup)
-% redrawLegend - Redraws the legend
+function [hLegend,hLegendChildren] = updatePlots(obj,hAxes,hSpeciesGroup,hDatasetGroup)
+% updatePlots - Redraws the legend
 % -------------------------------------------------------------------------
 % Abstract: Redraws the legend
 %
 % Syntax:
-%           redrawLegend(aObj,hAxes)
+%           updatePlots(aObj,hAxes)
 %
 % Inputs:
 %           obj - QSP.Simulation object
@@ -39,7 +39,11 @@ hLegendChildren = cell(1,NumAxes);
 for axIndex = 1:NumAxes
     
     % Append
-    LegendItems = [horzcat(hSpeciesGroup{:,axIndex}) horzcat(hDatasetGroup{:,axIndex})];
+    if size(hSpeciesGroup,3) > 0
+        LegendItems = [horzcat(hSpeciesGroup{:,axIndex,1}) horzcat(hDatasetGroup{:,axIndex})];
+    else
+        LegendItems = [];
+    end
     
     if ~isempty(LegendItems) && all(isvalid(LegendItems))
         try
@@ -62,7 +66,7 @@ for axIndex = 1:NumAxes
                 end
             end
         catch ME
-            warning('Cannot draw legend')
+            warning(ME.message)
         end
     else
         hLegend{axIndex} = [];
