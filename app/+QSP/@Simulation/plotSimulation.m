@@ -188,87 +188,81 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
         if ~isnumeric(ThisColor)
             error('Invalid color selected!')
         end
-        
-        thisTraceAnnotation = [];
-        thisQuantileAnnotation = [];
-        hThisTrace = [];
+
         SE = [];
+        hThisTrace = plot(hSpeciesGroup{sIdx,axIdx},ThisResult.Time,ThisResult.Data(:,ColumnIdx),...
+            'Color',ThisColor,...
+            'Tag','TraceLine',...
+            'LineStyle',ThisLineStyle,...
+            'LineWidth',obj.PlotSettings(axIdx).LineWidth);
+        if obj.bShowTraces(axIdx)
+            set(hThisTrace,'Visible','on');
+        else
+            set(hThisTrace,'Visible','off');
+        end
+        thisTraceAnnotation = get(hThisTrace,'Annotation');
         
-%         if obj.bShowTraces(axIdx)
-            hThisTrace = plot(hSpeciesGroup{sIdx,axIdx},ThisResult.Time,ThisResult.Data(:,ColumnIdx),...
-                'Color',ThisColor,...
-                'Tag','TraceLine',...
-                'LineStyle',ThisLineStyle,...
-                'LineWidth',obj.PlotSettings(axIdx).LineWidth);
-            if obj.bShowTraces(axIdx)
-                set(hThisTrace,'Visible','on');
-            else
-                set(hThisTrace,'Visible','off');
-            end
-            thisTraceAnnotation = get(hThisTrace,'Annotation');
-%         end
+
+        axes(get(hSpeciesGroup{sIdx,axIdx},'Parent'))
+        %                 q50 = quantile(Results(resultIdx).Data(:,ColumnIdx),0.5,2);
+        %                 q75 = quantile(Results(resultIdx).Data(:,ColumnIdx),0.75,2);
+        %                 q25 = quantile(Results(resultIdx).Data(:,ColumnIdx),0.25,2);
         
-%         if obj.bShowQuantiles(axIdx)
-            axes(get(hSpeciesGroup{sIdx,axIdx},'Parent'))
-            %                 q50 = quantile(Results(resultIdx).Data(:,ColumnIdx),0.5,2);
-            %                 q75 = quantile(Results(resultIdx).Data(:,ColumnIdx),0.75,2);
-            %                 q25 = quantile(Results(resultIdx).Data(:,ColumnIdx),0.25,2);
-            
-            w0 = ThisResult.VpopWeights;
-            w0 = w0(w0>0); % filter out the zero weight simulations
-            if isempty(w0)
-                w0 = ones(1, size(ThisResult.Data,2)/length(ThisResult.SpeciesNames));
-            end
-            w0 = w0./sum(w0); % renormalization
-            
-            %                 NT = size(Results(resultIdx).Data,1);
-            %                 q50 = zeros(1,NT);
-            %                 q025 = zeros(1,NT);
-            %                 q975 = zeros(1,NT);
-            %                 for tIdx = 1:NT
-            %                     y = Results(resultIdx).Data(tIdx,ColumnIdx);
-            %                     [y,ix] = sort(y, 'Ascend');
-            %                     w = w0(ix);
-            %                     q50(tIdx) = y(find(cumsum(w)>=0.5, 1, 'first'));
-            %                     q025(tIdx) = y(find(cumsum(w)>=0.025, 1, 'first'));
-            %                     idx975 = find(cumsum(w)>=0.975, 1, 'first');
-            %                     if isempty(idx975)
-            %                         idx975 = length(y);
-            %                     end
-            %                     q975(tIdx) = y(idx975);
-            %
-            %                 end
-            
-            
-            
-            %                 Results(resultIdx).Data
-            
-            if length(ThisResult.Time') > 1
-                %                     SE=shadedErrorBar(Results(resultIdx).Time', q50, [q975-q50;q50-q025]);
-                %                     set(SE.mainLine,'Color',SelectedItemColors(itemIdx,:),...
-                %                         'LineStyle',ThisLineStyle);
-                %                     set(SE.patch,'FaceColor',SelectedItemColors(itemIdx,:));
-                %                     set(SE.edge,'Color',SelectedItemColors(itemIdx,:),'LineWidth',2);
-                x = ThisResult.Data(:,ColumnIdx);
-                SE = weightedQuantilePlot(ThisResult.Time, x, w0, ThisColor, ...
-                    'linestyle',ThisLineStyle,...
-                    'meanlinewidth',obj.PlotSettings(axIdx).MeanLineWidth,...
-                    'boundarylinewidth',obj.PlotSettings(axIdx).BoundaryLineWidth,...
-                    'parent',hSpeciesGroup{sIdx,axIdx});
-                if obj.bShowQuantiles(axIdx)
-                    set([SE.mainLine,SE.edge,SE.patch],'Visible','on');
-                else
-                    set([SE.mainLine,SE.edge,SE.patch],'Visible','off');
-                end
-                thisQuantileAnnotation = get([SE.mainLine,SE.edge,SE.patch],'Annotation');
+        w0 = ThisResult.VpopWeights;
+        w0 = w0(w0>0); % filter out the zero weight simulations
+        if isempty(w0)
+            w0 = ones(1, size(ThisResult.Data,2)/length(ThisResult.SpeciesNames));
+        end
+        w0 = w0./sum(w0); % renormalization
+        
+        %                 NT = size(Results(resultIdx).Data,1);
+        %                 q50 = zeros(1,NT);
+        %                 q025 = zeros(1,NT);
+        %                 q975 = zeros(1,NT);
+        %                 for tIdx = 1:NT
+        %                     y = Results(resultIdx).Data(tIdx,ColumnIdx);
+        %                     [y,ix] = sort(y, 'Ascend');
+        %                     w = w0(ix);
+        %                     q50(tIdx) = y(find(cumsum(w)>=0.5, 1, 'first'));
+        %                     q025(tIdx) = y(find(cumsum(w)>=0.025, 1, 'first'));
+        %                     idx975 = find(cumsum(w)>=0.975, 1, 'first');
+        %                     if isempty(idx975)
+        %                         idx975 = length(y);
+        %                     end
+        %                     q975(tIdx) = y(idx975);
+        %
+        %                 end
+        
+        
+        
+        %                 Results(resultIdx).Data
+        
+        if length(ThisResult.Time') > 1
+            %                     SE=shadedErrorBar(Results(resultIdx).Time', q50, [q975-q50;q50-q025]);
+            %                     set(SE.mainLine,'Color',SelectedItemColors(itemIdx,:),...
+            %                         'LineStyle',ThisLineStyle);
+            %                     set(SE.patch,'FaceColor',SelectedItemColors(itemIdx,:));
+            %                     set(SE.edge,'Color',SelectedItemColors(itemIdx,:),'LineWidth',2);
+            x = ThisResult.Data(:,ColumnIdx);
+            SE = weightedQuantilePlot(ThisResult.Time, x, w0, ThisColor, ...
+                'linestyle',ThisLineStyle,...
+                'meanlinewidth',obj.PlotSettings(axIdx).MeanLineWidth,...
+                'boundarylinewidth',obj.PlotSettings(axIdx).BoundaryLineWidth,...
+                'parent',hSpeciesGroup{sIdx,axIdx});
+            if obj.bShowQuantiles(axIdx)
+                set([SE.mainLine,SE.edge,SE.patch],'Visible','on');
             else
-                % NOTE: Justin - code does not enter here (i.e. q50,
-                % etc are not computed)
-                h = errorbar(ThisResult.Time', q50', q50-q025, q975-q50, 'Color', ThisColor, ...
-                    'LineStyle',ThisLineStyle);
-                thisQuantileAnnotation = get(h,'Annotation');
+                set([SE.mainLine,SE.edge,SE.patch],'Visible','off');
             end
-%         end
+            thisQuantileAnnotation = get([SE.mainLine,SE.edge,SE.patch],'Annotation');
+        else
+            % NOTE: Justin - code does not enter here (i.e. q50,
+            % etc are not computed)
+            h = errorbar(ThisResult.Time', q50', q50-q025, q975-q50, 'Color', ThisColor, ...
+                'LineStyle',ThisLineStyle);
+            thisQuantileAnnotation = get(h,'Annotation');
+        end
+
         
         % Only allow one display name between traces and quantiles
         FormattedFullDisplayName = regexprep(FullDisplayName,'_','\\_'); % For export, use patch since line width is not applied
@@ -339,8 +333,7 @@ if any(MatchIdx)
         if iscell(OrigIsSelected)
             OrigIsSelected = cell2mat(OrigIsSelected);
         end
-%         IsSelected = ones(size(obj.PlotGroupTable,1),1);            
-        %         if any(IsSelected)
+        
         SelectedGroupColors = cell2mat(obj.PlotGroupTable(:,2)); % IsSelected
         SelectedGroupIDs = categorical(obj.PlotGroupTable(:,3)); % IsSelected
         SelectedGroupNames = obj.PlotGroupTable(:,4); % IsSelected
@@ -421,7 +414,7 @@ if any(MatchIdx)
                 end %for gIdx
             end %if
         end %for dIdx
-        %         end %if any(IsSelected)
+        
     end %if StatusOk
 end %if any(MatchIdx)
 
@@ -461,7 +454,7 @@ for index = 1:numel(hAxes)
      % Reset zoom state
     hFigure = ancestor(hAxes(index),'Figure');
     if ~isempty(hFigure) && strcmpi(obj.PlotSettings(index).XLimMode,'auto') && strcmpi(obj.PlotSettings(index).YLimMode,'auto')
-        axes(hAxes(index));
+        set(hFigure,'CurrentAxes',hAxes(index)) % This causes the legend fontsize to reset: axes(hAxes(index));
         try
             zoom(hFigure,'out');
             zoom(hFigure,'reset');        
