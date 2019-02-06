@@ -388,16 +388,23 @@ function [ItemModel, VpopWeights, StatusOK, Message] = constructVpopItem(taskObj
     
     if ~isempty(vpopObj) % AG: TODO: added ~isempty(vpopObj) for function-call from plotOptimization. Need to verify with Genentech
         
-        if ~ispc
-            tmp = readtable(vpopObj.FilePath);
-            vpopTable = table2array(tmp);
-            params = tmp.Properties.VariableNames;
-        else
-            [vpopTable,params,raw] = xlsread(vpopObj.FilePath);
-            params = raw(1,:);
-            vpopTable = cell2mat(raw(2:end,:));
+%         if ~ispc
+%             tmp = readtable(vpopObj.FilePath);
+%             vpopTable = table2array(tmp);
+%             params = tmp.Properties.VariableNames;
+%         else
+%             [vpopTable,params,raw] = xlsread(vpopObj.FilePath);
+%             params = raw(1,:);
+%             vpopTable = cell2mat(raw(2:end,:));
+%         end
+        
+        [params, vpopTable, StatusOK, Message] = xlread(vpopObj.FilePath);
+        if ~StatusOK
+            return
         end
-        params = params(1,:);
+        
+        
+%         params = params(1,:);
 %         T = readtable(vpopObj.FilePath);
 %         vpopTable = table2cell(T);         
 %         params = T.Properties.VariableNames;    
@@ -507,14 +514,18 @@ function [Results, nFailedSims, StatusOK, Message, Cancelled] = simulateVPatient
                 else
                     theseValues = Values(jj,:);
                 end
-                [simData,simOK]  = taskObj.simulate(...
+                [simData,simOK,errMessage]  = taskObj.simulate(...
                         'Names', Names, ...
                         'Values', theseValues, ...
                         'OutputTimes', Results.Time, ...
                         'Waitbar', options.WaitBar);
                 if ~simOK
-                    ME = MException('simulationRunHelper:simulateVPatients', 'Simulation failed');
-                    throw(ME)
+                    
+%                     ME = MException('simulationRunHelper:simulateVPatients', 'Simulation failed with error: %s', errMessage );
+%                     throw(ME)
+                    StatusOK = false;
+                    Message = sprintf('Simulation failed with error: %s', errMessage);
+                    return
                 end
                 % extract active species data, if specified
                 if ~isempty(taskObj.ActiveSpeciesNames)

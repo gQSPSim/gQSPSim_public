@@ -658,11 +658,14 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         end % get.ReactionNames
         
         function Value = get.OutputTimes(obj)
-           if ~isempty(obj.ModelObj)
-                Value = obj.ModelObj.OutputTimes;
-            else
-                Value = [];
-           end
+            Value = eval(obj.OutputTimesStr);
+            
+%            if ~isempty(obj.ModelObj)
+%                 Value = obj.ModelObj.OutputTimes;
+%                 Value = obj.VarModelObj.
+%             else
+%                 Value = [];
+%            end
         end % get.OutputTimes
         
         function Value = get.DefaultOutputTimes(obj)

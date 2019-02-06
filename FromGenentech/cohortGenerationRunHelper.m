@@ -228,11 +228,18 @@ end
 
 bCancelled = false;
 
+useMarkov = false;
+
 while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients
     nSim = nSim+1; % tic up the number of simulations
     
     % produce sample uniformly sampled between LB & UB
-    param_candidate = param_candidate_old + (UB-LB).*(2*rand(size(LB))-1)*tune_param;
+    if useMarkov
+        param_candidate = param_candidate_old + (UB-LB).*(2*rand(size(LB))-1)*tune_param;
+    else
+        param_candidate = unifrnd(LB,UB);
+    end
+    
     P = param_candidate;
     P = max(P, LB);
     P = min(P, UB);

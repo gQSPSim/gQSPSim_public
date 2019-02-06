@@ -129,21 +129,26 @@ classdef Parameters < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             end
             
             % Load from file
-            try            
-                Raw = readtable(DataFilePath);
-                Raw = [Raw.Properties.VariableNames;table2cell(Raw)];
-
-            catch ME
-                Raw = {};
-                StatusOk = false;
-                Message = sprintf('Unable to read from Excel file:\n\n%s',ME.message);                
+%             try            
+%                 Raw = readtable(DataFilePath);
+%                 Raw = [Raw.Properties.VariableNames;table2cell(Raw)];
+%                 [~,~,Raw] = xlsread(DataFilePath);
+            [Header,Data,StatusOk,Message] = xlread(DataFilePath);
+            if ~StatusOk
+                return
             end
+
+%             catch ME
+%                 Raw = {};
+%                 StatusOk = false;
+%                 Message = sprintf('Unable to read from Excel file:\n\n%s',ME.message);                
+%             end
             
             % Compute number of parameters
-            if size(Raw,1) > 1
-                Header = Raw(1,:);
-                Data = Raw(2:end,:);
-                obj.NumParameters = size(Raw,1) - 1; % 1 header line
+            if size(Data,1) > 0
+%                 Header = Raw(1,:);
+%                 Data = Raw(2:end,:);
+                obj.NumParameters = size(Data,1); % 1 header line
             else
                 Header = {};
                 Data = {};
