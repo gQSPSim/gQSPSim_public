@@ -156,22 +156,18 @@ classdef VirtualPopulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             Message = '';
             
             % Load from file
-%             try
-%                 [num,txt,Raw] = xlsread(DataFilePath);
-%                 Raw = readtable(DataFilePath);
-              [Header,Data,StatusOk,Message] = xlread(DataFilePath);
-              Data = cell2mat(Data);
-              if ~StatusOk
-                  return
-              end
-                
-%                 Raw = [Raw.Properties.VariableNames;table2cell(Raw)];
-%             catch ME
-%                 Raw = {};
-%                 StatusOk = false;
-%                 Message = sprintf('Unable to read from Excel file:\n\n%s',ME.message);
-%             end
+            try
+                 [Header,Data,StatusOk,Message] = xlread(DataFilePath);
+                 Data = cell2mat(Data);                
+            catch ME
+                 Raw = {};
+                 StatusOk = false;
+                 Message = sprintf('Unable to read from Excel file:\n\n%s',ME.message);
+            end
             
+            if ~StatusOk
+                return
+            end
             % Compute number of VirtualPopulation
             if size(Data,1) > 0
                 
