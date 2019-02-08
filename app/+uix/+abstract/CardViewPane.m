@@ -983,7 +983,15 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
             obj.updateVisualizationView();
             
             if strcmp(ThisTag,'ShowTraces') || strcmp(ThisTag,'ShowQuantiles')
-                obj.plotData();
+                if strcmpi(class(obj),'QSPViewer.Simulation')
+                    [UpdatedAxesLegend,UpdatedAxesLegendChildren] = updatePlots(...
+                        obj.Data,obj.h.MainAxes,obj.h.SpeciesGroup,obj.h.DatasetGroup,...
+                        'AxIndices',axIndex);
+                    obj.h.AxesLegend(axIndex) = UpdatedAxesLegend(axIndex);
+                    obj.h.AxesLegendChildren(axIndex) = UpdatedAxesLegendChildren(axIndex);
+                else
+                    obj.plotData();
+                end
             end
             
         end %function
@@ -1277,9 +1285,9 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                 else
                     % Species or Data Group is on
                     if numel(ch) > 1
-                        KeepIdxOn = ~strcmpi(get(ch,'Tag'),'DummyLine') & ~cellfun(@isempty,(get(ch,'DisplayName')));
+                        KeepIdxOn = ~strcmpi(get(ch,'Tag'),'DummyLine') & ~cellfun(@isempty,(get(ch,'DisplayName'))) & strcmpi(get(ch,'Visible'),'on');
                     else
-                        KeepIdxOn = ~strcmpi(get(ch,'Tag'),'DummyLine') & ~isempty(get(ch,'DisplayName'));
+                        KeepIdxOn = ~strcmpi(get(ch,'Tag'),'DummyLine') & ~isempty(get(ch,'DisplayName')) & strcmpi(get(ch,'Visible'),'on');
                     end
                 end
                 cellfun(@(x)set(x,'IconDisplayStyle','on'),hAnn(KeepIdxOn),'UniformOutput',false);

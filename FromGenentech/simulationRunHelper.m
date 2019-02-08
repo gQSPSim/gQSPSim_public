@@ -388,16 +388,24 @@ function [ItemModel, VpopWeights, StatusOK, Message] = constructVpopItem(taskObj
     
     if ~isempty(vpopObj) % AG: TODO: added ~isempty(vpopObj) for function-call from plotOptimization. Need to verify with Genentech
         
-        if ~ispc
-            tmp = readtable(vpopObj.FilePath);
-            vpopTable = table2array(tmp);
-            params = tmp.Properties.VariableNames;
-        else
-            [vpopTable,params,raw] = xlsread(vpopObj.FilePath);
-            params = raw(1,:);
-            vpopTable = cell2mat(raw(2:end,:));
+%         if ~ispc
+%             tmp = readtable(vpopObj.FilePath);
+%             vpopTable = table2array(tmp);
+%             params = tmp.Properties.VariableNames;
+%         else
+%             [vpopTable,params,raw] = xlsread(vpopObj.FilePath);
+%             params = raw(1,:);
+%             vpopTable = cell2mat(raw(2:end,:));
+%         end
+        
+        [params, vpopTable, StatusOK, Message] = xlread(vpopObj.FilePath);
+        vpopTable = cell2mat(vpopTable);
+        if ~StatusOK
+            return
         end
-        params = params(1,:);
+        
+        
+%         params = params(1,:);
 %         T = readtable(vpopObj.FilePath);
 %         vpopTable = table2cell(T);         
 %         params = T.Properties.VariableNames;    
@@ -519,8 +527,7 @@ function [Results, nFailedSims, StatusOK, Message, Cancelled] = simulateVPatient
                     StatusOK = false;
                     warning('Simulation %d failed with error: %s\n', jj, errMessage);
                     activeSpec_j = NaN(size(Results.Time,1), length(taskObj.ActiveSpeciesNames));
-%                     return
-                else
+	    	else
                     % extract active species data, if specified
                     if ~isempty(taskObj.ActiveSpeciesNames)
                         [~,activeSpec_j] = selectbyname(simData,taskObj.ActiveSpeciesNames);

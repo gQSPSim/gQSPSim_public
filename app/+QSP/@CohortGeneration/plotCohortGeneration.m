@@ -612,7 +612,7 @@ end %if
 
 % Force a drawnow, to avoid legend issues
 drawnow;
-[hLegend,hLegendChildren] = redrawLegend(obj,hAxes,hSpeciesGroup,hDatasetGroup);
+[hLegend,hLegendChildren] = updatePlots(obj,hAxes,hSpeciesGroup,hDatasetGroup);
 
 
 %% Turn off hold

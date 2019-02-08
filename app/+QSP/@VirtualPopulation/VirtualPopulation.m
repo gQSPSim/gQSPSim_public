@@ -157,25 +157,27 @@ classdef VirtualPopulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             
             % Load from file
             try
-                [~,~,Raw] = xlsread(DataFilePath);
-%                 Raw = readtable(DataFilePath);
-%                 Raw = [Raw.Properties.VariableNames;table2cell(Raw)];
+                 [Header,Data,StatusOk,Message] = xlread(DataFilePath);
+                 Data = cell2mat(Data);                
             catch ME
-                Raw = {};
-                StatusOk = false;
-                Message = sprintf('Unable to read from Excel file:\n\n%s',ME.message);
+                 Raw = {};
+                 StatusOk = false;
+                 Message = sprintf('Unable to read from Excel file:\n\n%s',ME.message);
             end
             
+            if ~StatusOk
+                return
+            end
             % Compute number of VirtualPopulation
-            if size(Raw,1) > 1
+            if size(Data,1) > 0
                 
-                Header = Raw(1,:);
-                Data = Raw(2:end,:);
+%                 Header = Raw(1,:);
+%                 Data = Raw(2:end,:);
                 
                 MatchPW = find(strcmpi(Header,'PWeight'));
                 if ~isempty(MatchPW)
                     MatchPW = MatchPW(1);
-                    PWWeights = cell2mat(Raw(2:end,MatchPW));
+                    PWWeights = Data(:,MatchPW);
                     if abs(sum(PWWeights) - 1) < 1e-12
                         PrevalenceWeights = PWWeights;
                         obj.PrevalenceWeightsStr = 'yes';
@@ -188,8 +190,8 @@ classdef VirtualPopulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                     PrevalenceWeights = zeros(0,1);
                     obj.PrevalenceWeightsStr = 'no';
                 end                
-                obj.NumVirtualPatients = size(Raw,1)-1; % 1 header line
-                obj.NumParameters = size(Raw,2)-numel(MatchPW);                
+                obj.NumVirtualPatients = size(Data,1); % 1 header line
+                obj.NumParameters = size(Data,2)-numel(MatchPW);                
             else
                 Header = {};
                 Data = {};
