@@ -526,6 +526,7 @@ function [Results, nFailedSims, StatusOK, Message, Cancelled] = simulateVPatient
 %                     throw(ME)
                     StatusOK = false;
                     Message = sprintf('Simulation failed with error: %s', errMessage);
+                    
                     return
                 end
                 % extract active species data, if specified
