@@ -95,7 +95,7 @@ else
         groupObj = obj.Item(ii).Group;
 
         % Load the Vpop and parse contents 
-       [ThisItemModel, VpopWeights, ThisStatusOK, ThisMessage] = constructVpopItem(taskObj, vpopObj, groupObj, options, Message);
+       [ThisItemModel, ThisStatusOK, ThisMessage] = constructVpopItem(taskObj, vpopObj, groupObj, options, Message);
        if ~ThisStatusOK
            StatusOK = false;
            Message = sprintf('%s\n%s\n',Message,ThisMessage);
@@ -170,7 +170,7 @@ if ~isempty(ItemModels)
             SaveFlag = isempty(options.Pin{1}); % don't save if PIn is provided
 
             % keep the VpopWeights for this group
-            Results.VpopWeights = VpopWeights;
+            Results.VpopWeights = ItemModel.VpopWeights;
 
             % add results to output cell
             output{jj,ii} = Results;
@@ -371,7 +371,7 @@ end % if
 
 end
 
-function [ItemModel, VpopWeights, StatusOK, Message] = constructVpopItem(taskObj, vpopObj, groupObj, options, Message)
+function [ItemModel, StatusOK, Message] = constructVpopItem(taskObj, vpopObj, groupObj, options, Message)
     % they are 1) all full and Pin is empty or 2) all full and Pin is not
     % empty or 3) all empty and Pin is not empty
     % case 1) only need to export model with parameters in the Vpop
@@ -454,6 +454,7 @@ function [ItemModel, VpopWeights, StatusOK, Message] = constructVpopItem(taskObj
     ItemModel.Names = Names;
     ItemModel.Values = Values;    
     ItemModel.nPatients = nPatients;    
+    ItemModel.VpopWeights = VpopWeights;
     
     StatusOK = true;
     
