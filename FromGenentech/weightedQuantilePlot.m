@@ -27,6 +27,12 @@ end
 %     x = reshape(x,1,[]);
 % end
 
+% filter Nans
+ixNan = any(isnan(x));
+x = x(:,~ixNan);
+w = w(~ixNan);
+w = w/sum(w);
+
 for tIdx = 1:size(x,1)
     [y,ix] = sort(x(tIdx,:));
 
