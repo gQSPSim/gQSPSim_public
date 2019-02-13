@@ -843,8 +843,33 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                             
                             ThisAxes = get(Ch(index),'Children');
                             
-                            % Call helper to copy axes and format
-                            printAxesHelper(obj,ThisAxes,SaveFilePath,obj.PlotSettings(index))                            
+                            % Check if the plot has children
+                            TheseChildren = get(ThisAxes,'Children');     
+                            if ~isempty(TheseChildren)
+                                HasVisibleItem = true(1,numel(TheseChildren));
+                                for chIdx = 1:numel(TheseChildren)
+                                    ThisGroup = TheseChildren{chIdx};
+                                    ThisGroupChildren = get(ThisGroup,'Children');
+                                    if ~iscell(ThisGroupChildren)
+                                        ThisGroupChildren = {ThisGroupChildren};
+                                    end
+                                    if ~isempty(ThisGroupChildren)
+                                        HasVisibleItem(chIdx) = any(strcmpi(get(vertcat(ThisGroupChildren{:}),'Visible'),'on') &...
+                                            ~strcmpi(get(vertcat(ThisGroupChildren{:}),'Tag'),'DummyLine'));
+                                    else
+                                        HasVisibleItem(chIdx) = false;
+                                    end
+                                end
+                                % Filter to only allow export of plots that
+                                % have children (at least one visible item
+                                % that is not a dummyline)
+                                TheseChildren = TheseChildren(HasVisibleItem);
+                            end
+                            
+                            if ~isempty(TheseChildren)
+                                % Call helper to copy axes and format
+                                printAxesHelper(obj,ThisAxes,SaveFilePath,obj.PlotSettings(index))                            
+                            end
                           
                         end % for
                     end %if

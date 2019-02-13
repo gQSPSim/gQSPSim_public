@@ -315,6 +315,15 @@ for axIndex = AxIndices(:)'
                 warning('Cannot draw legend')
             end
         else
+            Siblings = get(get(hAxes(axIndex),'Parent'),'Children');
+            IsLegend = strcmpi(get(Siblings,'Type'),'legend');
+            
+            if any(IsLegend)
+                if isvalid(Siblings(IsLegend))
+                    delete(Siblings(IsLegend));
+                end
+            end
+            
             hLegend{axIndex} = [];
             hLegendChildren{axIndex} = [];
         end
