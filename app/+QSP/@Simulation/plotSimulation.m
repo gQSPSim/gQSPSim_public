@@ -29,11 +29,10 @@ function [hSpeciesGroup,hDatasetGroup,hLegend,hLegendChildren] = plotSimulation(
 %% Turn on hold
 
 for index = 1:numel(hAxes)
-%     XLimMode{index} = get(hAxes(index),'XLimMode');
-%     YLimMode{index} = get(hAxes(index),'YLimMode');
+
     cla(hAxes(index));
     legend(hAxes(index),'off')    
-%     set(hAxes(index),'XLimMode',XLimMode{index},'YLimMode',YLimMode{index})
+
     set(hAxes(index),...
         'XLimMode',obj.PlotSettings(index).XLimMode,...
         'YLimMode',obj.PlotSettings(index).YLimMode);
@@ -129,12 +128,12 @@ SelectedItemColors = cell2mat(colors);
 for sIdx = 1:size(obj.PlotSpeciesTable,1)
     origAxIdx = str2double(obj.PlotSpeciesTable{sIdx,1});
     axIdx = origAxIdx;
-    ThisLineStyle = obj.PlotSpeciesTable{sIdx,2};
-    ThisName = obj.PlotSpeciesTable{sIdx,3};
-    ThisDisplayName = obj.PlotSpeciesTable{sIdx,4};
     if isempty(axIdx) || isnan(axIdx)
         axIdx = 1;
     end
+    ThisLineStyle = obj.PlotSpeciesTable{sIdx,2};
+    ThisName = obj.PlotSpeciesTable{sIdx,3};
+    ThisDisplayName = obj.PlotSpeciesTable{sIdx,4};
     
     for resultIdx = 1:numel(Results)
         % Plot the species from the simulation item in the appropriate
@@ -171,7 +170,7 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
             else
                 ThisParent = hAxes(axIdx);
             end
-            hSpeciesGroup{sIdx,axIdx} = hggroup('Parent',ThisParent,...
+            hSpeciesGroup{sIdx,axIdx} = hggroup(ThisParent,...
                 'Tag','Species',...
                 'DisplayName',regexprep(ThisDisplayName,'_','\\_'),...
                 'UserData',sIdx);
@@ -357,12 +356,12 @@ if any(MatchIdx)
         for dIdx = 1:size(obj.PlotDataTable,1)
             origAxIdx = str2double(obj.PlotDataTable{dIdx,1});
             axIdx = origAxIdx;
-            ThisMarker = obj.PlotDataTable{dIdx,2};
-            ThisName = obj.PlotDataTable{dIdx,3};
-            ThisDisplayName = obj.PlotDataTable{dIdx,4};
             if isempty(axIdx) || isnan(axIdx)
                 axIdx = 1;
             end
+            ThisMarker = obj.PlotDataTable{dIdx,2};
+            ThisName = obj.PlotDataTable{dIdx,3};
+            ThisDisplayName = obj.PlotDataTable{dIdx,4};            
             
             ColumnIdx = find(strcmp(OptimHeader,ThisName));
 
@@ -420,6 +419,8 @@ end %if any(MatchIdx)
 
 
 %% Legend
+
+% Force a drawnow, to avoid legend issues
 drawnow
 
 [hLegend,hLegendChildren] = updatePlots(obj,hAxes,hSpeciesGroup,hDatasetGroup);
