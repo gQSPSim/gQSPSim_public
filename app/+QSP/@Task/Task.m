@@ -408,9 +408,29 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 obj.ModelObj_ = QSP.Model.empty(0,1);
                 
             elseif ~isempty(MatchIdx)
-                % Assign to an existing model
-                obj.ModelObj_ = theseModels(MatchIdx);
+                % if the model is up-to-date then just use the existing
+                % model, otherwise reimport and update the stored model
                 
+                projectDir = dir(ProjectPath);
+                modelTimeStamp = projectDir.datenum;
+                
+                if theseModels(MatchIdx).ModelTimeStamp < modelTimeStamp
+                    % out of date and needs to be reimported
+                    thisObj = QSP.Model();
+                    [StatusOK,Message] = importModel(thisObj,ProjectPath,ModelName);
+                    % If import errors for 
+                    if StatusOK
+                        obj.ModelObj_ = thisObj;
+                        % Store into Settings
+                        obj.Session.Settings.Model(MatchIdx) = thisObj;
+                    else
+                        obj.ModelObj_ = QSP.Model.empty(0,1);
+                        Message = sprintf('%s\nError encountered while loading model.', Message);
+                    end
+                else
+                    % Assign to an existing model
+                    obj.ModelObj_ = theseModels(MatchIdx);
+                end
             else
                 % Create a new model
                 thisObj = QSP.Model();
