@@ -725,7 +725,7 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
             try
 
                 Interaction = e.Interaction;
-                Indices = e.Indices;
+                Indices = vObj.Data.SelectedProfileRow;
 
                 switch Interaction
                     case 'Add'
@@ -747,7 +747,7 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
                             vObj.Data.PlotProfile = QSP.Profile.empty(0,1);
                         end
 
-                        if size(vObj.h.SpeciesGroup,3) >=Indices
+                        if size(vObj.h.SpeciesGroup,3) >=Indices                            
                             delete([vObj.h.SpeciesGroup{:,:,Indices}]); % remove objects
                             vObj.h.SpeciesGroup(:,:,Indices) = []; % remove group
                         end
