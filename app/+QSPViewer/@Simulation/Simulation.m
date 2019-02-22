@@ -231,7 +231,7 @@ classdef Simulation < uix.abstract.CardViewPane
                 
             
             if ~isequal(vObj.Data.PlotSpeciesTable,[ThisData(:,1) ThisData(:,2) ThisData(:,3)]) || ...
-                    ColIdx == 2 || ColIdx == 4
+                    ColIdx == 1 || ColIdx == 2 || ColIdx == 4
                 
                 if ~isempty(RowIdx) && ColIdx == 2
                     NewLineStyle = ThisData{RowIdx,2};
@@ -263,6 +263,7 @@ classdef Simulation < uix.abstract.CardViewPane
                     vObj.h.AxesLegendChildren(AxIndices) = UpdatedAxesLegendChildren(AxIndices);
                     
                 elseif ColIdx == 4
+                    % Display Name
                     AxIndices = NewAxIdx;
                     if isempty(AxIndices)
                         AxIndices = 1:numel(vObj.h.MainAxes);
@@ -275,8 +276,7 @@ classdef Simulation < uix.abstract.CardViewPane
                     vObj.h.AxesLegendChildren(AxIndices) = UpdatedAxesLegendChildren(AxIndices);
                     
                 elseif ColIdx == 1
-                    % Need to handle if deselected or selected for the
-                    % first time! (need to run plotdata initially)
+                    % Plot axes
                     sIdx = RowIdx;
                     OldAxIdx = find(~cellfun(@isempty,vObj.h.SpeciesGroup(sIdx,:)),1,'first');
                     

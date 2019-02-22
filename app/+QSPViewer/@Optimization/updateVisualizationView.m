@@ -323,7 +323,7 @@ if ~isempty(vObj.Data)
         {vObj.Data.PlotProfile.Description}');
     
     % Loop over and italicize non-matches
-    [IsSourceMatch,IsRowEmpty,ThisProfileData] = i_importParametersSourceHelper(vObj);    
+    [IsSourceMatch,IsRowEmpty,ThisProfileData] = importParametersSourceHelper(vObj);    
     for rowIdx = 1:size(Summary,1)
         % Mark invalid if source parameters cannot be loaded
         if IsRowEmpty(rowIdx) && vObj.h.PlotHistoryTable.UseJTable
@@ -342,8 +342,10 @@ if ~isempty(vObj.Data)
         end
     end
 
-    ThisCallback = get(vObj.h.PlotHistoryTable,'CellSelectionCallback');
+    ThisSelectionCallback = get(vObj.h.PlotHistoryTable,'CellSelectionCallback');
+    ThisEditCallback = get(vObj.h.PlotHistoryTable,'CellEditCallback');
     set(vObj.h.PlotHistoryTable,'CellSelectionCallback',''); % Disable    
+    set(vObj.h.PlotHistoryTable,'CellEditCallback',''); % Disable    
     set(vObj.h.PlotHistoryTable,...
         'Data',Summary,...
         'ColumnName',{'Run','Show','Source','Description'},...
@@ -353,7 +355,9 @@ if ~isempty(vObj.Data)
     if ~isempty(Summary)
         set(vObj.h.PlotHistoryTable,'SelectedRows',vObj.Data.SelectedProfileRow);
     end
-    set(vObj.h.PlotHistoryTable,'CellSelectionCallback',ThisCallback); % Restore
+    set(vObj.h.PlotHistoryTable,...
+        'CellSelectionCallback',ThisSelectionCallback,...
+        'CellEditCallback',ThisEditCallback); % Restore
 
 else
     set(vObj.h.PlotHistoryTable,...
@@ -386,127 +390,15 @@ else
     set(vObj.h.PlotParametersTable,'Enable','off');
 end
 
+
+
 % Parameters Table
-if ~isempty(ThisProfileData) && size(ThisProfileData,2)==3
-    
-    % Mark the rows that are edited (column 2 does not equal column 3)
-    if ispc
-        italCols = 1:size(ThisProfileData,2);
-    else
-        italCols = 1;
-    end
-    
-    for rowIdx = 1:size(ThisProfileData,1)
-        tmp1 = ThisProfileData{rowIdx,2};
-        tmp2 = ThisProfileData{rowIdx,3};
-        if ischar(tmp1), tmp1=str2num(tmp1); end
-        if ischar(tmp2), tmp2=str2num(tmp2); end
-        
-        if ~isequal(tmp1, tmp2)
-            for colIdx = italCols
-                ThisProfileData{rowIdx,colIdx} = QSP.makeItalicized(ThisProfileData{rowIdx,colIdx});
-            end
-        end
-    end
-    
-    set(vObj.h.PlotParametersTable,...
-        'Data',ThisProfileData,...
-        'ColumnName',{'Parameter','Value','Source Value'},...
-        'ColumnFormat',{'char','float','float'},...
-        'ColumnEditable',[false,true,false], ...
-        'LabelString', sprintf('Parameters (Run = %d)', vObj.Data.SelectedProfileRow));
-else
-    set(vObj.h.PlotParametersTable,...
-        'Data',cell(0,3),...
-        'ColumnName',{'Parameter','Value','Source Value'},...
-        'ColumnFormat',{'char','float','float'},...
-        'ColumnEditable',[false,true,false], ...
-        'LabelString', sprintf('Parameters'));
-end
+updateVisualizationParametersTable(vObj,ThisProfileData);
 
 
+%% Update selected profile
 
-%% Update plot
-
-updateVisualizationPlot(vObj);
+updateVisualizationSelectedProfile(vObj);
 
 
 %--------------------------------------------------------------------------
-function [IsSourceMatch,IsRowEmpty,SelectedProfileData] = i_importParametersSourceHelper(vObj)
-
-UniqueSourceNames = unique({vObj.Data.PlotProfile.Source});
-UniqueSourceData = cell(1,numel(UniqueSourceNames));
-
-% First import just the unique sources
-for index = 1:numel(UniqueSourceNames)
-    % Get values
-    [StatusOk,Message,SourceData] = importParametersSource(vObj.Data,UniqueSourceNames{index});
-    if StatusOk
-        [~,order] = sort(upper(SourceData(:,1)));
-        UniqueSourceData{index} = SourceData(order,:);
-    else
-        UniqueSourceData{index} = cell(0,2);
-        hDlg = errordlg(Message,'Parameter Import Failed','modal');
-        uiwait(hDlg);
-    end
-end
-
-% Exclude species from the parameters table
-% idxSpecies = vObj.Data.
-
-
-% Return which profile rows are different and return the selected profile
-% row's data
-nProfiles = numel(vObj.Data.PlotProfile);
-IsSourceMatch = true(1,nProfiles);
-IsRowEmpty = false(1,nProfiles);
-for index = 1:nProfiles
-    ThisProfile = vObj.Data.PlotProfile(index);
-    ThisProfileValues = ThisProfile.Values; % Already sorted
-    uIdx = ismember(UniqueSourceNames,ThisProfile.Source);
-    
-    if ~isequal(ThisProfileValues,UniqueSourceData{uIdx})
-        IsSourceMatch(index) = false;
-    end
-    if isempty(UniqueSourceData{uIdx})
-        IsRowEmpty(index) = true;
-    end
-end
-
-if ~isempty(vObj.Data.SelectedProfileRow)
-    try
-        SelectedProfile = vObj.Data.PlotProfile(vObj.Data.SelectedProfileRow);
-    catch thisError
-        warning(thisError.message);
-        SelectedProfileData = [];
-        return
-    end
-        
-        
-    uIdx = ismember(UniqueSourceNames,SelectedProfile.Source);
-    
-    % Store - names, user's values, source values
-%     SelectedProfileData = cell(size(UniqueSourceData{uIdx},1),3);
-%     SelectedProfileData(1:size(SelectedProfile.Values,1),1:2) = Values;
-    
-    SelectedProfileData = SelectedProfile.Values;
-    if ~isempty(UniqueSourceData{uIdx})
-        % get matching values in the source
-        missing = find(~cellfun(@ischar, SelectedProfileData(:,1)));
-        SelectedProfileData(missing,:) = [];
-        [hMatch,MatchIdx] = ismember(SelectedProfileData(:,1), UniqueSourceData{uIdx}(:,1));
-%         SelectedProfileData = SelectedProfileData(hMatch,:);
-        SelectedProfileData(hMatch,3) = UniqueSourceData{uIdx}(MatchIdx(hMatch),end);
-        [~,index] = sort(upper(SelectedProfileData(:,1)));
-        SelectedProfileData = SelectedProfileData(index,:);
-
-%         for idx = 1:size(SelectedProfileData,1)
-%             MatchIdx = ismember(UniqueSourceData{uIdx}(:,1),SelectedProfileData{idx,1});
-%             if any(MatchIdx)                
-%                 SelectedProfileData{idx,3} = UniqueSourceData{uIdx}{MatchIdx,end};
-%             end
-%         end
-    end
-else
-    SelectedProfileData = cell(0,3);
-end

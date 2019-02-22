@@ -174,9 +174,9 @@ for axIndex = AxIndices(:)'
                 SelectedUserData = vertcat(SelectedUserData{:});
             end
             % Find only unique entries (by [sIdx, itemIdx] combinations)
-            [~,RowIdx] = unique(SelectedUserData,'rows');
+            [~,UniqueIdx] = unique(SelectedUserData,'rows');
             
-            for thisIdx = RowIdx(:)'
+            for thisIdx = UniqueIdx(:)'
                 % Extract sIdx and itemIdx from UserData
                 ThisUserData = SelectedUserData(thisIdx,:);
                 sIdx = ThisUserData(1);
@@ -207,7 +207,7 @@ for axIndex = AxIndices(:)'
     end
     
     % Set DataGroup - DisplayName
-    SelectedUserData = get(TheseDataGroups,'UserData'); % Just sIdx
+    SelectedUserData = get(TheseDataGroups,'UserData'); % Just dIdx
     if iscell(SelectedUserData)
         SelectedUserData = vertcat(SelectedUserData{:});
     end
@@ -235,7 +235,7 @@ for axIndex = AxIndices(:)'
         
         TheseChildren = ch(~IsDummyLine);
         
-        % Process species related content
+        % Process dataset related content
         if ~isempty(TheseChildren)
             
             % Get user data
@@ -244,9 +244,9 @@ for axIndex = AxIndices(:)'
                 SelectedUserData = vertcat(SelectedUserData{:});
             end
             % Find only unique entries (by [sIdx, itemIdx] combinations)
-            [~,RowIdx] = unique(SelectedUserData,'rows');
+            [~,UniqueIdx] = unique(SelectedUserData,'rows');
             
-            for thisIdx = RowIdx(:)'
+            for thisIdx = UniqueIdx(:)'
                 % Extract sIdx and itemIdx from UserData
                 ThisUserData = SelectedUserData(thisIdx,:);
                 dIdx = ThisUserData(1);
@@ -295,8 +295,7 @@ for axIndex = AxIndices(:)'
         end
         
         if ~isempty(LegendItems)
-            try
-                
+            try 
                 % Add legend
                 [hLegend{axIndex},hLegendChildren{axIndex}] = legend(hAxes(axIndex),LegendItems);
                 
