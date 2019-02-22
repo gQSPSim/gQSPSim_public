@@ -178,14 +178,14 @@ classdef VirtualPopulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 if ~isempty(MatchPW)
                     MatchPW = MatchPW(1);
                     PWWeights = Data(:,MatchPW);
-                    if abs(sum(PWWeights) - 1) < 1e-12
-                        PrevalenceWeights = PWWeights;
-                        obj.PrevalenceWeightsStr = 'yes';
-                    else
-                        warning(sprintf('Prevalence weights do not sum to 1. Ignorning prevalence weights for file %s',obj.Name)); %#ok<SPWRN>
-                        PrevalenceWeights = zeros(0,1);
-                        obj.PrevalenceWeightsStr = 'no';
-                    end
+%                     if abs(sum(PWWeights) - 1) < 1e-5
+%                         PrevalenceWeights = PWWeights;
+%                         obj.PrevalenceWeightsStr = 'yes';
+%                     else
+%                         warning(sprintf('Prevalence weights do not sum to 1. Ignorning prevalence weights for file %s',obj.Name)); %#ok<SPWRN>
+%                         PrevalenceWeights = zeros(0,1);
+%                         obj.PrevalenceWeightsStr = 'no';
+%                     end
                 else
                     PrevalenceWeights = zeros(0,1);
                     obj.PrevalenceWeightsStr = 'no';
