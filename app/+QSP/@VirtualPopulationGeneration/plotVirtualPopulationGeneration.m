@@ -39,12 +39,16 @@ for index = 1:numel(hAxes)
         'XLimMode',obj.PlotSettings(index).XLimMode,...
         'YLimMode',obj.PlotSettings(index).YLimMode);
     if strcmpi(obj.PlotSettings(index).XLimMode,'manual')
+        tmp = obj.PlotSettings(index).CustomXLim;
+        if ischar(tmp), tmp=str2num(tmp); end
         set(hAxes(index),...
-            'XLim',obj.PlotSettings(index).CustomXLim);
+            'XLim',tmp);        
     end
     if strcmpi(obj.PlotSettings(index).YLimMode,'manual')
+        tmp = obj.PlotSettings(index).CustomYLim;
+        if ischar(tmp), tmp=str2num(tmp); end
         set(hAxes(index),...
-            'YLim',obj.PlotSettings(index).CustomYLim);
+            'YLim',tmp);        
     end
     
     hold(hAxes(index),'on')    
