@@ -215,7 +215,10 @@ toc
 thisAlg = obj.MethodName;
 
 if strcmp(thisAlg, 'Maximum likelihood')
-    PW = computePW_MLE(dataMatrix,Y);    
+%     PW = computePW_MLE(dataMatrix,Y);    
+    redistributePW = false; % TODO this should be abstracted/exposed in UI
+    PW = computePW_MLE(dataMatrix,Y,diag(0.1 * abs(Y) + 1e-3),round(0.1*size(Y,2)), redistributePW);    
+
 elseif strcmp(thisAlg, 'Bayesian')
     disp('pass')
 end
