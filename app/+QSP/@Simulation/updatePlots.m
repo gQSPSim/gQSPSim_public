@@ -62,11 +62,16 @@ for axIndex = AxIndices(:)'
     
     % Get all children
     TheseSpeciesGroups = [hSpeciesGroup{:,axIndex}];
-    ch = get(TheseSpeciesGroups,'Children');
-    if iscell(ch)
-        ch = vertcat(ch{:});
+
+    try
+        ch = get(TheseSpeciesGroups,'Children');
+        if iscell(ch)
+            ch = vertcat(ch{:});
+        end
+    catch err      
+        warning(err.message)
+        return
     end
-    
     
     % Set SpeciesGroup - DisplayName
     SelectedUserData = get(TheseSpeciesGroups,'UserData'); % Just sIdx
