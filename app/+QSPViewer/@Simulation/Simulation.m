@@ -529,6 +529,10 @@ classdef Simulation < uix.abstract.CardViewPane
                     TheseGroups = [vObj.h.SpeciesGroup{:}];
                     for index = 1:numel(TheseGroups)
                         ThisGroup = TheseGroups(index);
+                        if ~isvalid(ThisGroup)
+                            warning('Encountered deleted handle')
+                            return
+                        end
                         TheseChildren = get(ThisGroup,'Children');
                         KeepIdx = ~strcmpi(get(TheseChildren,'Tag'),'DummyLine');
                         TheseChildren = TheseChildren(KeepIdx);
