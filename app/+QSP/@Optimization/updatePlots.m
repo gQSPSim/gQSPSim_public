@@ -206,7 +206,8 @@ for axIndex = AxIndices(:)'
             for thisIdx = UniqueIdx(:)'
                 % Extract sIdx and itemIdx from UserData
                 ThisUserData = SelectedUserData(thisIdx,:);
-                dIdx = ThisUserData(1);                
+                dIdx = ThisUserData(1);    
+                itemIdx = ThisUserData(2);
                 
                 % Now create formatted display name
                 ThisDisplayName = obj.PlotSpeciesTable{dIdx,5};
