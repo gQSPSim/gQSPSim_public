@@ -39,12 +39,16 @@ for index = 1:numel(hAxes)
         'XLimMode',obj.PlotSettings(index).XLimMode,...
         'YLimMode',obj.PlotSettings(index).YLimMode);
     if strcmpi(obj.PlotSettings(index).XLimMode,'manual')
+        tmp = obj.PlotSettings(index).CustomXLim;
+        if ischar(tmp), tmp = str2num(tmp); end         %#ok<ST2NM>
         set(hAxes(index),...
-            'XLim',obj.PlotSettings(index).CustomXLim);
+            'XLim',tmp);
     end
     if strcmpi(obj.PlotSettings(index).YLimMode,'manual')
+        tmp = obj.PlotSettings(index).CustomYLim;
+        if ischar(tmp), tmp = str2num(tmp); end         %#ok<ST2NM>
         set(hAxes(index),...
-            'YLim',obj.PlotSettings(index).CustomYLim);
+            'YLim',tmp);
     end
     
     hold(hAxes(index),'on')    
@@ -366,7 +370,9 @@ if strcmp(obj.PlotType, 'Normal') && ~isempty(Results)
                     % Only allow one display name - don't attach to
                     % traces and quantiles and instead attach to mean
                     % line
-                    set(hThis(1),'DisplayName',regexprep(sprintf('%s [Sim]',FullDisplayName),'_','\\_')); % For export, use patch since line width is not applied
+                    if ~isempty(hThis)
+                        set(hThis(1),'DisplayName',regexprep(sprintf('%s [Sim]',FullDisplayName),'_','\\_')); % For export, use patch since line width is not applied
+                    end
                     
                     if any(ixMeanStd)
                         errorbar(times(ixMeanStd), val1(ixMeanStd), val2(ixMeanStd), 'o', 'Color', SelectedItemColors(itemIdx,:));
