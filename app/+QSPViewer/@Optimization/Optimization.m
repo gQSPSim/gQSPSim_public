@@ -588,23 +588,31 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
                     % If originally not plotted
                     if isempty(OldAxIdx) && ~isempty(NewAxIdx)
                         vObj.h.SpeciesGroup(sIdx,NewAxIdx,:) = vObj.h.SpeciesGroup(sIdx,1,:);
+                        vObj.h.DatasetGroup(sIdx,NewAxIdx) = vObj.h.DatasetGroup(sIdx,1);
                         % Parent
                         set([vObj.h.SpeciesGroup{sIdx,NewAxIdx,:}],'Parent',vObj.h.MainAxes(NewAxIdx));
+                        set([vObj.h.DatasetGroup{sIdx,NewAxIdx}],'Parent',vObj.h.MainAxes(NewAxIdx));
                     elseif ~isempty(OldAxIdx) && isempty(NewAxIdx)
                         vObj.h.SpeciesGroup(sIdx,1,:) = vObj.h.SpeciesGroup(sIdx,OldAxIdx,:);
+                        vObj.h.DatasetGroup(sIdx,1) = vObj.h.DatasetGroup(sIdx,OldAxIdx);
                         % Un-parent
                         set([vObj.h.SpeciesGroup{sIdx,1,:}],'Parent',matlab.graphics.GraphicsPlaceholder.empty());
+                        set([vObj.h.DatasetGroup{sIdx,1}],'Parent',matlab.graphics.GraphicsPlaceholder.empty());
                         if OldAxIdx ~= 1
                             ThisSize = size(vObj.h.SpeciesGroup(sIdx,OldAxIdx,:));
                             vObj.h.SpeciesGroup(sIdx,OldAxIdx,:) = cell(ThisSize);
+                            vObj.h.DatasetGroup{sIdx,OldAxIdx} = [];
                         end
                     elseif ~isempty(OldAxIdx) && ~isempty(NewAxIdx)
                         vObj.h.SpeciesGroup(sIdx,NewAxIdx,:) = vObj.h.SpeciesGroup(sIdx,OldAxIdx,:);
+                        vObj.h.DatasetGroup(sIdx,NewAxIdx) = vObj.h.DatasetGroup(sIdx,OldAxIdx);
                         % Re-parent
                         set([vObj.h.SpeciesGroup{sIdx,NewAxIdx,:}],'Parent',vObj.h.MainAxes(NewAxIdx)); 
+                        set([vObj.h.DatasetGroup{sIdx,NewAxIdx}],'Parent',vObj.h.MainAxes(NewAxIdx)); 
                         if OldAxIdx ~= NewAxIdx
                             ThisSize = size(vObj.h.SpeciesGroup(sIdx,OldAxIdx,:));
                             vObj.h.SpeciesGroup(sIdx,OldAxIdx,:) = cell(ThisSize);
+                            vObj.h.DatasetGroup{sIdx,OldAxIdx} = [];
                         end
                     end
                     
