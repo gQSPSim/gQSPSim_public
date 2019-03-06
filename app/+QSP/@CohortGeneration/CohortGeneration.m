@@ -196,7 +196,7 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             end
             
             if isempty(obj.ICFileName)
-                obj.ICFileName = 'N/A';
+                obj.ICFileName = '';
             else
                 obj.ICFileName = obj.ICFileName;
             end

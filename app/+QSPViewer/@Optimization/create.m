@@ -261,8 +261,11 @@ vObj.h.PlotParametersTable = uix.widget.MultiPlatformTable(...
     'CellEditCallback',@(h,e)onParametersTablePlot(vObj,h,e));
 
 % Save as button
+
 vObj.h.PlotParametersTableButtonLayout = uix.VBox(...
     'Parent',vObj.h.PlotParametersTableLayout);
+
+uiextras.Empty( 'Parent', vObj.h.PlotParametersTableButtonLayout );
 
 Icon_reset = uix.utility.loadIcon('reset_24.png');
 vObj.h.ResetVPopButton = uicontrol(...
@@ -280,7 +283,7 @@ vObj.h.SaveAsVPopButton = uicontrol(...
     'Parent',vObj.h.PlotParametersTableButtonLayout,...
     'Callback',@(h,e)onSaveParametersAsVPopButton(vObj,h,e));
 uix.Empty('Parent',vObj.h.PlotParametersTableButtonLayout);
-vObj.h.PlotParametersTableButtonLayout.Heights = [30 30 -1];
+vObj.h.PlotParametersTableButtonLayout.Heights = [30 30 30 -1];
     
 vObj.h.PlotParametersTableLayout.Widths = [-1 30];
 
