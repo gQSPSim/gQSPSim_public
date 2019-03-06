@@ -226,5 +226,5 @@ vObj.h.PlotItemsTable = uix.widget.MultiPlatformTable(...
     'CellEditCallback',@(h,e)onItemsTablePlot(vObj,h,e));
 
 % Sizes
-VisualizationLayout.Heights = [30 -1 30 -1];
+VisualizationLayout.Heights = [150 30 -1];
 
