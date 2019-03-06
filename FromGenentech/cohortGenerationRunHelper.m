@@ -99,20 +99,20 @@ if ~isempty(paramHeader) && ~isempty(paramData)
     LB_params = cell2mat(paramData(:,strcmp('LB',paramHeader)));
     UB_params = cell2mat(paramData(:,strcmp('UB',paramHeader)));
     
-    if isempty(find(strcmp('Dist',paramHeader)==1)) == 0
-        Dist = paramData(:,strcmp('Dist',paramHeader));
+    if isempty(find(strcmpi('Dist',paramHeader)==1)) == 0
+        Dist = paramData(:,strcmpi('Dist',paramHeader));
     else 
         Dist = cell(length(LB_params),1); 
         Dist(:) = {'uniform'}; %If empty, uniform distribution 
     end
-    if isempty(find(strcmp('CV',paramHeader)==1)) == 0
-        CV_params = cell2mat(paramData(:,strcmp('CV',paramHeader))); %MES add 2/14/2019
+    if isempty(find(strcmpi('CV',paramHeader)==1)) == 0
+        CV_params = cell2mat(paramData(:,strcmpi('CV',paramHeader))); %MES add 2/14/2019
     else
         CV_params = zeros(length(LB_params),1); 
     end
     
-    useParam = paramData(:,strcmp('Include',paramHeader));
-    p0 = cell2mat(paramData(:,strcmp('P0_1',paramHeader))); % MES edit to search header instead of column number 
+    useParam = paramData(:,strcmpi('Include',paramHeader));
+    p0 = cell2mat(paramData(:,strcmpi('P0_1',paramHeader))); % MES edit to search header instead of column number 
     if isempty(useParam)
         useParam = repmat('yes',size(paramNames));
     end
@@ -260,7 +260,11 @@ while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients
         param_candidate(normInds) = param_candidate_norm(normInds); %MES edit 2/13 
 
     elseif strcmp(obj.Method, 'MCMC')
+
         param_candidate = param_candidate_old + (UB-LB).*(2*rand(size(LB))-1)*tune_param;
+        param_candidate_norm = param_candidate_old + CV.*my_randn(nSim,:)'*tune_param;
+        param_candidate(normInds) = param_candidate_norm(normInds); %MES edit 2/13 
+        
     end
     
     param_candidate = max(param_candidate, LB); param_candidate = min(param_candidate, UB);
