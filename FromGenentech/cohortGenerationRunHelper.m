@@ -95,14 +95,24 @@ if ~isempty(paramHeader) && ~isempty(paramData)
     
     paramNames = paramData(:,strcmp('Name',paramHeader));
     Scale = paramData(:,strcmp('Scale',paramHeader));
+    
     LB_params = cell2mat(paramData(:,strcmp('LB',paramHeader)));
     UB_params = cell2mat(paramData(:,strcmp('UB',paramHeader)));
     
-
-    
+    if isempty(find(strcmp('Dist',paramHeader)==1)) == 0
+        Dist = paramData(:,strcmp('Dist',paramHeader));
+    else 
+        Dist = cell(length(LB_params),1); 
+        Dist(:) = {'uniform'}; %If empty, uniform distribution 
+    end
+    if isempty(find(strcmp('CV',paramHeader)==1)) == 0
+        CV_params = cell2mat(paramData(:,strcmp('CV',paramHeader))); %MES add 2/14/2019
+    else
+        CV_params = zeros(length(LB_params),1); 
+    end
     
     useParam = paramData(:,strcmp('Include',paramHeader));
-    p0 = cell2mat(paramData(:,6)); % NOTE: assumes in column 6!
+    p0 = cell2mat(paramData(:,strcmp('P0_1',paramHeader))); % MES edit to search header instead of column number 
     if isempty(useParam)
         useParam = repmat('yes',size(paramNames));
     end
@@ -114,6 +124,8 @@ if ~isempty(paramHeader) && ~isempty(paramData)
     
     LB = LB_params(useParam);
     UB = UB_params(useParam);
+    CV = CV_params(useParam);
+    P0_1 = p0(useParam);
     
     if any(isnan(LB) | isnan(UB))
         StatusOK = false;
@@ -218,8 +230,13 @@ logInds = strcmp(Scale, 'log');
 tmp(logInds) = log10(tmp(logInds));
 logInds = logInds(useParam);
 
+%% MES 2/13: indicate the indices that require normal distribution
+normInds = strcmp(Dist, 'norm'); 
+normInds = normInds(useParam); 
+%%
+
 param_candidate_old = tmp(useParam);
-tune_param = 0.15; % percent of interval
+tune_param = obj.MCMCTuningParam; % percent of interval
 
 P = param_candidate_old;
 if any(P<LB | P>UB)
@@ -228,21 +245,26 @@ end
 
 bCancelled = false;
 
-useMarkov = false;
+% quick fix to include normal distribution 
+%Preallocate the normally distributed random number:
+my_randn = randn(obj.MaxNumSimulations, length(P)); 
 
 while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients
     nSim = nSim+1; % tic up the number of simulations
     
-    % produce sample uniformly sampled between LB & UB
-    if useMarkov
-        param_candidate = param_candidate_old + (UB-LB).*(2*rand(size(LB))-1)*tune_param;
-    else
+    if strcmp(obj.Method, 'Distribution')
+        % produce sample uniformly sampled between LB & UB
+
         param_candidate = unifrnd(LB,UB);
+        param_candidate_norm = P0_1 + CV.*P0_1.*my_randn(nSim,:)'; %MES edit 2/13
+        param_candidate(normInds) = param_candidate_norm(normInds); %MES edit 2/13 
+
+    elseif strcmp(obj.Method, 'MCMC')
+        param_candidate = param_candidate_old + (UB-LB).*(2*rand(size(LB))-1)*tune_param;
     end
     
+    param_candidate = max(param_candidate, LB); param_candidate = min(param_candidate, UB);
     P = param_candidate;
-    P = max(P, LB);
-    P = min(P, UB);
     
     P(logInds) = 10.^P(logInds);
     Values0 = [P; fixedParams];
@@ -457,10 +479,12 @@ if nPat == 0
     bProceed = questdlg('No valid virtual patients generated. Save virtual cohort?', 'Save virtual cohort?', 'No');
     if strcmp(bProceed,'Yes')
         StatusOK = true;
+        bProceed = true;   %MES 2/22- added this to allow save vpop if statement to work
     else
         StatusOK = false;
         ThisMessage = 'No virtual patients generated.';
         Message = sprintf('%s\n%s\n',Message,ThisMessage);
+        bProceed = false;  %MES 2/22- added this to allow save vpop if statement to work
     end
 end
 
