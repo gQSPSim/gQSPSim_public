@@ -490,11 +490,7 @@ if nPat == 0
         Message = sprintf('%s\n%s\n',Message,ThisMessage);
         bProceed = false;  %MES 2/22- added this to allow save vpop if statement to work
     end
-end
-
-% Save the Vpop
-
-if bCancelled
+elseif bCancelled
     bProceed = questdlg('Cohort generation cancelled. Save virtual cohort?', 'Save virtual cohort?', 'No');
     if strcmp(bProceed,'Yes')      
         bProceed = true;
