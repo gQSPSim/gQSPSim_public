@@ -203,7 +203,7 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
                 'Last Saved',obj.LastSavedTimeStr;
                 'Description',obj.Description;
                 'Results Path',obj.VPopResultsFolderName;
-                'Dataset',obj.DatasetName;
+                'Cohort used',obj.DatasetName;
                 'Group Name',obj.GroupName;
                 'Items',VPopGenItems;
                 'Species-data mapping',SpeciesDataItems;
