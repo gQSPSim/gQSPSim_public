@@ -44,6 +44,8 @@ hWbar1 = uix.utility.CustomWaitbar(0,Title1,'',false);
 nBuildItems = options.nBuildItems;
 nRunItems = options.nRunItems;
 
+validRunItems = true(1,nRunItems);
+
 if ~isempty(options.ItemModels)
     % Item Models were already built and just need to be resimulated
     ItemModels = options.ItemModels;
@@ -63,11 +65,13 @@ else
         taskObj = obj.Settings.Task(strcmp(taskName,options.allTaskNames));
         [ThisStatusOK,ThisMessage] = validate(taskObj,false);        
         if isempty(taskObj)
+            validRunItems(ii) = false;
             continue
         elseif ~ThisStatusOK
             StatusOK = false;
             ThisMessage = sprintf('Error loading task "%s". Skipping [%s]...', taskName,ThisMessage);
             Message = sprintf('%s\n%s\n',Message,ThisMessage);
+            validRunItems(ii) = false;            
     %         continuesim
         end
 
@@ -136,8 +140,9 @@ if ~isempty(ItemModels)
 
     % update simulation time stamp
     updateLastSavedTime(obj);
-
-    for ii = 1:nRunItems
+    runItems = find(validRunItems); % only those for which no error was produced during model compilation/configuration
+    
+    for ii = runItems
         ItemModel = ItemModels(options.runIndices(ii));
         if ~StatusOK % interrupted
             break
