@@ -97,6 +97,91 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
     %notify(obj, 'DataEdited', <eventdata>);
     
     
+    %% Methods
+    
+    methods (Access=protected)
+        function [IsSourceMatch,IsRowEmpty,SelectedProfileData] = importParametersSourceHelper(vObj)
+            
+            UniqueSourceNames = unique({vObj.Data.PlotProfile.Source});
+            UniqueSourceData = cell(1,numel(UniqueSourceNames));
+            
+            % First import just the unique sources
+            for index = 1:numel(UniqueSourceNames)
+                % Get values
+                [StatusOk,Message,SourceData] = importParametersSource(vObj.Data,UniqueSourceNames{index});
+                if StatusOk
+                    [~,order] = sort(upper(SourceData(:,1)));
+                    UniqueSourceData{index} = SourceData(order,:);
+                else
+                    UniqueSourceData{index} = cell(0,2);
+                    hDlg = errordlg(Message,'Parameter Import Failed','modal');
+                    uiwait(hDlg);
+                end
+            end
+            
+            % Exclude species from the parameters table
+            % idxSpecies = vObj.Data.
+            
+            
+            % Return which profile rows are different and return the selected profile
+            % row's data
+            nProfiles = numel(vObj.Data.PlotProfile);
+            IsSourceMatch = true(1,nProfiles);
+            IsRowEmpty = false(1,nProfiles);
+            for index = 1:nProfiles
+                ThisProfile = vObj.Data.PlotProfile(index);
+                ThisProfileValues = ThisProfile.Values; % Already sorted
+                uIdx = ismember(UniqueSourceNames,ThisProfile.Source);
+                
+                if ~isequal(ThisProfileValues,UniqueSourceData{uIdx})
+                    IsSourceMatch(index) = false;
+                end
+                if isempty(UniqueSourceData{uIdx})
+                    IsRowEmpty(index) = true;
+                end
+            end
+            
+            if ~isempty(vObj.Data.SelectedProfileRow)
+                try
+                    SelectedProfile = vObj.Data.PlotProfile(vObj.Data.SelectedProfileRow);
+                catch thisError
+                    warning(thisError.message);
+                    SelectedProfileData = [];
+                    return
+                end
+                
+                
+                uIdx = ismember(UniqueSourceNames,SelectedProfile.Source);
+                
+                % Store - names, user's values, source values
+                %     SelectedProfileData = cell(size(UniqueSourceData{uIdx},1),3);
+                %     SelectedProfileData(1:size(SelectedProfile.Values,1),1:2) = Values;
+                
+                SelectedProfileData = SelectedProfile.Values;
+                if ~isempty(UniqueSourceData{uIdx})
+                    % get matching values in the source
+                    missing = find(~cellfun(@ischar, SelectedProfileData(:,1)));
+                    SelectedProfileData(missing,:) = [];
+                    [hMatch,MatchIdx] = ismember(SelectedProfileData(:,1), UniqueSourceData{uIdx}(:,1));
+                    %         SelectedProfileData = SelectedProfileData(hMatch,:);
+                    SelectedProfileData(hMatch,3) = UniqueSourceData{uIdx}(MatchIdx(hMatch),end);
+                    [~,index] = sort(upper(SelectedProfileData(:,1)));
+                    SelectedProfileData = SelectedProfileData(index,:);
+                    
+                    %         for idx = 1:size(SelectedProfileData,1)
+                    %             MatchIdx = ismember(UniqueSourceData{uIdx}(:,1),SelectedProfileData{idx,1});
+                    %             if any(MatchIdx)
+                    %                 SelectedProfileData{idx,3} = UniqueSourceData{uIdx}{MatchIdx,end};
+                    %             end
+                    %         end
+                end
+            else
+                SelectedProfileData = cell(0,3);
+            end
+            
+        end
+    end %methods
+    
     %% Methods from CardViewPane
     methods
        function onPlotConfigChange(obj,h,e)
@@ -436,8 +521,13 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
             
             h.SelectedRows = RowIdx;
             
+            NewAxIdx = str2double(ThisData{RowIdx,1});
+            if isnan(NewAxIdx)
+                NewAxIdx = [];
+            end
+            
             if ~isequal(vObj.Data.PlotSpeciesTable,[ThisData(:,1) ThisData(:,2) ThisData(:,3) ThisData(:,4)]) || ...
-                    ColIdx == 2 || ColIdx == 5
+                    ColIdx == 1 || ColIdx == 2 || ColIdx == 5
                 
                 if ~isempty(RowIdx) && ColIdx == 2
                     NewLineStyle = ThisData{RowIdx,2};
@@ -465,17 +555,78 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
                             HasLineStyle = isprop(Ch,'LineStyle');
                             set(Ch(HasLineStyle),'LineStyle',vObj.Data.PlotSpeciesTable{sIdx,2});
                         end
-                    end   
-                    [vObj.h.AxesLegend,vObj.h.AxesLegendChildren] = updatePlots(vObj.Data,vObj.h.MainAxes,vObj.h.SpeciesGroup,vObj.h.DatasetGroup);
-                elseif ColIdx == 1 || ColIdx == 5
+                    end
+                    AxIndices = NewAxIdx;
+                    if isempty(AxIndices)
+                        AxIndices = 1:numel(vObj.h.MainAxes);
+                    end
+                    % Redraw legend
+                    [UpdatedAxesLegend,UpdatedAxesLegendChildren] = updatePlots(...
+                        vObj.Data,vObj.h.MainAxes,vObj.h.SpeciesGroup,vObj.h.DatasetGroup,...
+                        'AxIndices',AxIndices);
+                    vObj.h.AxesLegend(AxIndices) = UpdatedAxesLegend(AxIndices);
+                    vObj.h.AxesLegendChildren(AxIndices) = UpdatedAxesLegendChildren(AxIndices);
                     
-                    % Plot
-                    plotData(vObj);
+                elseif ColIdx == 5  
+                    % Display Name
+                    AxIndices = NewAxIdx;
+                    if isempty(AxIndices)
+                        AxIndices = 1:numel(vObj.h.MainAxes);
+                    end
+                    % Redraw legend
+                    [UpdatedAxesLegend,UpdatedAxesLegendChildren] = updatePlots(...
+                        vObj.Data,vObj.h.MainAxes,vObj.h.SpeciesGroup,vObj.h.DatasetGroup,...
+                        'AxIndices',AxIndices);
+                    vObj.h.AxesLegend(AxIndices) = UpdatedAxesLegend(AxIndices);
+                    vObj.h.AxesLegendChildren(AxIndices) = UpdatedAxesLegendChildren(AxIndices);
                     
-                    % Update the view
-                    updateVisualizationView(vObj);
-
-                end
+                elseif ColIdx == 1 
+                    % Plot axes
+                    sIdx = RowIdx;
+                    OldAxIdx = find(~cellfun(@isempty,vObj.h.SpeciesGroup(sIdx,:)),1,'first');
+                    
+                    % If originally not plotted
+                    if isempty(OldAxIdx) && ~isempty(NewAxIdx)
+                        vObj.h.SpeciesGroup(sIdx,NewAxIdx,:) = vObj.h.SpeciesGroup(sIdx,1,:);
+                        vObj.h.DatasetGroup(sIdx,NewAxIdx) = vObj.h.DatasetGroup(sIdx,1);
+                        % Parent
+                        set([vObj.h.SpeciesGroup{sIdx,NewAxIdx,:}],'Parent',vObj.h.MainAxes(NewAxIdx));
+                        set([vObj.h.DatasetGroup{sIdx,NewAxIdx}],'Parent',vObj.h.MainAxes(NewAxIdx));
+                    elseif ~isempty(OldAxIdx) && isempty(NewAxIdx)
+                        vObj.h.SpeciesGroup(sIdx,1,:) = vObj.h.SpeciesGroup(sIdx,OldAxIdx,:);
+                        vObj.h.DatasetGroup(sIdx,1) = vObj.h.DatasetGroup(sIdx,OldAxIdx);
+                        % Un-parent
+                        set([vObj.h.SpeciesGroup{sIdx,1,:}],'Parent',matlab.graphics.GraphicsPlaceholder.empty());
+                        set([vObj.h.DatasetGroup{sIdx,1}],'Parent',matlab.graphics.GraphicsPlaceholder.empty());
+                        if OldAxIdx ~= 1
+                            ThisSize = size(vObj.h.SpeciesGroup(sIdx,OldAxIdx,:));
+                            vObj.h.SpeciesGroup(sIdx,OldAxIdx,:) = cell(ThisSize);
+                            vObj.h.DatasetGroup{sIdx,OldAxIdx} = [];
+                        end
+                    elseif ~isempty(OldAxIdx) && ~isempty(NewAxIdx)
+                        vObj.h.SpeciesGroup(sIdx,NewAxIdx,:) = vObj.h.SpeciesGroup(sIdx,OldAxIdx,:);
+                        vObj.h.DatasetGroup(sIdx,NewAxIdx) = vObj.h.DatasetGroup(sIdx,OldAxIdx);
+                        % Re-parent
+                        set([vObj.h.SpeciesGroup{sIdx,NewAxIdx,:}],'Parent',vObj.h.MainAxes(NewAxIdx)); 
+                        set([vObj.h.DatasetGroup{sIdx,NewAxIdx}],'Parent',vObj.h.MainAxes(NewAxIdx)); 
+                        if OldAxIdx ~= NewAxIdx
+                            ThisSize = size(vObj.h.SpeciesGroup(sIdx,OldAxIdx,:));
+                            vObj.h.SpeciesGroup(sIdx,OldAxIdx,:) = cell(ThisSize);
+                            vObj.h.DatasetGroup{sIdx,OldAxIdx} = [];
+                        end
+                    end
+                    
+                    AxIndices = [OldAxIdx,NewAxIdx];
+                    AxIndices(isnan(AxIndices)) = [];
+                    
+                    % Redraw legend
+                    [UpdatedAxesLegend,UpdatedAxesLegendChildren] = updatePlots(...
+                        vObj.Data,vObj.h.MainAxes,vObj.h.SpeciesGroup,vObj.h.DatasetGroup,...
+                        'AxIndices',AxIndices);
+                    vObj.h.AxesLegend(AxIndices) = UpdatedAxesLegend(AxIndices);
+                    vObj.h.AxesLegendChildren(AxIndices) = UpdatedAxesLegendChildren(AxIndices);
+                    
+                end %if
                 
             end
             
@@ -493,9 +644,8 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
             
             % This line is causing issues with edit and selection callbacks
             % with uitables
-            %             % Update the view
-            %             updateVisualizationView(vObj);
-            
+%             % Update the view
+%             updateVisualizationView(vObj);            
         end %function  
         
         function onItemsTablePlot(vObj,h,e)
@@ -515,22 +665,25 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
             
             RowIdx = Indices(1,1);
             ColIdx = Indices(1,2);
-                        
-            cb = vObj.Callback;
-            vObj.Callback = @(h,e) [];
+        
             h.SelectedRows = RowIdx;
             
             vObj.Data.PlotItemTable(RowIdx,ColIdx) = ThisData(RowIdx,ColIdx);
             
-            % Plot
-            plotData(vObj);
-            
-            % Update the view
-            updateVisualizationView(vObj);
+            if ColIdx == 5
+                % Display name                
+                [vObj.h.AxesLegend,vObj.h.AxesLegendChildren] = updatePlots(vObj.Data,vObj.h.MainAxes,vObj.h.SpeciesGroup,vObj.h.DatasetGroup);
+                
+            elseif ColIdx == 1
+                % Include
+                
+                % Don't overwrite the output
+                updatePlots(vObj.Data,vObj.h.MainAxes,vObj.h.SpeciesGroup,vObj.h.DatasetGroup,...
+                    'RedrawLegend',false);
+            end
             
             % Enable column 1
             set(h,'ColumnEditable',OrigColumnEditable);
-            vObj.Callback = cb;
 
         end %function
         
@@ -580,7 +733,7 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
             try
 
                 Interaction = e.Interaction;
-                Indices = e.Indices;
+                Indices = vObj.Data.SelectedProfileRow;
 
                 switch Interaction
                     case 'Add'
@@ -602,7 +755,7 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
                             vObj.Data.PlotProfile = QSP.Profile.empty(0,1);
                         end
 
-                        if size(vObj.h.SpeciesGroup,3) >=Indices
+                        if size(vObj.h.SpeciesGroup,3) >=Indices                            
                             delete([vObj.h.SpeciesGroup{:,:,Indices}]); % remove objects
                             vObj.h.SpeciesGroup(:,:,Indices) = []; % remove group
                         end
@@ -655,9 +808,13 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
             % "Show" checkbox from taking into effect since
             % SelectionChanged (which calls updateVisualizationView) is
             % triggered before EditChanged
+            
             % Update the view
-            updateVisualizationView(vObj);
-%             updateVisualizationPlot(vObj);
+%             updateVisualizationView(vObj);
+
+            % Parameters Table
+            updateVisualizationParametersTable(vObj);
+            updateVisualizationSelectedProfile(vObj);
             
 %             set(hFigure,'pointer','arrow');
 %             drawnow;
@@ -665,6 +822,7 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
         end %function
         
         function onHistoryTableEditPlot(vObj,h,e)
+            
             ME = []; % exception object
             try
                 pause(0.25)
@@ -692,6 +850,13 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
                         case 2
                             % Show
                             ThisProfile.Show = ThisData{RowIdx,ColIdx};
+                            
+                            % Update the view
+                            updateVisualizationView(vObj);
+                            
+                            % Don't overwrite the output
+                            updatePlots(vObj.Data,vObj.h.MainAxes,vObj.h.SpeciesGroup,vObj.h.DatasetGroup,...
+                                'RedrawLegend',false);
                         case 3
                             % Source
                             % Re-import the source values for
@@ -777,21 +942,20 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
                                 % add in any missing entries, use default values
     %                             ThisProfile.Values = [ThisProfile.Values; [optParamNames(idxMissing), optParamValues(idxMissing)]];
 
-
-
                             end
+                            
+                            % Update the view
+                            updateVisualizationView(vObj);
 
                         case 4
                             % Description
                             ThisProfile.Description = ThisData{RowIdx,ColIdx};
-                    end
-
-
-                end
-
-                % Update the view
-                updateVisualizationView(vObj);
-
+                            
+                            % Update the view
+                            updateVisualizationView(vObj);
+                    end %switch
+                end %if
+                
                 set(hFigure,'pointer','arrow');
                 drawnow;
             catch ME                
@@ -931,14 +1095,15 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
             hFigure = ancestor(vObj.h.MainLayout,'Figure');
             set(hFigure,'pointer','watch');
             drawnow;
-                           
+            
+            Message = '';
             ThisProfile = vObj.Data.PlotProfile(vObj.Data.SelectedProfileRow);
             
             Prompt = 'This action will clear overriden source parameters. Do you want to continue? Press Cancel to save.';
-            Result = questdlg(Prompt,'Continue?','Yes','Cancel','Cancel');                                
+            Result = questdlg(Prompt,'Continue?','Yes','Cancel','Cancel');
 
-           if strcmpi(Result,'Yes')
-              obj = vObj.Data;
+            if strcmpi(Result,'Yes')
+                obj = vObj.Data;
                 Names = {obj.Settings.Parameters.Name};
                 MatchIdx = strcmpi(Names,obj.RefParamName);
                 if any(MatchIdx)
@@ -988,8 +1153,45 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
                 if ~isequal(NewColor,0)
                     vObj.Data.PlotItemTable{SelectedRow,2} = NewColor;
                     
-                    % Plot
-                    plotData(vObj, false);
+                    itemIdx = SelectedRow;
+                    
+                    TheseGroups = [vObj.h.SpeciesGroup{:}];
+                    for index = 1:numel(TheseGroups)
+                        ThisGroup = TheseGroups(index);
+                        TheseChildren = get(ThisGroup,'Children');
+                        KeepIdx = ~strcmpi(get(TheseChildren,'Tag'),'DummyLine');
+                        TheseChildren = TheseChildren(KeepIdx);
+                        
+                        TheseUserData = get(TheseChildren,'UserData');
+                        if iscell(TheseUserData)
+                            TheseUserData = vertcat(TheseUserData{:});
+                        end
+                        % Set the color
+                        MatchIdx = ismember(TheseUserData(:,2),itemIdx);
+                        
+                        TheseItems = TheseChildren(MatchIdx);
+                        set(TheseItems(isprop(TheseItems,'Color')),'Color',NewColor);                        
+                    end
+                    
+                    TheseGroups = [vObj.h.DatasetGroup{:}];
+                    for index = 1:numel(TheseGroups)
+                        ThisGroup = TheseGroups(index);
+                        TheseChildren = get(ThisGroup,'Children');
+                        KeepIdx = ~strcmpi(get(TheseChildren,'Tag'),'DummyLine');
+                        TheseChildren = TheseChildren(KeepIdx);
+                        
+                        TheseUserData = get(TheseChildren,'UserData');
+                        if iscell(TheseUserData)
+                            TheseUserData = vertcat(TheseUserData{:});
+                        end
+                        % Set the color
+                        MatchIdx = ismember(TheseUserData(:,2),itemIdx);
+                        
+                        TheseItems = TheseChildren(MatchIdx);
+                        set(TheseItems(isprop(TheseItems,'Color')),'Color',NewColor);                        
+                    end
+                    
+                    [vObj.h.AxesLegend,vObj.h.AxesLegendChildren] = updatePlots(vObj.Data,vObj.h.MainAxes,vObj.h.SpeciesGroup,vObj.h.DatasetGroup);
                     
                     % Update the view
                     updateVisualizationView(vObj);

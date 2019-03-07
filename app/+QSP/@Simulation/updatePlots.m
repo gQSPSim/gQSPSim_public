@@ -62,11 +62,16 @@ for axIndex = AxIndices(:)'
     
     % Get all children
     TheseSpeciesGroups = [hSpeciesGroup{:,axIndex}];
-    ch = get(TheseSpeciesGroups,'Children');
-    if iscell(ch)
-        ch = vertcat(ch{:});
+
+    try
+        ch = get(TheseSpeciesGroups,'Children');
+        if iscell(ch)
+            ch = vertcat(ch{:});
+        end
+    catch err      
+        warning(err.message)
+        return
     end
-    
     
     % Set SpeciesGroup - DisplayName
     SelectedUserData = get(TheseSpeciesGroups,'UserData'); % Just sIdx
@@ -169,9 +174,9 @@ for axIndex = AxIndices(:)'
                 SelectedUserData = vertcat(SelectedUserData{:});
             end
             % Find only unique entries (by [sIdx, itemIdx] combinations)
-            [~,RowIdx] = unique(SelectedUserData,'rows');
+            [~,UniqueIdx] = unique(SelectedUserData,'rows');
             
-            for thisIdx = RowIdx(:)'
+            for thisIdx = UniqueIdx(:)'
                 % Extract sIdx and itemIdx from UserData
                 ThisUserData = SelectedUserData(thisIdx,:);
                 sIdx = ThisUserData(1);
@@ -202,7 +207,7 @@ for axIndex = AxIndices(:)'
     end
     
     % Set DataGroup - DisplayName
-    SelectedUserData = get(TheseDataGroups,'UserData'); % Just sIdx
+    SelectedUserData = get(TheseDataGroups,'UserData'); % Just dIdx
     if iscell(SelectedUserData)
         SelectedUserData = vertcat(SelectedUserData{:});
     end
@@ -230,7 +235,7 @@ for axIndex = AxIndices(:)'
         
         TheseChildren = ch(~IsDummyLine);
         
-        % Process species related content
+        % Process dataset related content
         if ~isempty(TheseChildren)
             
             % Get user data
@@ -239,9 +244,9 @@ for axIndex = AxIndices(:)'
                 SelectedUserData = vertcat(SelectedUserData{:});
             end
             % Find only unique entries (by [sIdx, itemIdx] combinations)
-            [~,RowIdx] = unique(SelectedUserData,'rows');
+            [~,UniqueIdx] = unique(SelectedUserData,'rows');
             
-            for thisIdx = RowIdx(:)'
+            for thisIdx = UniqueIdx(:)'
                 % Extract sIdx and itemIdx from UserData
                 ThisUserData = SelectedUserData(thisIdx,:);
                 dIdx = ThisUserData(1);
@@ -290,8 +295,7 @@ for axIndex = AxIndices(:)'
         end
         
         if ~isempty(LegendItems)
-            try
-                
+            try 
                 % Add legend
                 [hLegend{axIndex},hLegendChildren{axIndex}] = legend(hAxes(axIndex),LegendItems);
                 
@@ -315,6 +319,15 @@ for axIndex = AxIndices(:)'
                 warning('Cannot draw legend')
             end
         else
+            Siblings = get(get(hAxes(axIndex),'Parent'),'Children');
+            IsLegend = strcmpi(get(Siblings,'Type'),'legend');
+            
+            if any(IsLegend)
+                if isvalid(Siblings(IsLegend))
+                    delete(Siblings(IsLegend));
+                end
+            end
+            
             hLegend{axIndex} = [];
             hLegendChildren{axIndex} = [];
         end

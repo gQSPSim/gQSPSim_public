@@ -31,38 +31,30 @@ StatusOK = true;
 %% Turn on hold
 
 for index = 1:numel(hAxes)
-%     XLimMode{index} = get(hAxes(index),'XLimMode');
-%     YLimMode{index} = get(hAxes(index),'YLimMode');
-%     XLimMode{index} = 'auto';
-%     YLimMode{index} = 'auto';
-    
+
     cla(hAxes(index));
     legend(hAxes(index),'off')
-%     set(hAxes(index),'XLimMode',XLimMode{index},'YLimMode',YLimMode{index})
+
     set(hAxes(index),...
         'XLimMode',obj.PlotSettings(index).XLimMode,...
         'YLimMode',obj.PlotSettings(index).YLimMode);
-    if strcmpi(obj.PlotSettings(index).XLimMode,'manual')
+    if strcmpi(obj.PlotSettings(index).XLimMode,'manual')        
+        tmp = obj.PlotSettings(index).CustomXLim;
+        if ischar(tmp), tmp = str2num(tmp); end         %#ok<ST2NM>
         set(hAxes(index),...
-            'XLim',obj.PlotSettings(index).CustomXLim);
+            'XLim',tmp);
     end
     if strcmpi(obj.PlotSettings(index).YLimMode,'manual')
+        tmp = obj.PlotSettings(index).CustomYLim;
+        if ischar(tmp), tmp = str2num(tmp); end         %#ok<ST2NM>
         set(hAxes(index),...
-            'YLim',obj.PlotSettings(index).CustomYLim);
+            'YLim',tmp);
     end
     
     hold(hAxes(index),'on')    
-    
-    hFigure = ancestor(hAxes(index),'Figure');
-    zoom(hFigure,'reset');        
-
 end
 
 NumAxes = numel(hAxes);
-
-
-hLegend = cell(1,NumAxes);
-hLegendChildren = cell(1,NumAxes);
 
 rerunSims = true;
 if ~isempty(varargin{1})
@@ -83,10 +75,15 @@ simObj = QSP.Simulation.empty(0,1);
 
 
 % Get the selected items
-IsSelected = obj.PlotItemTable(:,1);
-if iscell(IsSelected)
-    IsSelected = cell2mat(IsSelected);
+OrigIsSelected = obj.PlotItemTable(:,1);
+if iscell(OrigIsSelected)
+    OrigIsSelected = cell2mat(OrigIsSelected);
 end
+OrigIsSelected = find(OrigIsSelected);
+
+% Process all
+IsSelected = 1:size(obj.PlotItemTable,1);
+
 % if any(IsSelected)
     % make Task-Vpop pairs for each selected task
 %     nSelected = sum(IsSelected);
@@ -154,55 +151,51 @@ end
 
 %% Run the simulations
 
-Results = [];
 ItemModels = obj.ItemModels;
 
-if any(IsSelected)    
+% Loop through all profiles to be shown
+ParamNames = cell(1,numel(obj.PlotProfile));
+ParamValues = cell(1,numel(obj.PlotProfile));
+
+for index = 1:numel(obj.PlotProfile)
+    %         if ~obj.PlotProfile(index).Show
+    %             continue
+    %         end
+    % TODO: Plot all profiles
     
-    % Loop through all profiles to be shown
-    ParamNames = cell(1,numel(obj.PlotProfile));
-    ParamValues = cell(1,numel(obj.PlotProfile)); 
-
-    for index = 1:numel(obj.PlotProfile)
-%         if ~obj.PlotProfile(index).Show
-%             continue
-%         end
-        % TODO: Plot all profiles
-
-        if ~isempty(obj.PlotProfile(index).Values)
-            ParamNames{index} = obj.PlotProfile(index).Values(:,1);
-            ParamValues{index} = obj.PlotProfile(index).Values(:,2);
-            ixHasValue = ~cellfun(@isempty, obj.PlotProfile(index).Values(:,2));
-            ParamNames{index} = ParamNames{index}(ixHasValue);
-            ParamValues{index}= ParamValues{index}(ixHasValue);
-        else
-            ParamNames{index} = {};
-            ParamValues{index} = {};
-            continue
-        end
-        if iscell(ParamValues{index})
-%             tmp = cellfun(@str2num,ParamValues{index});
-            isStr = cellfun(@ischar,ParamValues{index});
-            ParamValues{index}(isStr) = num2cell(cellfun(@str2num, ParamValues{index}(isStr)));
-            ParamValues{index} = cell2mat(ParamValues{index});
-        end       
-    end
-    
-    if rerunSims && ~isempty(obj.PlotProfile) % need at least one profile 
-        [StatusOK,Message,~,Cancelled,Results,ItemModels] = simulationRunHelper(simObj,ParamValues,ParamNames,[],ItemModels,find(IsSelected));
-%         [StatusOK,Message,~,Results,ItemModels] = simulationRunHelper(simObj,ParamValues,ParamNames,[],[],find(IsSelected));
-
-        obj.ItemModels = ItemModels;
-        obj.Results = Results;
+    if ~isempty(obj.PlotProfile(index).Values)
+        ParamNames{index} = obj.PlotProfile(index).Values(:,1);
+        ParamValues{index} = obj.PlotProfile(index).Values(:,2);
+        ixHasValue = ~cellfun(@isempty, obj.PlotProfile(index).Values(:,2));
+        ParamNames{index} = ParamNames{index}(ixHasValue);
+        ParamValues{index}= ParamValues{index}(ixHasValue);
     else
-        StatusOK = true;
-        Results = obj.Results; % cached results
+        ParamNames{index} = {};
+        ParamValues{index} = {};
+        continue
     end
-
+    if iscell(ParamValues{index})
+        %             tmp = cellfun(@str2num,ParamValues{index});
+        isStr = cellfun(@ischar,ParamValues{index});
+        ParamValues{index}(isStr) = num2cell(cellfun(@str2num, ParamValues{index}(isStr)));
+        ParamValues{index} = cell2mat(ParamValues{index});
+    end
 end
 
+if rerunSims && ~isempty(obj.PlotProfile) % need at least one profile
+    [StatusOK,Message,~,Cancelled,Results,ItemModels] = simulationRunHelper(simObj,ParamValues,ParamNames,[],ItemModels,find(IsSelected));
+    %         [StatusOK,Message,~,Results,ItemModels] = simulationRunHelper(simObj,ParamValues,ParamNames,[],[],find(IsSelected));
+    
+    obj.ItemModels = ItemModels;
+    obj.Results = Results;
+else
+    StatusOK = true;
+    Results = obj.Results; % cached results
+end
+
+
 NumRuns = size(Results,1);
-hSpeciesGroup = cell(size(obj.PlotSpeciesTable,1),NumAxes, NumRuns);
+hSpeciesGroup = cell(size(obj.PlotSpeciesTable,1),NumAxes,NumRuns);
 hDatasetGroup = cell(size(obj.PlotSpeciesTable,1),NumAxes);
 
 if ~StatusOK && ~Cancelled
@@ -231,7 +224,12 @@ HighlightIdx = find(HighlightIdx);
 for sIdxIdx = 1:length(obj.SpeciesData) % 1:size(obj.PlotSpeciesTable,1)
     sIdx = find( strcmp(obj.SpeciesData(sIdxIdx).SpeciesName, obj.PlotSpeciesTable(:,3)) & ...
         strcmp(obj.SpeciesData(sIdxIdx).DataName, obj.PlotSpeciesTable(:,4)) );
-    axIdx = str2double(obj.PlotSpeciesTable{sIdx,1});
+    origAxIdx = str2double(obj.PlotSpeciesTable{sIdx,1});
+    axIdx = origAxIdx;
+    if isempty(axIdx) || isnan(axIdx)
+        axIdx = 1;
+    end
+    
     ThisLineStyle = obj.PlotSpeciesTable{sIdx,2};
     ThisName = obj.PlotSpeciesTable{sIdx,3};   
     ThisDisplayName = obj.PlotSpeciesTable{sIdx,5};
@@ -258,15 +256,22 @@ for sIdxIdx = 1:length(obj.SpeciesData) % 1:size(obj.PlotSpeciesTable,1)
                     % Plot
                     if ~isempty(ColumnIdx)
                         if isempty(hSpeciesGroup{sIdx,axIdx,runIdx})
-                            hSpeciesGroup{sIdx,axIdx,runIdx} = hggroup(hAxes(axIdx),...
+                            if isempty(origAxIdx) || isnan(origAxIdx)
+                                ThisParent = matlab.graphics.GraphicsPlaceholder.empty();
+                            else
+                                ThisParent = hAxes(axIdx);
+                            end
+                            hSpeciesGroup{sIdx,axIdx,runIdx} = hggroup(ThisParent,...
                                 'Tag','Species',...
                                 'DisplayName',regexprep(sprintf('%s [Sim]',ThisDisplayName),'_','\\_'),...
+                                'UserData',[sIdx,runIdx],...
                                 'HitTest','off');
                             % Add dummy line for legend
                             line(nan,nan,'Parent',hSpeciesGroup{sIdx,axIdx,runIdx},...
                                 'LineStyle',ThisLineStyle,...
                                 'Color',[0 0 0],...
-                                'Tag','DummyLine');
+                                'Tag','DummyLine',...
+                                'UserData',[sIdx,runIdx]);
                         end
                         
                         % Apply thicker line width if needed
@@ -280,11 +285,11 @@ for sIdxIdx = 1:length(obj.SpeciesData) % 1:size(obj.PlotSpeciesTable,1)
                         thisData = obj.SpeciesData(sIdx).evaluate(Results{runIdx,itemIdx}.Data(:,ColumnIdx));
                         hThis = plot(hSpeciesGroup{sIdx,axIdx,runIdx},Results{runIdx,itemIdx}.Time,thisData,...
                             'Color',SelectedItemColors(itemIdx,:),... 
-                            'Visible', uix.utility.tf2onoff(Show(runIdx)),...
+                            'Visible', uix.utility.tf2onoff(Show(runIdx) && ismember(itemIdx,OrigIsSelected)),...
                             'LineStyle',ThisLineStyle,...
                             'LineWidth',ThisLineWidth,...
                             'HitTest','on',...
-                            'UserData',itemIdx,...
+                            'UserData',[sIdx,itemIdx,runIdx],...
                             'Tag',num2str(runIdx));
                         set(get(get(hThis,'Annotation'),'LegendInformation'),'IconDisplayStyle','off');
                         
@@ -304,12 +309,14 @@ for sIdxIdx = 1:length(obj.SpeciesData) % 1:size(obj.PlotSpeciesTable,1)
             TheseGroups = horzcat(TheseGroups{:});
         end
         if ~isempty(TheseGroups)
+            % Take first group
             ch = TheseGroups(1).Children;
             ch = ch(~strcmpi(get(ch,'Tag'),'DummyLine'));
             ItemIndices = get(ch,'UserData');
             if iscell(ItemIndices)
                 ItemIndices = cell2mat(ItemIndices);
             end
+            ItemIndices = ItemIndices(:,2);
             for chIdx = 1:numel(ch)
                 itemIdx = ItemIndices(chIdx);
                 FullDisplayName = sprintf('%s %s',ThisDisplayName,obj.PlotItemTable{itemIdx,5});
@@ -348,77 +355,98 @@ if any(MatchIdx)
     % Continue if OK
     if StatusOk
         
-        if any(IsSelected)
-            %SelectedGroupColors = getGroupColors(obj.Session,sum(IsSelected));
-            SelectedGroupIDs = categorical(obj.PlotItemTable(IsSelected,4));
-            SelectedItemNames = obj.PlotItemTable(IsSelected,5);
-            
-            % Get the Group Column from the imported dataset
-            GroupColumn = OptimData(:,strcmp(OptimHeader,obj.GroupName));
-            if iscell(GroupColumn)
-                % If numeric column, convert to matrix to use categorical                
-                IsNumeric = cellfun(@(x)isnumeric(x),GroupColumn);
-                if all(IsNumeric)
-                    GroupColumn = cell2mat(GroupColumn);
-                else
-                    GroupColumn(IsNumeric) = cellfun(@(x)num2str(x),GroupColumn(IsNumeric),'UniformOutput',false);
-                end
+        %SelectedGroupColors = getGroupColors(obj.Session,sum(IsSelected));
+        SelectedGroupIDs = categorical(obj.PlotItemTable(:,4));
+        SelectedItemNames = obj.PlotItemTable(:,5);
+        
+        % Get the Group Column from the imported dataset
+        GroupColumn = OptimData(:,strcmp(OptimHeader,obj.GroupName));
+        if iscell(GroupColumn)
+            % If numeric column, convert to matrix to use categorical
+            IsNumeric = cellfun(@(x)isnumeric(x),GroupColumn);
+            if all(IsNumeric)
+                GroupColumn = cell2mat(GroupColumn);
+            else
+                GroupColumn(IsNumeric) = cellfun(@(x)num2str(x),GroupColumn(IsNumeric),'UniformOutput',false);
             end
-            GroupColumn = categorical(GroupColumn);
+        end
+        GroupColumn = categorical(GroupColumn);
+        
+        % Get the Time Column from the imported dataset
+        TimeColumn = cell2mat(OptimData(:,strcmp(OptimHeader,'Time')));
+        ThisMarker = '*';
+        
+        for dIdx = 1:size(obj.PlotSpeciesTable,1)
+            origAxIdx = str2double(obj.PlotSpeciesTable{dIdx,1});
+            axIdx = origAxIdx;
+            if isempty(axIdx) || isnan(axIdx)
+                axIdx = 1;
+            end
+            ThisName = obj.PlotSpeciesTable{dIdx,4};
+            ColumnIdx = find(strcmp(OptimHeader,ThisName));
+            ThisDisplayName = obj.PlotSpeciesTable{dIdx,5};
             
-            % Get the Time Column from the imported dataset
-            TimeColumn = cell2mat(OptimData(:,strcmp(OptimHeader,'Time')));
-            ThisMarker = '*';
-            
-            for dIdx = 1:size(obj.PlotSpeciesTable,1)
-                axIdx = str2double(obj.PlotSpeciesTable{dIdx,1});
-                ThisName = obj.PlotSpeciesTable{dIdx,4};
-                ColumnIdx = find(strcmp(OptimHeader,ThisName));
-                ThisDisplayName = obj.PlotSpeciesTable{dIdx,5};
-                
-                if ~isempty(ColumnIdx) && ~isempty(axIdx) && ~isnan(axIdx)
-                    for gIdx = 1:numel(SelectedGroupIDs)
-                        % Find the GroupID match within the GroupColumn
-                        MatchIdx = (GroupColumn == SelectedGroupIDs(gIdx));
-                        
-                        % Create a group
-                        if isempty(hDatasetGroup{dIdx,axIdx})
-                            hDatasetGroup{dIdx,axIdx} = hggroup(hAxes(axIdx),...
-                                'Tag','Data',...
-                                'DisplayName',regexprep(sprintf('%s [Data]',ThisDisplayName),'_','\\_'),...
-                                'HitTest','off');
-                            set(get(get(hDatasetGroup{dIdx,axIdx},'Annotation'),'LegendInformation'),'IconDisplayStyle','on')
-                            % Add dummy line for legend
-                            line(nan,nan,'Parent',hDatasetGroup{dIdx,axIdx},...
-                                'LineStyle','none',...
-                                'Marker',ThisMarker,...
-                                'Color',[0 0 0],...
-                                'Tag','DummyLine');
+            if ~isempty(ColumnIdx) % && ~isempty(axIdx) && ~isnan(axIdx)
+                for gIdx = 1:numel(SelectedGroupIDs)
+                    
+                    if obj.PlotItemTable{gIdx,1} % ismember(gIdx,OrigIsSelected)
+                        IsVisible = true;
+                    else
+                        IsVisible = false;
+                    end
+                    
+                    % Find the GroupID match within the GroupColumn
+                    MatchIdx = (GroupColumn == SelectedGroupIDs(gIdx));
+                    
+                    % Create a group
+                    if isempty(hDatasetGroup{dIdx,axIdx})
+                        % Un-parent if not-selected
+                        if isempty(origAxIdx) || isnan(origAxIdx)
+                            ThisParent = matlab.graphics.GraphicsPlaceholder.empty();
+                        else
+                            ThisParent = hAxes(axIdx);
                         end
                         
-                        FullDisplayName = sprintf('%s %s',ThisDisplayName,SelectedItemNames{gIdx});
-                        
-                        % Plot but remove from the legend
-                        hThis = plot(hDatasetGroup{dIdx,axIdx},TimeColumn(MatchIdx),cell2mat(OptimData(MatchIdx,ColumnIdx)),...
-                            'Color',SelectedItemColors(gIdx,:),...
+                        hDatasetGroup{dIdx,axIdx} = hggroup(ThisParent,...
+                            'Tag','Data',...
+                            'DisplayName',regexprep(sprintf('%s [Data]',ThisDisplayName),'_','\\_'),...
+                            'UserData',dIdx,...
+                            'HitTest','off');
+                        set(get(get(hDatasetGroup{dIdx,axIdx},'Annotation'),'LegendInformation'),'IconDisplayStyle','on')
+                        % Add dummy line for legend
+                        line(nan,nan,'Parent',hDatasetGroup{dIdx,axIdx},...
                             'LineStyle','none',...
                             'Marker',ThisMarker,...
-                            'MarkerSize',obj.PlotSettings(axIdx).DataSymbolSize,...
-                            'HitTest','off',...
-                            'DisplayName',regexprep(sprintf('%s [Data]',FullDisplayName),'_','\\_')); % For export % 'DisplayName',regexprep(ThisName,'_','\\_'));
-                        set(get(get(hThis,'Annotation'),'LegendInformation'),'IconDisplayStyle','off');
-                        
-%                         % Plot the selected column by GroupID
-%                         hDatasetGroup{axIdx} = [hDatasetGroup{axIdx} ... 
-%                             plot(hAxes(axIdx),TimeColumn(MatchIdx), cell2mat(OptimData(MatchIdx,ColumnIdx)),...
-%                             'LineStyle','none',...
-%                             'Marker','*',...
-%                             'Color',SelectedItemColors(gIdx,:),... %SelectedGroupColors(gIdx,:));
-%                             'DisplayName',regexprep(sprintf('%s %s',ThisName,SelectedGroupIDs(gIdx)),'_','\\_'))];
-                    end %for gIdx
-                end %if
-            end %for dIdx
-        end %if any
+                            'Tag','DummyLine',...
+                            'Color',[0 0 0],...
+                            'UserData',dIdx);
+                    end
+                    
+                    FullDisplayName = sprintf('%s %s',ThisDisplayName,SelectedItemNames{gIdx});
+                    
+                    % Plot but remove from the legend
+                    hThis = plot(hDatasetGroup{dIdx,axIdx},TimeColumn(MatchIdx),cell2mat(OptimData(MatchIdx,ColumnIdx)),...
+                        'Color',SelectedItemColors(gIdx,:),...
+                        'LineStyle','none',...
+                        'Marker',ThisMarker,...
+                        'MarkerSize',obj.PlotSettings(axIdx).DataSymbolSize,...
+                        'UserData',[dIdx,gIdx],...
+                        'HitTest','off',...
+                        'DisplayName',regexprep(sprintf('%s [Data]',FullDisplayName),'_','\\_')); % For export % 'DisplayName',regexprep(ThisName,'_','\\_'));
+                    set(get(get(hThis,'Annotation'),'LegendInformation'),'IconDisplayStyle','off');
+                    set(hThis,'Visible',uix.utility.tf2onoff(IsVisible));
+                    
+                    %                         % Plot the selected column by GroupID
+                    %                         hDatasetGroup{axIdx} = [hDatasetGroup{axIdx} ...
+                    %                             plot(hAxes(axIdx),TimeColumn(MatchIdx), cell2mat(OptimData(MatchIdx,ColumnIdx)),...
+                    %                             'LineStyle','none',...
+                    %                             'Marker','*',...
+                    %                             'Color',SelectedItemColors(gIdx,:),... %SelectedGroupColors(gIdx,:));
+                    %                             'DisplayName',regexprep(sprintf('%s %s',ThisName,SelectedGroupIDs(gIdx)),'_','\\_'))];
+                end %for gIdx
+            end %if
+        end %for dIdx
+        
     end %if StatusOk
 end %if any
 
@@ -427,6 +455,7 @@ end %if any
 
 % Force a drawnow, to avoid legend issues
 drawnow;
+
 [hLegend,hLegendChildren] = updatePlots(obj,hAxes,hSpeciesGroup,hDatasetGroup);
 
 
@@ -459,7 +488,7 @@ for index = 1:numel(hAxes)
      % Reset zoom state
     hFigure = ancestor(hAxes(index),'Figure');
     if ~isempty(hFigure) && strcmpi(obj.PlotSettings(index).XLimMode,'auto') && strcmpi(obj.PlotSettings(index).YLimMode,'auto')
-        axes(hAxes(index));
+        set(hFigure,'CurrentAxes',hAxes(index)) % This causes the legend fontsize to reset: axes(hAxes(index));
         try
             zoom(hFigure,'out');
             zoom(hFigure,'reset');        

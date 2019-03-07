@@ -87,50 +87,49 @@ classdef PlotSettings < matlab.mixin.SetGet & uix.mixin.AssignPVPairs
     
     %% Public Properties
     properties
-        LegendVisibility = 'on'
-        LegendLocation = 'northeast'
-        LegendFontSize = 10
-        LegendFontWeight = 'normal'
+        LegendVisibility = QSP.PlotSettings.DefaultLegendVisibility % 'on'
+        LegendLocation = QSP.PlotSettings.DefaultLegendLocation % 'northeast'
+        LegendFontSize = QSP.PlotSettings.DefaultLegendFontSize % 10
+        LegendFontWeight = QSP.PlotSettings.DefaultLegendFontWeight % 'normal'        
+        LegendDataGroup = QSP.PlotSettings.DefaultLegendDataGroup % 'on'
         
-        LegendDataGroup = 'on'
-        
-        LineWidth = 0.5         
-        BoundaryLineWidth = 2
-        MeanLineWidth = 3
-        DataSymbolSize = 6
+        LineWidth = QSP.PlotSettings.DefaultLineWidth % 0.5         
+        BoundaryLineWidth = QSP.PlotSettings.DefaultBoundaryLineWidth % 2
+        MeanLineWidth = QSP.PlotSettings.DefaultMeanLineWidth % 3
+        DataSymbolSize = QSP.PlotSettings.DefaultDataSymbolSize % 6
     end
 
     %% Dependent Properties
     properties (Dependent=true)
-        Title = ''
-        XLabel = ''
-        YLabel = ''
+        Title
+        XLabel
+        YLabel
         
-        TitleFontSize = 10
-        TitleFontWeight = 'normal'
+        TitleFontSize
+        TitleFontWeight
         
-        XLabelFontSize = 10
-        XLabelFontWeight = 'normal'
+        XLabelFontSize
+        XLabelFontWeight
         
-        YLabelFontSize = 10
-        YLabelFontWeight = 'normal'
+        YLabelFontSize
+        YLabelFontWeight
         
-        XTickLabelFontSize = 10
-        XTickLabelFontWeight = 'normal'
+        XTickLabelFontSize
+        XTickLabelFontWeight
         
-        YTickLabelFontSize = 10
-        YTickLabelFontWeight = 'normal'
+        YTickLabelFontSize
+        YTickLabelFontWeight
         
-        YScale = 'linear'
-        XGrid = 'off'      
-        YGrid = 'off' 
-        XMinorGrid = 'off' 
-        YMinorGrid = 'off' 
+        YScale
+        XGrid
+        YGrid
+        XMinorGrid
+        YMinorGrid
                 
-        XLimMode = 'auto'
-        YLimMode = 'auto'   
-        CustomXLim = ''
-        CustomYLim = ''
+        XLimMode
+        YLimMode
+        CustomXLim
+        CustomYLim
     end
     
     
@@ -142,6 +141,39 @@ classdef PlotSettings < matlab.mixin.SetGet & uix.mixin.AssignPVPairs
     
     %% Constant Properties
     properties(Constant=true)
+        
+        DefaultTitle = ''
+        DefaultXLabel = ''
+        DefaultYLabel = ''
+        DefaultTitleFontSize = 11
+        DefaultTitleFontWeight = 'bold'
+        DefaultXLabelFontSize = 11
+        DefaultXLabelFontWeight = 'normal'
+        DefaultYLabelFontSize = 11
+        DefaultYLabelFontWeight = 'normal'
+        DefaultXTickLabelFontSize = 10
+        DefaultXTickLabelFontWeight = 'normal'
+        DefaultYTickLabelFontSize = 10
+        DefaultYTickLabelFontWeight = 'normal'
+        DefaultYScale = 'linear'
+        DefaultXGrid = 'off'
+        DefaultYGrid = 'off'
+        DefaultXMinorGrid = 'off'
+        DefaultYMinorGrid = 'off'
+        DefaultXLimMode = 'auto'
+        DefaultYLimMode = 'auto'
+        DefaultCustomXLim = '0  1'
+        DefaultCustomYLim = '0  1'
+        DefaultLineWidth = 0.5000
+        DefaultBoundaryLineWidth = 2
+        DefaultMeanLineWidth = 3
+        DefaultDataSymbolSize = 6
+        DefaultLegendVisibility = 'on'
+        DefaultLegendLocation = 'northeast'
+        DefaultLegendFontSize = 10
+        DefaultLegendFontWeight = 'normal'
+        DefaultLegendDataGroup = 'on'
+        
         FontWeightOptions = {
             'normal'
             'bold'
@@ -304,6 +336,24 @@ classdef PlotSettings < matlab.mixin.SetGet & uix.mixin.AssignPVPairs
     end %methods
     
     
+    %% Methods (static)    
+    methods (Static)
+        
+        function DefaultSummary = getDefaultSummary()
+            
+            DefaultSummary = struct;
+            
+            Props = QSP.PlotSettings.SettableProperties;            
+            for index = 1:size(Props,1)
+                PropName = Props{index,1};
+                DefaultSummary.(PropName) = QSP.PlotSettings.(sprintf('Default%s',PropName));
+            end
+            
+        end %function
+        
+    end %methods (Static)
+    
+    
     %% Get/Set Methods
     methods
         
@@ -312,7 +362,7 @@ classdef PlotSettings < matlab.mixin.SetGet & uix.mixin.AssignPVPairs
                 hThis = get(obj.hAxes,'Title');
                 Value = get(hThis,'String');
             else
-                Value = '';
+                Value = QSP.PlotSettings.DefaultTitle;
             end
         end %function            
         function set.Title(obj,Value)
@@ -329,7 +379,7 @@ classdef PlotSettings < matlab.mixin.SetGet & uix.mixin.AssignPVPairs
                 hThis = get(obj.hAxes,'xlabel');
                 Value = get(hThis,'String');
             else
-                Value = '';
+                Value = QSP.PlotSettings.DefaultXLabel;
             end
         end %function
         function set.XLabel(obj,Value)
@@ -346,7 +396,7 @@ classdef PlotSettings < matlab.mixin.SetGet & uix.mixin.AssignPVPairs
                 hThis = get(obj.hAxes,'ylabel');
                 Value = get(hThis,'String');
             else
-                Value = '';
+                Value = QSP.PlotSettings.DefaultYLabel;
             end
         end %function
         function set.YLabel(obj,Value)
@@ -363,7 +413,7 @@ classdef PlotSettings < matlab.mixin.SetGet & uix.mixin.AssignPVPairs
                 hThis = get(obj.hAxes,'xlabel');
                 Value = get(hThis,'FontSize');
             else
-                Value = 11;
+                Value = obj.DefaultXLabelFontSize;
             end            
         end %function
         function set.XLabelFontSize(obj,Value)
@@ -380,7 +430,7 @@ classdef PlotSettings < matlab.mixin.SetGet & uix.mixin.AssignPVPairs
                 hThis = get(obj.hAxes,'ylabel');
                 Value = get(hThis,'FontSize');
             else
-                Value = 11;
+                Value = obj.DefaultYLabelFontSize;
             end
         end %function
         function set.YLabelFontSize(obj,Value)
@@ -395,16 +445,16 @@ classdef PlotSettings < matlab.mixin.SetGet & uix.mixin.AssignPVPairs
         function Value = get.TitleFontSize(obj)
             if ~isempty(ancestor(obj.hAxes,'figure'))
                 hThis = get(obj.hAxes,'title');
-                Value = get(hThis,'FontSize');
+                Value = get(hThis,'FontSize');                
             else
-                Value = 11;
+                Value = obj.DefaultTitleFontSize;
             end
         end %function
         function set.TitleFontSize(obj,Value)
             validateattributes(Value,{'numeric'},{'scalar','nonnegative','nonnan'})
             if ~isempty(ancestor(obj.hAxes,'figure'))
                 hThis = get(obj.hAxes,'title');
-                set(hThis,'FontSize',Value);     
+                set(hThis,'FontSize',Value);                  
             end
         end %function
         
@@ -414,7 +464,7 @@ classdef PlotSettings < matlab.mixin.SetGet & uix.mixin.AssignPVPairs
                 hThis = get(obj.hAxes,'XRuler');
                 Value = get(hThis,'FontSize');
             else
-                Value = 10;
+                Value = obj.DefaultXTickLabelFontSize;
             end
         end %function
         function set.XTickLabelFontSize(obj,Value)
@@ -434,7 +484,7 @@ classdef PlotSettings < matlab.mixin.SetGet & uix.mixin.AssignPVPairs
                 hThis = get(obj.hAxes,'YRuler');
                 Value = get(hThis,'FontSize');
             else
-                Value = 10;
+                Value = obj.DefaultYTickLabelFontSize;
             end
         end %function
         function set.YTickLabelFontSize(obj,Value)
@@ -454,7 +504,7 @@ classdef PlotSettings < matlab.mixin.SetGet & uix.mixin.AssignPVPairs
                 hThis = get(obj.hAxes,'xlabel');
                 Value = get(hThis,'FontWeight');
             else
-                Value = 'normal';
+                Value = QSP.PlotSettings.DefaultXLabelFontWeight;
             end
         end %function
         function set.XLabelFontWeight(obj,Value)
@@ -471,7 +521,7 @@ classdef PlotSettings < matlab.mixin.SetGet & uix.mixin.AssignPVPairs
                 hThis = get(obj.hAxes,'ylabel');
                 Value = get(hThis,'FontWeight');
             else
-                Value = 'normal';
+                Value = QSP.PlotSettings.DefaultYLabelFontWeight;
             end
         end %function
         function set.YLabelFontWeight(obj,Value)
@@ -488,7 +538,7 @@ classdef PlotSettings < matlab.mixin.SetGet & uix.mixin.AssignPVPairs
                 hThis = get(obj.hAxes,'Title');
                 Value = get(hThis,'FontWeight');
             else
-                Value = 'normal';
+                Value = QSP.PlotSettings.DefaultTitleFontWeight;
             end
         end %function
         function set.TitleFontWeight(obj,Value)
@@ -505,7 +555,7 @@ classdef PlotSettings < matlab.mixin.SetGet & uix.mixin.AssignPVPairs
                 hThis = get(obj.hAxes,'XRuler');
                 Value = get(hThis,'FontWeight');
             else
-                Value = 'normal';
+                Value = QSP.PlotSettings.DefaultXTickLabelFontWeight;
             end
         end %function
         function set.XTickLabelFontWeight(obj,Value)
@@ -525,7 +575,7 @@ classdef PlotSettings < matlab.mixin.SetGet & uix.mixin.AssignPVPairs
                 hThis = get(obj.hAxes,'YRuler');
                 Value = get(hThis,'FontWeight');
             else
-                Value = 'normal';
+                Value = QSP.PlotSettings.DefaultYTickLabelFontWeight;
             end
         end %function
         function set.YTickLabelFontWeight(obj,Value)
@@ -544,7 +594,7 @@ classdef PlotSettings < matlab.mixin.SetGet & uix.mixin.AssignPVPairs
             if ~isempty(ancestor(obj.hAxes,'figure'))
                 Value = get(obj.hAxes,'XGrid');         
             else
-                Value = 'on';
+                Value = QSP.PlotSettings.DefaultXGrid;
             end
         end %function
         function set.XGrid(obj,Value)
@@ -559,7 +609,7 @@ classdef PlotSettings < matlab.mixin.SetGet & uix.mixin.AssignPVPairs
             if ~isempty(ancestor(obj.hAxes,'figure'))
                 Value = get(obj.hAxes,'YGrid');  
             else
-                Value = 'on';
+                Value = QSP.PlotSettings.DefaultYGrid;
             end
         end %function
         function set.YGrid(obj,Value)
@@ -574,7 +624,7 @@ classdef PlotSettings < matlab.mixin.SetGet & uix.mixin.AssignPVPairs
             if ~isempty(ancestor(obj.hAxes,'figure'))
                 Value = get(obj.hAxes,'XMinorGrid');         
             else
-                Value = 'on';
+                Value = QSP.PlotSettings.DefaultXMinorGrid;
             end
         end %function
         function set.XMinorGrid(obj,Value)
@@ -589,7 +639,7 @@ classdef PlotSettings < matlab.mixin.SetGet & uix.mixin.AssignPVPairs
             if ~isempty(ancestor(obj.hAxes,'figure'))
                 Value = get(obj.hAxes,'YMinorGrid');
             else
-                Value = 'on';
+                Value = QSP.PlotSettings.DefaultYMinorGrid;
             end
         end %function
         function set.YMinorGrid(obj,Value)
@@ -604,7 +654,7 @@ classdef PlotSettings < matlab.mixin.SetGet & uix.mixin.AssignPVPairs
             if ~isempty(ancestor(obj.hAxes,'figure'))
                 Value = get(obj.hAxes,'YScale');            
             else
-                Value = 'linear';
+                Value = QSP.PlotSettings.DefaultYScale;
             end 
         end %function
         function set.YScale(obj,Value)
@@ -619,7 +669,7 @@ classdef PlotSettings < matlab.mixin.SetGet & uix.mixin.AssignPVPairs
             if ~isempty(ancestor(obj.hAxes,'figure'))
                 Value = get(obj.hAxes,'XLimMode');            
             else
-                Value = 'auto';
+                Value = QSP.PlotSettings.DefaultXLimMode;
             end
         end %function
         function set.XLimMode(obj,Value)
@@ -634,7 +684,7 @@ classdef PlotSettings < matlab.mixin.SetGet & uix.mixin.AssignPVPairs
             if ~isempty(ancestor(obj.hAxes,'figure'))
                 Value = get(obj.hAxes,'YLimMode');   
             else
-                Value = 'auto';
+                Value = QSP.PlotSettings.DefaultYLimMode;
             end
         end %function
         function set.YLimMode(obj,Value)
@@ -649,7 +699,7 @@ classdef PlotSettings < matlab.mixin.SetGet & uix.mixin.AssignPVPairs
             if ~isempty(ancestor(obj.hAxes,'figure'))
                 Value = num2str(get(obj.hAxes,'XLim')); % As string (for use in table)      
             else
-                Value = [0 1];
+                Value = str2num(QSP.PlotSettings.DefaultCustomXLim); %#ok<ST2NM>
             end
         end %function
         function set.CustomXLim(obj,Value)
@@ -670,7 +720,7 @@ classdef PlotSettings < matlab.mixin.SetGet & uix.mixin.AssignPVPairs
             if ~isempty(ancestor(obj.hAxes,'figure'))
                 Value = num2str(get(obj.hAxes,'YLim')); % As string (for use in table)
             else
-                Value = [0 1];
+                Value = str2num(QSP.PlotSettings.DefaultCustomYLim); %#ok<ST2NM>
             end
         end %function
         function set.CustomYLim(obj,Value)

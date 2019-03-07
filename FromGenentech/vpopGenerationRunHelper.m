@@ -33,7 +33,7 @@ if any(MatchIdx)
     end
 else
     cohortHeader = {};
-    cohortData = {};
+    cohortData = [];
 end
 
 
@@ -79,7 +79,7 @@ end
 ixPW = strcmp(Names,'PWeight');
 if any(ixPW)
     Names = Names(~ixPW);
-    cohortData = cohortData([cohortData{:,ixPW}]>0, ~ixPW);  % drop zero-weight vpatients
+    cohortData = cohortData(cohortData(:,ixPW)>0, ~ixPW);  % drop zero-weight vpatients
 end
 
 simData = cell(nItems,1);
@@ -107,12 +107,11 @@ for ii = 1:nItems
 %     ixGrp =  
     if any(ixGrp)
 %         Values = cohortData(~ixGrp, cell2mat(cohortData(:,ixGrp))==str2num(obj.Item(ii).GroupID) ); 
-        Values = cohortData(cell2mat(cohortData(:,ixGrp))==str2num(obj.Item(ii).GroupID),: ); % TODO verify that this is correct
+        Values = cohortData(cohortData(:,ixGrp)==str2num(obj.Item(ii).GroupID),: ); % TODO verify that this is correct
 
     else
         Values = cohortData;
     end
-    Values = cell2mat(Values);
         
 %     OutputTimes = union(taskObj.OutputTimes, unique(vpopGenData(:,strcmp(vpopGenHeader,'Time'))));
     set(hWbar2, 'Name', sprintf('Simulating task %d of %d',ii,nItems))
@@ -216,7 +215,10 @@ toc
 thisAlg = obj.MethodName;
 
 if strcmp(thisAlg, 'Maximum likelihood')
-    PW = computePW_MLE(dataMatrix,Y);    
+%     PW = computePW_MLE(dataMatrix,Y);    
+    redistributePW = false; % TODO this should be abstracted/exposed in UI
+    PW = computePW_MLE(dataMatrix,Y,diag(0.1 * abs(Y) + 1e-3),round(0.1*size(Y,2)), redistributePW);    
+
 elseif strcmp(thisAlg, 'Bayesian')
     disp('pass')
 end
@@ -237,7 +239,7 @@ if StatusOK
     end
 
     obj.PrevalenceWeights = PW;     % save prevalence weight to object
-    Vpop = [VpopHeader; cohortData, num2cell(PW)];
+    Vpop = [VpopHeader; num2cell(cohortData), num2cell(PW)];
     % save results
     SaveFilePath = fullfile(obj.Session.RootDirectory,obj.VPopResultsFolderName);
     if ~exist(SaveFilePath,'dir')

@@ -117,7 +117,9 @@ if ~isempty(paramData)
     estParamNames = paramData(idxEstimate,colId.Name);
     fixedParamNames = paramData(~idxEstimate,colId.Name);
     % extract numeric data
-    estParamData = cell2mat(paramData(idxEstimate,4:end));
+%     estParamData = cell2mat(paramData(idxEstimate,4:end));
+    estParamData = cell2mat(paramData(idxEstimate,[colId.LB, colId.UB, colId.P0]));
+    
     if ~isempty(fixedParamNames)
         isValid = ~cellfun(@isempty, paramData(~idxEstimate, colId.P0(1)));
         fixedParamData = cell2mat(paramData(~idxEstimate,colId.P0(1)));

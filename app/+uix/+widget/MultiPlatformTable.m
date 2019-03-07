@@ -301,7 +301,11 @@ classdef MultiPlatformTable < uix.abstract.Widget & uix.mixin.HasLabel
         
         function onCellEdit(obj,~,evt)
             
-            uix.utility.callCallback(obj.CellEditCallback,obj,evt);
+            if obj.UseJTable
+                onTableModelChanged(obj,[],eventData);
+            else
+                uix.utility.callCallback(obj.CellEditCallback,obj,evt);
+            end
             
             % Redraw the component
             obj.redraw();
@@ -310,7 +314,11 @@ classdef MultiPlatformTable < uix.abstract.Widget & uix.mixin.HasLabel
                 
         function onCellSelection(obj,~,evt)
             
-            uix.utility.callCallback(obj.CellSelectionCallback,obj,evt);
+            if obj.UseJTable
+                onSelectionChanged(obj,[],eventData);
+            else
+                uix.utility.callCallback(obj.CellSelectionCallback,obj,evt);
+            end
             
             % Redraw the component
             obj.redraw();

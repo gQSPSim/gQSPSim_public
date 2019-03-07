@@ -156,22 +156,18 @@ classdef VirtualPopulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             Message = '';
             
             % Load from file
-%             try
-%                 [num,txt,Raw] = xlsread(DataFilePath);
-%                 Raw = readtable(DataFilePath);
-              [Header,Data,StatusOk,Message] = xlread(DataFilePath);
-              Data = cell2mat(Data);
-              if ~StatusOk
-                  return
-              end
-                
-%                 Raw = [Raw.Properties.VariableNames;table2cell(Raw)];
-%             catch ME
-%                 Raw = {};
-%                 StatusOk = false;
-%                 Message = sprintf('Unable to read from Excel file:\n\n%s',ME.message);
-%             end
+            try
+                 [Header,Data,StatusOk,Message] = xlread(DataFilePath);
+                 Data = cell2mat(Data);                
+            catch ME
+                 Raw = {};
+                 StatusOk = false;
+                 Message = sprintf('Unable to read from Excel file:\n\n%s',ME.message);
+            end
             
+            if ~StatusOk
+                return
+            end
             % Compute number of VirtualPopulation
             if size(Data,1) > 0
                 
@@ -182,14 +178,14 @@ classdef VirtualPopulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 if ~isempty(MatchPW)
                     MatchPW = MatchPW(1);
                     PWWeights = Data(:,MatchPW);
-                    if abs(sum(PWWeights) - 1) < 1e-12
-                        PrevalenceWeights = PWWeights;
-                        obj.PrevalenceWeightsStr = 'yes';
-                    else
-                        warning(sprintf('Prevalence weights do not sum to 1. Ignorning prevalence weights for file %s',obj.Name)); %#ok<SPWRN>
-                        PrevalenceWeights = zeros(0,1);
-                        obj.PrevalenceWeightsStr = 'no';
-                    end
+%                     if abs(sum(PWWeights) - 1) < 1e-5
+%                         PrevalenceWeights = PWWeights;
+%                         obj.PrevalenceWeightsStr = 'yes';
+%                     else
+%                         warning(sprintf('Prevalence weights do not sum to 1. Ignorning prevalence weights for file %s',obj.Name)); %#ok<SPWRN>
+%                         PrevalenceWeights = zeros(0,1);
+%                         obj.PrevalenceWeightsStr = 'no';
+%                     end
                 else
                     PrevalenceWeights = zeros(0,1);
                     obj.PrevalenceWeightsStr = 'no';

@@ -33,11 +33,17 @@ Del=abs(Y*0.025);
 D = Y;
 
 
+if nargin>4 && ~varargin{3}
+    % don't perform the second step if this should not be performed
+    % TODO this should be an additional option
+    return
+end
 % this is awesome
 A=[X; -X];
 b=[Err+Del+D; -Err+Del-D];
 H=eye(N);
 f=[];
-PW = quadprog(H,f,A,b,Aeq,beq,LB,UB,X0);
+options = optimoptions('quadprog','Display','iter-detailed');
+PW = quadprog(H,f,A,b,Aeq,beq,LB,UB,X0, options);
 
 

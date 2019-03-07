@@ -1,6 +1,8 @@
 function [Header, Data, StatusOK, Message] = xlread(filepath)
 StatusOK = true;
 Message = '';
+Header = {};
+Data = {};
 
 try
     data = readtable(filepath);

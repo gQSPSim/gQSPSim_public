@@ -1,10 +1,10 @@
-function updateVisualizationPlot(vObj)
-% updateVisualizationPlot - Updates all parts of the viewer display
+function updateVisualizationSelectedProfile(vObj)
+% updateVisualizationSelectedProfile - Updates selected profile
 % -------------------------------------------------------------------------
-% Abstract: This function updates all parts of the viewer display
+% Abstract: This function updates selected profile
 %
 % Syntax:
-%           updateVisualizationPlot(vObj)
+%           updateVisualizationSelectedProfile(vObj)
 %
 % Inputs:
 %           vObj - The MyPackageViewer.Empty vObject
@@ -27,7 +27,6 @@ function updateVisualizationPlot(vObj)
 % ---------------------------------------------------------------------
 
 if ~isempty(vObj.Data) && isfield(vObj.h,'SpeciesGroup')
-    Show = [vObj.Data.PlotProfile.Show];
     
     for i=1:size(vObj.h.SpeciesGroup,1)
         for j=1:size(vObj.h.SpeciesGroup,2)
@@ -41,12 +40,6 @@ if ~isempty(vObj.Data) && isfield(vObj.h,'SpeciesGroup')
                         set(Ch,'LineWidth',vObj.Data.PlotSettings(j).LineWidth);
                         if (k==vObj.Data.SelectedProfileRow)
                             set(Ch,'LineWidth',vObj.Data.PlotSettings(j).LineWidth+2);
-                        end
-                        % Show
-                        if ~isempty(Show) && numel(Show) >= k && Show(k)
-                            set(Ch,'Visible','on');
-                        else
-                            set(Ch,'Visible','off');
                         end
                     end %if
                 end %if

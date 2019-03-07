@@ -208,7 +208,34 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                     obj.h.MainAxes(index) = axes(...
                         'Parent',obj.h.MainAxesContainer(index),...
                         'Visible','off');
+                    
+                    % Initialize Plot ID and also FontSizeMode to auto
+                    % This an issue with FontSizes values changing
+                    % (i.e. 11 to 8.8) for small axes (off screen), even
+                    % when FontUnits is points
+                    set(obj.h.MainAxes(index),'FontSizeMode','manual')
                     title(obj.h.MainAxes(index),sprintf('Plot %d',index));
+                    xlabel(obj.h.MainAxes(index),QSP.PlotSettings.DefaultXLabel);
+                    ylabel(obj.h.MainAxes(index),QSP.PlotSettings.DefaultYLabel);
+                    set(get(obj.h.MainAxes(index),'Title'),'FontSize',QSP.PlotSettings.DefaultTitleFontSize,'FontWeight',QSP.PlotSettings.DefaultTitleFontWeight)
+                    % First set ruler, then set label
+                    hThis = get(obj.h.MainAxes(index),'XRuler');
+                    set(hThis,'FontSize',QSP.PlotSettings.DefaultXTickLabelFontSize,'FontWeight',QSP.PlotSettings.DefaultXTickLabelFontWeight);
+                    hThis = get(obj.h.MainAxes(index),'YRuler');
+                    set(hThis,'FontSize',QSP.PlotSettings.DefaultYTickLabelFontSize,'FontWeight',QSP.PlotSettings.DefaultYTickLabelFontWeight);
+                    set(get(obj.h.MainAxes(index),'xlabel'),'FontSize',QSP.PlotSettings.DefaultXLabelFontSize,'FontWeight',QSP.PlotSettings.DefaultXLabelFontWeight)
+                    set(get(obj.h.MainAxes(index),'ylabel'),'FontSize',QSP.PlotSettings.DefaultYLabelFontSize,'FontWeight',QSP.PlotSettings.DefaultYLabelFontWeight)
+                    
+                    set(obj.h.MainAxes(index),...
+                        'XGrid',QSP.PlotSettings.DefaultXGrid,...
+                        'YGrid',QSP.PlotSettings.DefaultYGrid,...
+                        'XMinorGrid',QSP.PlotSettings.DefaultXMinorGrid,...
+                        'YMinorGrid',QSP.PlotSettings.DefaultYMinorGrid,...
+                        'YScale',QSP.PlotSettings.DefaultYScale,...
+                        'XLim',str2num(QSP.PlotSettings.DefaultCustomXLim),...
+                        'XLimMode',QSP.PlotSettings.DefaultXLimMode,...
+                        'YLim',str2num(QSP.PlotSettings.DefaultCustomYLim),...
+                        'YLimMode',QSP.PlotSettings.DefaultYLimMode); %#ok<ST2NM>
                     
                     % Assign plot settings
                     obj.PlotSettings(index) = QSP.PlotSettings(obj.h.MainAxes(index));
@@ -843,8 +870,33 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                             
                             ThisAxes = get(Ch(index),'Children');
                             
-                            % Call helper to copy axes and format
-                            printAxesHelper(obj,ThisAxes,SaveFilePath,obj.PlotSettings(index))                            
+                            % Check if the plot has children
+                            TheseChildren = get(ThisAxes,'Children');     
+                            if ~isempty(TheseChildren)
+                                HasVisibleItem = true(1,numel(TheseChildren));
+                                for chIdx = 1:numel(TheseChildren)
+                                    ThisGroup = TheseChildren{chIdx};
+                                    ThisGroupChildren = get(ThisGroup,'Children');
+                                    if ~iscell(ThisGroupChildren)
+                                        ThisGroupChildren = {ThisGroupChildren};
+                                    end
+                                    if ~isempty(ThisGroupChildren)
+                                        HasVisibleItem(chIdx) = any(strcmpi(get(vertcat(ThisGroupChildren{:}),'Visible'),'on') &...
+                                            ~strcmpi(get(vertcat(ThisGroupChildren{:}),'Tag'),'DummyLine'));
+                                    else
+                                        HasVisibleItem(chIdx) = false;
+                                    end
+                                end
+                                % Filter to only allow export of plots that
+                                % have children (at least one visible item
+                                % that is not a dummyline)
+                                TheseChildren = TheseChildren(HasVisibleItem);
+                            end
+                            
+                            if ~isempty(TheseChildren)
+                                % Call helper to copy axes and format
+                                printAxesHelper(obj,ThisAxes,SaveFilePath,obj.PlotSettings(index))                            
+                            end
                           
                         end % for
                     end %if
@@ -1008,6 +1060,11 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                    % Copy Data's PlotSettings struct (backend) to PlotSettings (frontend)
                    for index = 1:obj.MaxNumPlots
                        Summary = obj.Data.PlotSettings(index);
+                       % If Summary is empty (i.e., new node), then use
+                       % defaults
+                       if isempty(fieldnames(Summary))
+                           Summary = QSP.PlotSettings.getDefaultSummary();
+                       end
                        set(obj.PlotSettings(index),fieldnames(Summary),struct2cell(Summary)');
                    end
                 end

@@ -39,12 +39,16 @@ for index = 1:numel(hAxes)
         'XLimMode',obj.PlotSettings(index).XLimMode,...
         'YLimMode',obj.PlotSettings(index).YLimMode);
     if strcmpi(obj.PlotSettings(index).XLimMode,'manual')
+        tmp = obj.PlotSettings(index).CustomXLim;
+        if ischar(tmp), tmp = str2num(tmp); end         %#ok<ST2NM>
         set(hAxes(index),...
-            'XLim',obj.PlotSettings(index).CustomXLim);
+            'XLim',tmp);
     end
     if strcmpi(obj.PlotSettings(index).YLimMode,'manual')
+        tmp = obj.PlotSettings(index).CustomYLim;
+        if ischar(tmp), tmp = str2num(tmp); end         %#ok<ST2NM>
         set(hAxes(index),...
-            'YLim',obj.PlotSettings(index).CustomYLim);
+            'YLim',tmp);
     end
     
     hold(hAxes(index),'on')    
@@ -262,16 +266,16 @@ if strcmp(obj.PlotType, 'Normal') && ~isempty(Results)
                     % valid lines
                     if ~isempty(Results{itemIdx}.Data(:,setdiff(ColumnIdx, ColumnIdx_invalid)))
 
-                        % Plot
-%                         if obj.bShowTraces(axIdx)
-%                             hThis = plot(hSpeciesGroup{sIdx,axIdx},Results{itemIdx}.Time,thisData(:,setdiff(ColumnIdx, ColumnIdx_invalid)),...
-%                                 'Color',SelectedItemColors(itemIdx,:),...
-%                                 'LineStyle',ThisLineStyle);
-%                             acc_lines = [acc_lines; hThis];                        
+%                         Plot
+                        if obj.bShowTraces(axIdx)
+                            hThis = plot(hSpeciesGroup{sIdx,axIdx},Results{itemIdx}.Time,thisData(:,setdiff(ColumnIdx, ColumnIdx_invalid)),...
+                                'Color',SelectedItemColors(itemIdx,:),...
+                                'LineStyle',ThisLineStyle);
+                            acc_lines = [acc_lines; hThis];                        
 
-%                         end
+                        end
                         
-%                         if obj.bShowQuantiles(axIdx)
+                        if obj.bShowQuantiles(axIdx)
 % %                             axes(get(hSpeciesGroup{sIdx,axIdx},'Parent'))
 %                             h=shadedErrorBar(Results{itemIdx}.Time, mean(thisData(:,setdiff(ColumnIdx, ColumnIdx_invalid)),2), ...
 %                                 std(thisData(:,setdiff(ColumnIdx, ColumnIdx_invalid)),[],2));
@@ -282,7 +286,8 @@ if strcmp(obj.PlotType, 'Normal') && ~isempty(Results)
 %                                 'LineStyle',ThisLineStyle);
 %                             set(h.patch,'FaceColor',SelectedItemColors(itemIdx,:));
 %                             hThis = h.mainLine;
-%                         end
+
+                        
                         
 %                         hThisAnn = get(hThis,'Annotation');
 %                         if iscell(hThisAnn)
@@ -338,6 +343,7 @@ if strcmp(obj.PlotType, 'Normal') && ~isempty(Results)
                             set(thisLegendInformation,'IconDisplayStyle','off');
                         end
 %                         set(mean_line.patch, 'FaceColor',SelectedItemColors(itemIdx,:));    
+                        end
                     end
                     
                     
@@ -366,12 +372,17 @@ if strcmp(obj.PlotType, 'Normal') && ~isempty(Results)
                     % Only allow one display name - don't attach to
                     % traces and quantiles and instead attach to mean
                     % line
-                    set(hThis(1),'DisplayName',regexprep(sprintf('%s [Sim]',FullDisplayName),'_','\\_')); % For export, use patch since line width is not applied
+                    if ~isempty(hThis)
+                        set(hThis(1),'DisplayName',regexprep(sprintf('%s [Sim]',FullDisplayName),'_','\\_')); % For export, use patch since line width is not applied
+                    end
                     
                     if any(ixMeanStd)
-                        errorbar(times(ixMeanStd), val1(ixMeanStd), val2(ixMeanStd), 'o', 'Color', SelectedItemColors(itemIdx,:));
+                        hThis = [hThis; errorbar(get(hSpeciesGroup{sIdx,axIdx},'Parent'), ...
+                            times(ixMeanStd), val1(ixMeanStd), 2*val2(ixMeanStd), 'o', 'Color', SelectedItemColors(itemIdx,:))];
                     end
-
+                    if ~isempty(hThis)
+                        set(hThis(1),'DisplayName',regexprep(sprintf('%s [Sim]',FullDisplayName),'_','\\_')); % For export, use patch since line width is not applied
+                    end
                 end
             end
 
