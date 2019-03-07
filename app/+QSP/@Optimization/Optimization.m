@@ -594,6 +594,9 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 obj.ExcelResultFileName = ResultsFileNames;
                 obj.VPopName = VPopNames;
                 
+                % update last saved time for optimization
+                updateLastSavedTime(obj);
+                
                 if StatusOK
                     vpopObj = QSP.VirtualPopulation.empty(0,1);
                     for idx = 1:numel(VPopNames)
