@@ -147,7 +147,8 @@ if ~isempty(vObj.Data)
     
     TaskNames = {vObj.Data.Item.TaskName};
     VPopNames = {vObj.Data.Item.VPopName};
-    
+    Groups    = {vObj.Data.Item.Group};
+
 %       InvalidItemIndices = false(size(TaskNames));
 %     for idx = 1:numel(TaskNames)
 %         % Check if the task is valid
@@ -167,11 +168,12 @@ if ~isempty(vObj.Data)
             VPopNames(InvalidItemIndices) = [];
         end
         
-        vObj.Data.PlotItemTable = cell(numel(TaskNames),5);
+        vObj.Data.PlotItemTable = cell(numel(TaskNames),6);
         vObj.Data.PlotItemTable(:,1) = {false};
         vObj.Data.PlotItemTable(:,3) = TaskNames;
         vObj.Data.PlotItemTable(:,4) = VPopNames;
-        vObj.Data.PlotItemTable(:,5) = cellfun(@(x,y)sprintf('%s - %s',x,y),TaskNames,VPopNames,'UniformOutput',false);
+        vObj.Data.PlotItemTable(:,5) = Groups;
+        vObj.Data.PlotItemTable(:,6) = cellfun(@(x,y)sprintf('%s - %s',x,y),TaskNames,VPopNames,'UniformOutput',false);
         
         % Update the item colors
         ItemColors = getItemColors(vObj.Data.Session,numel(TaskNames));
@@ -184,17 +186,18 @@ if ~isempty(vObj.Data)
         NewPlotTable(:,1) = {false};
         NewPlotTable(:,3) = TaskNames;
         NewPlotTable(:,4) = VPopNames;
-        NewPlotTable(:,5) = cellfun(@(x,y)sprintf('%s - %s',x,y),TaskNames,VPopNames,'UniformOutput',false);
+        NewPlotTable(:,5) = Groups;
+        NewPlotTable(:,6) = cellfun(@(x,y)sprintf('%s - %s',x,y),TaskNames,VPopNames,'UniformOutput',false);
         
         NewColors = getItemColors(vObj.Data.Session,numel(TaskNames));
         NewPlotTable(:,2) = num2cell(NewColors,2);   
         
-        if size(vObj.Data.PlotItemTable,2) == 4
-            vObj.Data.PlotItemTable(:,5) = cellfun(@(x,y)sprintf('%s - %s',x,y),vObj.Data.PlotItemTable(:,3),vObj.Data.PlotItemTable(:,4),'UniformOutput',false);
+        if size(vObj.Data.PlotItemTable,2) == 5
+            vObj.Data.PlotItemTable(:,6) = cellfun(@(x,y)sprintf('%s - %s',x,y),vObj.Data.PlotItemTable(:,3),vObj.Data.PlotItemTable(:,4),'UniformOutput',false);
         end
         
         % Update Table
-        KeyColumn = [3 4];
+        KeyColumn = [3 4 5];
         [vObj.Data.PlotItemTable,vObj.PlotItemAsInvalidTable,vObj.PlotItemInvalidRowIndices] = QSPViewer.updateVisualizationTable(vObj.Data.PlotItemTable,NewPlotTable,InvalidItemIndices,KeyColumn);
     end
     
@@ -207,6 +210,7 @@ if ~isempty(vObj.Data)
     if ~isempty(TableData)
         TaskNames = {vObj.Data.Item.TaskName};
         VPopNames = {vObj.Data.Item.VPopName};
+        Groups = {vObj.Data.Item.Group};
         
         for index = 1:size(vObj.Data.PlotItemTable,1)
             % Check to see if this row is invalid. If it is not invalid,
@@ -214,7 +218,8 @@ if ~isempty(vObj.Data)
             if ~ismember(vObj.PlotItemInvalidRowIndices,index)
                 ThisTaskName = vObj.Data.PlotItemTable{index,3};
                 ThisVPopName = vObj.Data.PlotItemTable{index,4};
-                MatchIdx = strcmp(ThisTaskName,TaskNames) & strcmp(ThisVPopName,VPopNames);
+                ThisGroup = vObj.Data.PlotItemTable{index,5};
+                MatchIdx = strcmp(ThisTaskName,TaskNames) & strcmp(ThisVPopName,VPopNames) & strcmp(ThisGroup, Groups);
                 if any(MatchIdx)
                     ThisFileName = vObj.Data.Item(MatchIdx).MATFileName;
                     % Mark results file as missing
@@ -238,9 +243,9 @@ if ~isempty(vObj.Data)
     set(vObj.h.PlotItemsTable,...
         'LabelString',ThisLabel,...
         'Data',TableData,...
-        'ColumnName',{'Include','Color','Task','Virtual Population','Display'},...
-        'ColumnFormat',{'boolean','char','char','char','char'},...
-        'ColumnEditable',[true,false,false,false,true]...
+        'ColumnName',{'Include','Color','Task','Virtual Population','Group','Display'},...
+        'ColumnFormat',{'boolean','char','char','char','numeric','char'},...
+        'ColumnEditable',[true,false,false,false,false,true]...
         );
     % Set cell color
     for index = 1:size(TableData,1)
@@ -252,10 +257,10 @@ if ~isempty(vObj.Data)
 else
     % Items table
     set(vObj.h.PlotItemsTable,...
-        'Data',cell(0,5),...
-        'ColumnName',{'Include','Color','Task','Virtual Population','Display'},...
-        'ColumnFormat',{'boolean','char','char','char','char'},...
-        'ColumnEditable',[true,false,false,false,true]...
+        'Data',cell(0,6),...
+        'ColumnName',{'Include','Color','Task','Virtual Population','Group','Display'},...
+        'ColumnFormat',{'boolean','char','char','char','numeric','char'},...
+        'ColumnEditable',[true,false,false,false,false,true]...
         );
 end
 

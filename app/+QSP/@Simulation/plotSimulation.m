@@ -71,6 +71,8 @@ IsSelected = 1:size(obj.PlotItemTable,1);
 
 TaskNames = {obj.Item.TaskName};
 VPopNames = {obj.Item.VPopName};
+Groups = {obj.Item.Group};
+
 if ~isempty(IsSelected)
     MATFileNames = {};
     ItemIndices = [];
@@ -80,9 +82,10 @@ if ~isempty(IsSelected)
         ThisVPopName = obj.PlotItemTable{index,4};
         ThisTask = getValidSelectedTasks(obj.Settings,ThisTaskName);
         ThisVPop = getValidSelectedVPops(obj.Settings,ThisVPopName);        
+        ThisGroup = obj.PlotItemTable{index,5};
         
         if ~isempty(ThisTask) && (~isempty(ThisVPop) || strcmp(ThisVPopName,QSP.Simulation.NullVPop))
-            MatchIdx = strcmp(ThisTaskName,TaskNames) & strcmp(ThisVPopName,VPopNames);
+            MatchIdx = strcmp(ThisTaskName,TaskNames) & strcmp(ThisVPopName,VPopNames) & strcmp(ThisGroup, Groups);
             if any(MatchIdx)
                 ThisFileName = {obj.Item(MatchIdx).MATFileName};
                 MATFileNames = [MATFileNames,ThisFileName]; %#ok<AGROW>

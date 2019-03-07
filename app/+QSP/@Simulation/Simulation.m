@@ -37,7 +37,7 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         Item = QSP.TaskVirtualPopulation.empty(0,1)
         
         PlotSpeciesTable = cell(0,4)
-        PlotItemTable = cell(0,5)
+        PlotItemTable = cell(0,6)
         PlotDataTable = cell(0,4)
         PlotGroupTable = cell(0,4)
         
@@ -392,7 +392,7 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         end
         
         function set.PlotItemTable(obj,Value)
-            validateattributes(Value,{'cell'},{'size',[nan 5]});
+            validateattributes(Value,{'cell'},{'size',[nan 6]});
             obj.PlotItemTable = Value;
         end
         
