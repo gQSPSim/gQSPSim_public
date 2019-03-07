@@ -1,4 +1,4 @@
-function [StatusOK,Message,ResultsFileNames,VpopNames] = optimizationRunHelper(obj)
+function [StatusOK,Message,ResultsFileNames,VpopNames, groupErrorCounts, groupErrorMessages, groupErrorMessageCounts] = optimizationRunHelper(obj)
 % Sets up and runs the optimization contained in the Optimization object
 % "obj".
 
@@ -34,6 +34,9 @@ else
     warning('Could not find match for specified parameter file')
     paramData = {};
 end
+
+%Fix to remove Nans in parameter headers
+paramHeaders = paramHeaders(1:(find(cell2mat(cellfun(@ischar, paramHeaders, 'UniformOutput', false)),1,'last')));  
 
 if ~isempty(paramData)
     % parse paramData
@@ -241,13 +244,21 @@ for ii = 1:nItems
     tObj_i.compile();
     
     ItemModels.Task(ii) = tObj_i;
-    
-    
-    
-    
+   
 end % for ii = ...
 
 
+%% pre-optimization check
+p0 = estParamData(:,3);
+
+[~, thisStatusOK, thisMessage] = objectiveFun(p0,paramObj,ItemModels,Groups,IDs,Time,optimData,dataNames,obj);
+
+if ~thisStatusOK
+    Message = sprintf('%s\nError encountered for initial parameter set P0_1:%s.\nAborting optimization.', Message, thisMessage);
+    StatusOK = false;
+    return
+end
+    
 %% Call optimization program
 switch obj.AlgorithmName
     case 'ScatterSearch'
@@ -436,10 +447,16 @@ end
 if SaveFlag
     VpopNames{end} = ['Results - Optimization = ' obj.Name ' - Date = ' timeStamp];
     ResultsFileNames{end} = [VpopNames{end} '.xls'];
-    if ispc
-        xlswrite(fullfile(SaveFilePath,ResultsFileNames{end}),Vpop);
-    else
-        xlwrite(fullfile(SaveFilePath,ResultsFileNames{end}),Vpop);
+    try
+        if ispc
+            xlswrite(fullfile(SaveFilePath,ResultsFileNames{end}),Vpop);
+        else
+            xlwrite(fullfile(SaveFilePath,ResultsFileNames{end}),Vpop);
+        end
+    catch xlsError
+        Message = sprintf('%s\n%s: %s', Message,'Unable to save results to Excel file.', ...
+            xlsError.message);
+        StatusOK = false;
     end
 else
     StatusOK = false;
@@ -478,6 +495,10 @@ end
         
         % try calculating the objective
         try
+            
+            groupErrorCounts = zeros(1,length(obj.Item));
+            groupErrorMessages = cell(1,length(obj.Item));
+            groupErrorMessageCounts = cell(1,length(obj.Item));
             
             % for each Group (varying experiments)
             for grpIdx = 1:length(obj.Item)
@@ -525,8 +546,13 @@ end
                         'StopTime', StopTime );
                     
                     if ~thisStatusOK
+                        % simulation failed for this particular task
+                        % keep track of the number of times each simulation
+                        % failed and the error messages that were produced
+                        % for this group
                         Message = sprintf('%s\n%s\n', Message, thisMessage);
-                        return
+                        fprintf('Warning: Group %d produced error %s\n', currGrp, thisMessage);
+                        
                     end
                                         
                     % generate elements of objective vector by comparing model
@@ -550,6 +576,9 @@ end
                             if nargout>1
                                 varargout{1} = tempStatusOK;
                                 varargout{2} = tempMessage;
+%                                 varargout{3} =  groupErrorCounts;
+%                                 varargout{4} = groupErrorMessages;
+%                                 varargout{5} = groupErrorMessageCounts;
                             end
                             path(myPath);
                             return                    

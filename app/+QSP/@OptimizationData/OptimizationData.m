@@ -111,8 +111,14 @@ classdef OptimizationData < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         function [StatusOk,Message,Header,Data] = importData(obj,DataFilePath,varargin)            
             
             FileInfo = dir(DataFilePath);
-            if ~isempty(obj.LastSavedTime) && ~isempty(FileInfo) && ...
-                    obj.LastSavedTime > FileInfo.datenum && ...
+            if ischar(obj.LastSavedTime)
+                lastSavedTime = datenum(obj.LastSavedTime);
+            else
+                lastSavedTime = obj.LastSavedTime;
+            end
+            
+            if ~isempty(lastSavedTime) && ~isempty(FileInfo) && ...
+                    lastSavedTime > FileInfo.datenum && ...
                     ~isempty(obj.Data) && ~isempty(obj.Header)
                 Header = obj.Header;
                 Data = obj.Data;
