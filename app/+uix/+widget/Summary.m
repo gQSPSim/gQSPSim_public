@@ -97,6 +97,7 @@ classdef Summary < uix.abstract.Widget
         function create(obj)
 
             % List
+
             obj.h.Listbox = uicontrol( ...
                 'Parent', obj.UIContainer, ...
                 'Style', 'listbox', ...
@@ -108,6 +109,7 @@ classdef Summary < uix.abstract.Widget
                 'FontSize',10,...
                 'Value',[],...
                 'Max',2);
+            
 
         end %function create(obj)
     end %methods - create graphics
@@ -174,9 +176,18 @@ classdef Summary < uix.abstract.Widget
 
                 % Update enables
                 set(obj.h.Listbox, 'Enable', 'inactive')
+                if ~isempty(ancestor(obj,'Figure'))
+                    obj.h.Listbox.UIContextMenu = uicontextmenu(ancestor(obj,'Figure'));
+                    uimenu(obj.h.Listbox.UIContextMenu, 'Text', 'Save to clipboard', 'Callback', @saveToClipboard);
+                end
 
             end
-
+        function saveToClipboard(src,event)
+            text = get(obj.h.Listbox, 'String');
+            text = regexprep(text, '<[^>]*>', '');
+            text = strjoin(text, '\n');
+            clipboard('copy', text);
+        end
         end %function redraw(obj)
     end %methods - redraw graphics
 
