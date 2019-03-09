@@ -182,6 +182,14 @@ classdef CohortGeneration < uix.abstract.CardViewPane
             
         end %function
         
+        function onSaveInvalidPopup(vObj,h,e)
+            values = {'Save all vpatients', 'Save valid vpatients'};
+            vObj.TempData.SaveInvalid = values{get(h,'Value')};
+            % Update the view
+            updateDataset(vObj);
+            refreshItemsTable(vObj);
+        end
+        
         function onMethodPopup(vObj,h,e)
             
             vObj.TempData.Method = vObj.MethodPopupItems{get(h,'Value')};

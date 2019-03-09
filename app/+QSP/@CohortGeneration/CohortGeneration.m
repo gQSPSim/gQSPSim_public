@@ -38,6 +38,7 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         RefParamName = '' % Parameters.Name
         GroupName = ''
         Method = 'Uniform' 
+        SaveInvalid = 'Save all vpatients'
         
         
         Item = QSP.TaskGroup.empty(0,1)
