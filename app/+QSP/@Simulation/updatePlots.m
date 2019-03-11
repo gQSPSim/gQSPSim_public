@@ -184,7 +184,7 @@ for axIndex = AxIndices(:)'
                 
                 % Now create formatted display name
                 ThisDisplayName = obj.PlotSpeciesTable{sIdx,4};
-                FullDisplayName = sprintf('%s %s',ThisDisplayName,obj.PlotItemTable{itemIdx,5});
+                FullDisplayName = sprintf('%s %s',ThisDisplayName,obj.PlotItemTable{itemIdx,6});
                 FormattedFullDisplayName = regexprep(FullDisplayName,'_','\\_'); % For export, use patch since line width is not applied
                 
                 % Get line style
