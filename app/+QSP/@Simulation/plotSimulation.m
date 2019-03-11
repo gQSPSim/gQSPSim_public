@@ -157,7 +157,7 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
         ThisColor = SelectedItemColors(resultIdx,:);
         
         
-        FullDisplayName = sprintf('%s %s',ThisDisplayName,obj.PlotItemTable{itemIdx,5});
+        FullDisplayName = sprintf('%s %s',ThisDisplayName,obj.PlotItemTable{itemIdx,6});
         % Get the match in Sim 1 (Virtual Patient 1) in this VPop
         ColumnIdx = find(strcmp(ThisResult.SpeciesNames,ThisName), 1); % keep only first in case of duplicate
         if isempty(ColumnIdx), continue, end
