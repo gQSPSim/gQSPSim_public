@@ -233,6 +233,27 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 Message = sprintf('%s\n* Invalid simulation name.', Message);
                 StatusOK=false;
             end
+            
+            % Check if the same Task / Group / Vpop is assigned more than
+            % once
+            
+            allItems = cell2table([{obj.Item.TaskName}', {obj.Item.VPopName}', {obj.Item.Group}']);
+            [~,ia] = unique(allItems);
+            
+            if length(ia) < size(allItems,1) % duplicates
+                dups = setdiff(1:size(allItems,1), ia);
+
+                for k=1:length(dups); dups_{k} = num2str(dups(k)); end
+                if length(dups)>1
+                    Message = sprintf('Items %s are duplicates. Please remove before continuing.', ...
+                        strjoin(dups_, ',') );
+                else
+                    Message = sprintf('Item %s is a duplicate. Please remove before continuing.', ...
+                        dups_{1});
+                end
+                StatusOK = false;
+            end
+            
     
         end %function
         
