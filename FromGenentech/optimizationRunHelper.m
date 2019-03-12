@@ -116,6 +116,7 @@ if ~isempty(paramData)
     % extract parameter names
     estParamNames = paramData(idxEstimate,colId.Name);
     fixedParamNames = paramData(~idxEstimate,colId.Name);
+    allParamNames = paramData(:,colId.Name);
     % extract numeric data
 %     estParamData = cell2mat(paramData(idxEstimate,4:end));
     estParamData = cell2mat(paramData(idxEstimate,[colId.LB, colId.UB, colId.P0]));
@@ -395,7 +396,17 @@ else
         
         % add headers to current group's Vpop
 %         Vpop_grp = [[estParamNames', fixedParamNames' ,ICspecNames]; num2cell(Vpop_grp)];
-        Vpop_grp = [[estParamNames',ICspecNames,fixedParamNames']; [num2cell(Vpop_grp), num2cell(repmat(fixedParamData', size(Vpop_grp,1), 1)) ]];
+
+        
+        VpopHeaders = [estParamNames',ICspecNames,fixedParamNames'];
+        VpopData = [num2cell(Vpop_grp), num2cell(repmat(fixedParamData', size(Vpop_grp,1), 1)) ];
+        
+        % reoder according to original names in parameters file
+        [bParam,paramOrder] = ismember(VpopHeaders,allParamNames);
+        VpopHeaders = [VpopHeaders(paramOrder(bParam)), VpopHeaders(~bParam)];
+        VpopData = [VpopData(:, paramOrder(bParam)), VpopData(:, ~bParam)];
+        
+        Vpop_grp = [ VpopHeaders; VpopData];
 
         % save current group's Vpop
         SaveFlag = true;
@@ -431,7 +442,19 @@ end % if
 % Vpop = [[estParamNames',specNames,{'PWeight'}]; num2cell([Vpop,PWeight])];
 
 % add headers to final Vpop
-Vpop = [[estParamNames',ICspecNames,fixedParamNames']; [num2cell(Vpop), num2cell(repmat(fixedParamData', size(Vpop,1), 1)) ]];
+
+VpopHeaders = [estParamNames',ICspecNames,fixedParamNames'];
+VpopData = [num2cell(Vpop), num2cell(repmat(fixedParamData', size(Vpop,1), 1)) ];
+
+% reoder according to original names in parameters file
+[bParam,paramOrder] = ismember(VpopHeaders,allParamNames);
+VpopHeaders = [VpopHeaders(paramOrder(bParam)), VpopHeaders(~bParam)];
+VpopData = [VpopData(:, paramOrder(bParam)), VpopData(:, ~bParam)];
+
+Vpop = [ VpopHeaders; VpopData];
+
+
+% Vpop = [[estParamNames',ICspecNames,fixedParamNames']; [num2cell(Vpop), num2cell(repmat(fixedParamData', size(Vpop,1), 1)) ]];
 
 % save final Vpop
 SaveFlag = true;
