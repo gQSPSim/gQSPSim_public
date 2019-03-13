@@ -172,6 +172,7 @@ classdef TreeNode < matlab.mixin.SetGet & matlab.mixin.Heterogeneous
             if ~isempty(nObj.Parent) && isvalid(nObj.Parent) && ~nObj.Parent.IsBeingDeleted
                 nObj.Parent(:) = [];
             end
+            delete(nObj.Value);
             delete(nObj.jNode);
         end
     end %methods

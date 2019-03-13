@@ -298,7 +298,13 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
             if isempty(ThisSessionNode)
                 obj.SelectedSessionIdx = [];
             else
+                % update path to include drop the UDF for previous session
+                % and include the UDF for current session
+                obj.SelectedSession.removeUDF();
+                
                 obj.SelectedSessionIdx = find(ThisSessionNode == obj.SessionNode);
+                obj.SelectedSession.addUDF();
+
             end
             
             % Disable mouse handler before refresh

@@ -52,7 +52,10 @@ classdef Session < matlab.mixin.SetGet & uix.mixin.AssignPVPairs & uix.mixin.Has
         Deleted = QSP.abstract.BaseProps.empty(1,0)
         RootDirectory = pwd
         RelativeResultsPath = ''
-        RelativeFunctionsPath = ''
+        
+        RelativeUserDefinedFunctionsPath = ''
+        RelativeObjectiveFunctionsPath = ''
+        
         ColorMap1 = QSP.Session.DefaultColorMap
         ColorMap2 = QSP.Session.DefaultColorMap
         
@@ -65,7 +68,8 @@ classdef Session < matlab.mixin.SetGet & uix.mixin.AssignPVPairs & uix.mixin.Has
         
     properties (Dependent=true, SetAccess='immutable')
         ResultsDirectory
-        FunctionsDirectory
+        ObjectiveFunctionsDirectory
+        UserDefinedFunctionsDirectory
     end
     
     
@@ -101,6 +105,14 @@ classdef Session < matlab.mixin.SetGet & uix.mixin.AssignPVPairs & uix.mixin.Has
         
     end %methods
     
+    methods
+        % Destructor
+        function delete(obj)
+           removeUDF(obj)
+            
+        end
+        
+    end
     
     %% Static methods
     methods (Static=true)
@@ -163,17 +175,52 @@ classdef Session < matlab.mixin.SetGet & uix.mixin.AssignPVPairs & uix.mixin.Has
             obj.RelativeResultsPath = fullfile(Value);
         end %function
         
-        function set.RelativeFunctionsPath(obj,Value)
+        function set.RelativeObjectiveFunctionsPath(obj,Value)
             validateattributes(Value,{'char'},{});
-            obj.RelativeFunctionsPath = fullfile(Value);
+            obj.RelativeObjectiveFunctionsPath = fullfile(Value);
         end %function
+        
+        function set.RelativeUserDefinedFunctionsPath(obj,Value)
+            validateattributes(Value,{'char'},{});
+            % remove old path
+            removeUDF(obj);
+            
+            obj.RelativeUserDefinedFunctionsPath = fullfile(Value);
+            addUDF(obj);
+                
+        end %function
+        
+        function addUDF(obj)
+            % add the UDF to the path
+            p = path;
+            if exist(obj.RelativeUserDefinedFunctionsPath, 'dir')
+                if isempty(strfind(p, obj.RelativeUserDefinedFunctionsPath))
+                    addpath(genpath(obj.RelativeUserDefinedFunctionsPath))
+                end
+            end    
+        end
+        
+        function removeUDF(obj)
+            % remove UDF from the path
+            p = path;
+            subdirs = genpath(obj.RelativeUserDefinedFunctionsPath);
+            subdirs = strsplit(subdirs,':');
+            for k=1:length(subdirs)
+                tmp = strrep(p, subdirs(k), '');
+                p = path(tmp{1});
+            end
+        end
         
         function value = get.ResultsDirectory(obj)
             value = fullfile(obj.RootDirectory, obj.RelativeResultsPath);
         end
         
-        function value = get.FunctionsDirectory(obj)
-            value = fullfile(obj.RootDirectory, obj.RelativeFunctionsPath);
+        function value = get.ObjectiveFunctionsDirectory(obj)
+            value = fullfile(obj.RootDirectory, obj.RelativeObjectiveFunctionsPath);
+        end
+        
+        function value = get.UserDefinedFunctionsDirectory(obj)
+            value = fullfile(obj.RootDirectory, obj.RelativeUserDefinedFunctionsPath);
         end
         
         function set.ColorMap1(obj,Value)

@@ -29,15 +29,19 @@ function refresh(vObj)
 if isscalar(vObj.Data)
     RootDir = vObj.Data.RootDirectory;
     RelativeResultsPath = vObj.Data.RelativeResultsPath;
-    RelativeFunctionsPath = vObj.Data.RelativeFunctionsPath;
+%     RelativeFunctionsPath = vObj.Data.RelativeFunctionsPath;
+    RelativeObjectiveFunctionsPath = vObj.Data.RelativeObjectiveFunctionsPath;
+    RelativeUserDefinedFunctionsPath = vObj.Data.RelativeUserDefinedFunctionsPath;
 else
     RootDir = '';
     RelativeResultsPath = '';
-    RelativeFunctionsPath = '';
+    RelativeUserDefinedFunctionsPath = '';
+    RelativeObjectiveFunctionsPath = '';
 end
 
 vObj.h.RootDirSelector.Value = RootDir;
 vObj.h.ResultsDirSelector.RootDirectory = RootDir;
 vObj.h.ResultsDirSelector.Value = RelativeResultsPath;
 vObj.h.FunctionsDirSelector.RootDirectory = RootDir;
-vObj.h.FunctionsDirSelector.Value = RelativeFunctionsPath;
+vObj.h.ObjectiveFunctionsDirSelector.Value = RelativeObjectiveFunctionsPath;
+vObj.h.UserDefinedFunctionsDirSelector.Value = RelativeUserDefinedFunctionsPath;
