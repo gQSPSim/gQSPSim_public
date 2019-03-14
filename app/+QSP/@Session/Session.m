@@ -204,7 +204,16 @@ classdef Session < matlab.mixin.SetGet & uix.mixin.AssignPVPairs & uix.mixin.Has
             % remove UDF from the path
             p = path;
             subdirs = genpath(obj.RelativeUserDefinedFunctionsPath);
-            subdirs = strsplit(subdirs,':');
+            if isempty(subdirs)
+                return
+            end
+            
+            if ispc
+                subdirs = strsplit(subdirs,';');
+            else
+                subdirs = strsplit(subdirs,':');
+            end
+            
             for k=1:length(subdirs)
                 tmp = strrep(p, subdirs(k), '');
                 p = path(tmp{1});

@@ -122,5 +122,5 @@ vObj.h.UserDefinedFunctionsDirSelector = uix.widget.FolderSelector(...
 
 % Sizes
 vObj.h.SessionLayout.Heights = [25 25 25 25];
-vObj.h.SessionLayout.Widths = [140 -1];
+vObj.h.SessionLayout.Widths = [250 -1];
 
