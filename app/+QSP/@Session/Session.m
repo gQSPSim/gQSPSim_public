@@ -182,11 +182,9 @@ classdef Session < matlab.mixin.SetGet & uix.mixin.AssignPVPairs & uix.mixin.Has
         
         function set.RelativeUserDefinedFunctionsPath(obj,Value)
             validateattributes(Value,{'char'},{});
-            % remove old path
-            removeUDF(obj);
+       
             
             obj.RelativeUserDefinedFunctionsPath = fullfile(Value);
-            addUDF(obj);
                 
         end %function
         
@@ -201,6 +199,11 @@ classdef Session < matlab.mixin.SetGet & uix.mixin.AssignPVPairs & uix.mixin.Has
         end
         
         function removeUDF(obj)
+            % don't do anything if the session was empty (nothing selected)
+            if isempty(obj)
+                return
+            end
+                
             % remove UDF from the path
             p = path;
             subdirs = genpath(obj.RelativeUserDefinedFunctionsPath);

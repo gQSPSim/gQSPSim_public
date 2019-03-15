@@ -213,6 +213,9 @@ classdef (Abstract) AppWithSessionFiles < uix.abstract.AppWindow
             idxNew = obj.NumSessions + 1;
             obj.SessionPaths{idxNew,1} = NewName;
             obj.IsDirty(idxNew,1) = false;
+            
+            % remove UDF from selected session
+            obj.SelectedSession.removeUDF();
             obj.SelectedSessionIdx = idxNew;
             
             % Refresh app components
