@@ -358,382 +358,382 @@ classdef PlotSettings < matlab.mixin.SetGet & uix.mixin.AssignPVPairs
     methods
         
         function Value = get.Title(obj)      
-            if ~isempty(ancestor(obj.hAxes,'figure'))
+%             if ~isempty(ancestor(obj.hAxes,'figure'))
                 hThis = get(obj.hAxes,'Title');
                 Value = get(hThis,'String');
-            else
-                Value = QSP.PlotSettings.DefaultTitle;
-            end
+%             else
+%                 Value = QSP.PlotSettings.DefaultTitle;
+%             end
         end %function            
         function set.Title(obj,Value)
             validateattributes(Value,{'char'},{})
-            if ~isempty(ancestor(obj.hAxes,'figure'))
+%             if ~isempty(ancestor(obj.hAxes,'figure'))
                 hThis = get(obj.hAxes,'title');
                 set(hThis,'String',Value);            
-            end
+%             end
         end %function
         
         
         function Value = get.XLabel(obj)
-            if ~isempty(ancestor(obj.hAxes,'figure'))
+%             if ~isempty(ancestor(obj.hAxes,'figure'))
                 hThis = get(obj.hAxes,'xlabel');
                 Value = get(hThis,'String');
-            else
-                Value = QSP.PlotSettings.DefaultXLabel;
-            end
+%             else
+%                 Value = QSP.PlotSettings.DefaultXLabel;
+%             end
         end %function
         function set.XLabel(obj,Value)
             validateattributes(Value,{'char'},{})
-            if ~isempty(ancestor(obj.hAxes,'figure'))
+%             if ~isempty(ancestor(obj.hAxes,'figure'))
                 hThis = get(obj.hAxes,'xlabel');
                 set(hThis,'String',Value);   
-            end
+%             end
         end %function
         
         
         function Value = get.YLabel(obj)
-            if ~isempty(ancestor(obj.hAxes,'figure'))
+%             if ~isempty(ancestor(obj.hAxes,'figure'))
                 hThis = get(obj.hAxes,'ylabel');
                 Value = get(hThis,'String');
-            else
-                Value = QSP.PlotSettings.DefaultYLabel;
-            end
+%             else
+%                 Value = QSP.PlotSettings.DefaultYLabel;
+%             end
         end %function
         function set.YLabel(obj,Value)
             validateattributes(Value,{'char'},{})
-            if ~isempty(ancestor(obj.hAxes,'figure'))
+%             if ~isempty(ancestor(obj.hAxes,'figure'))
                 hThis = get(obj.hAxes,'ylabel');
                 set(hThis,'String',Value);   
-            end
+%             end
         end %function
         
         
         function Value = get.XLabelFontSize(obj)
-            if ~isempty(ancestor(obj.hAxes,'figure'))
+%             if ~isempty(ancestor(obj.hAxes,'figure'))
                 hThis = get(obj.hAxes,'xlabel');
                 Value = get(hThis,'FontSize');
-            else
-                Value = obj.DefaultXLabelFontSize;
-            end            
+%             else
+%                 Value = obj.DefaultXLabelFontSize;
+%             end            
         end %function
         function set.XLabelFontSize(obj,Value)
             validateattributes(Value,{'numeric'},{'scalar','nonnegative','nonnan'})
-            if ~isempty(ancestor(obj.hAxes,'figure'))
+%             if ~isempty(ancestor(obj.hAxes,'figure'))
                 hThis = get(obj.hAxes,'xlabel');
                 set(hThis,'FontSize',Value); 
-            end
+%             end
         end %function
         
         
         function Value = get.YLabelFontSize(obj)
-            if ~isempty(ancestor(obj.hAxes,'figure'))
+%             if ~isempty(ancestor(obj.hAxes,'figure'))
                 hThis = get(obj.hAxes,'ylabel');
                 Value = get(hThis,'FontSize');
-            else
-                Value = obj.DefaultYLabelFontSize;
-            end
+%             else
+%                 Value = obj.DefaultYLabelFontSize;
+%             end
         end %function
         function set.YLabelFontSize(obj,Value)
             validateattributes(Value,{'numeric'},{'scalar','nonnegative','nonnan'})
-            if ~isempty(ancestor(obj.hAxes,'figure'))
+%             if ~isempty(ancestor(obj.hAxes,'figure'))
                 hThis = get(obj.hAxes,'ylabel');
                 set(hThis,'FontSize',Value); 
-            end
+%             end
         end %function
         
         
         function Value = get.TitleFontSize(obj)
-            if ~isempty(ancestor(obj.hAxes,'figure'))
+%             if ~isempty(ancestor(obj.hAxes,'figure'))
                 hThis = get(obj.hAxes,'title');
                 Value = get(hThis,'FontSize');                
-            else
-                Value = obj.DefaultTitleFontSize;
-            end
+%             else
+%                 Value = obj.DefaultTitleFontSize;
+%             end
         end %function
         function set.TitleFontSize(obj,Value)
             validateattributes(Value,{'numeric'},{'scalar','nonnegative','nonnan'})
-            if ~isempty(ancestor(obj.hAxes,'figure'))
+%             if ~isempty(ancestor(obj.hAxes,'figure'))
                 hThis = get(obj.hAxes,'title');
                 set(hThis,'FontSize',Value);                  
-            end
+%             end
         end %function
         
         
         function Value = get.XTickLabelFontSize(obj)            
-            if ~isempty(ancestor(obj.hAxes,'figure'))
+%             if ~isempty(ancestor(obj.hAxes,'figure'))
                 hThis = get(obj.hAxes,'XRuler');
                 Value = get(hThis,'FontSize');
-            else
-                Value = obj.DefaultXTickLabelFontSize;
-            end
+%             else
+%                 Value = obj.DefaultXTickLabelFontSize;
+%             end
         end %function
         function set.XTickLabelFontSize(obj,Value)
             validateattributes(Value,{'numeric'},{'scalar','nonnegative','nonnan'})
-            if ~isempty(ancestor(obj.hAxes,'figure'))
+%             if ~isempty(ancestor(obj.hAxes,'figure'))
                 hThis = get(obj.hAxes,'XRuler');
                 hLabel = get(obj.hAxes,'xlabel');
                 LabelFontSize = get(hLabel,'FontSize');
                 set(hThis,'FontSize',Value);
                 set(hLabel,'FontSize',LabelFontSize);
-            end
+%             end
         end %function
         
         
         function Value = get.YTickLabelFontSize(obj)
-            if ~isempty(ancestor(obj.hAxes,'figure'))
+%             if ~isempty(ancestor(obj.hAxes,'figure'))
                 hThis = get(obj.hAxes,'YRuler');
                 Value = get(hThis,'FontSize');
-            else
-                Value = obj.DefaultYTickLabelFontSize;
-            end
+%             else
+%                 Value = obj.DefaultYTickLabelFontSize;
+%             end
         end %function
         function set.YTickLabelFontSize(obj,Value)
             validateattributes(Value,{'numeric'},{'scalar','nonnegative','nonnan'})
-            if ~isempty(ancestor(obj.hAxes,'figure'))
+%             if ~isempty(ancestor(obj.hAxes,'figure'))
                 hLabel = get(obj.hAxes,'ylabel');
                 LabelFontSize = get(hLabel,'FontSize');
                 hThis = get(obj.hAxes,'YRuler');
                 set(hThis,'FontSize',Value);
                 set(hLabel,'FontSize',LabelFontSize);
-            end
+%             end
         end %function
         
         
         function Value = get.XLabelFontWeight(obj)
-            if ~isempty(ancestor(obj.hAxes,'figure'))
+%             if ~isempty(ancestor(obj.hAxes,'figure'))
                 hThis = get(obj.hAxes,'xlabel');
                 Value = get(hThis,'FontWeight');
-            else
-                Value = QSP.PlotSettings.DefaultXLabelFontWeight;
-            end
+%             else
+%                 Value = QSP.PlotSettings.DefaultXLabelFontWeight;
+%             end
         end %function
         function set.XLabelFontWeight(obj,Value)
             Value = validatestring(Value,obj.FontWeightOptions);
-            if ~isempty(ancestor(obj.hAxes,'figure'))
+%             if ~isempty(ancestor(obj.hAxes,'figure'))
                 hThis = get(obj.hAxes,'xlabel');
                 set(hThis,'FontWeight',Value);
-            end
+%             end
         end %function
         
         
         function Value = get.YLabelFontWeight(obj)
-            if ~isempty(ancestor(obj.hAxes,'figure'))
+%             if ~isempty(ancestor(obj.hAxes,'figure'))
                 hThis = get(obj.hAxes,'ylabel');
                 Value = get(hThis,'FontWeight');
-            else
-                Value = QSP.PlotSettings.DefaultYLabelFontWeight;
-            end
+%             else
+%                 Value = QSP.PlotSettings.DefaultYLabelFontWeight;
+%             end
         end %function
         function set.YLabelFontWeight(obj,Value)
             Value = validatestring(Value,obj.FontWeightOptions);
-            if ~isempty(ancestor(obj.hAxes,'figure'))
+%             if ~isempty(ancestor(obj.hAxes,'figure'))
                 hThis = get(obj.hAxes,'ylabel');
                 set(hThis,'FontWeight',Value);
-            end
+%             end
         end %function
         
         
         function Value = get.TitleFontWeight(obj)
-            if ~isempty(ancestor(obj.hAxes,'figure'))
+%             if ~isempty(ancestor(obj.hAxes,'figure'))
                 hThis = get(obj.hAxes,'Title');
                 Value = get(hThis,'FontWeight');
-            else
-                Value = QSP.PlotSettings.DefaultTitleFontWeight;
-            end
+%             else
+%                 Value = QSP.PlotSettings.DefaultTitleFontWeight;
+%             end
         end %function
         function set.TitleFontWeight(obj,Value)
             Value = validatestring(Value,obj.FontWeightOptions);
-            if ~isempty(ancestor(obj.hAxes,'figure'))
+%             if ~isempty(ancestor(obj.hAxes,'figure'))
                 hThis = get(obj.hAxes,'title');
                 set(hThis,'FontWeight',Value);
-            end
+%             end
         end %function
         
         
         function Value = get.XTickLabelFontWeight(obj)
-            if ~isempty(ancestor(obj.hAxes,'figure'))
+%             if ~isempty(ancestor(obj.hAxes,'figure'))
                 hThis = get(obj.hAxes,'XRuler');
                 Value = get(hThis,'FontWeight');
-            else
-                Value = QSP.PlotSettings.DefaultXTickLabelFontWeight;
-            end
+%             else
+%                 Value = QSP.PlotSettings.DefaultXTickLabelFontWeight;
+%             end
         end %function
         function set.XTickLabelFontWeight(obj,Value)
             Value = validatestring(Value,obj.FontWeightOptions);
-            if ~isempty(ancestor(obj.hAxes,'figure'))
+%             if ~isempty(ancestor(obj.hAxes,'figure'))
                 hLabel = get(obj.hAxes,'xlabel');
                 LabelFontWeight = get(hLabel,'FontWeight');
                 hThis = get(obj.hAxes,'XRuler');
                 set(hThis,'FontWeight',Value);
                 set(hLabel,'FontWeight',LabelFontWeight);
-            end
+%             end
         end %function
         
         
         function Value = get.YTickLabelFontWeight(obj)
-            if ~isempty(ancestor(obj.hAxes,'figure'))
+%             if ~isempty(ancestor(obj.hAxes,'figure'))
                 hThis = get(obj.hAxes,'YRuler');
                 Value = get(hThis,'FontWeight');
-            else
-                Value = QSP.PlotSettings.DefaultYTickLabelFontWeight;
-            end
+%             else
+%                 Value = QSP.PlotSettings.DefaultYTickLabelFontWeight;
+%             end
         end %function
         function set.YTickLabelFontWeight(obj,Value)
             Value = validatestring(Value,obj.FontWeightOptions);
-            if ~isempty(ancestor(obj.hAxes,'figure'))
+%             if ~isempty(ancestor(obj.hAxes,'figure'))
                 hLabel = get(obj.hAxes,'ylabel');
                 LabelFontWeight = get(hLabel,'FontWeight');
                 hThis = get(obj.hAxes,'YRuler');
                 set(hThis,'FontWeight',Value);
                 set(hLabel,'FontWeight',LabelFontWeight);
-            end
+%             end
         end %function
 
         
         function Value = get.XGrid(obj)
-            if ~isempty(ancestor(obj.hAxes,'figure'))
+%             if ~isempty(ancestor(obj.hAxes,'figure'))
                 Value = get(obj.hAxes,'XGrid');         
-            else
-                Value = QSP.PlotSettings.DefaultXGrid;
-            end
+%             else
+%                 Value = QSP.PlotSettings.DefaultXGrid;
+%             end
         end %function
         function set.XGrid(obj,Value)
             Value = validatestring(Value,obj.GridOptions);
-            if ~isempty(ancestor(obj.hAxes,'figure'))
+%             if ~isempty(ancestor(obj.hAxes,'figure'))
                 set(obj.hAxes,'XGrid',Value);            
-            end
+%             end
         end %function
         
         
         function Value = get.YGrid(obj)
-            if ~isempty(ancestor(obj.hAxes,'figure'))
+%             if ~isempty(ancestor(obj.hAxes,'figure'))
                 Value = get(obj.hAxes,'YGrid');  
-            else
-                Value = QSP.PlotSettings.DefaultYGrid;
-            end
+%             else
+%                 Value = QSP.PlotSettings.DefaultYGrid;
+%             end
         end %function
         function set.YGrid(obj,Value)
             Value = validatestring(Value,obj.GridOptions);
-            if ~isempty(ancestor(obj.hAxes,'figure'))
+%             if ~isempty(ancestor(obj.hAxes,'figure'))
                 set(obj.hAxes,'YGrid',Value);            
-            end
+%             end
         end %function
         
         
         function Value = get.XMinorGrid(obj)
-            if ~isempty(ancestor(obj.hAxes,'figure'))
+%             if ~isempty(ancestor(obj.hAxes,'figure'))
                 Value = get(obj.hAxes,'XMinorGrid');         
-            else
-                Value = QSP.PlotSettings.DefaultXMinorGrid;
-            end
+%             else
+%                 Value = QSP.PlotSettings.DefaultXMinorGrid;
+%             end
         end %function
         function set.XMinorGrid(obj,Value)
             Value = validatestring(Value,obj.GridOptions);
-            if ~isempty(ancestor(obj.hAxes,'figure'))
+%             if ~isempty(ancestor(obj.hAxes,'figure'))
                 set(obj.hAxes,'XMinorGrid',Value);            
-            end
+%             end
         end %function
         
         
         function Value = get.YMinorGrid(obj)
-            if ~isempty(ancestor(obj.hAxes,'figure'))
+%             if ~isempty(ancestor(obj.hAxes,'figure'))
                 Value = get(obj.hAxes,'YMinorGrid');
-            else
-                Value = QSP.PlotSettings.DefaultYMinorGrid;
-            end
+%             else
+%                 Value = QSP.PlotSettings.DefaultYMinorGrid;
+%             end
         end %function
         function set.YMinorGrid(obj,Value)
             Value = validatestring(Value,obj.GridOptions);
-            if ~isempty(ancestor(obj.hAxes,'figure'))
+%             if ~isempty(ancestor(obj.hAxes,'figure'))
                 set(obj.hAxes,'YMinorGrid',Value);            
-            end
+%             end
         end %function
         
         
         function Value = get.YScale(obj)
-            if ~isempty(ancestor(obj.hAxes,'figure'))
+%             if ~isempty(ancestor(obj.hAxes,'figure'))
                 Value = get(obj.hAxes,'YScale');            
-            else
-                Value = QSP.PlotSettings.DefaultYScale;
-            end 
+%             else
+%                 Value = QSP.PlotSettings.DefaultYScale;
+%             end 
         end %function
         function set.YScale(obj,Value)
             Value = validatestring(Value,obj.YScaleOptions);
-            if ~isempty(ancestor(obj.hAxes,'figure'))
+%             if ~isempty(ancestor(obj.hAxes,'figure'))
                 set(obj.hAxes,'YScale',Value);
-            end
+%             end
         end %function
         
         
         function Value = get.XLimMode(obj)
-            if ~isempty(ancestor(obj.hAxes,'figure'))
+%             if ~isempty(ancestor(obj.hAxes,'figure'))
                 Value = get(obj.hAxes,'XLimMode');            
-            else
-                Value = QSP.PlotSettings.DefaultXLimMode;
-            end
+%             else
+%                 Value = QSP.PlotSettings.DefaultXLimMode;
+%             end
         end %function
         function set.XLimMode(obj,Value)
             Value = validatestring(Value,obj.XYLimModeOptions);  
-            if ~isempty(ancestor(obj.hAxes,'figure'))
+%             if ~isempty(ancestor(obj.hAxes,'figure'))
                 set(obj.hAxes,'XLimMode',Value);    
-            end
+%             end
         end %function
         
         
         function Value = get.YLimMode(obj)
-            if ~isempty(ancestor(obj.hAxes,'figure'))
+%             if ~isempty(ancestor(obj.hAxes,'figure'))
                 Value = get(obj.hAxes,'YLimMode');   
-            else
-                Value = QSP.PlotSettings.DefaultYLimMode;
-            end
+%             else
+%                 Value = QSP.PlotSettings.DefaultYLimMode;
+%             end
         end %function
         function set.YLimMode(obj,Value)
             Value = validatestring(Value,obj.XYLimModeOptions);  
-            if ~isempty(ancestor(obj.hAxes,'figure'))
+%             if ~isempty(ancestor(obj.hAxes,'figure'))
                 set(obj.hAxes,'YLimMode',Value);            
-            end
+%             end
         end %function
         
         
         function Value = get.CustomXLim(obj)
-            if ~isempty(ancestor(obj.hAxes,'figure'))
+%             if ~isempty(ancestor(obj.hAxes,'figure'))
                 Value = num2str(get(obj.hAxes,'XLim')); % As string (for use in table)      
-            else
-                Value = str2num(QSP.PlotSettings.DefaultCustomXLim); %#ok<ST2NM>
-            end
+%             else
+%                 Value = QSP.PlotSettings.DefaultCustomXLim;
+%             end
         end %function
         function set.CustomXLim(obj,Value)
             if ischar(Value)
                 Value = str2num(Value); %#ok<ST2NM>  % As string (for use in table)
             end
             validateattributes(Value,{'numeric'},{'size',[1 2],'increasing','nonnan'});
-            if ~isempty(ancestor(obj.hAxes,'figure'))
+%             if ~isempty(ancestor(obj.hAxes,'figure'))
                 CurrXLimMode = get(obj.hAxes,'XLimMode');
                 if strcmpi(CurrXLimMode,'manual')
                     set(obj.hAxes,'XLim',Value);
                 end
-            end
+%             end
         end %function
         
         
         function Value = get.CustomYLim(obj)
-            if ~isempty(ancestor(obj.hAxes,'figure'))
+%             if ~isempty(ancestor(obj.hAxes,'figure'))
                 Value = num2str(get(obj.hAxes,'YLim')); % As string (for use in table)
-            else
-                Value = str2num(QSP.PlotSettings.DefaultCustomYLim); %#ok<ST2NM>
-            end
+%             else
+%                 Value = QSP.PlotSettings.DefaultCustomYLim;
+%             end
         end %function
         function set.CustomYLim(obj,Value)
             if ischar(Value)
                 Value = str2num(Value); %#ok<ST2NM>  % As string (for use in table)
             end
             validateattributes(Value,{'numeric'},{'size',[1 2],'increasing','nonnan'});
-            if ~isempty(ancestor(obj.hAxes,'figure'))
+%             if ~isempty(ancestor(obj.hAxes,'figure'))
                 CurrYLimMode = get(obj.hAxes,'YLimMode');
                 if strcmpi(CurrYLimMode,'manual')
                     set(obj.hAxes,'YLim',Value);
                 end
-            end
+%             end
         end %function
         
         

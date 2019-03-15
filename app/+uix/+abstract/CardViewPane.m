@@ -28,10 +28,13 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
        bShowQuantiles = []
     end
     
-    
     properties (SetAccess=private)        
         UseRunVis = false
         LastPath = pwd
+    end
+    
+    properties (Access=private, Constant=true)
+        NoParent_ = matlab.graphics.GraphicsPlaceholder.empty(0,0)
     end
     
     properties (Constant=true)
@@ -777,7 +780,7 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
             
             hFigure = ancestor(obj.UIContainer,'Figure');
             set(hFigure,'pointer','watch');
-            drawnow;
+            % drawnow; %Remove drawnow - maybe causing axes sizing issues
             
             Value = get(h,'Value');
             obj.SelectedPlotLayout = obj.PlotLayoutOptions{Value};
@@ -787,7 +790,7 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
             update(obj);
             
             set(hFigure,'pointer','arrow');
-            drawnow;            
+            % drawnow; %Remove drawnow - maybe causing axes sizing issues
         end
         
         function onAxesContextMenu(obj,h,~,axIndex)
@@ -1157,48 +1160,76 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                 MatchIndex = find(strcmp(obj.SelectedPlotLayout,obj.PlotLayoutOptions));
                 set(obj.h.PlotConfigPopup,'String',obj.PlotLayoutOptions,'Value',MatchIndex);
                 
-                % Attach contextmenu
-                hFigure = ancestor(obj.UIContainer,'Figure');
-                for index = 1:obj.MaxNumPlots
-                    obj.h.ContextMenu(index).Parent = hFigure;                
-                    set(obj.h.MainAxes(index),'UIContextMenu',obj.h.ContextMenu(index));
-                end
-                
                 switch obj.SelectedPlotLayout
                     case '1x1'
-                        obj.h.PlotGrid.Heights = [-1 zeros(1,obj.MaxNumPlots-1)];
+                        set(obj.h.MainAxesContainer(1),'Parent',obj.h.PlotGrid);
+                        set(obj.h.MainAxesContainer(2:end),'Parent',obj.NoParent_);
+                        obj.h.PlotGrid.Heights = -1;
                         obj.h.PlotGrid.Widths = -1;
+%                         obj.h.PlotGrid.Heights = [-1 zeros(1,obj.MaxNumPlots-1)];
+%                         obj.h.PlotGrid.Widths = -1;
                         set(obj.h.MainAxes(1),'Visible','on');
                         set(obj.h.MainAxes(2:end),'Visible','off');
                     case '1x2'
+                        set(obj.h.MainAxesContainer(1:2),'Parent',obj.h.PlotGrid);
+                        set(obj.h.MainAxesContainer(3:end),'Parent',obj.NoParent_);
                         obj.h.PlotGrid.Heights = -1;
-                        obj.h.PlotGrid.Widths = [-1 -1 zeros(1,obj.MaxNumPlots-2)];
+                        obj.h.PlotGrid.Widths = [-1 -1];
+%                         obj.h.PlotGrid.Heights = -1;
+%                         obj.h.PlotGrid.Widths = [-1 -1 zeros(1,obj.MaxNumPlots-2)];
                         set(obj.h.MainAxes(1:2),'Visible','on');
-                        set(obj.h.MainAxes(3:end),'Visible','off');
+                        set(obj.h.MainAxes(3:end),'Visible','off');                        
                     case '2x1'
-                        obj.h.PlotGrid.Heights = [-1 -1 zeros(1,obj.MaxNumPlots-2)];
+                        set(obj.h.MainAxesContainer(1:2),'Parent',obj.h.PlotGrid);
+                        set(obj.h.MainAxesContainer(3:end),'Parent',obj.NoParent_);
+                        obj.h.PlotGrid.Heights = [-1 -1];
                         obj.h.PlotGrid.Widths = -1;
+%                         obj.h.PlotGrid.Heights = [-1 -1 zeros(1,obj.MaxNumPlots-2)];
+%                         obj.h.PlotGrid.Widths = -1;
                         set(obj.h.MainAxes(1:2),'Visible','on');
                         set(obj.h.MainAxes(3:end),'Visible','off');
                     case '2x2'
+                        set(obj.h.MainAxesContainer(1:4),'Parent',obj.h.PlotGrid);
+                        set(obj.h.MainAxesContainer(5:end),'Parent',obj.NoParent_);
                         obj.h.PlotGrid.Heights = [-1 -1];
-                        obj.h.PlotGrid.Widths = [-1 -1 0 0 0 0];
+                        obj.h.PlotGrid.Widths = [-1 -1];
+%                         obj.h.PlotGrid.Heights = [-1 -1];
+%                         obj.h.PlotGrid.Widths = [-1 -1 0 0 0 0];
                         set(obj.h.MainAxes(1:4),'Visible','on');
-                        set(obj.h.MainAxes(5:end),'Visible','off');
+                        set(obj.h.MainAxes(5:end),'Visible','off');                        
                     case '3x2'
+                        set(obj.h.MainAxesContainer(1:6),'Parent',obj.h.PlotGrid);
+                        set(obj.h.MainAxesContainer(7:end),'Parent',obj.NoParent_);
                         obj.h.PlotGrid.Heights = [-1 -1 -1];
-                        obj.h.PlotGrid.Widths = [-1 -1 0 0];
+                        obj.h.PlotGrid.Widths = [-1 -1];
+%                         obj.h.PlotGrid.Heights = [-1 -1 -1];
+%                         obj.h.PlotGrid.Widths = [-1 -1 0 0];
                         set(obj.h.MainAxes(1:6),'Visible','on');
-                        set(obj.h.MainAxes(7:end),'Visible','off');
+                        set(obj.h.MainAxes(7:end),'Visible','off');                        
                     case '3x3'
+                        set(obj.h.MainAxesContainer(1:9),'Parent',obj.h.PlotGrid);
+                        set(obj.h.MainAxesContainer(10:end),'Parent',obj.NoParent_);
                         obj.h.PlotGrid.Heights = [-1 -1 -1];
-                        obj.h.PlotGrid.Widths = [-1 -1 -1 0];
+                        obj.h.PlotGrid.Widths = [-1 -1 -1];
+%                         obj.h.PlotGrid.Heights = [-1 -1 -1];
+%                         obj.h.PlotGrid.Widths = [-1 -1 -1 0];
                         set(obj.h.MainAxes(1:9),'Visible','on');
-                        set(obj.h.MainAxes(10:end),'Visible','off');
+                        set(obj.h.MainAxes(10:end),'Visible','off');                        
                     case '3x4'
+                        set(obj.h.MainAxesContainer(1:end),'Parent',obj.h.PlotGrid);
                         obj.h.PlotGrid.Heights = [-1 -1 -1];
                         obj.h.PlotGrid.Widths = [-1 -1 -1 -1];
-                        set(obj.h.MainAxes(1:end),'Visible','on');                        
+%                         obj.h.PlotGrid.Heights = [-1 -1 -1];
+%                         obj.h.PlotGrid.Widths = [-1 -1 -1 -1];
+                        set(obj.h.MainAxes(1:end),'Visible','on');                  
+                end
+                
+                % Attach contextmenu
+                
+                for index = 1:obj.MaxNumPlots
+                    hFigure = ancestor(obj.h.MainAxesContainer(index),'Figure');
+                    obj.h.ContextMenu(index).Parent = hFigure;                
+                    set(obj.h.MainAxes(index),'UIContextMenu',obj.h.ContextMenu(index));
                 end
                 
                 % Update legends from PlotSettings
