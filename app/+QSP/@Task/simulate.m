@@ -81,7 +81,9 @@ function [simData, statusOK, Message] = simulate(obj, varargin)
         doses = [];
     else
         allDoses = getdose(model);        
-        doses = allDoses(ismember({allDoses.Name}, {obj.ActiveDoseNames{:}}));
+        [~,doseIdx] = ismember({obj.ActiveDoseNames{:}}, {allDoses.Name});
+        doses = allDoses(doseIdx);
+        
     end
     
     % get initial conditions

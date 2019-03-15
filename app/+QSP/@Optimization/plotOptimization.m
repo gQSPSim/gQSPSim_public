@@ -201,7 +201,7 @@ hDatasetGroup = cell(size(obj.PlotSpeciesTable,1),NumAxes);
 if ~StatusOK && ~Cancelled
     hDlg = errordlg(Message,'Error on plot optimization','modal');
     uiwait(hDlg);
-    return
+%     return
 end
 
 

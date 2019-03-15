@@ -37,12 +37,16 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         DatasetName = '' % VirtualPopulationData Name
         RefParamName = '' % Parameters.Name
         GroupName = ''
+        Method = 'Uniform' 
+        SaveInvalid = 'Save all vpatients'
+        
         
         Item = QSP.TaskGroup.empty(0,1)
         SpeciesData = QSP.SpeciesData.empty(0,1)
         
         MaxNumSimulations = 5000
         MaxNumVirtualPatients = 500
+        MCMCTuningParam = 0.15
         
         PlotSpeciesTable = cell(0,5)
         PlotItemTable = cell(0,5) 
@@ -196,7 +200,7 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             end
             
             if isempty(obj.ICFileName)
-                obj.ICFileName = 'N/A';
+                obj.ICFileName = '';
             else
                 obj.ICFileName = obj.ICFileName;
             end

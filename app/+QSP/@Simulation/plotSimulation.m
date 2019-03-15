@@ -71,6 +71,8 @@ IsSelected = 1:size(obj.PlotItemTable,1);
 
 TaskNames = {obj.Item.TaskName};
 VPopNames = {obj.Item.VPopName};
+Groups = {obj.Item.Group};
+
 if ~isempty(IsSelected)
     MATFileNames = {};
     ItemIndices = [];
@@ -80,9 +82,10 @@ if ~isempty(IsSelected)
         ThisVPopName = obj.PlotItemTable{index,4};
         ThisTask = getValidSelectedTasks(obj.Settings,ThisTaskName);
         ThisVPop = getValidSelectedVPops(obj.Settings,ThisVPopName);        
+        ThisGroup = obj.PlotItemTable{index,5};
         
         if ~isempty(ThisTask) && (~isempty(ThisVPop) || strcmp(ThisVPopName,QSP.Simulation.NullVPop))
-            MatchIdx = strcmp(ThisTaskName,TaskNames) & strcmp(ThisVPopName,VPopNames);
+            MatchIdx = strcmp(ThisTaskName,TaskNames) & strcmp(ThisVPopName,VPopNames) & strcmp(ThisGroup, Groups);
             if any(MatchIdx)
                 ThisFileName = {obj.Item(MatchIdx).MATFileName};
                 MATFileNames = [MATFileNames,ThisFileName]; %#ok<AGROW>
@@ -154,7 +157,7 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
         ThisColor = SelectedItemColors(resultIdx,:);
         
         
-        FullDisplayName = sprintf('%s %s',ThisDisplayName,obj.PlotItemTable{itemIdx,5});
+        FullDisplayName = sprintf('%s %s',ThisDisplayName,obj.PlotItemTable{itemIdx,6});
         % Get the match in Sim 1 (Virtual Patient 1) in this VPop
         ColumnIdx = find(strcmp(ThisResult.SpeciesNames,ThisName), 1); % keep only first in case of duplicate
         if isempty(ColumnIdx), continue, end

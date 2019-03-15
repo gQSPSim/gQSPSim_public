@@ -213,6 +213,9 @@ classdef (Abstract) AppWithSessionFiles < uix.abstract.AppWindow
             idxNew = obj.NumSessions + 1;
             obj.SessionPaths{idxNew,1} = NewName;
             obj.IsDirty(idxNew,1) = false;
+            
+            % remove UDF from selected session
+            obj.SelectedSession.removeUDF();
             obj.SelectedSessionIdx = idxNew;
             
             % Refresh app components
@@ -275,7 +278,9 @@ classdef (Abstract) AppWithSessionFiles < uix.abstract.AppWindow
                     if iscell(FileName)
                         FileName = FileName{1};
                     end
+%                     ThisFile = fullfile(PathName,[FileName obj.FileSpec{1}]);
                     ThisFile = fullfile(PathName,FileName);
+
                     
                     [FileName,PathName,FilterIndex] = uiputfile(obj.FileSpec, ...
                         'Save as',ThisFile);
@@ -290,7 +295,7 @@ classdef (Abstract) AppWithSessionFiles < uix.abstract.AppWindow
                     end
                     
                     % If it's missing the full FileExt (i.e. on Mac/Linux)
-                    if ~isempty(regexp(FileName,FileExt,'once'))
+                    if isempty(regexp(FileName,FileExt,'once'))
                         FileName = regexp(FileName,'\.','split');
                         if iscell(FileName)
                             FileName = FileName{1};

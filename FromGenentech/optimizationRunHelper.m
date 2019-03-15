@@ -1,4 +1,4 @@
-function [StatusOK,Message,ResultsFileNames,VpopNames] = optimizationRunHelper(obj)
+function [StatusOK,Message,ResultsFileNames,VpopNames, groupErrorCounts, groupErrorMessages, groupErrorMessageCounts] = optimizationRunHelper(obj)
 % Sets up and runs the optimization contained in the Optimization object
 % "obj".
 
@@ -34,6 +34,9 @@ else
     warning('Could not find match for specified parameter file')
     paramData = {};
 end
+
+%Fix to remove Nans in parameter headers
+paramHeaders = paramHeaders(1:(find(cell2mat(cellfun(@ischar, paramHeaders, 'UniformOutput', false)),1,'last')));  
 
 if ~isempty(paramData)
     % parse paramData
@@ -113,8 +116,11 @@ if ~isempty(paramData)
     % extract parameter names
     estParamNames = paramData(idxEstimate,colId.Name);
     fixedParamNames = paramData(~idxEstimate,colId.Name);
+    allParamNames = paramData(:,colId.Name);
     % extract numeric data
-    estParamData = cell2mat(paramData(idxEstimate,4:end));
+%     estParamData = cell2mat(paramData(idxEstimate,4:end));
+    estParamData = cell2mat(paramData(idxEstimate,[colId.LB, colId.UB, colId.P0]));
+    
     if ~isempty(fixedParamNames)
         isValid = ~cellfun(@isempty, paramData(~idxEstimate, colId.P0(1)));
         fixedParamData = cell2mat(paramData(~idxEstimate,colId.P0(1)));
@@ -239,13 +245,21 @@ for ii = 1:nItems
     tObj_i.compile();
     
     ItemModels.Task(ii) = tObj_i;
-    
-    
-    
-    
+   
 end % for ii = ...
 
 
+%% pre-optimization check
+p0 = estParamData(:,3);
+
+[~, thisStatusOK, thisMessage] = objectiveFun(p0,paramObj,ItemModels,Groups,IDs,Time,optimData,dataNames,obj);
+
+if ~thisStatusOK
+    Message = sprintf('%s\nError encountered for initial parameter set P0_1:%s.\nAborting optimization.', Message, thisMessage);
+    StatusOK = false;
+    return
+end
+    
 %% Call optimization program
 switch obj.AlgorithmName
     case 'ScatterSearch'
@@ -382,7 +396,17 @@ else
         
         % add headers to current group's Vpop
 %         Vpop_grp = [[estParamNames', fixedParamNames' ,ICspecNames]; num2cell(Vpop_grp)];
-        Vpop_grp = [[estParamNames',ICspecNames,fixedParamNames']; [num2cell(Vpop_grp), num2cell(repmat(fixedParamData', size(Vpop_grp,1), 1)) ]];
+
+        
+        VpopHeaders = [estParamNames',ICspecNames,fixedParamNames'];
+        VpopData = [num2cell(Vpop_grp), num2cell(repmat(fixedParamData', size(Vpop_grp,1), 1)) ];
+        
+        % reoder according to original names in parameters file
+        [bParam,paramOrder] = ismember(VpopHeaders,allParamNames);
+        VpopHeaders = [VpopHeaders(paramOrder(bParam)), VpopHeaders(~bParam)];
+        VpopData = [VpopData(:, paramOrder(bParam)), VpopData(:, ~bParam)];
+        
+        Vpop_grp = [ VpopHeaders; VpopData];
 
         % save current group's Vpop
         SaveFlag = true;
@@ -418,7 +442,19 @@ end % if
 % Vpop = [[estParamNames',specNames,{'PWeight'}]; num2cell([Vpop,PWeight])];
 
 % add headers to final Vpop
-Vpop = [[estParamNames',ICspecNames,fixedParamNames']; [num2cell(Vpop), num2cell(repmat(fixedParamData', size(Vpop,1), 1)) ]];
+
+VpopHeaders = [estParamNames',ICspecNames,fixedParamNames'];
+VpopData = [num2cell(Vpop), num2cell(repmat(fixedParamData', size(Vpop,1), 1)) ];
+
+% reoder according to original names in parameters file
+[bParam,paramOrder] = ismember(VpopHeaders,allParamNames);
+VpopHeaders = [VpopHeaders(paramOrder(bParam)), VpopHeaders(~bParam)];
+VpopData = [VpopData(:, paramOrder(bParam)), VpopData(:, ~bParam)];
+
+Vpop = [ VpopHeaders; VpopData];
+
+
+% Vpop = [[estParamNames',ICspecNames,fixedParamNames']; [num2cell(Vpop), num2cell(repmat(fixedParamData', size(Vpop,1), 1)) ]];
 
 % save final Vpop
 SaveFlag = true;
@@ -434,10 +470,16 @@ end
 if SaveFlag
     VpopNames{end} = ['Results - Optimization = ' obj.Name ' - Date = ' timeStamp];
     ResultsFileNames{end} = [VpopNames{end} '.xls'];
-    if ispc
-        xlswrite(fullfile(SaveFilePath,ResultsFileNames{end}),Vpop);
-    else
-        xlwrite(fullfile(SaveFilePath,ResultsFileNames{end}),Vpop);
+    try
+        if ispc
+            xlswrite(fullfile(SaveFilePath,ResultsFileNames{end}),Vpop);
+        else
+            xlwrite(fullfile(SaveFilePath,ResultsFileNames{end}),Vpop);
+        end
+    catch xlsError
+        Message = sprintf('%s\n%s: %s', Message,'Unable to save results to Excel file.', ...
+            xlsError.message);
+        StatusOK = false;
     end
 else
     StatusOK = false;
@@ -476,6 +518,10 @@ end
         
         % try calculating the objective
         try
+            
+            groupErrorCounts = zeros(1,length(obj.Item));
+            groupErrorMessages = cell(1,length(obj.Item));
+            groupErrorMessageCounts = cell(1,length(obj.Item));
             
             % for each Group (varying experiments)
             for grpIdx = 1:length(obj.Item)
@@ -523,8 +569,13 @@ end
                         'StopTime', StopTime );
                     
                     if ~thisStatusOK
+                        % simulation failed for this particular task
+                        % keep track of the number of times each simulation
+                        % failed and the error messages that were produced
+                        % for this group
                         Message = sprintf('%s\n%s\n', Message, thisMessage);
-                        return
+                        fprintf('Warning: Group %d produced error %s\n', currGrp, thisMessage);
+                        
                     end
                                         
                     % generate elements of objective vector by comparing model
@@ -548,6 +599,9 @@ end
                             if nargout>1
                                 varargout{1} = tempStatusOK;
                                 varargout{2} = tempMessage;
+%                                 varargout{3} =  groupErrorCounts;
+%                                 varargout{4} = groupErrorMessages;
+%                                 varargout{5} = groupErrorMessageCounts;
                             end
                             path(myPath);
                             return                    

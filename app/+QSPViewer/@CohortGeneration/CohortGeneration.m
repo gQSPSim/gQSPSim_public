@@ -26,6 +26,8 @@ classdef CohortGeneration < uix.abstract.CardViewPane
         ParameterPopupItems = {'-'}
         ParameterPopupItemsWithInvalid = {'-'}
         
+        MethodPopupItems = {'Distribution','MCMC'}
+        
         TaskPopupTableItems = {}
         GroupIDPopupTableItems = {}
         SpeciesPopupTableItems = {} % From Tasks
@@ -179,6 +181,30 @@ classdef CohortGeneration < uix.abstract.CardViewPane
             refreshItemsTable(vObj);
             
         end %function
+        
+        function onSaveInvalidPopup(vObj,h,e)
+            values = {'Save all vpatients', 'Save valid vpatients'};
+            vObj.TempData.SaveInvalid = values{get(h,'Value')};
+            % Update the view
+            updateDataset(vObj);
+            refreshItemsTable(vObj);
+        end
+        
+        function onMethodPopup(vObj,h,e)
+            
+            vObj.TempData.Method = vObj.MethodPopupItems{get(h,'Value')};
+            if strcmpi(vObj.TempData.Method, 'MCMC')
+                set(vObj.h.MCMCTuningEdit, 'Enable', 'on')
+            else
+                set(vObj.h.MCMCTuningEdit, 'Enable', 'off')                
+            end
+            
+            % Update the view
+            updateDataset(vObj);
+            refreshItemsTable(vObj);
+            
+        end %function        
+        
         
         function onTableButtonPressed(vObj,h,e,TableTag)
             
@@ -364,6 +390,24 @@ classdef CohortGeneration < uix.abstract.CardViewPane
             updateMaxNumVirtualPatients(vObj);
             
         end %function
+        
+        function onMCMCTuningEdit(vObj,h,e)
+            
+            value = vObj.TempData.MCMCTuningParam;
+            try
+                value = str2double(get(h,'Value'));
+            catch ME
+                hDlg = errordlg(ME.message,'Invalid Value','modal');
+                uiwait(hDlg);
+            end
+            if isnan(value) || value <= 0 || value > 1
+                hDlg = errordlg('Invalid Value. Range is from 0.0 - 1.0','modal');
+                uiwait(hDlg);
+            else
+                vObj.TempData.MCMCTuningParam = value;
+            end            
+            
+        end
         
         function onPlotParameterDistributionDiagnostics(vObj,h,e)
             

@@ -266,16 +266,16 @@ if strcmp(obj.PlotType, 'Normal') && ~isempty(Results)
                     % valid lines
                     if ~isempty(Results{itemIdx}.Data(:,setdiff(ColumnIdx, ColumnIdx_invalid)))
 
-                        % Plot
-%                         if obj.bShowTraces(axIdx)
-%                             hThis = plot(hSpeciesGroup{sIdx,axIdx},Results{itemIdx}.Time,thisData(:,setdiff(ColumnIdx, ColumnIdx_invalid)),...
-%                                 'Color',SelectedItemColors(itemIdx,:),...
-%                                 'LineStyle',ThisLineStyle);
-%                             acc_lines = [acc_lines; hThis];                        
+%                         Plot
+                        if obj.bShowTraces(axIdx)
+                            hThis = plot(hSpeciesGroup{sIdx,axIdx},Results{itemIdx}.Time,thisData(:,setdiff(ColumnIdx, ColumnIdx_invalid)),...
+                                'Color',SelectedItemColors(itemIdx,:),...
+                                'LineStyle',ThisLineStyle);
+                            acc_lines = [acc_lines; hThis];                        
 
-%                         end
+                        end
                         
-%                         if obj.bShowQuantiles(axIdx)
+                        if obj.bShowQuantiles(axIdx)
 % %                             axes(get(hSpeciesGroup{sIdx,axIdx},'Parent'))
 %                             h=shadedErrorBar(Results{itemIdx}.Time, mean(thisData(:,setdiff(ColumnIdx, ColumnIdx_invalid)),2), ...
 %                                 std(thisData(:,setdiff(ColumnIdx, ColumnIdx_invalid)),[],2));
@@ -286,7 +286,8 @@ if strcmp(obj.PlotType, 'Normal') && ~isempty(Results)
 %                                 'LineStyle',ThisLineStyle);
 %                             set(h.patch,'FaceColor',SelectedItemColors(itemIdx,:));
 %                             hThis = h.mainLine;
-%                         end
+
+                        
                         
 %                         hThisAnn = get(hThis,'Annotation');
 %                         if iscell(hThisAnn)
@@ -342,6 +343,7 @@ if strcmp(obj.PlotType, 'Normal') && ~isempty(Results)
                             set(thisLegendInformation,'IconDisplayStyle','off');
                         end
 %                         set(mean_line.patch, 'FaceColor',SelectedItemColors(itemIdx,:));    
+                        end
                     end
                     
                     
@@ -375,9 +377,12 @@ if strcmp(obj.PlotType, 'Normal') && ~isempty(Results)
                     end
                     
                     if any(ixMeanStd)
-                        errorbar(times(ixMeanStd), val1(ixMeanStd), val2(ixMeanStd), 'o', 'Color', SelectedItemColors(itemIdx,:));
+                        hThis = [hThis; errorbar(get(hSpeciesGroup{sIdx,axIdx},'Parent'), ...
+                            times(ixMeanStd), val1(ixMeanStd), 2*val2(ixMeanStd), 'o', 'Color', SelectedItemColors(itemIdx,:))];
                     end
-
+                    if ~isempty(hThis)
+                        set(hThis(1),'DisplayName',regexprep(sprintf('%s [Sim]',FullDisplayName),'_','\\_')); % For export, use patch since line width is not applied
+                    end
                 end
             end
 

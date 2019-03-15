@@ -62,11 +62,16 @@ for axIndex = AxIndices(:)'
     
     % Get all children
     TheseSpeciesGroups = [hSpeciesGroup{:,axIndex}];
-    ch = get(TheseSpeciesGroups,'Children');
-    if iscell(ch)
-        ch = vertcat(ch{:});
+
+    try
+        ch = get(TheseSpeciesGroups,'Children');
+        if iscell(ch)
+            ch = vertcat(ch{:});
+        end
+    catch err      
+        warning(err.message)
+        return
     end
-    
     
     % Set SpeciesGroup - DisplayName
     SelectedUserData = get(TheseSpeciesGroups,'UserData'); % Just sIdx
@@ -179,7 +184,7 @@ for axIndex = AxIndices(:)'
                 
                 % Now create formatted display name
                 ThisDisplayName = obj.PlotSpeciesTable{sIdx,4};
-                FullDisplayName = sprintf('%s %s',ThisDisplayName,obj.PlotItemTable{itemIdx,5});
+                FullDisplayName = sprintf('%s %s',ThisDisplayName,obj.PlotItemTable{itemIdx,6});
                 FormattedFullDisplayName = regexprep(FullDisplayName,'_','\\_'); % For export, use patch since line width is not applied
                 
                 % Get line style

@@ -80,6 +80,20 @@ classdef Session < uix.abstract.ViewPane
             
         end %function
         
+        function onUDFSelection(vObj,h,evt)
+            
+            % remove old path
+            removeUDF(obj);
+            
+            % assign value & refresh
+            onFileSelection(vObj,h,evt);
+           
+            % add new path
+            addUDF(obj);
+
+           
+        end
+        
     end
         
     

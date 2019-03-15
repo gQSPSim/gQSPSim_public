@@ -5,7 +5,13 @@ if ~isempty(vObj.TempData) && ~isempty(vObj.DatasetHeader) && ~isempty(vObj.Data
     MatchIdx = strcmp(vObj.DatasetHeader,vObj.TempData.GroupName);
     GroupIDs = vObj.DatasetData(:,MatchIdx);
     if iscell(GroupIDs)
-        GroupIDs = cell2mat(GroupIDs);        
+        try
+            GroupIDs = cell2mat(GroupIDs);        
+        catch
+            % don't do anything since the error dialog should have already
+            % been displayed
+            return
+        end
     end    
     GroupIDs = unique(GroupIDs);
     vObj.GroupIDPopupTableItems = cellfun(@(x)num2str(x),num2cell(GroupIDs),'UniformOutput',false);
