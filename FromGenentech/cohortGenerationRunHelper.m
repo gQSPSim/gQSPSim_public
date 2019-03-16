@@ -203,8 +203,6 @@ for ii = 1:nItems
 end % for
 
 %% Sample parameter sets, simulate, compare to acceptance criteria
-nSim = 0;
-nPat = 0;
 Vpop = zeros(obj.MaxNumSimulations,length(LB_params));
 isValid = zeros(obj.MaxNumSimulations,1);
 
@@ -254,7 +252,46 @@ my_randn = randn(obj.MaxNumSimulations, length(P));
 isMapped = ismember(arrayfun(@num2str, unqGroups, 'UniformOutput', false), {obj.Item.GroupID});
 unqGroups = unqGroups(isMapped);
 
-while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients
+% check that the tasks are assigned only to one group
+nMappings = arrayfun( @(g) nnz(strcmp(g, num2str(unqGroups))), {obj.Item.GroupID});
+if any(nMappings>1)
+    StatusOK = false;
+    Message = sprintf('%s\nOnly one task may be assigned to any group. Check task group mappings.\n', Message);
+    delete(hWbar)
+    return
+end
+
+% check that the groups specified in the IC file are assigned to tasks
+for currGrp = unqGroups
+    if ~any(groupVec==currGrp)
+        StatusOK = false;
+        Message = sprintf('%sInitial conditions file specified contains groups for which no task has been assigned.\n', Message);
+        delete(hWbar)
+        return
+    end
+end
+
+p = gcp;
+nPat = Composite();
+nSim = Composite();
+
+% for k=1:p.NumWorkers
+%     nPat{k} = 0;
+%     nSim{k} = 0;
+% end
+
+% allSim = 0;
+% allPat = 0;
+
+spmd
+nPat = 0;
+nSim = 0;
+
+while gop(@plus,nSim) < obj.MaxNumSimulations && gop(@plus,nPat) < obj.MaxNumVirtualPatients
+    
+%     allPat = gop(@plus,nPat,1);
+%     allSim = gop(@plus,nSim,1);
+    
     nSim = nSim+1; % tic up the number of simulations
     
     if strcmp(obj.Method, 'Distribution')
@@ -302,12 +339,7 @@ while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients
             continue
         end
         
-        if nnz(itemIdx) > 1
-            StatusOK = false;
-            Message = sprintf('%s\nOnly one task may be assigned to any group. Check task group mappings.\n', Message);
-            delete(hWbar)
-            return
-        end
+
         
         % get task object for this item based on name
         tskInd = strcmp(obj.Item(itemIdx).TaskName,{obj.Settings.Task.Name});
@@ -330,13 +362,6 @@ while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients
             ICs = ICTable.data(groupVec==currGrp, ixSpecies );
             IC_species = ICTable.colheaders(ixSpecies);
             nIC = size(ICs,1);
-            if ~any(groupVec==currGrp)
-                StatusOK = false;
-                Message = sprintf('%sInitial conditions file specified contains groups for which no task has been assigned.\n', Message);
-                delete(hWbar)
-                return
-            end
-            
         else
             nIC = 1;
             ICs = [];
@@ -367,13 +392,7 @@ while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients
                 for spec = 1:length(uniqueSpecies_grp)
                     % find the data species in the Species-Data mapping
                     specInd = strcmp(uniqueSpecies_grp(spec),Mappings(:,2));
-                    
-                    if nnz(specInd) ~= 1
-                        StatusOK = false;
-                        Message = sprintf('%s\nOnly one species may be assigned to any given data set. Please check mappings for validity.\n', Message);
-                        delete(hWbar)
-                        return
-                    end
+
 
                     % grab data for the corresponding model species from the simulation results
                     [simT,simData_spec,specName] = selectbyname(simData,Mappings(specInd,1));
@@ -386,8 +405,8 @@ while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients
                         ThisMessage = sprintf(['There is an error in one of the function expressions in the SpeciesData mapping.'...
                             'Validate that all mappings have been specified for each unique species in dataset. %s'], ME.message);
                         Message = sprintf('%s\n%s\n',Message,ThisMessage);
-                        path(myPath);
-                        return                    
+                        path(myPath);                        
+                        break                    
                     end % try
 
                     % grab all acceptance criteria time points for this species in this group
@@ -436,17 +455,25 @@ while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients
         if isValid(nSim)
             nPat = nPat+1; % if conditions are satisfied, tick up the number of virutal patients
             param_candidate_old = param_candidate; % keep new candidate as starting point
+            fprintf('.')
         end
         
-        waitStatus = uix.utility.CustomWaitbar(nPat/obj.MaxNumVirtualPatients,hWbar,sprintf('Succesfully generated %d/%d vpatients. (%d/%d Failed)',  ...
-            nPat, obj.MaxNumVirtualPatients, nSim-nPat, nSim ));
+%         waitStatus = uix.utility.CustomWaitbar(nPat/obj.MaxNumVirtualPatients,hWbar,sprintf('Succesfully generated %d/%d vpatients. (%d/%d Failed)',  ...
+%             nPat, obj.MaxNumVirtualPatients, nSim-nPat, nSim ));
+%         if labindex==1
+%             allPat = gop(@plus,nPat,1);
+%             allSim = gop(@plus,nSim,1);
+%             waitStatus = uix.utility.CustomWaitbar(allPat/obj.MaxNumVirtualPatients,hWbar,sprintf('Succesfully generated %d/%d vpatients. (%d/%d Failed)',  ...
+%                 allSim, obj.MaxNumVirtualPatients, allSim-allPat, allSim ));
+%             if ~waitStatus
+%                 bCancelled = true;
+%                 break
+%             end
+%         end
         
         LB_violation = [LB_violation; find(model_outputs<LB_outputs)];
         UB_violation = [UB_violation; find(model_outputs>UB_outputs)];
-        if ~waitStatus
-            bCancelled = true;
-            break
-        end
+        
     end      
     LBTable = table(taskName_outputs(LB_violation), ...
         spec_outputs(LB_violation), ...
@@ -459,7 +486,12 @@ while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients
         repmat({'UB'},size(UB_violation)), ...
         'VariableNames', {'Task','Species','Time','Type'});
     ViolationTable = [ViolationTable; LBTable; UBTable];
+    
+    
 end % while
+
+end
+
 if ~isempty(hWbar) && ishandle(hWbar)
     delete(hWbar)
 end
@@ -469,6 +501,7 @@ end
 
 %% DEBUG: output all the violations of the constraints
 if ~isempty(ViolationTable)
+    ViolationTable = gop(@vertcat, ViolationTable);
     g = findgroups(ViolationTable.Task, ViolationTable.Species, cell2mat(ViolationTable.Time), ViolationTable.Type);
     ViolationSums = splitapply(@length, ViolationTable.Type, g);
     [~,ix] = unique(g);
