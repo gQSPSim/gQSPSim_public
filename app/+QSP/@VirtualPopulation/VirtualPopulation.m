@@ -31,6 +31,8 @@ classdef VirtualPopulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
     properties (Transient=true, GetAccess=public, SetAccess=protected)
         NumVirtualPatients = 0
         NumParameters = 0
+        Groups = []
+
         PrevalenceWeightsStr = 'no'
     end
     
@@ -82,6 +84,7 @@ classdef VirtualPopulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 'No of virtual patients',obj.NumVirtualPatients;
                 'No of parameters/species',obj.NumParameters;
                 'Prevalence Weights',obj.PrevalenceWeightsStr;
+                'Groups', obj.Groups;
                 };
         end
         
@@ -191,14 +194,20 @@ classdef VirtualPopulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                     obj.PrevalenceWeightsStr = 'no';
                 end                
                 obj.NumVirtualPatients = size(Data,1); % 1 header line
-                obj.NumParameters = size(Data,2)-numel(MatchPW);                
+                obj.NumParameters = size(Data,2)-numel(MatchPW);         
+                groups = unique(Data(:,strcmpi(Header,'Group')));
+                if ~isempty(groups)
+                    obj.Groups = strjoin(arrayfun(@(x) num2str(x),groups,'UniformOutput',false),',');
+                else
+                    obj.Groups = 'N/A';
+                end
             else
                 Header = {};
                 Data = {};
                 PrevalenceWeights = zeros(0,1);
                 obj.PrevalenceWeightsStr = 'no';
                 obj.NumVirtualPatients = 0;
-                obj.NumParameters = 0;                
+                obj.NumParameters = 0;  
             end
             
             obj.FilePath = DataFilePath;           
