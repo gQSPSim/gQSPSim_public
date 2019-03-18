@@ -92,7 +92,7 @@ if ~isempty(vObj.TempData)
     
     InvalidNames = getInvalidActiveVariantNames(vObj.TempData);
     if iscell(vObj.TempData.VariantNames)
-        VariantNames = sort(vObj.TempData.VariantNames);
+        VariantNames = sort(upper(vObj.TempData.VariantNames));
     else
         VariantNames = vObj.TempData.VariantNames;
     end
@@ -107,7 +107,7 @@ if ~isempty(vObj.TempData)
     
     InvalidNames = getInvalidActiveDoseNames(vObj.TempData);
     if iscell(vObj.TempData.DoseNames)
-        DoseNames = sort(vObj.TempData.DoseNames);
+        DoseNames = sort(upper(vObj.TempData.DoseNames));
     else
         DoseNames = vObj.TempData.DoseNames;
     end
@@ -122,7 +122,7 @@ if ~isempty(vObj.TempData)
     
     InvalidNames = getInvalidActiveSpeciesNames(vObj.TempData);
      if iscell(vObj.TempData.SpeciesNames)
-        SpeciesNames = sort(vObj.TempData.SpeciesNames);
+        SpeciesNames = sort(upper(vObj.TempData.SpeciesNames));
      else
         SpeciesNames = vObj.TempData.SpeciesNames;
      end
@@ -138,7 +138,7 @@ if ~isempty(vObj.TempData)
     
     InvalidNames = getInvalidInactiveReactionNames(vObj.TempData);
     if iscell(vObj.TempData.ReactionNames)
-        ReactionNames = sort(vObj.TempData.ReactionNames);
+        ReactionNames = sort(upper(vObj.TempData.ReactionNames));
     else
         ReactionNames = vObj.TempData.ReactionNames;
     end
@@ -154,7 +154,7 @@ if ~isempty(vObj.TempData)
     
     InvalidNames = getInvalidInactiveRuleNames(vObj.TempData);
     if iscell(vObj.TempData.RuleNames)
-        RuleNames = sort(vObj.TempData.RuleNames);
+        RuleNames = sort(upper(vObj.TempData.RuleNames));
     else
         RuleNames = vObj.TempData.RuleNames;
     end
