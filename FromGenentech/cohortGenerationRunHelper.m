@@ -284,6 +284,11 @@ nSim = Composite();
 % allSim = 0;
 % allPat = 0;
 
+q = parallel.pool.DataQueue;
+afterEach(q, @updateWaitBar);
+
+bCancelled = parallel.pool.Constant(false);
+
 spmd
 nPat = 0;
 nSim = 0;
@@ -489,12 +494,31 @@ while gop(@plus,nSim) < obj.MaxNumSimulations && gop(@plus,nPat) < obj.MaxNumVir
     ViolationTable = [ViolationTable; LBTable; UBTable];
     
     
+    % update wait bar
+    send(q, [gplus(nPat), gplus(nSim)])
 end % while
 
+isValid = isValid(1:nSim);
+Vpop = Vpop(1:nSim,:);
+
+end
+
+function updateWaitBar(data)
+    allPat = data(1);
+    allSim = data(2);
+    waitStatus = uix.utility.CustomWaitbar(allPat/obj.MaxNumVirtualPatients,hWbar,sprintf('Succesfully generated %d/%d vpatients. (%d/%d Failed)',  ...
+        allPat, obj.MaxNumVirtualPatients, allSim-allPat, allSim ));
+    if ~waitStatus
+        bCancelled = parallel.pool.Constant(true);
+%         break
+    end    
 end
 
 if ~isempty(hWbar) && ishandle(hWbar)
     delete(hWbar)
+    bCancelled = false;
+else
+    bCancelled = true;
 end
 % in case nPat is less than the maximum number of virtual patients...
 % Vpop = Vpop(isValid==1,:); % removes extra zeros in Vpop
@@ -502,7 +526,7 @@ end
 
 %% DEBUG: output all the violations of the constraints
 if ~isempty(ViolationTable)
-    ViolationTable = gop(@vertcat, ViolationTable);
+    ViolationTable = vertcat(ViolationTable{:});
     g = findgroups(ViolationTable.Task, ViolationTable.Species, cell2mat(ViolationTable.Time), ViolationTable.Type);
     ViolationSums = splitapply(@length, ViolationTable.Type, g);
     [~,ix] = unique(g);
@@ -511,11 +535,16 @@ if ~isempty(ViolationTable)
 end
 %% Outputs
 
+nSim = sum([nSim{:}]);
+nPat = sum([nPat{:}]);
+
+isValid = vertcat(isValid{:});
+Vpop = vertcat(Vpop{:});
+
 ThisMessage = [num2str(nPat) ' virtual patients generated in ' num2str(nSim) ' simulations.'];
 Message = sprintf('%s\n%s\n',Message,ThisMessage);
 
-isValid = isValid(1:nSim);
-Vpop = Vpop(1:nSim,:);
+
 bProceed = true;
 
 if nPat == 0
@@ -539,13 +568,15 @@ elseif bCancelled
     end
 end
 
+StatusOK = all([StatusOK{:}]);
+
 if StatusOK && bProceed
     hWbar = uix.utility.CustomWaitbar(0,'Saving virtual cohort','Saving virtual cohort...',true);
 
     SaveFlag = true;
     % add prevalence weight
 %     VpopHeader = [perturbParamNames; 'PWeight']';
-    VpopHeader = [Names0; 'PWeight']';
+    VpopHeader = [Names0{1}; 'PWeight']';
 
    if strcmp(obj.SaveInvalid, 'Save valid vpatients')
         % filter out invalids
@@ -579,7 +610,7 @@ if StatusOK && bProceed
         end
     end
     
-    obj.SimFlag = repmat(isValid, nIC, 1);
+    obj.SimFlag = repmat(isValid, nIC{1}, 1);
       
  
     
