@@ -83,13 +83,13 @@ classdef Session < uix.abstract.ViewPane
         function onUDFSelection(vObj,h,evt)
             
             % remove old path
-            removeUDF(obj);
+            removeUDF(vObj.Data);
             
             % assign value & refresh
             onFileSelection(vObj,h,evt);
            
             % add new path
-            addUDF(obj);
+            addUDF(vObj.Data);
 
            
         end
