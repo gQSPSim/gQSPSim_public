@@ -223,7 +223,7 @@ HighlightIdx = find(HighlightIdx);
 
 for sIdxIdx = 1:length(obj.SpeciesData) % 1:size(obj.PlotSpeciesTable,1)
     sIdx = find( strcmp(obj.SpeciesData(sIdxIdx).SpeciesName, obj.PlotSpeciesTable(:,3)) & ...
-        strcmp(obj.SpeciesData(sIdxIdx).DataName, obj.PlotSpeciesTable(:,4)) );
+        strcmp(obj.SpeciesData(sIdxIdx).DataName, obj.PlotSpeciesTable(:,4)), 1 );
     origAxIdx = str2double(obj.PlotSpeciesTable{sIdx,1});
     axIdx = origAxIdx;
     if isempty(axIdx) || isnan(axIdx)
