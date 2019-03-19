@@ -37,7 +37,7 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         DatasetName = '' % VirtualPopulationData Name
         RefParamName = '' % Parameters.Name
         GroupName = ''
-        Method = 'Uniform' 
+        Method = 'Distribution' 
         SaveInvalid = 'Save all vpatients'
         
         
