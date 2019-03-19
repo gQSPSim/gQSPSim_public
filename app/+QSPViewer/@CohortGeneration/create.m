@@ -136,7 +136,7 @@ vObj.h.GroupNamePopup = ...
     'LabelFontWeight','bold',...
     'Callback',@(h,e)onGroupNamePopup(vObj,h,e));
 
-% Group Column
+% Save valid/all vpatients
 vObj.h.SaveInvalidPopup = ...
     uix.widget.PopupFieldWithLabel(...
     'Parent',GridLayout,...
@@ -179,7 +179,7 @@ vObj.h.MCMCTuningEdit = uix.widget.EditFieldWithLabel(...
 
 % uix.Empty('Parent',GridLayout);
 
-GridLayout.Heights = [WidgetHeight WidgetHeight WidgetHeight];
+GridLayout.Heights = [WidgetHeight WidgetHeight WidgetHeight WidgetHeight];
 GridLayout.Widths = [-1 -1];
 
 
@@ -223,7 +223,8 @@ vObj.h.ParametersTable = uix.widget.MultiPlatformTable(...
     'ColumnEditable',[false,false,false,false,false]);
 
 % Sizes
-EditLayout.Heights = [WidgetHeight WidgetHeight*3+10*2 -1 WidgetHeight -1];
+% EditLayout.Heights = [WidgetHeight WidgetHeight*3+10*3 -1 WidgetHeight -1];
+EditLayout.Heights = [WidgetHeight -1 -1 WidgetHeight -1];
 
 
 %%% Table Layout
