@@ -1086,6 +1086,72 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
             
         end %function
         
+        function onSaveParametersAsParametersButton(vObj,h,e)
+            
+            Options.Resize = 'on';
+            Options.WindowStyle = 'modal';
+            DefaultAnswer = {sprintf('%s - %s', vObj.Data.RefParamName,datestr(now,'dd-mmm-yyyy_HH-MM-SS'))};
+            Answer = inputdlg('Save Parameter set as?','Save Parameters',[1 50],DefaultAnswer,Options);
+            
+            if ~isempty(Answer)
+                AllParameters = vObj.Data.Settings.Parameters;
+                AllParameterNames = get(AllParameters,'Name');
+                AllParameterFilePaths = get(AllParameters,'FilePath');
+                
+                % Append the source with the postfix appender
+                ThisProfile = vObj.Data.PlotProfile(vObj.Data.SelectedProfileRow);
+                ThisParameterName = matlab.lang.makeValidName(strtrim(Answer{1}));
+                
+                % get the parameter that was used to run this
+                % optimization
+                pObj = vObj.Data.Settings.getParametersWithName(vObj.Data.RefParamName);
+
+                ThisFilePath = fullfile(fileparts(pObj.FilePath), [ThisParameterName '.xlsx']);
+                
+                if isempty(ThisParameterName) || any(strcmpi(ThisParameterName,AllParameterNames)) || ...
+                        any(strcmpi(ThisFilePath,AllParameterFilePaths))
+                    Message = 'Please provide a valid, unique virtual population name.';
+                    Title = 'Invalid name';
+                    hDlg = errordlg(Message,Title,'modal');
+                    uiwait(hDlg);
+                else
+                    
+                    % Create a new parameter set 
+                    parameterObj = QSP.Parameters;
+                    parameterObj.Session = vObj.Data.Session;
+                    parameterObj.Name = ThisParameterName;                    
+                    parameterObj.FilePath = ThisFilePath;                 
+                    
+                    ThisProfile = vObj.Data.PlotProfile(vObj.Data.SelectedProfileRow);
+                    
+                    Values = ThisProfile.Values(~cellfun(@isempty, ThisProfile.Values(:,2)), :)'; % Take first 2 rows and transpose
+                    
+                    
+                    [StatusOk,~,Header,Data] = importData(pObj, pObj.FilePath);
+                    if StatusOk
+                        idP0 = strcmpi(Header,'P0_1');
+                        Data(:,idP0) = Values(2,:);
+                        xlwrite(parameterObj.FilePath,[Header; Data]); 
+                        
+                    end
+        
+                    % Update last saved time
+                    updateLastSavedTime(parameterObj);
+                    % Validate
+                    validate(parameterObj,false);
+                    
+                    % Call the callback
+                    evt.InteractionType = sprintf('Updated %s',class(parameterObj));
+                    evt.Data = parameterObj;
+                    vObj.callCallback(evt);           
+                    
+                    % Update the view
+                    updateVisualizationView(vObj);
+                end
+            end
+                        
+        end
+        
         function onResetParametersVPopButton(vObj,h,e)
             % reset parameters to the original source values
             

@@ -266,6 +266,18 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
                             % Update the display
                             obj.refresh();
                         end
+                    case 'Updated QSP.Parameters'
+                        if isfield(e,'Data')
+                            % Add the new parameters to the session
+                            NewParameters = e.Data;
+                            for idx = 1:numel(NewParameters)
+                                onAddItem(obj,NewParameters(idx))
+                            end
+                            
+                            % Update the display
+                            obj.refresh();
+                        end
+                       
                         
                 end %switch e.InteractionType
             end

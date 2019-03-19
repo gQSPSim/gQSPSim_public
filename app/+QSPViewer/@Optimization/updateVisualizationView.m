@@ -383,10 +383,14 @@ end
 if ~isempty(ThisProfile)
 %     set(vObj.h.PlotParametersSourcePopup,'Enable','on');
     set(vObj.h.SaveAsVPopButton,'Enable','on');
+    set(vObj.h.SaveAsParametersButton,'Enable','on');
+    
     set(vObj.h.PlotParametersTable,'Enable','on');
 else
 %     set(vObj.h.PlotParametersSourcePopup,'Enable','off');
     set(vObj.h.SaveAsVPopButton,'Enable','off');
+    set(vObj.h.SaveAsParametersButton,'Enable','off');
+    
     set(vObj.h.PlotParametersTable,'Enable','off');
 end
 
