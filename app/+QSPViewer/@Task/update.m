@@ -92,7 +92,9 @@ if ~isempty(vObj.TempData)
     
     InvalidNames = getInvalidActiveVariantNames(vObj.TempData);
     if iscell(vObj.TempData.VariantNames)
-        VariantNames = sort(upper(vObj.TempData.VariantNames));
+        VariantNames = vObj.TempData.VariantNames;
+        [~,ix] = sort(upper(vObj.TempData.VariantNames));
+        VariantNames = VariantNames(ix);
     else
         VariantNames = vObj.TempData.VariantNames;
     end
@@ -106,8 +108,11 @@ if ~isempty(vObj.TempData)
         'Enable',uix.utility.tf2onoff(FlagValidModel));
     
     InvalidNames = getInvalidActiveDoseNames(vObj.TempData);
-    if iscell(vObj.TempData.DoseNames)
-        DoseNames = sort(upper(vObj.TempData.DoseNames));
+    if iscell(vObj.TempData.DoseNames)        
+        DoseNames = vObj.TempData.DoseNames;
+        [~,ix] = sort(upper(vObj.TempData.DoseNames));
+        DoseNames = DoseNames(ix);
+        
     else
         DoseNames = vObj.TempData.DoseNames;
     end
@@ -122,7 +127,9 @@ if ~isempty(vObj.TempData)
     
     InvalidNames = getInvalidActiveSpeciesNames(vObj.TempData);
      if iscell(vObj.TempData.SpeciesNames)
-        SpeciesNames = sort(upper(vObj.TempData.SpeciesNames));
+        SpeciesNames = vObj.TempData.SpeciesNames;
+        [~,ix] = sort(upper(vObj.TempData.SpeciesNames));
+        SpeciesNames = SpeciesNames(ix);        
      else
         SpeciesNames = vObj.TempData.SpeciesNames;
      end
@@ -138,7 +145,10 @@ if ~isempty(vObj.TempData)
     
     InvalidNames = getInvalidInactiveReactionNames(vObj.TempData);
     if iscell(vObj.TempData.ReactionNames)
-        ReactionNames = sort(upper(vObj.TempData.ReactionNames));
+        ReactionNames = vObj.TempData.ReactionNames;
+        [~,ix] = sort(upper(vObj.TempData.ReactionNames));
+        ReactionNames = ReactionNames(ix);        
+        
     else
         ReactionNames = vObj.TempData.ReactionNames;
     end
@@ -154,7 +164,10 @@ if ~isempty(vObj.TempData)
     
     InvalidNames = getInvalidInactiveRuleNames(vObj.TempData);
     if iscell(vObj.TempData.RuleNames)
-        RuleNames = sort(upper(vObj.TempData.RuleNames));
+        RuleNames = vObj.TempData.RuleNames;
+        [~,ix] = sort(upper(vObj.TempData.RuleNames));
+        RuleNames = RuleNames(ix);  
+        
     else
         RuleNames = vObj.TempData.RuleNames;
     end
