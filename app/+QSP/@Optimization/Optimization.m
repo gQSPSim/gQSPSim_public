@@ -187,6 +187,8 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 end
             else
                 UsedParamNames = {};
+                UnusedParamNames = {};
+                
             end
             
             % Populate summary
@@ -346,8 +348,8 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 DataMappingIndex = ismember({obj.SpeciesData.DataName},OptimHeader(:)');
                  
                 % Check Objective Fcn
-                if exist(obj.Session.FunctionsDirectory,'dir')
-                    FileList = dir(obj.Session.FunctionsDirectory);
+                if exist(obj.Session.ObjectiveFunctionsDirectory,'dir')
+                    FileList = dir(obj.Session.ObjectiveFunctionsDirectory);
                     IsDir = [FileList.isdir];
                     ObjectiveFcns = {FileList(~IsDir).name};
                     ObjectiveFcns = vertcat({'defaultObj'},ObjectiveFcns(:));
