@@ -113,8 +113,9 @@ function [Results, nFailedSims, StatusOK, Message, Cancelled] = simulateVPatient
             spmd
                 blockSize = ceil(ItemModel.nPatients / numlabs);
                 block = min(ItemModel.nPatients, ...
-                   ((blockSize*(labindex-1)):(blockSize*labindex))+1);
+                   ((1+blockSize*(labindex-1)):(blockSize*labindex)));
                 nSim = 0;
+                disp(block)
                 for jj = block
         %             disp([' ', num2str(jj),' '])
                     % check for user-input parameter values

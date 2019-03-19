@@ -552,6 +552,13 @@ nPat = sum([nPat{:}]);
 isValid = vertcat(isValid{:});
 Vpop = vertcat(Vpop{:});
 
+if nnz(isValid) > obj.MaxNumVirtualPatients
+    % in case parallel went past last vpatient
+    ixLast = find(isValid,1,'last');
+    isValid = isValid(1:ixLast);
+    Vpop = Vpop(1:ixLast,:);
+end
+
 ThisMessage = [num2str(nPat) ' virtual patients generated in ' num2str(nSim) ' simulations.'];
 Message = sprintf('%s\n%s\n',Message,ThisMessage);
 
