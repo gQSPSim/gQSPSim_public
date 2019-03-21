@@ -211,7 +211,7 @@ isValid = zeros(obj.MaxNumSimulations,1);
 % set up the loop for different initial conditions
 if isempty(ICTable )
     % no initial conditions specified
-    groupVec = 1:length(nItems);
+    groupVec = unqGroups;
 else
     % initial conditions exist
     groupVec = ICTable.data(:,groupCol);
@@ -248,6 +248,11 @@ bCancelled = false;
 % quick fix to include normal distribution 
 %Preallocate the normally distributed random number:
 my_randn = randn(obj.MaxNumSimulations, length(P)); 
+
+ % keep only the unique groups in the acceptance criteria that are also
+ % identified with items
+isMapped = ismember(arrayfun(@num2str, unqGroups, 'UniformOutput', false), {obj.Item.GroupID});
+unqGroups = unqGroups(isMapped);
 
 while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients
     nSim = nSim+1; % tic up the number of simulations
