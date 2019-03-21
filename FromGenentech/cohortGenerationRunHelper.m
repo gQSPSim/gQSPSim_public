@@ -875,7 +875,7 @@ isValid = zeros(obj.MaxNumSimulations,1);
 % set up the loop for different initial conditions
 if isempty(ICTable )
     % no initial conditions specified
-    groupVec = 1:length(nItems);
+    groupVec = unqGroups;%1:length(nItems);
 else
     % initial conditions exist
     groupVec = ICTable.data(:,groupCol);
@@ -916,7 +916,7 @@ my_randn = randn(obj.MaxNumSimulations, length(P));
 
 % keep only the unique groups in the acceptance criteria that are also
 % identified with items
-isMapped = ismember(num2str(unqGroups), {obj.Item.GroupID});
+isMapped = ismember(arrayfun(@num2str, unqGroups, 'UniformOutput', false), {obj.Item.GroupID}); 
 unqGroups = unqGroups(isMapped);
     
 % check that the tasks are assigned only to one group
