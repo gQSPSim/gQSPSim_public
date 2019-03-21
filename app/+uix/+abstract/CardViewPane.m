@@ -789,6 +789,7 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
             updateVisualizationView(obj);
             update(obj);
             
+            notify(obj,'MarkDirty');
             set(hFigure,'pointer','arrow');
             % drawnow; %Remove drawnow - maybe causing axes sizing issues
         end

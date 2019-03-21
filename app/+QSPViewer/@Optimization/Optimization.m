@@ -189,6 +189,7 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
             % Update data first
             Value = get(h,'Value');
             obj.Data.SelectedPlotLayout = obj.PlotLayoutOptions{Value};
+            notify(obj,'MarkDirty')
             
             onPlotConfigChange@uix.abstract.CardViewPane(obj,h,e);
        end
@@ -420,6 +421,7 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
                 end
             end
             
+            
         end %function
         
         function onTableEdit(vObj,h,e,TableTag)
@@ -627,7 +629,7 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
                     vObj.h.AxesLegendChildren(AxIndices) = UpdatedAxesLegendChildren(AxIndices);
                     
                 end %if
-                
+                notify(vObj, 'MarkDirty')
             end
             
         end %function
@@ -641,6 +643,7 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
             RowIdx = Indices(1,1);
             
             h.SelectedRows = RowIdx;
+            notify(vObj, 'MarkDirty')
             
             % This line is causing issues with edit and selection callbacks
             % with uitables
@@ -684,6 +687,7 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
             
             % Enable column 1
             set(h,'ColumnEditable',OrigColumnEditable);
+            notify(vObj, 'MarkDirty')
 
         end %function
         
@@ -722,7 +726,7 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
         end %function
         
         function onHistoryTableButtonPlot(vObj,h,e)
-            pause(0.25);
+%             pause(0.25);
 %             waitfor(vObj, 'Semaphore', 'free');
 %             vObj.Semaphore = 'locked';           
 %             vObj.semaphore.wait();
@@ -780,6 +784,7 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
 
                 % Update the view
                 updateVisualizationView(vObj);
+                notify(vObj, 'MarkDirty')
             catch ME
             end
 %             vObj.Semaphore = 'free';
@@ -815,7 +820,7 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
             % Parameters Table
             updateVisualizationParametersTable(vObj);
             updateVisualizationSelectedProfile(vObj);
-            
+            notify(vObj, 'MarkDirty')
 %             set(hFigure,'pointer','arrow');
 %             drawnow;
             
@@ -825,7 +830,7 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
             
             ME = []; % exception object
             try
-                pause(0.25)
+%                 pause(0.25)
 %                 waitfor(vObj, 'Semaphore', 'free'); % wait until previous operations have finished
 
 %                 vObj.Semaphore = 'locked'; % lock while modifying properties
@@ -956,6 +961,7 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
                     end %switch
                 end %if
                 
+                notify(vObj, 'MarkDirty')
                 set(hFigure,'pointer','arrow');
                 drawnow;
             catch ME                
@@ -1025,6 +1031,8 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
 
                 % Update the view
                 updateVisualizationView(vObj);
+                notify(vObj, 'MarkDirty')
+                
            set(h_applyButton, 'Enable', 'on')
            vObj.h.PlotParametersTable.CellEditCallback = cb;
             
@@ -1261,7 +1269,7 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
                     
                     % Update the view
                     updateVisualizationView(vObj);
-                    
+                    notify(vObj, 'MarkDirty')
                 end
             else
                 hDlg = errordlg('Please select a row first to set new color.','No row selected','modal');
