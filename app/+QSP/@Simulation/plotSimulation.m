@@ -255,6 +255,11 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
                 'meanlinewidth',obj.PlotSettings(axIdx).MeanLineWidth,...
                 'boundarylinewidth',obj.PlotSettings(axIdx).BoundaryLineWidth,...
                 'parent',hSpeciesGroup{sIdx,axIdx});
+            
+            if isempty(SE)
+                continue
+            end
+            
             if obj.bShowQuantiles(axIdx)
                 set([SE.mainLine,SE.edge,SE.patch],'Visible','on');
             else

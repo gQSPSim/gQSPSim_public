@@ -32,6 +32,10 @@ ixNan = any(isnan(x));
 x = x(:,~ixNan);
 w = w(~ixNan);
 w = w/sum(w);
+if isempty(w)
+    h = [];
+    return
+end
 
 for tIdx = 1:size(x,1)
     [y,ix] = sort(x(tIdx,:));
