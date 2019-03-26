@@ -266,6 +266,13 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             else
                 obj.LastValidatedTime = '';
             end
+            
+            % at least some active species defined
+            if isempty(obj.ActiveSpeciesNames)
+                StatusOK = false;
+                Message = sprintf('%s\n* At least one active species must be defined\n',Message);
+            end
+                
 
             
         end %function
@@ -379,13 +386,16 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             end
             
             ThisData = [TheseFilePaths TheseModelNames];
+        
             AllKeepIdx = [];
             SkipIdx = [];
-            for rowIdx = 1:size(ThisData,1)
-                if ~ismember(rowIdx,SkipIdx)
-                    KeepIdx = find(strcmpi(ThisData(rowIdx,1),TheseFilePaths) & strcmpi(ThisData(rowIdx,2),TheseModelNames));
-                    AllKeepIdx = [AllKeepIdx,KeepIdx(1)]; %#ok<AGROW>
-                    SkipIdx = [SkipIdx KeepIdx(2:end)]; %#ok<AGROW>
+            if ~isempty(ThisData)
+                for rowIdx = 1:size(ThisData,1)
+                    if ~ismember(rowIdx,SkipIdx)
+                        KeepIdx = find(strcmpi(ThisData(rowIdx,1),TheseFilePaths) & strcmpi(ThisData(rowIdx,2),TheseModelNames));
+                        AllKeepIdx = [AllKeepIdx,KeepIdx(1)]; %#ok<AGROW>
+                        SkipIdx = [SkipIdx KeepIdx(2:end)]; %#ok<AGROW>
+                    end
                 end
             end
             delete(theseModels(SkipIdx));
