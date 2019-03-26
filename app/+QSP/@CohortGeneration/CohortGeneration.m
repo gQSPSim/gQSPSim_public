@@ -205,6 +205,8 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 obj.ICFileName = obj.ICFileName;
             end
             
+            thisVpop = obj.Settings.getVpopWithName(obj.VPopName);
+            
             % Populate summary
             Summary = {...
                 'Name',obj.Name;
@@ -220,7 +222,8 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 'Initial conditions file',obj.ICFileName;
                 'Max No of Simulations',num2str(obj.MaxNumSimulations);
                 'Max No of Virtual Patients',num2str(obj.MaxNumVirtualPatients);
-                'Results',obj.ExcelResultFileName;
+                'Number of valid virtual patients', num2str(thisVpop.NumValidPatients); ...
+                'Number of invalid virtual patients', num2str(thisVpop.NumVirtualPatients - thisVpop.NumValidPatients) ...
                 };
             
         end %function
