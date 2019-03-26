@@ -215,7 +215,7 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
             obj.refresh();
             
             % Now, make the figure visible
-            set(obj.Figure,'Visible','on')
+            set(obj.Figure,'Visible','on')       
             
         end %function
         
@@ -359,6 +359,20 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
             
         end %function
                 
+        function onHelpAbout(obj,h,e)
+           msgbox({'gQSPsim version 1.0', ...
+               '', ...
+               'http://www.github.com/feigelman/gQSPsim', ...
+               '', ...
+               'Authors:', ...
+               '', ...
+               'Justin Feigelman (feigelman.justin@gene.com)', ...
+               'Iraj Hosseini (hosseini.iraj@gene.com)', ...
+               'Anita Gajjala (agajjala@mathworks.com)'}, ...
+               'About')
+               
+        end
+        
         function onNavigationChanged(obj,h,e)
             
             if ~isempty(e) && isprop(e,'Name')
