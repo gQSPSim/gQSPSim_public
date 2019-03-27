@@ -709,13 +709,27 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                     notify(obj,'NavigationChanged',EventData);
                     
                 case 'CustomizeSettings'
+%                     test = copyobj(obj.PlotSettings);
+                    bandPlotLB = [obj.PlotSettings.BandplotLowerQuantile];
+                    bandPlotUB = [obj.PlotSettings.BandplotUpperQuantile];
+                    
                     [StatusOk,NewSettings] = CustomizePlots(...
                         'Settings',obj.PlotSettings);                    
                     if StatusOk
-                        obj.PlotSettings = NewSettings;
+                        replot = false;
+                        if any([NewSettings.BandplotLowerQuantile] ~= bandPlotLB | ...
+                            [NewSettings.BandplotUpperQuantile] ~= bandPlotUB)
+                                replot = true;
+                        end
                         
-                        % Update the view
-                        update(obj);
+                        obj.PlotSettings = NewSettings;
+
+                        if replot
+                            obj.plotData();
+                        else
+                            % Update the view
+                            update(obj);                            
+                        end
                         
                         % Mark Dirty
                         notify(obj,'MarkDirty');
