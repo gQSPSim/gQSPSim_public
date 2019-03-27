@@ -175,16 +175,16 @@ classdef Simulation < uix.abstract.CardViewPane
                     HasChanged = true;                    
                 end
                 vObj.TempData.Item(RowIdx).TaskName = NewData{RowIdx,ColIdx};
-            elseif ColIdx == 2 % Group
+            elseif ColIdx == 3 % Group
                 if ~isequal(vObj.TempData.Item(RowIdx).VPopName,NewData{RowIdx,ColIdx})
                     HasChanged = true;                    
                 end
                 vObj.TempData.Item(RowIdx).Group = NewData{RowIdx,ColIdx};                
-            elseif ColIdx == 3
+            elseif ColIdx == 2 % Vpop
                 if ~isequal(vObj.TempData.Item(RowIdx).VPopName,NewData{RowIdx,ColIdx})
                     HasChanged = true;                    
                 end
-                vObj.TempData.Item(RowIdx).VPopName = NewData{RowIdx,ColIdx};
+                vObj.TempData.Item(RowIdx).VPopName = NewData{RowIdx,ColIdx};                
             end
             % Clear the MAT file name
             if HasChanged
