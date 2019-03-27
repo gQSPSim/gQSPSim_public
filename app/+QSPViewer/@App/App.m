@@ -166,6 +166,10 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
         NavigationChangedListener = event.listener.empty(0,1)
         MarkDirtyListener = event.listener.empty(0,1)
     end
+    
+    properties(Constant)
+        Version = '1.0'
+    end
         
     %% Methods in separate files with custom permissions
     methods (Access=protected)
@@ -216,6 +220,11 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
             
             % Now, make the figure visible
             set(obj.Figure,'Visible','on')       
+            
+            % check version
+%             QSPViewer.App.checkForUpdates() % TODO reenable when repo is
+%             public
+            
             
         end %function
         
@@ -832,4 +841,23 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
         
     end %methods
     
+    methods (Static)
+        function checkForUpdates()
+
+            w = weboptions('CertificateFile','');
+            webData = webread('https://api.github.com/repos/feigelman/gQSPsim/tags', w); % TODO: correct repo!
+
+            if ~isempty(webData) && isstruct(webData) && isfield(webData,'name')
+                webVersion = webData(1).name;
+                if ~strcmp(webVersion, Version)            
+                    doUpdate = questdlg('A newer version of gQSPsim is available. Please visit the gQSPsim repository http:\\www.github.com\feigelman\gQSPsim\ for the latest version.', ...                
+                        'Newer version available', ...
+                        'Get latest version', 'Cancel', 'Get latest version');
+                    if strcmp(doUpdate,  'Get latest version')
+                        web('https://www.github.com/feigelman/gQSPsim','-browser');
+                    end
+                end
+            end
+        end
+    end
 end %classdef

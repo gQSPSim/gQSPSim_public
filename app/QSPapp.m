@@ -45,34 +45,11 @@ end %if ~isdeployed
 
 % Get the root directory, based on the path of this file
 filename = mfilename('fullpath');
-filename = regexprep(filename, 'gQSPsim/app/(\.\./app)+', 'gQSPsim/app')
+filename = regexprep(filename, 'gQSPsim/app/(\.\./app)+', 'gQSPsim/app');
 filename = strrep(filename , '/../app', '');
 
 RootPath = fileparts(filename);
 
-% Get the version number
-if exist(fullfile(RootPath, 'config.txt'), 'file')   
-    Version = textread(fullfile(RootPath, 'config.txt'), '%s');
-    if ~isempty(Version)
-        Version = Version{1};
-    end
-%     w = weboptions('CertificateFile','');
-%     webData = webread('https://api.github.com/repos/Tnfe/TNFE-Weekly/commits', w); % TODO: correct repo!
-%     if ~isempty(webData) && isstruct(webData) && isfield(webData,'sha')
-%         webVersion = webData(1).sha;
-%         if ~strcmp(webVersion, Version)            
-%             doUpdate = questdlg('A newer version of gQSPsim is available. Please visit the gQSPsim repository http:\\www.github.com\feigelman\gQSPsim\ for the latest version.', ...                
-%                 'Newer version available', ...
-%                 'Get latest version', 'Cancel', 'Get latest version');
-%             if strcmp(doUpdate,  'Get latest version')
-%                 web('https://www.github.com/feigelman/gQSPsim','-browser');
-%             end
-% 
-%         end
-%     end
-else
-    Version = 'Unknown';   
-end
 
 %% Set up the paths to add to the MATLAB path
 
@@ -178,11 +155,6 @@ end
 
 % run the units script
 units
-
-% Instantiate the application
-if ~isempty(Version)
-    fprintf('Launching gQSPsim version %s\n\n\n', Version);
-end
 
 if nargout == 1
     varargout{1} = QSPViewer.App();
