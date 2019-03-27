@@ -709,7 +709,6 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                     notify(obj,'NavigationChanged',EventData);
                     
                 case 'CustomizeSettings'
-                    
                     [StatusOk,NewSettings] = CustomizePlots(...
                         'Settings',obj.PlotSettings);                    
                     if StatusOk
