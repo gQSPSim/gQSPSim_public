@@ -545,6 +545,9 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
                 else
                     error('Invalid tree parent');
                 end
+                
+                % set the duplicate as the selected node
+                obj.h.SessionTree.SelectedNodes = ParentNode.Children(end);
             end
             % Mark the current session dirty
             obj.markDirty();
