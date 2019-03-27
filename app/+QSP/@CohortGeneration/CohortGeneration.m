@@ -206,6 +206,13 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             end
             
             thisVpop = obj.Settings.getVpopWithName(obj.VPopName);
+            if ~isempty(thisVpop)
+                nValid = num2str(thisVpop.NumValidPatients);
+                nInvalid = num2str(thisVpop.NumVirtualPatients - thisVpop.NumValidPatients);
+            else
+                nValid = 'N/A';
+                nInvalid = 'N/A';
+            end
             
             % Populate summary
             Summary = {...
@@ -217,13 +224,13 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 'Group Name',obj.GroupName;
                 'Items',VPopGenItems;
                 'Parameter file',obj.RefParamName;
-                'Parameters used for virtual population generation',UsedParamNames;
+                'Parameters used for cohort generation',UsedParamNames;
                 'Species-data mapping',SpeciesDataItems;
                 'Initial conditions file',obj.ICFileName;
                 'Max No of Simulations',num2str(obj.MaxNumSimulations);
                 'Max No of Virtual Patients',num2str(obj.MaxNumVirtualPatients);
-                'Number of valid virtual patients', num2str(thisVpop.NumValidPatients); ...
-                'Number of invalid virtual patients', num2str(thisVpop.NumVirtualPatients - thisVpop.NumValidPatients) ...
+                'Number of valid virtual patients', nValid; ...
+                'Number of invalid virtual patients', nInvalid...
                 };
             
         end %function
