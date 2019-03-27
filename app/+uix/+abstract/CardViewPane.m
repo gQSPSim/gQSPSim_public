@@ -723,14 +723,14 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                         end
                         
                         obj.PlotSettings = NewSettings;
+                        % Update the view
+                        update(obj);     
 
                         if replot
                             obj.plotData();
-                        else
-                            % Update the view
-                            update(obj);                            
                         end
-                        
+                       
+                       
                         % Mark Dirty
                         notify(obj,'MarkDirty');
                     end

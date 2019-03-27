@@ -41,7 +41,9 @@ for tIdx = 1:size(x,1)
     [y,ix] = sort(x(tIdx,:));
 
     % median
-    m(tIdx) = y*w(ix);
+%     m(tIdx) = y*w(ix);
+    m(tIdx) = y(find(cumsum(w(ix)) >= 0.5,1,'first'));
+    
     q_l(tIdx) = y(find(cumsum(w(ix)) >= q(1),1,'first'));
     q_u(tIdx) = y(find(cumsum(w(ix)) >= q(2),1,'first'));
     if isempty(q_u(tIdx))
