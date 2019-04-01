@@ -190,7 +190,11 @@ for axIndex = AxIndices(:)'
                 % Get line style
                 ThisLineStyle = obj.PlotSpeciesTable{sIdx,2};
                 % Set display name for selection only
-                set(TheseItems(thisIdx),'DisplayName',FormattedFullDisplayName,'LineStyle',ThisLineStyle);
+                type = class(TheseItems(thisIdx));
+                set(TheseItems(thisIdx),'DisplayName',FormattedFullDisplayName);                
+                if ~strcmp(type, 'matlab.graphics.chart.primitive.Scatter')
+                    set(TheseItems(thisIdx),'LineStyle',ThisLineStyle);
+                end
             end
         end
     end %if ~isempty(ch)

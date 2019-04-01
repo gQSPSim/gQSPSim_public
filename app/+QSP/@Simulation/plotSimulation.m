@@ -196,11 +196,19 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
         end
 
         SE = [];
-        hThisTrace = plot(hSpeciesGroup{sIdx,axIdx},ThisResult.Time,ThisResult.Data(:,ColumnIdx),...
-            'Color',ThisColor,...
-            'Tag','TraceLine',...
-            'LineStyle',ThisLineStyle,...
-            'LineWidth',obj.PlotSettings(axIdx).LineWidth);
+        if length(ThisResult.Time) > 1
+            hThisTrace = plot(hSpeciesGroup{sIdx,axIdx},ThisResult.Time,ThisResult.Data(:,ColumnIdx),...
+                'Color',ThisColor,...
+                'Tag','TraceLine',...
+                'LineStyle',ThisLineStyle,...
+                'LineWidth',obj.PlotSettings(axIdx).LineWidth);
+        else % need to use scatter if only one point
+            hThisTrace = scatter(ThisResult.Time,ThisResult.Data(:,ColumnIdx), 20);
+            set(hThisTrace, 'Parent', hSpeciesGroup{sIdx,axIdx});
+            set(hThisTrace,...
+                'MarkerFaceColor',ThisColor,...
+                'Tag','TraceLine');
+        end
         if obj.bShowTraces(axIdx)
             set(hThisTrace,'Visible','on');
         else
@@ -268,11 +276,13 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
             end
             thisQuantileAnnotation = get([SE.mainLine,SE.edge,SE.patch],'Annotation');
         else
-            % NOTE: Justin - code does not enter here (i.e. q50,
-            % etc are not computed)
-            h = errorbar(ThisResult.Time', q50', q50-q025, q975-q50, 'Color', ThisColor, ...
-                'LineStyle',ThisLineStyle);
-            thisQuantileAnnotation = get(h,'Annotation');
+%             % NOTE: Justin - code does not enter here (i.e. q50,
+%             % etc are not computed)
+%             x = ThisResult.Data(:,ColumnIdx);
+%             h = scatter(hSpeciesGroup{sIdx,axIdx}, ThisResult.Time, x, 10);
+%             set(h,'MarkerFaceColor', ThisColor);            
+%             thisTraceAnnotation = get(h,'Annotation');
+            thisQuantileAnnotation = [];
         end
 
         
