@@ -94,6 +94,19 @@ classdef Session < uix.abstract.ViewPane
            
         end
         
+        function onParallelCheckbox(vObj,h,evt)
+            vObj.Data.UseParallel = h.Value;
+            if ~vObj.Data.UseParallel
+                set(vObj.h.ParallelCluster, 'Enable', 'off')
+            else
+                set(vObj.h.ParallelCluster, 'Enable', 'on')
+                vObj.Data.ParallelCluster = vObj.h.ParallelCluster.String{vObj.h.ParallelCluster.Value};
+            end
+        end
+        
+        function onParallelClusterPopup(vObj,h,evt)
+            vObj.Data.ParallelCluster = h.String{h.Value};
+        end
     end
         
     

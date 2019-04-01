@@ -35,12 +35,21 @@ if isscalar(vObj.Data)
     set(vObj.h.ObjectiveFunctionsDirSelector,'RootDirectory',RootDir)
     set(vObj.h.UserDefinedFunctionsDirSelector,'RootDirectory',RootDir)
     
-    
+    set(vObj.h.UseParallelCheckbox, 'Value', vObj.Data.UseParallel);
+    set(vObj.h.ParallelCluster, 'String', vObj.Data.ParallelCluster);
+
 else
     RootDir = '';
 %     RelativeResultsPath = '';
     RelativeUserDefinedFunctionsPath = '';
     RelativeObjectiveFunctionsPath = '';
+    vObj.h.UseParallelCheckbox.Value = 0;
+%     info = ver;
+%     if ismember('Parallel Computing Toolbox', {info.Name})
+%         vObj.h.ParallelCluster.String = parallel.clusterProfiles;
+%     else
+%         vObj.h.ParallelCluster.String = {''};
+%     end
 end
 
 vObj.h.RootDirSelector.Value = RootDir;
@@ -49,3 +58,6 @@ vObj.h.ResultsDirSelector.RootDirectory = RootDir;
 vObj.h.FunctionsDirSelector.RootDirectory = RootDir;
 vObj.h.ObjectiveFunctionsDirSelector.Value = RelativeObjectiveFunctionsPath;
 vObj.h.UserDefinedFunctionsDirSelector.Value = RelativeUserDefinedFunctionsPath;
+
+
+

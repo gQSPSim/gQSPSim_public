@@ -164,6 +164,8 @@ if ~isempty(ItemModels)
                 thisOptions.paramNames = {};
             end
             
+            thisOptions.UsePar = obj.Session.UseParallel;
+            
             [Results, nFailedSims, ThisStatusOK, ThisMessage, Cancelled] = simulateVPatients(ItemModel, thisOptions, Message);
             if ~ThisStatusOK
                 StatusOK = false;
@@ -475,10 +477,8 @@ function [ItemModel, StatusOK, Message] = constructVpopItem(taskObj, vpopObj, gr
 end
 
 function [Results, nFailedSims, StatusOK, Message, Cancelled] = simulateVPatients(ItemModel, options, Message)  
-   
-    info = ver;
-    usePar = ismember('Parallel Computing Toolbox', {info.Name});
-    
+       
+    usePar = options.UsePar;
     [Results, nFailedSims, StatusOK, Message, Cancelled] = simulateVPatients_(ItemModel, options, Message, usePar);
     
 end

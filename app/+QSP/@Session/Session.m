@@ -60,6 +60,9 @@ classdef Session < matlab.mixin.SetGet & uix.mixin.AssignPVPairs & uix.mixin.Has
         ColorMap2 = QSP.Session.DefaultColorMap
         
         toRemove = false;
+        UseParallel = false;
+        ParallelCluster 
+        
     end
     
     properties (Constant=true)
@@ -100,6 +103,14 @@ classdef Session < matlab.mixin.SetGet & uix.mixin.AssignPVPairs & uix.mixin.Has
             
             % Provide Session handle to Settings
             obj.Settings.Session = obj;
+            
+            info = ver;
+            if ismember('Parallel Computing Toolbox', {info.Name})
+                clusters = parallel.clusterProfiles;
+                obj.ParallelCluster = clusters{1};
+            else
+                obj.ParallelCluster = {''};
+            end
             
         end %function obj = Session(varargin)
         
@@ -251,6 +262,7 @@ classdef Session < matlab.mixin.SetGet & uix.mixin.AssignPVPairs & uix.mixin.Has
             validateattributes(Value,{'numeric'},{});
             obj.ColorMap2 = Value;
         end
+        
         
     end %methods
     

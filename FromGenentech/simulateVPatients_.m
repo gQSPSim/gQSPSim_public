@@ -105,7 +105,10 @@ function [Results, nFailedSims, StatusOK, Message, Cancelled] = simulateVPatient
                 end
             end % for jj = ...
         else
-            p = gcp();
+            p = gcp('nocreate');
+            if isempty(p)
+                p = parpool(obj.Session.ParallelCluster);
+            end
             q = parallel.pool.DataQueue;
             afterEach(q, @(jj) updateWaitBar(options, ItemModel, jj) );
             Cancelled = parallel.pool.Constant(false);
@@ -137,8 +140,7 @@ function [Results, nFailedSims, StatusOK, Message, Cancelled] = simulateVPatient
                         [simData,simOK,errMessage]  = taskObj.simulate(...
                                 'Names', Names, ...
                                 'Values', theseValues, ...
-                                'OutputTimes', Results.Time, ...
-                                'Waitbar', options.WaitBar);
+                                'OutputTimes', Results.Time);
                         nSim = nSim + 1;                         
                         if ~simOK
 
@@ -174,9 +176,9 @@ function [Results, nFailedSims, StatusOK, Message, Cancelled] = simulateVPatient
                     end % try
 
                     send(q, gop(@plus, nSim));
-%                     if Cancelled
-%                         break                        
-%                     end
+                    if Cancelled==true
+                        break                        
+                    end
                 end % for jj = ...
             end
         end
@@ -185,12 +187,12 @@ function [Results, nFailedSims, StatusOK, Message, Cancelled] = simulateVPatient
     
     function updateWaitBar(options, ItemModel, jj)
         % update wait bar
+        StatusOK = true;
         if ~isempty(options.WaitBar)
             StatusOK = uix.utility.CustomWaitbar(jj/ItemModel.nPatients, options.WaitBar, sprintf('Simulating vpatient %d/%d', jj, ItemModel.nPatients));
         end
         if ~StatusOK
             Cancelled = parallel.pool.Constant(true);
-            simCancelled = true;
         end        
     end
 
@@ -204,5 +206,5 @@ function [Results, nFailedSims, StatusOK, Message, Cancelled] = simulateVPatient
         nFailedSims = sum([nFailedSims{:}]);
     end
 %     Message = vertcat(Message{:});
-    Cancelled = false;
+    Cancelled = ~isvalid(options.WaitBar);
 end

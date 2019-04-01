@@ -263,7 +263,12 @@ end
 %% Call optimization program
 switch obj.AlgorithmName
     case 'ScatterSearch'
-        [VpopParams,StatusOK,ThisMessage] = run_ss(@(est_p) objectiveFun(est_p,paramObj,ItemModels,Groups,IDs,Time,optimData,dataNames,obj),estParamData);
+        if obj.Session.UseParallel
+            [VpopParams,StatusOK,ThisMessage] = run_ss_par(@(est_p) objectiveFun(est_p,paramObj,ItemModels,Groups,IDs,Time,optimData,dataNames,obj),estParamData);
+        else
+            [VpopParams,StatusOK,ThisMessage] = run_ss_ser(@(est_p) objectiveFun(est_p,paramObj,ItemModels,Groups,IDs,Time,optimData,dataNames,obj),estParamData);
+        end
+        
         Message = sprintf('%s\n%s\n',Message,ThisMessage);
         
         if ~StatusOK
