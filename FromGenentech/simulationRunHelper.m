@@ -139,9 +139,10 @@ if ~isempty(ItemModels)
     
 
     % update simulation time stamp
-    updateLastSavedTime(obj);
     runItems = find(validRunItems); % only those for which no error was produced during model compilation/configuration
-    
+    if ~isempty(runItems)
+        updateLastSavedTime(obj);        
+    end
     for ii = runItems
         ItemModel = ItemModels(options.runIndices(ii));
         if ~StatusOK % interrupted
@@ -248,7 +249,7 @@ if ~isempty(ItemModels)
 
     end % for ii = ...
 
-    
+
     
 end
 
