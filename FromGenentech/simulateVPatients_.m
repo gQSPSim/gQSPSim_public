@@ -1,5 +1,5 @@
 
-function [Results, nFailedSims, StatusOK, Message, Cancelled] = simulateVPatients_(ItemModel, options, Message, usePar)  
+function [Results, nFailedSims, StatusOK, Message, Cancelled] = simulateVPatients_(ItemModel, options, Message)  
     Cancelled = false;
     nFailedSims = 0;
     taskObj = ItemModel.Task;
@@ -9,6 +9,9 @@ function [Results, nFailedSims, StatusOK, Message, Cancelled] = simulateVPatient
     StatusOK = true;
     
     ParamValues_in = options.Pin;
+    
+    usePar = options.usePar;
+    ParallelCluster = options.ParallelCluster;
     
     if isempty(taskObj) % could not load the task
         StatusOK = false;
@@ -107,7 +110,7 @@ function [Results, nFailedSims, StatusOK, Message, Cancelled] = simulateVPatient
         else
             p = gcp('nocreate');
             if isempty(p)
-                p = parpool(obj.Session.ParallelCluster);
+                p = parpool(ParallelCluster);
             end
             q = parallel.pool.DataQueue;
             afterEach(q, @(jj) updateWaitBar(options, ItemModel, jj) );

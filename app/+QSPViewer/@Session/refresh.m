@@ -36,7 +36,13 @@ if isscalar(vObj.Data)
     set(vObj.h.UserDefinedFunctionsDirSelector,'RootDirectory',RootDir)
     
     set(vObj.h.UseParallelCheckbox, 'Value', vObj.Data.UseParallel);
-    set(vObj.h.ParallelCluster, 'String', vObj.Data.ParallelCluster);
+    if vObj.Data.UseParallel
+        enable_cluster = 'on';
+    else
+        enable_cluster = 'off';
+    end
+    
+    set(vObj.h.ParallelCluster, 'String', vObj.Data.ParallelCluster, 'Enable', enable_cluster);
 
 else
     RootDir = '';

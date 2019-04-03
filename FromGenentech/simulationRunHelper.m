@@ -165,7 +165,8 @@ if ~isempty(ItemModels)
                 thisOptions.paramNames = {};
             end
             
-            thisOptions.UsePar = obj.Session.UseParallel;
+            thisOptions.usePar = obj.Session.UseParallel;
+            thisOptions.ParallelCluster = obj.Session.ParallelCluster;
             
             [Results, nFailedSims, ThisStatusOK, ThisMessage, Cancelled] = simulateVPatients(ItemModel, thisOptions, Message);
             if ~ThisStatusOK
@@ -479,7 +480,6 @@ end
 
 function [Results, nFailedSims, StatusOK, Message, Cancelled] = simulateVPatients(ItemModel, options, Message)  
        
-    usePar = options.UsePar;
-    [Results, nFailedSims, StatusOK, Message, Cancelled] = simulateVPatients_(ItemModel, options, Message, usePar);
+    [Results, nFailedSims, StatusOK, Message, Cancelled] = simulateVPatients_(ItemModel, options, Message);
     
 end

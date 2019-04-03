@@ -100,7 +100,11 @@ classdef Session < uix.abstract.ViewPane
                 set(vObj.h.ParallelCluster, 'Enable', 'off')
             else
                 set(vObj.h.ParallelCluster, 'Enable', 'on')
-                vObj.Data.ParallelCluster = vObj.h.ParallelCluster.String{vObj.h.ParallelCluster.Value};
+                if iscell(vObj.h.ParallelCluster.String)
+                    vObj.Data.ParallelCluster = vObj.h.ParallelCluster.String{vObj.h.ParallelCluster.Value};
+                else
+                    vObj.Data.ParallelCluster = vObj.h.ParallelCluster.String;
+                end
             end
         end
         
