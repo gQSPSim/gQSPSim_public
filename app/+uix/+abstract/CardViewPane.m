@@ -1038,7 +1038,7 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
             obj.updateVisualizationView();
             
             if strcmp(ThisTag,'ShowTraces') || strcmp(ThisTag,'ShowQuantiles')
-                if strcmpi(class(obj),'QSPViewer.Simulation')
+                if any(strcmpi(class(obj),{'QSPViewer.Simulation','QSPViewer.CohortGeneration'}))
                     [UpdatedAxesLegend,UpdatedAxesLegendChildren] = updatePlots(...
                         obj.Data,obj.h.MainAxes,obj.h.SpeciesGroup,obj.h.DatasetGroup,...
                         'AxIndices',axIndex);
@@ -1509,6 +1509,7 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
             
             close(hNewFig)
         end %function
+        
     end %methods (protected)
     
     
@@ -1557,6 +1558,53 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
             end
             
         end %function
+        
+        
+         function [hThisLegend,hThisLegendChildren] = redrawLegend(hThisAxes,LegendItems,ThesePlotSettings)
+            
+             hThisLegend = [];
+             hThisLegendChildren = [];
+             
+             if ~isempty(LegendItems)
+                 try
+                     % Add legend
+                     [hThisLegend,hThisLegendChildren] = legend(hThisAxes,LegendItems);
+                     
+                     % Color, FontSize, FontWeight
+                     for cIndex = 1:numel(hThisLegendChildren)
+                         if isprop(hThisLegendChildren(cIndex),'FontSize')
+                             hThisLegendChildren(cIndex).FontSize = ThesePlotSettings.LegendFontSize;
+                         end
+                         if isprop(hThisLegendChildren(cIndex),'FontWeight')
+                             hThisLegendChildren(cIndex).FontWeight = ThesePlotSettings.LegendFontWeight;
+                         end
+                     end
+                     
+                     set(hThisLegend,...
+                         'EdgeColor','none',...
+                         'Visible',ThesePlotSettings.LegendVisibility,...
+                         'Location',ThesePlotSettings.LegendLocation,...
+                         'FontSize',ThesePlotSettings.LegendFontSize,...
+                         'FontWeight',ThesePlotSettings.LegendFontWeight);
+                 catch ME
+                     warning(ME.message)
+                 end
+             else
+                 Siblings = get(get(hThisAxes,'Parent'),'Children');
+                 IsLegend = strcmpi(get(Siblings,'Type'),'legend');
+                 
+                 if any(IsLegend)
+                     if isvalid(Siblings(IsLegend))
+                         delete(Siblings(IsLegend));
+                     end
+                 end
+                 
+                 hThisLegend = [];
+                 hThisLegendChildren = [];
+             end
+             
+        end %function
+        
     end % methods (Static)
     
     methods

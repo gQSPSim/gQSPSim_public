@@ -490,8 +490,14 @@ classdef CohortGeneration < uix.abstract.CardViewPane
             
             h.SelectedRows = RowIdx;
             
+            NewAxIdx = str2double(ThisData{RowIdx,1});
+            if isnan(NewAxIdx)
+                NewAxIdx = [];
+            end
+            
+            
             if ~isequal(vObj.Data.PlotSpeciesTable,[ThisData(:,1) ThisData(:,2) ThisData(:,3) ThisData(:,4)]) || ...
-                    ColIdx == 2 || ColIdx == 5
+                    ColIdx == 1 || ColIdx == 2 || ColIdx == 5
                 
                 if ~isempty(RowIdx) && ColIdx == 2
                     NewLineStyle = ThisData{RowIdx,2};
@@ -512,26 +518,85 @@ classdef CohortGeneration < uix.abstract.CardViewPane
                     
                 if ColIdx == 2
                     % Style
-                    for sIdx = 1:size(vObj.Data.PlotSpeciesTable,1)
-                        axIdx = str2double(vObj.Data.PlotSpeciesTable{sIdx,1});
-                        if ~isnan(axIdx)
-                            Ch = get(vObj.h.SpeciesGroup{sIdx,axIdx},'Children');
-                            HasLineStyle = isprop(Ch,'LineStyle');
-                            set(Ch(HasLineStyle),'LineStyle',vObj.Data.PlotSpeciesTable{sIdx,2});
+%                     for sIdx = 1:size(vObj.Data.PlotSpeciesTable,1)
+%                         axIdx = str2double(vObj.Data.PlotSpeciesTable{sIdx,1});
+%                         if ~isnan(axIdx)
+%                             Ch = get(vObj.h.SpeciesGroup{sIdx,axIdx},'Children');
+%                             HasLineStyle = isprop(Ch,'LineStyle');
+%                             set(Ch(HasLineStyle),'LineStyle',vObj.Data.PlotSpeciesTable{sIdx,2});
+%                         end
+%                     end   
+%                     
+                    AxIndices = NewAxIdx;
+                    if isempty(AxIndices)
+                        AxIndices = 1:numel(vObj.h.MainAxes);
+                    end
+                    % Redraw legend
+                    [UpdatedAxesLegend,UpdatedAxesLegendChildren] = updatePlots(...
+                        vObj.Data,vObj.h.MainAxes,vObj.h.SpeciesGroup,vObj.h.DatasetGroup,...
+                        'AxIndices',AxIndices);
+                    vObj.h.AxesLegend(AxIndices) = UpdatedAxesLegend(AxIndices);
+                    vObj.h.AxesLegendChildren(AxIndices) = UpdatedAxesLegendChildren(AxIndices);
+                    
+                elseif ColIdx == 5
+                    % Display Name
+                    AxIndices = NewAxIdx;
+                    if isempty(AxIndices)
+                        AxIndices = 1:numel(vObj.h.MainAxes);
+                    end
+                    % Redraw legend
+                    [UpdatedAxesLegend,UpdatedAxesLegendChildren] = updatePlots(...
+                        vObj.Data,vObj.h.MainAxes,vObj.h.SpeciesGroup,vObj.h.DatasetGroup,...
+                        'AxIndices',AxIndices);
+                    vObj.h.AxesLegend(AxIndices) = UpdatedAxesLegend(AxIndices);
+                    vObj.h.AxesLegendChildren(AxIndices) = UpdatedAxesLegendChildren(AxIndices);
+                    
+                elseif ColIdx == 1
+                    % Plot axes
+                    sIdx = RowIdx;
+                    OldAxIdx = find(~cellfun(@isempty,vObj.h.SpeciesGroup(sIdx,:)),1,'first');
+                    
+                    % If originally not plotted
+                    if isempty(OldAxIdx) && ~isempty(NewAxIdx)
+                        vObj.h.SpeciesGroup{sIdx,NewAxIdx} = vObj.h.SpeciesGroup{sIdx,1};
+                        vObj.h.DatasetGroup{sIdx,NewAxIdx} = vObj.h.DatasetGroup{sIdx,1};
+                        % Parent
+                        vObj.h.SpeciesGroup{sIdx,NewAxIdx}.Parent = vObj.h.MainAxes(NewAxIdx);
+                        vObj.h.DatasetGroup{sIdx,NewAxIdx}.Parent = vObj.h.MainAxes(NewAxIdx);
+                    elseif ~isempty(OldAxIdx) && isempty(NewAxIdx)
+                        vObj.h.SpeciesGroup{sIdx,1} = vObj.h.SpeciesGroup{sIdx,OldAxIdx};
+                        vObj.h.DatasetGroup{sIdx,1} = vObj.h.DatasetGroup{sIdx,OldAxIdx};
+                        % Un-parent
+                        vObj.h.SpeciesGroup{sIdx,1}.Parent = matlab.graphics.GraphicsPlaceholder.empty();
+                        vObj.h.DatasetGroup{sIdx,1}.Parent = matlab.graphics.GraphicsPlaceholder.empty();
+                        if OldAxIdx ~= 1
+                            vObj.h.SpeciesGroup{sIdx,OldAxIdx} = [];
+                            vObj.h.DatasetGroup{sIdx,OldAxIdx} = [];
                         end
-                    end   
-                    [vObj.h.AxesLegend,vObj.h.AxesLegendChildren] = updatePlots(vObj.Data,vObj.h.MainAxes,vObj.h.SpeciesGroup,vObj.h.DatasetGroup);
-                elseif ColIdx == 1 || ColIdx == 5
+                    elseif ~isempty(OldAxIdx) && ~isempty(NewAxIdx)
+                        vObj.h.SpeciesGroup{sIdx,NewAxIdx} = vObj.h.SpeciesGroup{sIdx,OldAxIdx};
+                        vObj.h.DatasetGroup{sIdx,NewAxIdx} = vObj.h.DatasetGroup{sIdx,OldAxIdx};
+                        % Re-parent
+                        vObj.h.SpeciesGroup{sIdx,NewAxIdx}.Parent = vObj.h.MainAxes(NewAxIdx);
+                        vObj.h.DatasetGroup{sIdx,NewAxIdx}.Parent = vObj.h.MainAxes(NewAxIdx);
+                        if OldAxIdx ~= NewAxIdx
+                            vObj.h.SpeciesGroup{sIdx,OldAxIdx} = [];
+                            vObj.h.DatasetGroup{sIdx,OldAxIdx} = [];
+                        end
+                    end
                     
-                    % Plot
-                    plotData(vObj);
+                    AxIndices = [OldAxIdx,NewAxIdx];
+                    AxIndices(isnan(AxIndices)) = [];
                     
-                    % Update the view
-                    updateVisualizationView(vObj);
+                    % Redraw legend
+                    [UpdatedAxesLegend,UpdatedAxesLegendChildren] = updatePlots(...
+                        vObj.Data,vObj.h.MainAxes,vObj.h.SpeciesGroup,vObj.h.DatasetGroup,...
+                        'AxIndices',AxIndices);
+                    vObj.h.AxesLegend(AxIndices) = UpdatedAxesLegend(AxIndices);
+                    vObj.h.AxesLegendChildren(AxIndices) = UpdatedAxesLegendChildren(AxIndices);
 
-                end
-                
-            end
+                end %if ColIdx
+            end %if ~isequal
             
         end %function
         
@@ -570,11 +635,9 @@ classdef CohortGeneration < uix.abstract.CardViewPane
             
             vObj.Data.ShowInvalidVirtualPatients = logical(get(h,'Value'));
             
-            % Plot
-            plotData(vObj);
-            
-            % Update the view
-            updateVisualizationView(vObj);
+            % Don't overwrite the output
+            updatePlots(vObj.Data,vObj.h.MainAxes,vObj.h.SpeciesGroup,vObj.h.DatasetGroup,...
+                'RedrawLegend',false);
             
             set(h,'Enable','on');
             
@@ -602,11 +665,17 @@ classdef CohortGeneration < uix.abstract.CardViewPane
             
             vObj.Data.PlotItemTable(RowIdx,ColIdx) = ThisData(RowIdx,ColIdx);
             
-            % Plot
-            plotData(vObj);
-            
-            % Update the view
-            updateVisualizationView(vObj);
+            if ColIdx == 5
+                % Display name                
+                [vObj.h.AxesLegend,vObj.h.AxesLegendChildren] = updatePlots(vObj.Data,vObj.h.MainAxes,vObj.h.SpeciesGroup,vObj.h.DatasetGroup);
+                
+            elseif ColIdx == 1
+                % Include
+                
+                % Don't overwrite the output
+                updatePlots(vObj.Data,vObj.h.MainAxes,vObj.h.SpeciesGroup,vObj.h.DatasetGroup,...
+                    'RedrawLegend',false);
+            end
             
             % Enable column 1
             set(h,'ColumnEditable',OrigColumnEditable);
@@ -624,8 +693,56 @@ classdef CohortGeneration < uix.abstract.CardViewPane
                 if ~isequal(NewColor,0)
                     vObj.Data.PlotItemTable{SelectedRow,2} = NewColor;
                     
-                    % Plot
-                    plotData(vObj);
+                    itemIdx = SelectedRow;
+                    
+                    TheseSpeciesGroups = [vObj.h.SpeciesGroup{:}];
+                    for index = 1:numel(TheseSpeciesGroups)
+                        ThisGroup = TheseSpeciesGroups(index);
+                        if ~isvalid(ThisGroup)
+                            warning('Encountered deleted handle')
+                            return
+                        end
+                        TheseChildren = get(ThisGroup,'Children');
+                        KeepIdx = ...
+                            ~strcmpi(get(TheseChildren,'Tag'),'DummyLine') & ...
+                            ~strcmpi(get(TheseChildren,'Tag'),'InvalidVP');
+                        TheseChildren = TheseChildren(KeepIdx);
+                        
+                        TheseUserData = get(TheseChildren,'UserData');
+                        if iscell(TheseUserData)
+                            TheseUserData = vertcat(TheseUserData{:});
+                        end
+                        % Set the color
+                        MatchIdx = ismember(TheseUserData(:,2),itemIdx);
+                        
+                        TheseItems = TheseChildren(MatchIdx);
+                        set(TheseItems(isprop(TheseItems,'Color')),'Color',NewColor);
+                        set(TheseItems(isprop(TheseItems,'FaceColor')),'FaceColor',NewColor);
+                    end
+                    
+                    TheseDataGroups = [vObj.h.DatasetGroup{:}];
+                    for index = 1:numel(TheseDataGroups)
+                        ThisGroup = TheseDataGroups(index);
+                        if ~isvalid(ThisGroup)
+                            warning('Encountered deleted handle')
+                            return
+                        end
+                        TheseChildren = get(ThisGroup,'Children');
+                        KeepIdx = ~strcmpi(get(TheseChildren,'Tag'),'DummyLine');
+                        TheseChildren = TheseChildren(KeepIdx);
+                        
+                        TheseUserData = get(TheseChildren,'UserData');
+                        if iscell(TheseUserData)
+                            TheseUserData = vertcat(TheseUserData{:});
+                        end
+                        % Set the color
+                        MatchIdx = ismember(TheseUserData(:,2),itemIdx);
+                        
+                        TheseItems = TheseChildren(MatchIdx);
+                        set(TheseItems(isprop(TheseItems,'Color')),'Color',NewColor);                        
+                    end
+                    
+                    [vObj.h.AxesLegend,vObj.h.AxesLegendChildren] = updatePlots(vObj.Data,vObj.h.MainAxes,vObj.h.SpeciesGroup,vObj.h.DatasetGroup);
                     
                     % Update the view
                     updateVisualizationView(vObj);

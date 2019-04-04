@@ -26,7 +26,6 @@ function [hSpeciesGroup,hDatasetGroup,hLegend,hLegendChildren] = plotOptimizatio
 %   $Revision: 331 $  $Date: 2016-10-05 18:01:36 -0400 (Wed, 05 Oct 2016) $
 % ---------------------------------------------------------------------
 
-StatusOK = true;
 
 %% Turn on hold
 
@@ -86,8 +85,6 @@ IsSelected = 1:size(obj.PlotItemTable,1);
 
 % if any(IsSelected)
     % make Task-Vpop pairs for each selected task
-%     nSelected = sum(IsSelected);
-%     SelectedInds = find(IsSelected);
     simObj = QSP.Simulation;
     simObj.Session = obj.Session;
     simObj.Settings = obj.Settings;
@@ -120,10 +117,8 @@ IsSelected = 1:size(obj.PlotItemTable,1);
                         Message = 'Multiple Vpops share the same group.';
                         error('plotOptimization: %s',Message);
                     end
-                end
-
-                
-            end
+                end %if                
+            end %for
                 
         else
             % in this case, there should only be one Vpop produced
@@ -158,10 +153,6 @@ ParamNames = cell(1,numel(obj.PlotProfile));
 ParamValues = cell(1,numel(obj.PlotProfile));
 
 for index = 1:numel(obj.PlotProfile)
-    %         if ~obj.PlotProfile(index).Show
-    %             continue
-    %         end
-    % TODO: Plot all profiles
     
     if ~isempty(obj.PlotProfile(index).Values)
         ParamNames{index} = obj.PlotProfile(index).Values(:,1);
@@ -175,7 +166,6 @@ for index = 1:numel(obj.PlotProfile)
         continue
     end
     if iscell(ParamValues{index})
-        %             tmp = cellfun(@str2num,ParamValues{index});
         isStr = cellfun(@ischar,ParamValues{index});
         ParamValues{index}(isStr) = num2cell(cellfun(@str2num, ParamValues{index}(isStr)));
         ParamValues{index} = cell2mat(ParamValues{index});
@@ -184,7 +174,6 @@ end
 
 if rerunSims && ~isempty(obj.PlotProfile) % need at least one profile
     [StatusOK,Message,~,Cancelled,Results,ItemModels] = simulationRunHelper(simObj,ParamValues,ParamNames,[],ItemModels,find(IsSelected));
-    %         [StatusOK,Message,~,Results,ItemModels] = simulationRunHelper(simObj,ParamValues,ParamNames,[],[],find(IsSelected));
     
     obj.ItemModels = ItemModels;
     obj.Results = Results;
@@ -291,13 +280,7 @@ for sIdxIdx = 1:length(obj.SpeciesData) % 1:size(obj.PlotSpeciesTable,1)
                             'HitTest','on',...
                             'UserData',[sIdx,itemIdx,runIdx],...
                             'Tag',num2str(runIdx));
-                        set(get(get(hThis,'Annotation'),'LegendInformation'),'IconDisplayStyle','off');
-                        
-                        
-                        %                     hSpeciesGroup{axIdx} = [hSpeciesGroup{axIdx} ...
-                        %                         plot(hAxes(axIdx),Results{itemIdx}.Time,Results{itemIdx}.Data(:,ColumnIdx),...
-                        %                         'Color',SelectedItemColors(itemIdx,:),...
-                        %                         'DisplayName',regexprep(sprintf('%s Results (%d)',ThisName,itemIdx),'_','\\_'))];
+                        setIconDisplayStyleOff(hThis)                        
                     end %if
                 end %if
             end %for itemIdx
@@ -324,15 +307,7 @@ for sIdxIdx = 1:length(obj.SpeciesData) % 1:size(obj.PlotSpeciesTable,1)
             end
             
             % Turn off legend for the remaining items
-            TheseAnnotations = get(TheseGroups,'Annotation');
-            if iscell(TheseAnnotations)
-                TheseAnnotations = horzcat(TheseAnnotations{:});
-            end
-            TheseAnnotationsInfo = get(TheseAnnotations,'LegendInformation');
-            if iscell(TheseAnnotationsInfo)
-                TheseAnnotationsInfo = horzcat(TheseAnnotationsInfo{:});
-            end
-            set(TheseAnnotationsInfo,'IconDisplayStyle','off');
+            setIconDisplayStyleOff(TheseGroups)
         end
             
     end %if
@@ -433,16 +408,9 @@ if any(MatchIdx)
                         'UserData',[dIdx,gIdx],...
                         'HitTest','off',...
                         'DisplayName',regexprep(sprintf('%s [Data]',FullDisplayName),'_','\\_')); % For export % 'DisplayName',regexprep(ThisName,'_','\\_'));
-                    set(get(get(hThis,'Annotation'),'LegendInformation'),'IconDisplayStyle','off');
-                    set(hThis,'Visible',uix.utility.tf2onoff(IsVisible));
-                    
-                    %                         % Plot the selected column by GroupID
-                    %                         hDatasetGroup{axIdx} = [hDatasetGroup{axIdx} ...
-                    %                             plot(hAxes(axIdx),TimeColumn(MatchIdx), cell2mat(OptimData(MatchIdx,ColumnIdx)),...
-                    %                             'LineStyle','none',...
-                    %                             'Marker','*',...
-                    %                             'Color',SelectedItemColors(gIdx,:),... %SelectedGroupColors(gIdx,:));
-                    %                             'DisplayName',regexprep(sprintf('%s %s',ThisName,SelectedGroupIDs(gIdx)),'_','\\_'))];
+                    setIconDisplayStyleOff(hThis);
+                    set(hThis,'Visible',uix.utility.tf2onoff(IsVisible));                    
+                   
                 end %for gIdx
             end %if
         end %for dIdx

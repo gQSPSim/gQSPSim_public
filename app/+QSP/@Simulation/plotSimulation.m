@@ -206,9 +206,9 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
         else
             set(hThisTrace,'Visible','off');
         end
-        thisTraceAnnotation = get(hThisTrace,'Annotation');
+        setIconDisplayStyleOff(hThisTrace);
         
-
+        
         axes(get(hSpeciesGroup{sIdx,axIdx},'Parent'))
         %                 q50 = quantile(Results(resultIdx).Data(:,ColumnIdx),0.5,2);
         %                 q75 = quantile(Results(resultIdx).Data(:,ColumnIdx),0.75,2);
@@ -260,13 +260,15 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
             else
                 set([SE.mainLine,SE.edge,SE.patch],'Visible','off');
             end
-            thisQuantileAnnotation = get([SE.mainLine,SE.edge,SE.patch],'Annotation');
+            setIconDisplayStyleOff([SE.mainLine,SE.edge,SE.patch]);            
+            
         else
             % NOTE: Justin - code does not enter here (i.e. q50,
             % etc are not computed)
             h = errorbar(ThisResult.Time', q50', q50-q025, q975-q50, 'Color', ThisColor, ...
                 'LineStyle',ThisLineStyle);
-            thisQuantileAnnotation = get(h,'Annotation');
+            setIconDisplayStyleOff(h);            
+            
         end
 
         
@@ -289,30 +291,6 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
             set([SE.mainLine,SE.edge,SE.patch],...
                 'UserData',[sIdx,itemIdx],... % SE.mainLine
                 'Visible',uix.utility.tf2onoff(IsVisible));
-        end
-        
-        % Process this trace
-        if iscell(thisTraceAnnotation)
-            thisLegendInformation = get([thisTraceAnnotation{:}],'LegendInformation');
-        else
-            thisLegendInformation = get(thisTraceAnnotation,'LegendInformation');
-        end
-        if iscell(thisLegendInformation)
-            set([thisLegendInformation{:}],'IconDisplayStyle','off');
-        else
-            set(thisLegendInformation,'IconDisplayStyle','off');
-        end
-        
-        % Process this quantile
-        if iscell(thisQuantileAnnotation)
-            thisLegendInformation = get([thisQuantileAnnotation{:}],'LegendInformation');
-        else
-            thisLegendInformation = get(thisQuantileAnnotation,'LegendInformation');
-        end
-        if iscell(thisLegendInformation)
-            set([thisLegendInformation{:}],'IconDisplayStyle','off');
-        else
-            set(thisLegendInformation,'IconDisplayStyle','off');
         end
         
     end %for itemIdx = 1:numel(Results)
@@ -397,6 +375,7 @@ if any(MatchIdx)
                             'Tag','Data',...
                             'DisplayName',regexprep(ThisDisplayName,'_','\\_'),...
                             'UserData',dIdx);
+                        
                         set(get(get(hDatasetGroup{dIdx,axIdx},'Annotation'),'LegendInformation'),'IconDisplayStyle','on')
                         % Add dummy line for legend
                         line(nan,nan,'Parent',hDatasetGroup{dIdx,axIdx},...
@@ -415,7 +394,8 @@ if any(MatchIdx)
                         'MarkerSize',obj.PlotSettings(axIdx).DataSymbolSize,...
                         'UserData',[dIdx,gIdx],...
                         'DisplayName',regexprep(sprintf('%s %s',ThisDisplayName,SelectedGroupNames{gIdx}),'_','\\_')); % For export
-                    set(get(get(hThis,'Annotation'),'LegendInformation'),'IconDisplayStyle','off');
+                    setIconDisplayStyleOff(hThis);
+                    
                     set(hThis,'Visible',uix.utility.tf2onoff(IsVisible));
                 end %for gIdx
             end %if
