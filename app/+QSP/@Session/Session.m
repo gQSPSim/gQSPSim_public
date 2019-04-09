@@ -202,9 +202,12 @@ classdef Session < matlab.mixin.SetGet & uix.mixin.AssignPVPairs & uix.mixin.Has
         function addUDF(obj)
             % add the UDF to the path
             p = path;
-            if exist(obj.RelativeUserDefinedFunctionsPath, 'dir')
-                if isempty(strfind(p, obj.RelativeUserDefinedFunctionsPath))
-                    addpath(genpath(obj.RelativeUserDefinedFunctionsPath))
+            
+            UDF = fullfile(obj.RootDirectory, obj.RelativeUserDefinedFunctionsPath);
+            
+            if exist(UDF, 'dir')
+                if isempty(strfind(p, UDF))
+                    addpath(genpath(UDF))
                 end
             end    
         end
@@ -217,7 +220,7 @@ classdef Session < matlab.mixin.SetGet & uix.mixin.AssignPVPairs & uix.mixin.Has
                 
             % remove UDF from the path
             p = path;
-            subdirs = genpath(obj.RelativeUserDefinedFunctionsPath);
+            subdirs = genpath(fullfile(obj.RootDirectory, obj.RelativeUserDefinedFunctionsPath));
             if isempty(subdirs)
                 return
             end
