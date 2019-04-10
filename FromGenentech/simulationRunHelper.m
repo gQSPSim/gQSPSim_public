@@ -167,6 +167,7 @@ if ~isempty(ItemModels)
             
             thisOptions.usePar = obj.Session.UseParallel;
             thisOptions.ParallelCluster = obj.Session.ParallelCluster;
+            thisOptions.UDF = obj.Session.UserDefinedFunctionsDirectory;
             
             [Results, nFailedSims, ThisStatusOK, ThisMessage, Cancelled] = simulateVPatients(ItemModel, thisOptions, Message);
             if ~ThisStatusOK

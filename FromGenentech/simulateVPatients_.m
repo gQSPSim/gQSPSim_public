@@ -110,7 +110,11 @@ function [Results, nFailedSims, StatusOK, Message, Cancelled] = simulateVPatient
         else
             p = gcp('nocreate');
             if isempty(p)
-                p = parpool(ParallelCluster);
+                UDF_files = dir(fullfile(options.UDF,'**','*.m'));
+                UDF_files = arrayfun(@(x) fullfile(x.folder,x.name), UDF_files, 'UniformOutput', false);
+                
+                p = parpool(ParallelCluster, 'AutoAddClientPath', true, 'AttachedFiles', UDF_files);
+
             end
             q = parallel.pool.DataQueue;
             listener = afterEach(q, @(jj) updateWaitBar(options.WaitBar, ItemModel, jj) );
