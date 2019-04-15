@@ -548,9 +548,19 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
             
         end %function
         
+        function turnOffZoomPanDatacursor(obj)
+            hFigure = ancestor(obj.h.MainLayout,'figure');
+            obj.h.ZoomInButton.Value = false;
+            obj.h.ZoomOutButton.Value = false;
+            obj.h.PanButton.Value = false;
+            obj.h.DatacursorButton.Value = false;
+            zoom(hFigure,'off');
+            pan(hFigure,'off');
+            datacursormode(hFigure,'off');
+        end %function
+        
         function [StatusOK, Message] = checkDuplicateNames(obj, StatusOK, Message)
             % check for duplicate name
-            DuplicateName = false;
             ref_obj = [];
             switch class(obj)
                 case 'QSPViewer.OptimizationData'
@@ -642,6 +652,9 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                     % Update the view
                     update(obj);
                     
+                    % Resize
+                    resize(obj);
+                    
                     % Notify
                     EventData = uix.abstract.NavigationEventData('Name',View);
                     notify(obj,'NavigationChanged',EventData);
@@ -687,6 +700,7 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                     notify(obj,'NavigationChanged',EventData);
                     
                 case 'Visualize'
+                    % Visualize
                     if obj.Selection == 2
                         Prompt = sprintf('Do you want to continue without saving changes?');
                         Result = questdlg(Prompt,'Continue','Yes','Cancel','Yes');
@@ -694,11 +708,13 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                             obj.Selection = 3;
                             set([obj.h.SummaryButton,obj.h.EditButton,obj.h.RunButton,obj.h.VisualizeButton,obj.h.PlotSettingsButton],'Enable','on');
                             updateVisualizationView(obj);
+                            resize(obj);
                         end
                     else
                         obj.Selection = 3;
                         set([obj.h.SummaryButton,obj.h.EditButton,obj.h.RunButton,obj.h.VisualizeButton,obj.h.PlotSettingsButton],'Enable','on');
                         updateVisualizationView(obj);
+                        resize(obj);
                     end
                     
                     % Update the view
@@ -821,11 +837,18 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                     [SaveFileName,SavePathName] = uiputfile(Spec,Title,SaveFilePath);
                     if ~isequal(SaveFileName,0)
                         
+                        hFigure = ancestor(obj.h.MainLayout,'figure');
+                        set(hFigure,'pointer','watch');
+                        drawnow;
+                        
                         SaveFilePath = fullfile(SavePathName,SaveFileName);
                         ThisAxes = get(obj.h.MainAxesContainer(axIndex),'Children');
                         
                         % Call helper to copy axes, format, and print
                         printAxesHelper(obj,ThisAxes,SaveFilePath,obj.PlotSettings(axIndex))                        
+                        
+                        set(hFigure,'pointer','arrow');
+                        drawnow;
                         
                     end %if
                     
@@ -841,6 +864,10 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                     SaveFilePath = pwd; %obj.LastPath;
                     [SaveFileName,SavePathName] = uiputfile(Spec,Title,SaveFilePath);
                     if ~isequal(SaveFileName,0)
+                        
+                        hFigure = ancestor(obj.h.MainLayout,'figure');
+                        set(hFigure,'pointer','watch');
+                        drawnow;
                         
                         % Print using option
                         [~,~,FileExt] = fileparts(SaveFileName);
@@ -902,6 +929,10 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                             end
                           
                         end % for
+                        
+                        set(hFigure,'pointer','arrow');
+                        drawnow;
+                        
                     end %if
                     
 %                 case 'ExportSingleAxes'
@@ -1251,7 +1282,11 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
             
         end %function
         
-    end
+        function resize(obj) %#ok<MANU>
+            % Do nothing for now
+        end
+        
+    end %methods
     
     
     methods (Access=protected)

@@ -154,7 +154,7 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
     %% Properties
     
     properties (SetAccess=private)
-        Session = QSP.Session.empty(0,1) %Top level session sessions
+        Session = QSP.Session.empty(0,1) %Top level session sessions        
     end
     
     properties (SetAccess=private, Dependent=true)

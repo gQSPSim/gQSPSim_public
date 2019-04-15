@@ -85,11 +85,43 @@ classdef Simulation < uix.abstract.CardViewPane
             obj.Data.SelectedPlotLayout = obj.PlotLayoutOptions{Value};
             
             onPlotConfigChange@uix.abstract.CardViewPane(obj,h,e);
-        end
-    end
+        end %function
+        
+        function resize(obj)
+            
+            Buffer = 40;
+            MinimumWidth = 50;
+            
+            tableObj = [obj.h.ItemsTable,obj.h.PlotSpeciesTable,obj.h.PlotItemsTable,obj.h.PlotDatasetTable,obj.h.PlotGroupTable];
+            
+            for index = 1:numel(tableObj)
+                Pos = get(tableObj(index),'Position');
+                if Pos(3) >= MinimumWidth
+                    
+                    nColumns = numel(tableObj(index).ColumnName);
+                    ColumnWidth = (Pos(3)-Buffer)/nColumns;
+                    ColumnWidth = repmat(ColumnWidth,1,nColumns);
+                    if isa(tableObj(index).HTable,'matlab.ui.control.Table')
+                        tableObj(index).HTable.ColumnWidth = num2cell(ColumnWidth);
+                    else
+                        tableObj(index).HTable.ColumnWidth = ColumnWidth;
+                    end
+                    
+                end
+            end %for
+        end %function
+        
+    end %methods
+   
     
     %% Callbacks
     methods
+        
+        function onResize(obj,h,e)
+            
+            resize(obj);
+            
+        end %function
         
         function onFolderSelection(vObj,h,evt) %#ok<*INUSD>
             

@@ -311,3 +311,10 @@ vObj.h.VisualizationLayout.Heights = [-1 -1 -3];
 % Semaphore
 % vObj.semaphore = Semaphore();
 
+
+%% Resize
+
+% Attach a resize function
+vObj.h.EditPanel.ResizeFcn = @(h,e)onResize(vObj,h,e);
+vObj.h.VisualizePanel.ResizeFcn = @(h,e)onResize(vObj,h,e);
+

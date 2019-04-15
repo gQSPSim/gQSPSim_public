@@ -910,6 +910,8 @@ switch opt.xyOri
                 % reset to auto
                 set(ah,'XTickMode','auto')
         end
+        xr = get(ah,'xruler');
+        xr.TickLabelRotation = 90;
         if ~isempty(opt.yLabel)
             ylabel(ah,opt.yLabel);
         end

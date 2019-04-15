@@ -439,6 +439,12 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             
             % Invoke helper
             if StatusOK
+                
+                % For autosave with tag
+                if obj.Session.UseAutoSave && obj.Session.AutoSaveBeforeRun
+                    autoSaveFile(obj.Session,'Tag','preRunCohortGeneration');
+                end
+                
                 % Run helper
                 % clear cached results if any
                 obj.SimResults = {};

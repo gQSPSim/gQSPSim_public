@@ -108,9 +108,33 @@ if isscalar(SelNode)
     % under Deleted Items.)
     % 2. If UserData is Empty, the class of data in the node's Value
     % indicates the viewer type to launch from the QSPViewer package.
+    
+    if ~isempty(obj.ActivePane)
+        PreviousActivePaneType = obj.ActivePane.Type;
+    else
+        PreviousActivePaneType = '';
+    end
+    
     PaneType = SelNode.UserData;
     Data = SelNode.Value;
     IsDeleted = strcmpi(SelNode.Parent.UserData,'Deleted');
+    
+    % Check if the ActivePane changed
+    if ~strcmpi(PreviousActivePaneType,PaneType) && ~isempty(obj.ActivePane)
+        
+        % Save plot settings (i.e. if any axes are in manual mode
+        if isempty(obj.ActivePane.Data)
+            obj.ActivePane.Data.PlotSettings = getSummary(obj.ActivePane.PlotSettings);
+        end
+        
+        % Before launching, turn off zoom/pan/datacursormode if panetype
+        % changes
+        if isa(obj.ActivePane,'uix.abstract.CardViewPane')
+            turnOffZoomPanDatacursor(obj.ActivePane);
+        end
+    end
+    
+    % Then, launch    
     obj.launchPane(Data, PaneType, IsDeleted);
     
     % Assign navigation changed listener (for RHS views - summary, edit, etc.)

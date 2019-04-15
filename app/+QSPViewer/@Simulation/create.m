@@ -160,4 +160,9 @@ vObj.h.PlotGroupTable = uix.widget.MultiPlatformTable(...
 VisualizationLayout.Heights = [-1 -1 -1 -1];
 
 
+%% Resize
+
+% Attach a resize function
+vObj.h.EditPanel.ResizeFcn = @(h,e)onResize(vObj,h,e);
+vObj.h.VisualizePanel.ResizeFcn = @(h,e)onResize(vObj,h,e);
 

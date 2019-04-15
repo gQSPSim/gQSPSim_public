@@ -54,12 +54,24 @@ classdef Session < matlab.mixin.SetGet & uix.mixin.AssignPVPairs & uix.mixin.Has
         RelativeResultsPath = ''
         
         RelativeUserDefinedFunctionsPath = ''
-        RelativeObjectiveFunctionsPath = ''
+        RelativeObjectiveFunctionsPath = ''        
+        
+        RelativeAutoSavePath = ''
+        AutoSaveFrequency = 1 % minutes
+        AutoSaveBeforeRun = true
         
         ColorMap1 = QSP.Session.DefaultColorMap
         ColorMap2 = QSP.Session.DefaultColorMap
         
         toRemove = false;
+    end
+    
+    properties (Transient=true)
+        UseAutoSave = false % Make transient so user always needs to toggle this true through Session node
+    end
+    
+    properties (SetAccess='private')
+        AutoSaveID = 1
     end
     
     properties (Constant=true)
@@ -70,10 +82,10 @@ classdef Session < matlab.mixin.SetGet & uix.mixin.AssignPVPairs & uix.mixin.Has
         ResultsDirectory
         ObjectiveFunctionsDirectory
         UserDefinedFunctionsDirectory
+        AutoSaveDirectory
     end
     
-    
-    %% Constructor
+    %% Constructor and Destructor
     methods
         function obj = Session(varargin)
             % Session - Constructor for QSP.Session
@@ -103,16 +115,13 @@ classdef Session < matlab.mixin.SetGet & uix.mixin.AssignPVPairs & uix.mixin.Has
             
         end %function obj = Session(varargin)
         
-    end %methods
-    
-    methods
         % Destructor
         function delete(obj)
-           removeUDF(obj)
-            
+           removeUDF(obj)            
         end
         
-    end
+    end %methods
+    
     
     %% Static methods
     methods (Static=true)
@@ -147,7 +156,7 @@ classdef Session < matlab.mixin.SetGet & uix.mixin.AssignPVPairs & uix.mixin.Has
             else
                 Colors = [];
             end
-        end
+        end %function
             
         function Colors = getGroupColors(obj,NumGroups)
             ThisColorMap = obj.ColorMap2;
@@ -159,8 +168,44 @@ classdef Session < matlab.mixin.SetGet & uix.mixin.AssignPVPairs & uix.mixin.Has
             else
                 Colors = [];
             end
-        end
-    end
+        end %function
+        
+        function autoSaveFile(obj,varargin)
+            
+            p = inputParser;
+            p.KeepUnmatched = false;
+            
+            % Define defaults and requirements for each parameter
+            p.addParameter('Tag',''); %#ok<*NVREPL>
+            p.addParameter('TimerObj',[]);
+            
+            p.parse(varargin{:});
+            
+            Tag = p.Results.Tag;
+            timerObj = p.Results.TimerObj;
+
+            if obj.UseAutoSave
+                try
+                    % Save when fired
+                    s.Session = obj; %#ok<STRNU>
+                    if ~isempty(Tag)
+                        FileName = sprintf('%05d_%s.mat',obj.AutoSaveID,Tag);
+                    else
+                        FileName = sprintf('%05d.mat',obj.AutoSaveID);
+                    end
+                    FilePath = fullfile(obj.AutoSaveDirectory,FileName);
+                    obj.AutoSaveID = obj.AutoSaveID + 1;
+                    save(FilePath,'-struct','s')
+                catch err %#ok<NASGU>
+                    warning('The file could not be auto-saved');  
+                    if ~isempty(timerObj)
+                        start(timerObj);
+                    end
+                end
+            end
+        end %function
+        
+    end %methods    
     
     %% Get/Set Methods
     methods
@@ -182,10 +227,12 @@ classdef Session < matlab.mixin.SetGet & uix.mixin.AssignPVPairs & uix.mixin.Has
         
         function set.RelativeUserDefinedFunctionsPath(obj,Value)
             validateattributes(Value,{'char'},{});
-       
-            
-            obj.RelativeUserDefinedFunctionsPath = fullfile(Value);
-                
+            obj.RelativeUserDefinedFunctionsPath = fullfile(Value);                
+        end %function
+        
+        function set.RelativeAutoSavePath(obj,Value)
+            validateattributes(Value,{'char'},{});
+            obj.RelativeAutoSavePath = fullfile(Value);                
         end %function
         
         function addUDF(obj)
@@ -233,6 +280,25 @@ classdef Session < matlab.mixin.SetGet & uix.mixin.AssignPVPairs & uix.mixin.Has
         
         function value = get.UserDefinedFunctionsDirectory(obj)
             value = fullfile(obj.RootDirectory, obj.RelativeUserDefinedFunctionsPath);
+        end
+        
+        function value = get.AutoSaveDirectory(obj)
+            value = fullfile(obj.RootDirectory, obj.RelativeAutoSavePath);
+        end
+        
+        function set.UseAutoSave(obj,Value)
+            validateattributes(Value,{'logical'},{'scalar'});
+            obj.UseAutoSave = Value;
+        end
+        
+        function set.AutoSaveFrequency(obj,Value)
+            validateattributes(Value,{'numeric'},{'positive'});
+            obj.AutoSaveFrequency = Value;
+        end
+        
+        function set.AutoSaveBeforeRun(obj,Value)
+            validateattributes(Value,{'logical'},{'scalar'});
+            obj.AutoSaveBeforeRun = Value;
         end
         
         function set.ColorMap1(obj,Value)
