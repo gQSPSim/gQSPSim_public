@@ -666,9 +666,17 @@ classdef CohortGeneration < uix.abstract.CardViewPane
             
             vObj.Data.ShowInvalidVirtualPatients = logical(get(h,'Value'));
             
-            % Don't overwrite the output
-            updatePlots(vObj.Data,vObj.h.MainAxes,vObj.h.SpeciesGroup,vObj.h.DatasetGroup,...
-                'RedrawLegend',false);
+            if strcmpi(vObj.Data.PlotType,'Normal')
+                % Don't overwrite the output
+                updatePlots(vObj.Data,vObj.h.MainAxes,vObj.h.SpeciesGroup,vObj.h.DatasetGroup,...
+                    'RedrawLegend',false);
+            else
+                % Plot
+                plotData(vObj);
+                
+                % Update the view
+                updateVisualizationView(vObj);
+            end            
             
             set(h,'Enable','on');
             

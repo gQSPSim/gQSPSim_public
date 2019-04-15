@@ -266,6 +266,7 @@ if strcmp(obj.PlotType, 'Normal') && ~isempty(Results)
                         end
                         
                         if obj.bShowQuantiles(axIdx)
+                            
                             % mean
                             %                     mean_line = plot(hAxes(axIdx), Results{itemIdx}.Time, thisData(:,ColumnIdx) * obj.PrevalenceWeights/sum(obj.PrevalenceWeights),...
                             if iscell(Results{itemIdx}.VpopWeights)
@@ -296,9 +297,10 @@ if strcmp(obj.PlotType, 'Normal') && ~isempty(Results)
                                 'linestyle',ThisLineStyle,...
                                 'meanlinewidth',obj.PlotSettings(axIdx).MeanLineWidth,...
                                 'boundarylinewidth',obj.PlotSettings(axIdx).BoundaryLineWidth,...
+                                'quantile',[obj.PlotSettings(axIdx).BandplotLowerQuantile, obj.PlotSettings(axIdx).BandplotUpperQuantile], ...
                                 'parent',hSpeciesGroup{sIdx,axIdx});
                             setIconDisplayStyleOff([SE.mainLine,SE.edge,SE.patch])
-                            
+
                         end
                     end
                     

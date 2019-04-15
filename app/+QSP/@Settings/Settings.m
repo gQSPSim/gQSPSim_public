@@ -106,6 +106,20 @@ classdef Settings < matlab.mixin.SetGet & uix.mixin.AssignPVPairs & uix.mixin.Ha
     %% Methods
     methods
         
+        function obj = getParametersWithName(obj, Name)
+            
+            matchIdx = strcmp(Name, {obj.Parameters.Name});
+            obj = obj.Parameters(matchIdx);
+            
+        end
+        
+       function obj = getVpopWithName(obj, Name)
+            
+            matchIdx = strcmp(Name, {obj.VirtualPopulation.Name});
+            obj = obj.VirtualPopulation(matchIdx);
+            
+        end     
+        
         function vObj = getValidSelectedVPops(obj,ItemNames)
             % Get selected VPops that are valid
             

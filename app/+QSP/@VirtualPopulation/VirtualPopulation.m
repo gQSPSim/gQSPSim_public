@@ -30,7 +30,10 @@ classdef VirtualPopulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
     %% Protected Properties
     properties (Transient=true, GetAccess=public, SetAccess=protected)
         NumVirtualPatients = 0
+        NumValidPatients = 0
         NumParameters = 0
+        Groups = []
+
         PrevalenceWeightsStr = 'no'
     end
     
@@ -41,6 +44,7 @@ classdef VirtualPopulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         ShowTraces = false;
         ShowSEBar = true;    
     end
+    
     
     %% Constructor
     methods
@@ -82,6 +86,7 @@ classdef VirtualPopulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 'No of virtual patients',obj.NumVirtualPatients;
                 'No of parameters/species',obj.NumParameters;
                 'Prevalence Weights',obj.PrevalenceWeightsStr;
+                'Groups', obj.Groups;
                 };
         end
         
@@ -173,11 +178,11 @@ classdef VirtualPopulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 
 %                 Header = Raw(1,:);
 %                 Data = Raw(2:end,:);
-                
+                PrevalenceWeights = zeros(0,1);
                 MatchPW = find(strcmpi(Header,'PWeight'));
                 if ~isempty(MatchPW)
                     MatchPW = MatchPW(1);
-                    PWWeights = Data(:,MatchPW);
+                    PrevalenceWeights = Data(:,MatchPW);
 %                     if abs(sum(PWWeights) - 1) < 1e-5
 %                         PrevalenceWeights = PWWeights;
 %                         obj.PrevalenceWeightsStr = 'yes';
@@ -187,24 +192,32 @@ classdef VirtualPopulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
 %                         obj.PrevalenceWeightsStr = 'no';
 %                     end
                 else
-                    PrevalenceWeights = zeros(0,1);
                     obj.PrevalenceWeightsStr = 'no';
                 end                
                 obj.NumVirtualPatients = size(Data,1); % 1 header line
-                obj.NumParameters = size(Data,2)-numel(MatchPW);                
+                obj.NumValidPatients = nnz(PrevalenceWeights);
+                obj.NumParameters = size(Data,2)-numel(MatchPW);         
+                groups = unique(Data(:,strcmpi(Header,'Group')));
+                if ~isempty(groups)
+                    obj.Groups = strjoin(arrayfun(@(x) num2str(x),groups,'UniformOutput',false),',');
+                else
+                    obj.Groups = 'N/A';
+                end
             else
                 Header = {};
                 Data = {};
                 PrevalenceWeights = zeros(0,1);
                 obj.PrevalenceWeightsStr = 'no';
                 obj.NumVirtualPatients = 0;
-                obj.NumParameters = 0;                
+                obj.NumParameters = 0;  
             end
             
             obj.FilePath = DataFilePath;           
             
-        end %function
+        end %function 
+       
         
     end
+   
     
 end %classdef

@@ -725,15 +725,28 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                     notify(obj,'NavigationChanged',EventData);
                     
                 case 'CustomizeSettings'
+%                     test = copyobj(obj.PlotSettings);
+                    bandPlotLB = [obj.PlotSettings.BandplotLowerQuantile];
+                    bandPlotUB = [obj.PlotSettings.BandplotUpperQuantile];
                     
                     [StatusOk,NewSettings] = CustomizePlots(...
                         'Settings',obj.PlotSettings);                    
                     if StatusOk
+                        replot = false;
+                        if any([NewSettings.BandplotLowerQuantile] ~= bandPlotLB | ...
+                            [NewSettings.BandplotUpperQuantile] ~= bandPlotUB)
+                                replot = true;
+                        end
+                        
                         obj.PlotSettings = NewSettings;
-                        
                         % Update the view
-                        update(obj);
-                        
+                        update(obj);     
+
+                        if replot
+                            obj.plotData();
+                        end
+                       
+                       
                         % Mark Dirty
                         notify(obj,'MarkDirty');
                     end
@@ -805,6 +818,7 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
             updateVisualizationView(obj);
             update(obj);
             
+            notify(obj,'MarkDirty');
             set(hFigure,'pointer','arrow');
             % drawnow; %Remove drawnow - maybe causing axes sizing issues
         end

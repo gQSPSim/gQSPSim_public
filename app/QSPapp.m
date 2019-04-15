@@ -1,4 +1,4 @@
-function app = QSPapp()
+function varargout = QSPapp()
 
 EchoOutput = true;
 
@@ -44,7 +44,11 @@ end %if ~isdeployed
 
 
 % Get the root directory, based on the path of this file
-RootPath = fileparts(mfilename('fullpath'));
+filename = mfilename('fullpath');
+filename = regexprep(filename, 'gQSPsim/app/(\.\./app)+', 'gQSPsim/app');
+filename = strrep(filename , '/../app', '');
+
+RootPath = fileparts(filename);
 
 
 %% Set up the paths to add to the MATLAB path
@@ -152,7 +156,10 @@ end
 % run the units script
 units
 
-% Instantiate the application
-app = QSPViewer.App();
+if nargout == 1
+    varargout{1} = QSPViewer.App();
+else
+    QSPViewer.App();
+end
 
 end

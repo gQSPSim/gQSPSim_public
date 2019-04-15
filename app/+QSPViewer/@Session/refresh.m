@@ -28,18 +28,16 @@ function refresh(vObj)
 
 if isscalar(vObj.Data)
     RootDir = vObj.Data.RootDirectory;
-    RelativeResultsPath = vObj.Data.RelativeResultsPath;
-%     RelativeFunctionsPath = vObj.Data.RelativeFunctionsPath;
     RelativeObjectiveFunctionsPath = vObj.Data.RelativeObjectiveFunctionsPath;
     RelativeUserDefinedFunctionsPath = vObj.Data.RelativeUserDefinedFunctionsPath;
-    RelativeAutoSavePath = vObj.Data.RelativeAutoSavePath;
-    
+
+    RelativeAutoSavePath = vObj.Data.RelativeAutoSavePath;    
     UseAutoSave = vObj.Data.UseAutoSave;
     AutoSaveFrequency = vObj.Data.AutoSaveFrequency;
     AutoSaveBeforeRun = vObj.Data.AutoSaveBeforeRun;
+
 else
     RootDir = '';
-    RelativeResultsPath = '';
     RelativeUserDefinedFunctionsPath = '';
     RelativeObjectiveFunctionsPath = '';
     RelativeAutoSavePath = '';
@@ -51,10 +49,13 @@ end
 
 vObj.h.RootDirSelector.Value = RootDir;
 vObj.h.ResultsDirSelector.RootDirectory = RootDir;
-vObj.h.ResultsDirSelector.Value = RelativeResultsPath;
+% vObj.h.ResultsDirSelector.Value = RelativeResultsPath;
 vObj.h.FunctionsDirSelector.RootDirectory = RootDir;
+vObj.h.ObjectiveFunctionsDirSelector.RootDirectory = RootDir;
 vObj.h.ObjectiveFunctionsDirSelector.Value = RelativeObjectiveFunctionsPath;
+vObj.h.UserDefinedFunctionsDirSelector.RootDirectory = RootDir;
 vObj.h.UserDefinedFunctionsDirSelector.Value = RelativeUserDefinedFunctionsPath;
+
 
 vObj.h.UseAutoSaveCheckbox.Value = UseAutoSave;
 vObj.h.AutoSaveDirSelector.RootDirectory = RootDir;

@@ -47,6 +47,13 @@ if StatusOk
     % Add the session to the app
     obj.createNewSession(Session);
     
+    % check the session root
+    if ~exist(Session.RootDirectory, 'dir') && strcmp(questdlg('Session root directory is invalid. Select a new root directory?', 'Select root directory', 'Yes'),'Yes')        
+        rootDir = uigetdir(Session.RootDirectory, 'Select valid session root directory');
+        if rootDir ~= 0
+            Session.RootDirectory = rootDir;
+        end
+    end
 else
     hDlg = errordlg(Message,'Open File','modal'); uiwait(hDlg);
 end

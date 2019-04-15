@@ -423,7 +423,15 @@ else
             VpopNames{grp1} = ['Results - Optimization = ' obj.Name ' - Group = ' obj.Item(grp1).GroupID ' - Date = ' timeStamp];
             ResultsFileNames{grp1} = [VpopNames{grp1} '.xlsx'];
             if ispc
-                xlswrite(fullfile(SaveFilePath,ResultsFileNames{grp1}),Vpop_grp);
+                try
+                    [StatusOK, ThisMessage] = xlswrite(fullfile(SaveFilePath,ResultsFileNames{grp1}),Vpop_grp);
+                catch error
+                    fName = regexp(error.message, '(C:\\.*\.mat)', 'match');
+                    if length(fName{1}) > 260
+                        ThisMessage = sprintf('%s\n* Windows cannot save filepaths longer than 260 characters. See %s for more details.\n', ...
+                           ThisMessage, 'https://www.howtogeek.com/266621/how-to-make-windows-10-accept-file-paths-over-260-characters/' );
+                    end
+                end
             else
                 xlwrite(fullfile(SaveFilePath,ResultsFileNames{grp1}),Vpop_grp);
             end

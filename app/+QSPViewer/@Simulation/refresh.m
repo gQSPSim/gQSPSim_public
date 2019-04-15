@@ -31,7 +31,6 @@ function refresh(vObj)
 
 refresh@uix.abstract.CardViewPane(vObj);
 
-
 %% Invoke update
 
 update(vObj);

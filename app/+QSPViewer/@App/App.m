@@ -166,6 +166,10 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
         NavigationChangedListener = event.listener.empty(0,1)
         MarkDirtyListener = event.listener.empty(0,1)
     end
+    
+    properties(Constant)
+        Version = '1.0'
+    end
         
     %% Methods in separate files with custom permissions
     methods (Access=protected)
@@ -215,7 +219,12 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
             obj.refresh();
             
             % Now, make the figure visible
-            set(obj.Figure,'Visible','on')
+            set(obj.Figure,'Visible','on')       
+            
+            % check version
+%             QSPViewer.App.checkForUpdates() % TODO reenable when repo is
+%             public
+            
             
         end %function
         
@@ -266,6 +275,18 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
                             % Update the display
                             obj.refresh();
                         end
+                    case 'Updated QSP.Parameters'
+                        if isfield(e,'Data')
+                            % Add the new parameters to the session
+                            NewParameters = e.Data;
+                            for idx = 1:numel(NewParameters)
+                                onAddItem(obj,NewParameters(idx))
+                            end
+                            
+                            % Update the display
+                            obj.refresh();
+                        end
+                       
                         
                 end %switch e.InteractionType
             end
@@ -347,6 +368,20 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
             
         end %function
                 
+        function onHelpAbout(obj,h,e)
+           msgbox({'gQSPsim version 1.0', ...
+               '', ...
+               'http://www.github.com/feigelman/gQSPsim', ...
+               '', ...
+               'Authors:', ...
+               '', ...
+               'Justin Feigelman (feigelman.justin@gene.com)', ...
+               'Iraj Hosseini (hosseini.iraj@gene.com)', ...
+               'Anita Gajjala (agajjala@mathworks.com)'}, ...
+               'About')
+               
+        end
+        
         function onNavigationChanged(obj,h,e)
             
             if ~isempty(e) && isprop(e,'Name')
@@ -510,6 +545,9 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
                 else
                     error('Invalid tree parent');
                 end
+                
+                % set the duplicate as the selected node
+                obj.h.SessionTree.SelectedNodes = ParentNode.Children(end);
             end
             % Mark the current session dirty
             obj.markDirty();
@@ -806,4 +844,23 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
         
     end %methods
     
+    methods (Static)
+        function checkForUpdates()
+
+            w = weboptions('CertificateFile','');
+            webData = webread('https://api.github.com/repos/feigelman/gQSPsim/tags', w); % TODO: correct repo!
+
+            if ~isempty(webData) && isstruct(webData) && isfield(webData,'name')
+                webVersion = webData(1).name;
+                if ~strcmp(webVersion, Version)            
+                    doUpdate = questdlg('A newer version of gQSPsim is available. Please visit the gQSPsim repository http:\\www.github.com\feigelman\gQSPsim\ for the latest version.', ...                
+                        'Newer version available', ...
+                        'Get latest version', 'Cancel', 'Get latest version');
+                    if strcmp(doUpdate,  'Get latest version')
+                        web('https://www.github.com/feigelman/gQSPsim','-browser');
+                    end
+                end
+            end
+        end
+    end
 end %classdef

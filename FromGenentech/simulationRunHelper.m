@@ -210,6 +210,15 @@ if ~isempty(ItemModels)
                     end
                 catch error
                     ThisMessage = 'Error encountered saving file. Check that the save file name is valid.';
+                    
+                    if ispc
+                        fName = regexp(error.message, '(C:\\.*\.mat)', 'match');
+                        if length(fName{1}) > 260
+                            ThisMessage = sprintf('%s\n* Windows cannot save filepaths longer than 260 characters. See %s for more details.\n', ...
+                               ThisMessage, 'https://www.howtogeek.com/266621/how-to-make-windows-10-accept-file-paths-over-260-characters/' );
+                        end
+                    end
+%             
                     Message = sprintf('%s\n%s\n\n%s\n',Message,ThisMessage,error.message);        
                     StatusOK = false;
                     % close waitbar

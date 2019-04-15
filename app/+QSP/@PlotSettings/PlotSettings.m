@@ -97,6 +97,9 @@ classdef PlotSettings < matlab.mixin.SetGet & uix.mixin.AssignPVPairs
         BoundaryLineWidth = QSP.PlotSettings.DefaultBoundaryLineWidth % 2
         MeanLineWidth = QSP.PlotSettings.DefaultMeanLineWidth % 3
         DataSymbolSize = QSP.PlotSettings.DefaultDataSymbolSize % 6
+        
+        BandplotLowerQuantile = QSP.PlotSettings.DefaultBandplotLowerQuantile
+        BandplotUpperQuantile = QSP.PlotSettings.DefaultBandplotUpperQuantile
     end
 
     %% Dependent Properties
@@ -130,6 +133,7 @@ classdef PlotSettings < matlab.mixin.SetGet & uix.mixin.AssignPVPairs
         YLimMode
         CustomXLim
         CustomYLim
+                
     end
     
     
@@ -173,6 +177,9 @@ classdef PlotSettings < matlab.mixin.SetGet & uix.mixin.AssignPVPairs
         DefaultLegendFontSize = 10
         DefaultLegendFontWeight = 'normal'
         DefaultLegendDataGroup = 'on'
+        DefaultBandplotLowerQuantile = 0.025
+        DefaultBandplotUpperQuantile = 0.975
+        
         
         FontWeightOptions = {
             'normal'
@@ -262,12 +269,18 @@ classdef PlotSettings < matlab.mixin.SetGet & uix.mixin.AssignPVPairs
             'LegendFontWeight',QSP.PlotSettings.FontWeightOptions(:)';
             'LegendDataGroup',QSP.PlotSettings.LegendOptions(:)';
             }
+        
+        SettablePropertiesGroup5 = {
+            'BandplotLowerQuantile', 'numeric';
+            'BandplotUpperQuantile', 'numeric'            
+        }
     
         SettableProperties = vertcat(...
             QSP.PlotSettings.SettablePropertiesGroup1,...
             QSP.PlotSettings.SettablePropertiesGroup2,...
             QSP.PlotSettings.SettablePropertiesGroup3,...
-            QSP.PlotSettings.SettablePropertiesGroup4...
+            QSP.PlotSettings.SettablePropertiesGroup4,...
+            QSP.PlotSettings.SettablePropertiesGroup5...
             )
     end
    
@@ -306,7 +319,7 @@ classdef PlotSettings < matlab.mixin.SetGet & uix.mixin.AssignPVPairs
         
         function Summary = getSummary(obj,varargin)    
             if nargin > 1 && ischar(varargin{1}) && ...
-                    any(strcmpi(varargin{1},{'SettablePropertiesGroup1','SettablePropertiesGroup2','SettablePropertiesGroup3','SettablePropertiesGroup4'}))
+                    any(strcmpi(varargin{1},{'SettablePropertiesGroup1','SettablePropertiesGroup2','SettablePropertiesGroup3','SettablePropertiesGroup4','SettablePropertiesGroup5'}))
                 PropStr = varargin{1};
             else
                 PropStr = 'SettableProperties';
@@ -795,5 +808,15 @@ classdef PlotSettings < matlab.mixin.SetGet & uix.mixin.AssignPVPairs
             obj.DataSymbolSize = Value;
         end %function
         
+        function set.BandplotLowerQuantile(obj,Value)
+            validateattributes(Value,{'numeric'},{'scalar','nonnegative','nonnan','>=', 0,'<=',1})
+            obj.BandplotLowerQuantile = Value;
+        end
+        
+        function set.BandplotUpperQuantile(obj,Value)
+            validateattributes(Value,{'numeric'},{'scalar','nonnegative','nonnan','>=', 0,'<=',1})
+            obj.BandplotUpperQuantile = Value;
+        end
+                
     end %methods
 end %classdef

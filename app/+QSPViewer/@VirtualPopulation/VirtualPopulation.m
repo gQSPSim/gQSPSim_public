@@ -66,7 +66,7 @@ classdef VirtualPopulation < uix.abstract.CardViewPane
             
             if exist(vObj.TempData.FilePath,'file')==2
                 
-                [StatusOK,Message] = importData(vObj.TempData, vObj.TempData.FilePath);
+                [StatusOK,Message,Header,Data] = importData(vObj.TempData, vObj.TempData.FilePath);
                 if ~StatusOK
                     hDlg = errordlg(Message,'Error on Import','modal');
                     uiwait(hDlg);

@@ -353,7 +353,11 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
                 %%% Remove the invalid task/group combos if any
                 if all(isvalid(obj.Item))
                     [TaskItemIndex,MatchTaskIndex] = ismember({obj.Item.TaskName},{obj.Settings.Task.Name});
-                    GroupItemIndex = ismember({obj.Item.GroupID},GroupIDs(:)');
+                    if ~isempty({obj.Item.GroupID}) || ~isempty(GroupIDs)
+                        GroupItemIndex = ismember({obj.Item.GroupID},GroupIDs(:)');
+                    else
+                        GroupItemIndex = [];
+                    end
                     RemoveIndices = ~TaskItemIndex | ~GroupItemIndex;
                     if any(RemoveIndices)
                         StatusOK = false;

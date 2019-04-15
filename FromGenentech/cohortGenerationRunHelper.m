@@ -211,7 +211,7 @@ isValid = zeros(obj.MaxNumSimulations,1);
 % set up the loop for different initial conditions
 if isempty(ICTable )
     % no initial conditions specified
-    groupVec = 1:length(nItems);
+    groupVec = unqGroups;
 else
     % initial conditions exist
     groupVec = ICTable.data(:,groupCol);
@@ -248,6 +248,11 @@ bCancelled = false;
 % quick fix to include normal distribution 
 %Preallocate the normally distributed random number:
 my_randn = randn(obj.MaxNumSimulations, length(P)); 
+
+ % keep only the unique groups in the acceptance criteria that are also
+ % identified with items
+isMapped = ismember(arrayfun(@num2str, unqGroups, 'UniformOutput', false), {obj.Item.GroupID});
+unqGroups = unqGroups(isMapped);
 
 while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients
     nSim = nSim+1; % tic up the number of simulations
@@ -548,7 +553,15 @@ if StatusOK && bProceed
         VpopName = ['Results - Cohort Generation = ' obj.Name ' - Date = ' datestr(now,'dd-mmm-yyyy_HH-MM-SS')];
         ResultsFileName = [VpopName '.xlsx'];
         if ispc
-            [ThisStatusOk,ThisMessage] = xlswrite(fullfile(SaveFilePath,ResultsFileName),Vpop);
+            try
+                [ThisStatusOk,ThisMessage] = xlswrite(fullfile(SaveFilePath,ResultsFileName),Vpop);
+            catch error
+                fName = regexp(error.message, '(C:\\.*\.mat)', 'match');
+                if length(fName{1}) > 260
+                    ThisMessage = sprintf('%s\n* Windows cannot save filepaths longer than 260 characters. See %s for more details.\n', ...
+                       ThisMessage, 'https://www.howtogeek.com/266621/how-to-make-windows-10-accept-file-paths-over-260-characters/' );
+                end
+            end
         else
             [ThisStatusOk,ThisMessage] = xlwrite(fullfile(SaveFilePath,ResultsFileName),Vpop);
         end

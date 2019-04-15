@@ -27,6 +27,11 @@ function plotData(vObj)
 % ---------------------------------------------------------------------
 
 %                 try
+
+% Reset xticks and xticklabelmode since Diagnostic plot sets custom
+% xticklabels
+set(vObj.h.MainAxes,'XTickMode','auto','XTickLabelMode','auto');
+    
 % Plot
 [vObj.h.SpeciesGroup,vObj.h.DatasetGroup,vObj.h.AxesLegend,vObj.h.AxesLegendChildren] = ...
     plotCohortGeneration(vObj.Data,vObj.h.MainAxes);

@@ -260,14 +260,21 @@ classdef Session < matlab.mixin.SetGet & uix.mixin.AssignPVPairs & uix.mixin.Has
             
             if ispc
                 subdirs = strsplit(subdirs,';');
+                pp = strsplit(p,';');
             else
                 subdirs = strsplit(subdirs,':');
+                pp = strsplit(p,':');                
             end
             
-            for k=1:length(subdirs)
-                tmp = strrep(p, subdirs(k), '');
-                p = path(tmp{1});
+            pp = setdiff(pp, subdirs);
+            
+            if ispc
+                ppp = strjoin(pp,';');
+            else
+                ppp = strjoin(pp,':');
             end
+            path(ppp)
+            
         end
         
         function value = get.ResultsDirectory(obj)

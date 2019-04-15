@@ -207,16 +207,16 @@ classdef Simulation < uix.abstract.CardViewPane
                     HasChanged = true;                    
                 end
                 vObj.TempData.Item(RowIdx).TaskName = NewData{RowIdx,ColIdx};
-            elseif ColIdx == 2 % Group
+            elseif ColIdx == 3 % Group
                 if ~isequal(vObj.TempData.Item(RowIdx).VPopName,NewData{RowIdx,ColIdx})
                     HasChanged = true;                    
                 end
                 vObj.TempData.Item(RowIdx).Group = NewData{RowIdx,ColIdx};                
-            elseif ColIdx == 3
+            elseif ColIdx == 2 % Vpop
                 if ~isequal(vObj.TempData.Item(RowIdx).VPopName,NewData{RowIdx,ColIdx})
                     HasChanged = true;                    
                 end
-                vObj.TempData.Item(RowIdx).VPopName = NewData{RowIdx,ColIdx};
+                vObj.TempData.Item(RowIdx).VPopName = NewData{RowIdx,ColIdx};                
             end
             % Clear the MAT file name
             if HasChanged
@@ -344,6 +344,8 @@ classdef Simulation < uix.abstract.CardViewPane
                     vObj.h.AxesLegendChildren(AxIndices) = UpdatedAxesLegendChildren(AxIndices);
 
                 end %if ColIdx
+                
+                notify(vObj, 'MarkDirty')
             end %if ~isequal
             
         end %function
@@ -401,7 +403,8 @@ classdef Simulation < uix.abstract.CardViewPane
             
             % Enable column 1
             set(h,'ColumnEditable',OrigColumnEditable);
-            
+            notify(vObj, 'MarkDirty')
+
         end %function
         
         function onDataTablePlot(vObj,h,e)
@@ -495,7 +498,8 @@ classdef Simulation < uix.abstract.CardViewPane
                 vObj.h.AxesLegendChildren(AxIndices) = UpdatedAxesLegendChildren(AxIndices);
 
             end
-            
+            notify(vObj, 'MarkDirty')
+
         end %function
         
         function onGroupTableSelectionPlot(vObj,h,e)
@@ -542,6 +546,8 @@ classdef Simulation < uix.abstract.CardViewPane
                     'RedrawLegend',false);
                 
             end
+            notify(vObj, 'MarkDirty')
+            
             
         end %function
         
@@ -579,6 +585,8 @@ classdef Simulation < uix.abstract.CardViewPane
                         TheseItems = TheseChildren(MatchIdx);
                         set(TheseItems(isprop(TheseItems,'Color')),'Color',NewColor);
                         set(TheseItems(isprop(TheseItems,'FaceColor')),'FaceColor',NewColor);
+                        notify(vObj, 'MarkDirty')
+                        
                     end
                     
                     [vObj.h.AxesLegend,vObj.h.AxesLegendChildren] = updatePlots(vObj.Data,vObj.h.MainAxes,vObj.h.SpeciesGroup,vObj.h.DatasetGroup);
@@ -630,7 +638,8 @@ classdef Simulation < uix.abstract.CardViewPane
                     
                     % Update the view
                     updateVisualizationView(vObj);
-                    
+                    notify(vObj, 'MarkDirty')
+
                 end
             else
                 hDlg = errordlg('Please select a row first to set new color.','No row selected','modal');

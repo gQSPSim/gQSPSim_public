@@ -37,7 +37,16 @@ if ~isempty(vObj.TempData)
     TaskNames = {vObj.TempData.Item.TaskName};
     VPopNames = {vObj.TempData.Item.VPopName};
     Groups = {vObj.TempData.Item.Group};
-    Data = [TaskNames(:) Groups(:) VPopNames(:)];
+    AvailableGroups = cell(1,length(vObj.TempData.Item));
+    for k=1:length(vObj.TempData.Item)
+        vpopObj = vObj.TempData.Settings.getVpopWithName(vObj.TempData.Item(k).VPopName);
+        if isempty(vpopObj) 
+            AvailableGroups{k} = 'N/A';
+        else
+            AvailableGroups{k} = vpopObj.Groups;
+        end
+    end
+    Data = [TaskNames(:) VPopNames(:) Groups(:) AvailableGroups(:) ];
     
     % Mark any invalid entries
     if ~isempty(Data)

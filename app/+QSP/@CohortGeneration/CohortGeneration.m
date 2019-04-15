@@ -37,7 +37,7 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         DatasetName = '' % VirtualPopulationData Name
         RefParamName = '' % Parameters.Name
         GroupName = ''
-        Method = 'Uniform' 
+        Method = 'Distribution' 
         SaveInvalid = 'Save all vpatients'
         
         
@@ -205,6 +205,15 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 obj.ICFileName = obj.ICFileName;
             end
             
+            thisVpop = obj.Settings.getVpopWithName(obj.VPopName);
+            if ~isempty(thisVpop)
+                nValid = num2str(thisVpop.NumValidPatients);
+                nInvalid = num2str(thisVpop.NumVirtualPatients - thisVpop.NumValidPatients);
+            else
+                nValid = 'N/A';
+                nInvalid = 'N/A';
+            end
+            
             % Populate summary
             Summary = {...
                 'Name',obj.Name;
@@ -215,12 +224,13 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 'Group Name',obj.GroupName;
                 'Items',VPopGenItems;
                 'Parameter file',obj.RefParamName;
-                'Parameters used for virtual population generation',UsedParamNames;
+                'Parameters used for cohort generation',UsedParamNames;
                 'Species-data mapping',SpeciesDataItems;
                 'Initial conditions file',obj.ICFileName;
                 'Max No of Simulations',num2str(obj.MaxNumSimulations);
                 'Max No of Virtual Patients',num2str(obj.MaxNumVirtualPatients);
-                'Results',obj.ExcelResultFileName;
+                'Number of valid virtual patients', nValid; ...
+                'Number of invalid virtual patients', nInvalid...
                 };
             
         end %function
@@ -326,7 +336,11 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 %%% Remove the invalid task/group combos if any
                 if all(isvalid(obj.Item))
                     [TaskItemIndex,MatchTaskIndex] = ismember({obj.Item.TaskName},{obj.Settings.Task.Name});
-                    GroupItemIndex = ismember({obj.Item.GroupID},GroupIDs(:)');
+                    if ~isempty({obj.Item.GroupID}) && ~isempty(GroupIDs(:))
+                        GroupItemIndex = ismember({obj.Item.GroupID},GroupIDs(:)');
+                    else
+                        GroupItemIndex = [];
+                    end
                     RemoveIndices = ~TaskItemIndex | ~GroupItemIndex;
                     if any(RemoveIndices)
                         StatusOK = false;

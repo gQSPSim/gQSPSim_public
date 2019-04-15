@@ -189,6 +189,7 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
             % Update data first
             Value = get(h,'Value');
             obj.Data.SelectedPlotLayout = obj.PlotLayoutOptions{Value};
+            notify(obj,'MarkDirty')
             
             onPlotConfigChange@uix.abstract.CardViewPane(obj,h,e);
        end
@@ -450,6 +451,7 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
                 end
             end
             
+            
         end %function
         
         function onTableEdit(vObj,h,e,TableTag)
@@ -657,7 +659,7 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
                     vObj.h.AxesLegendChildren(AxIndices) = UpdatedAxesLegendChildren(AxIndices);
                     
                 end %if
-                
+                notify(vObj, 'MarkDirty')
             end
             
         end %function
@@ -671,6 +673,7 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
             RowIdx = Indices(1,1);
             
             h.SelectedRows = RowIdx;
+            notify(vObj, 'MarkDirty')
             
             % This line is causing issues with edit and selection callbacks
             % with uitables
@@ -714,6 +717,7 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
             
             % Enable column 1
             set(h,'ColumnEditable',OrigColumnEditable);
+            notify(vObj, 'MarkDirty')
 
         end %function
         
@@ -752,7 +756,7 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
         end %function
         
         function onHistoryTableButtonPlot(vObj,h,e)
-            pause(0.25);
+%             pause(0.25);
 %             waitfor(vObj, 'Semaphore', 'free');
 %             vObj.Semaphore = 'locked';           
 %             vObj.semaphore.wait();
@@ -810,6 +814,7 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
 
                 % Update the view
                 updateVisualizationView(vObj);
+                notify(vObj, 'MarkDirty')
             catch ME
             end
 %             vObj.Semaphore = 'free';
@@ -845,7 +850,7 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
             % Parameters Table
             updateVisualizationParametersTable(vObj);
             updateVisualizationSelectedProfile(vObj);
-            
+            notify(vObj, 'MarkDirty')
 %             set(hFigure,'pointer','arrow');
 %             drawnow;
             
@@ -855,7 +860,7 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
             
             ME = []; % exception object
             try
-                pause(0.25)
+%                 pause(0.25)
 %                 waitfor(vObj, 'Semaphore', 'free'); % wait until previous operations have finished
 
 %                 vObj.Semaphore = 'locked'; % lock while modifying properties
@@ -986,6 +991,7 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
                     end %switch
                 end %if
                 
+                notify(vObj, 'MarkDirty')
                 set(hFigure,'pointer','arrow');
                 drawnow;
             catch ME                
@@ -1055,6 +1061,8 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
 
                 % Update the view
                 updateVisualizationView(vObj);
+                notify(vObj, 'MarkDirty')
+                
            set(h_applyButton, 'Enable', 'on')
            vObj.h.PlotParametersTable.CellEditCallback = cb;
             
@@ -1115,6 +1123,72 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
             end
             
         end %function
+        
+        function onSaveParametersAsParametersButton(vObj,h,e)
+            
+            Options.Resize = 'on';
+            Options.WindowStyle = 'modal';
+            DefaultAnswer = {sprintf('%s - %s', vObj.Data.RefParamName,datestr(now,'dd-mmm-yyyy_HH-MM-SS'))};
+            Answer = inputdlg('Save Parameter set as?','Save Parameters',[1 50],DefaultAnswer,Options);
+            
+            if ~isempty(Answer)
+                AllParameters = vObj.Data.Settings.Parameters;
+                AllParameterNames = get(AllParameters,'Name');
+                AllParameterFilePaths = get(AllParameters,'FilePath');
+                
+                % Append the source with the postfix appender
+                ThisProfile = vObj.Data.PlotProfile(vObj.Data.SelectedProfileRow);
+                ThisParameterName = matlab.lang.makeValidName(strtrim(Answer{1}));
+                
+                % get the parameter that was used to run this
+                % optimization
+                pObj = vObj.Data.Settings.getParametersWithName(vObj.Data.RefParamName);
+
+                ThisFilePath = fullfile(fileparts(pObj.FilePath), [ThisParameterName '.xlsx']);
+                
+                if isempty(ThisParameterName) || any(strcmpi(ThisParameterName,AllParameterNames)) || ...
+                        any(strcmpi(ThisFilePath,AllParameterFilePaths))
+                    Message = 'Please provide a valid, unique virtual population name.';
+                    Title = 'Invalid name';
+                    hDlg = errordlg(Message,Title,'modal');
+                    uiwait(hDlg);
+                else
+                    
+                    % Create a new parameter set 
+                    parameterObj = QSP.Parameters;
+                    parameterObj.Session = vObj.Data.Session;
+                    parameterObj.Name = ThisParameterName;                    
+                    parameterObj.FilePath = ThisFilePath;                 
+                    
+                    ThisProfile = vObj.Data.PlotProfile(vObj.Data.SelectedProfileRow);
+                    
+                    Values = ThisProfile.Values(~cellfun(@isempty, ThisProfile.Values(:,2)), :)'; % Take first 2 rows and transpose
+                    
+                    
+                    [StatusOk,~,Header,Data] = importData(pObj, pObj.FilePath);
+                    if StatusOk
+                        idP0 = strcmpi(Header,'P0_1');
+                        Data(:,idP0) = Values(2,:);
+                        xlwrite(parameterObj.FilePath,[Header; Data]); 
+                        
+                    end
+        
+                    % Update last saved time
+                    updateLastSavedTime(parameterObj);
+                    % Validate
+                    validate(parameterObj,false);
+                    
+                    % Call the callback
+                    evt.InteractionType = sprintf('Updated %s',class(parameterObj));
+                    evt.Data = parameterObj;
+                    vObj.callCallback(evt);           
+                    
+                    % Update the view
+                    updateVisualizationView(vObj);
+                end
+            end
+                        
+        end
         
         function onResetParametersVPopButton(vObj,h,e)
             % reset parameters to the original source values
@@ -1225,7 +1299,7 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
                     
                     % Update the view
                     updateVisualizationView(vObj);
-                    
+                    notify(vObj, 'MarkDirty')
                 end
             else
                 hDlg = errordlg('Please select a row first to set new color.','No row selected','modal');
