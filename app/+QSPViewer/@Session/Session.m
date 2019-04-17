@@ -20,6 +20,7 @@ classdef Session < uix.abstract.ViewPane
         timerObj
     end
     
+    
     %% Methods in separate files with custom permissions
     methods (Access=protected)
         create(obj);        

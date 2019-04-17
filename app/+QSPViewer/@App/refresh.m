@@ -71,7 +71,8 @@ set(obj.h.TreeMenu.Branch.SessionSave,'Enable',uix.utility.tf2onoff(IsSelectedSe
 for idx=1:obj.NumSessions
     
     % Get the session name for this node
-    ThisName = obj.SessionNames{idx};
+    ThisRawName = obj.SessionNames{idx};
+    ThisName = ThisRawName;
     
     % Add dirty flag if needed
     if obj.IsDirty(idx)
@@ -82,6 +83,9 @@ for idx=1:obj.NumSessions
     set(obj.SessionNode(idx), ...
         'Name', ThisName,...
         'TooltipString', obj.SessionPaths{idx} );
+    
+    % Assign Name
+    obj.Session(idx).SessionName = ThisRawName;
     
 end
 
@@ -109,21 +113,15 @@ if isscalar(SelNode)
     % 2. If UserData is Empty, the class of data in the node's Value
     % indicates the viewer type to launch from the QSPViewer package.
     
-    if ~isempty(obj.ActivePane)
-        PreviousActivePaneType = obj.ActivePane.Type;
-    else
-        PreviousActivePaneType = '';
-    end
-    
     PaneType = SelNode.UserData;
     Data = SelNode.Value;
     IsDeleted = strcmpi(SelNode.Parent.UserData,'Deleted');
     
     % Check if the ActivePane changed
-    if ~strcmpi(PreviousActivePaneType,PaneType) && ~isempty(obj.ActivePane)
+    if ~isempty(obj.ActivePane)
         
         % Save plot settings (i.e. if any axes are in manual mode
-        if isempty(obj.ActivePane.Data)
+        if ~isempty(obj.ActivePane.Data) && isprop(obj.ActivePane.Data,'PlotSettings')
             obj.ActivePane.Data.PlotSettings = getSummary(obj.ActivePane.PlotSettings);
         end
         

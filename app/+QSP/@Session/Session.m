@@ -43,6 +43,7 @@ classdef Session < matlab.mixin.SetGet & uix.mixin.AssignPVPairs & uix.mixin.Has
     
     %% Properties
     properties
+        SessionName = ''
         Settings = QSP.Settings.empty(1,0);
         Simulation = QSP.Simulation.empty(1,0)
         Optimization = QSP.Optimization.empty(1,0)
@@ -188,10 +189,15 @@ classdef Session < matlab.mixin.SetGet & uix.mixin.AssignPVPairs & uix.mixin.Has
                 try
                     % Save when fired
                     s.Session = obj; %#ok<STRNU>
+                    % Remove .qsp.mat from name temporarily
+                    ThisName = regexprep(obj.SessionName,'\.qsp\.mat','');
+                    TimeStamp = datestr(now,'dd-mmm-yyyy_HH-MM-SS');
                     if ~isempty(Tag)
-                        FileName = sprintf('%05d_%s.mat',obj.AutoSaveID,Tag);
+%                         FileName = sprintf('%05d_%s.mat',obj.AutoSaveID,Tag);
+                        FileName = sprintf('%s_%s_%s.qsp.mat',ThisName,TimeStamp,Tag);
                     else
-                        FileName = sprintf('%05d.mat',obj.AutoSaveID);
+%                         FileName = sprintf('%05d.mat',obj.AutoSaveID);
+                        FileName = sprintf('%s_%s.qsp.mat',ThisName,TimeStamp);
                     end
                     FilePath = fullfile(obj.AutoSaveDirectory,FileName);
                     obj.AutoSaveID = obj.AutoSaveID + 1;
@@ -210,6 +216,11 @@ classdef Session < matlab.mixin.SetGet & uix.mixin.AssignPVPairs & uix.mixin.Has
     %% Get/Set Methods
     methods
       
+        function set.SessionName(obj,Value)
+            validateattributes(Value,{'char'},{});
+            obj.SessionName = Value;
+        end %function
+        
         function set.RootDirectory(obj,Value)
             validateattributes(Value,{'char'},{});
             obj.RootDirectory = fullfile(Value);
