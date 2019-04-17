@@ -530,12 +530,21 @@ classdef CohortGeneration < uix.abstract.CardViewPane
             if ~isequal(vObj.Data.PlotSpeciesTable,[ThisData(:,1) ThisData(:,2) ThisData(:,3) ThisData(:,4)]) || ...
                     ColIdx == 1 || ColIdx == 2 || ColIdx == 5
                 
+                vObj.Data.PlotSpeciesTable(RowIdx,ColIdx) = ThisData(RowIdx,ColIdx);
+                
+                if strcmpi(vObj.Data.PlotType,'Diagnostic')
+                    % Plot
+                    plotData(vObj);
+                    
+                    % Update the view
+                    updateVisualizationView(vObj);
+                    return;
+                end
+                
                 if ~isempty(RowIdx) && ColIdx == 2
                     NewLineStyle = ThisData{RowIdx,2};
                     setSpeciesLineStyles(vObj.Data,RowIdx,NewLineStyle);
                 end
-                
-                vObj.Data.PlotSpeciesTable(RowIdx,ColIdx) = ThisData(RowIdx,ColIdx);
                 
 %                 if ColIdx == 5
 %                     % Display name
@@ -625,7 +634,7 @@ classdef CohortGeneration < uix.abstract.CardViewPane
                         'AxIndices',AxIndices);
                     vObj.h.AxesLegend(AxIndices) = UpdatedAxesLegend(AxIndices);
                     vObj.h.AxesLegendChildren(AxIndices) = UpdatedAxesLegendChildren(AxIndices);
-
+                    
                 end %if ColIdx
             end %if ~isequal
             
@@ -705,15 +714,30 @@ classdef CohortGeneration < uix.abstract.CardViewPane
             vObj.Data.PlotItemTable(RowIdx,ColIdx) = ThisData(RowIdx,ColIdx);
             
             if ColIdx == 5
-                % Display name                
-                [vObj.h.AxesLegend,vObj.h.AxesLegendChildren] = updatePlots(vObj.Data,vObj.h.MainAxes,vObj.h.SpeciesGroup,vObj.h.DatasetGroup);
+                if strcmpi(vObj.Data.PlotType,'Normal')
+                    % Display name
+                    [vObj.h.AxesLegend,vObj.h.AxesLegendChildren] = updatePlots(vObj.Data,vObj.h.MainAxes,vObj.h.SpeciesGroup,vObj.h.DatasetGroup);
+                else
+                    % Plot
+                    plotData(vObj);
+                    
+                    % Update the view
+                    updateVisualizationView(vObj);
+                end
                 
             elseif ColIdx == 1
                 % Include
-                
-                % Don't overwrite the output
-                updatePlots(vObj.Data,vObj.h.MainAxes,vObj.h.SpeciesGroup,vObj.h.DatasetGroup,...
-                    'RedrawLegend',false);
+                if strcmpi(vObj.Data.PlotType,'Normal')
+                    % Don't overwrite the output
+                    updatePlots(vObj.Data,vObj.h.MainAxes,vObj.h.SpeciesGroup,vObj.h.DatasetGroup,...
+                        'RedrawLegend',false);
+                else
+                    % Plot
+                    plotData(vObj);
+                    
+                    % Update the view
+                    updateVisualizationView(vObj);
+                end
             end
             
             % Enable column 1
@@ -781,7 +805,12 @@ classdef CohortGeneration < uix.abstract.CardViewPane
                         set(TheseItems(isprop(TheseItems,'Color')),'Color',NewColor);                        
                     end
                     
-                    [vObj.h.AxesLegend,vObj.h.AxesLegendChildren] = updatePlots(vObj.Data,vObj.h.MainAxes,vObj.h.SpeciesGroup,vObj.h.DatasetGroup);
+                    if strcmpi(vObj.Data.PlotType,'Normal')                    
+                        [vObj.h.AxesLegend,vObj.h.AxesLegendChildren] = updatePlots(vObj.Data,vObj.h.MainAxes,vObj.h.SpeciesGroup,vObj.h.DatasetGroup);
+                    else
+                        % Plot
+                        plotData(vObj);
+                    end
                     
                     % Update the view
                     updateVisualizationView(vObj);
