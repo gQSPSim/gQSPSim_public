@@ -27,6 +27,10 @@ function [hSpeciesGroup,hDatasetGroup,hLegend,hLegendChildren] = plotCohortGener
 % ---------------------------------------------------------------------
 
 
+% [hSpeciesGroup,hDatasetGroup,hLegend,hLegendChildren] = QSP.plotVirtualCohortGeneration(obj,hAxes,'Mode','Cohort');
+% return;
+
+
 %% Turn on hold
 
 for index = 1:numel(hAxes)
@@ -426,6 +430,10 @@ elseif strcmp(obj.PlotType,'Diagnostic') && ~isempty(Results)
             for itemIdx = 1:numel(Results)
                 
                 itemNumber = ResultsIdx(itemIdx);
+                
+                if ~ismember(itemNumber,OrigIsSelected)
+                    continue;
+                end
                 
                 % species in this task
                 NumSpecies = numel(Results{itemIdx}.SpeciesNames);
