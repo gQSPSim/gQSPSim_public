@@ -120,10 +120,10 @@ if isscalar(SelNode)
     IsDeleted = strcmpi(SelNode.Parent.UserData,'Deleted');
     
     % Check if the ActivePane changed
-    if ~strcmpi(PreviousActivePaneType,PaneType) && ~isempty(obj.ActivePane)
+    if  ~isempty(obj.ActivePane)
         
         % Save plot settings (i.e. if any axes are in manual mode
-        if isempty(obj.ActivePane.Data)
+        if ~isempty(obj.ActivePane.Data)
             obj.ActivePane.Data.PlotSettings = getSummary(obj.ActivePane.PlotSettings);
         end
         
