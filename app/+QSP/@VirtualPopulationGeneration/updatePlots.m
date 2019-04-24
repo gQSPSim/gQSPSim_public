@@ -1,4 +1,4 @@
-function [hLegend,hLegendChildren] = updatePlots(obj,hAxes,hSpeciesGroup,hDatasetGroup)
+function [hLegend,hLegendChildren] = updatePlots(obj,hAxes,hSpeciesGroup,hDatasetGroup,varargin)
 % updatePlots - Redraws the legend
 % -------------------------------------------------------------------------
 % Abstract: Redraws the legend
@@ -31,6 +31,11 @@ function [hLegend,hLegendChildren] = updatePlots(obj,hAxes,hSpeciesGroup,hDatase
 %   $Author: agajjala $
 %   $Revision: 331 $  $Date: 2016-10-05 18:01:36 -0400 (Wed, 05 Oct 2016) $
 % ---------------------------------------------------------------------
+
+
+[hLegend,hLegendChildren] = QSP.updateVirtualCohortGenerationPlots(obj,hAxes,hSpeciesGroup,hDatasetGroup,'Mode','VP',varargin{:});
+return;
+
 
 NumAxes = numel(hAxes);
 hLegend = cell(1,NumAxes);

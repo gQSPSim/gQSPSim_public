@@ -284,10 +284,3 @@ else
         'ColumnEditable',[true,true,false,false,true]...
         );
 end
-
-
-%% Refresh ShowInvalidVirtualPatients
-
-if ~isempty(vObj.Data)
-    set(vObj.h.ShowInvalidVirtualPatientsCheckbox,'Value',vObj.Data.ShowInvalidVirtualPatients);
-end

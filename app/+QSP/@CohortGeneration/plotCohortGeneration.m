@@ -27,8 +27,8 @@ function [hSpeciesGroup,hDatasetGroup,hLegend,hLegendChildren] = plotCohortGener
 % ---------------------------------------------------------------------
 
 
-% [hSpeciesGroup,hDatasetGroup,hLegend,hLegendChildren] = QSP.plotVirtualCohortGeneration(obj,hAxes,'Mode','Cohort');
-% return;
+[hSpeciesGroup,hDatasetGroup,hLegend,hLegendChildren] = QSP.plotVirtualCohortGeneration(obj,hAxes,'Mode','Cohort');
+return;
 
 
 %% Turn on hold
@@ -345,13 +345,15 @@ if strcmp(obj.PlotType, 'Normal') && ~isempty(Results)
                         'LineStyle',ThisLineStyle,...
                         'Color',SelectedItemColors(itemIdx,:),...
                         'UserData',[sIdx,itemIdx],... % SE.mainLine
+                        'Tag','WeightedMeanLine',... % TODO: Make unique but ensure plot settings are applied
                         'LineWidth',obj.PlotSettings(axIdx).MeanLineWidth);
                     
                     % Only allow one display name - don't attach to
                     % traces and quantiles and instead attach to mean
                     % line
-                    set(hThis(1),'DisplayName',regexprep(sprintf('%s [Sim]',FullDisplayName),'_','\\_')); % For export, use patch since line width is not applied
+%                     set(hThis(1),'DisplayName',regexprep(sprintf('%s [Sim]',FullDisplayName),'_','\\_')); % For export, use patch since line width is not applied
                     setIconDisplayStyleOff(hThis);
+                    set(hThis,'Visible',uix.utility.tf2onoff(IsVisible && ~obj.bShowQuantiles(axIdx)));
                     
                 end %if
                 

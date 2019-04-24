@@ -725,7 +725,7 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                     notify(obj,'NavigationChanged',EventData);
                     
                 case 'CustomizeSettings'
-%                     test = copyobj(obj.PlotSettings);
+
                     bandPlotLB = [obj.PlotSettings.BandplotLowerQuantile];
                     bandPlotUB = [obj.PlotSettings.BandplotUpperQuantile];
                     
@@ -745,7 +745,6 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                         if replot
                             obj.plotData();
                         end
-                       
                        
                         % Mark Dirty
                         notify(obj,'MarkDirty');
@@ -1083,7 +1082,7 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
             obj.updateVisualizationView();
             
             if strcmp(ThisTag,'ShowTraces') || strcmp(ThisTag,'ShowQuantiles')
-                if any(strcmpi(class(obj),{'QSPViewer.Simulation','QSPViewer.CohortGeneration'}))
+                if any(strcmpi(class(obj),{'QSPViewer.Simulation','QSPViewer.CohortGeneration','QSPViewer.VirtualPopulationGeneration'}))
                     [UpdatedAxesLegend,UpdatedAxesLegendChildren] = updatePlots(...
                         obj.Data,obj.h.MainAxes,obj.h.SpeciesGroup,obj.h.DatasetGroup,...
                         'AxIndices',axIndex);
@@ -1325,13 +1324,14 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                     end         
                     ThisTag = get(hPlots,'Tag');
                     IsMeanLine = strcmpi(ThisTag,'MeanLine');
+                    IsWeightedMeanLine = strcmpi(ThisTag,'WeightedMeanLine');
                     IsBoundaryLine = strcmpi(ThisTag,'BoundaryLine');
                     if ~isempty(hPlots)
-                        set(hPlots(IsMeanLine),...
+                        set(hPlots(IsMeanLine | IsWeightedMeanLine),...
                             'LineWidth',MeanLineWidth);
                         set(hPlots(IsBoundaryLine),...
                             'LineWidth',BoundaryLineWidth);
-                        set(hPlots(~IsMeanLine&~IsBoundaryLine),...
+                        set(hPlots(~IsMeanLine & ~IsWeightedMeanLine & ~IsBoundaryLine),...
                             'LineWidth',LineWidth);
                     end
                 end
