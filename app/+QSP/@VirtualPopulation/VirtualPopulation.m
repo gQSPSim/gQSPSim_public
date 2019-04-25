@@ -95,6 +95,10 @@ classdef VirtualPopulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             StatusOK = true;
             Message = sprintf('Virtual Population: %s\n%s\n',obj.Name,repmat('-',1,75));
             
+            if  obj.Session.UseParallel && ~isempty(getCurrentTask())
+                return
+            end
+            
             if isdir(obj.FilePath) || ~exist(obj.FilePath,'file')
                 StatusOK = false;
                 Message = sprintf('%s\n* Virtual Population file "%s" is invalid or does not exist',Message,obj.FilePath);

@@ -282,9 +282,10 @@ end
 
 p = gcp('nocreate');
 if isempty(p)
-    p = parpool(obj.Session.ParallelCluster);
+    p = parpool(obj.Session.ParallelCluster, ...
+        'AttachedFiles', obj.Session.UserDefinedFunctionsDirectory);
 end
-% p., 'AttachedFiles', obj.Session.UserDefinedFunctionsDirectory);
+% p.,);
 % nPat = Composite();
 % nSim = Composite();
 
@@ -321,11 +322,10 @@ function updateData(hWbar, data)
     vPop_all = [vPop_all; data(1:end-1)];
     isValid_all = [isValid_all; data(end)];
     
-    StatusOK = true;
     if ~isempty(hWbar)
-        StatusOK = uix.utility.CustomWaitbar(allPat/obj.MaxNumVirtualPatients,hWbar,sprintf('Succesfully generated %d/%d vpatients. (%d/%d Failed)',  ...
+        thisStatusOK = uix.utility.CustomWaitbar(allPat/obj.MaxNumVirtualPatients,hWbar,sprintf('Succesfully generated %d/%d vpatients. (%d/%d Failed)',  ...
             allPat, obj.MaxNumVirtualPatients, allSim-allPat, allSim ));
-        if ~StatusOK
+        if ~thisStatusOK
             cancel(F);
             bCancelled = true;
         end
@@ -466,7 +466,7 @@ while nSim < obj.MaxNumSimulations && nPat < obj.MaxNumVirtualPatients
                         % transform the model outputs to match the data
                         simData_spec = obj.SpeciesData(specInd).evaluate(simData_spec);
                     catch ME
-                        StatusOK = false;
+%                         StatusOK = false;
                         ThisMessage = sprintf(['There is an error in one of the function expressions in the SpeciesData mapping.'...
                             'Validate that all mappings have been specified for each unique species in dataset. %s'], ME.message);
                         Message = sprintf('%s\n%s\n',Message,ThisMessage);
@@ -637,7 +637,13 @@ if StatusOK && bProceed
    end    
     
     % replicate the vpops if multiple initial conditions were specified
-    VpopData = [num2cell(Vpop), num2cell(isValid/nnz(isValid))];
+    if nnz(isValid)>0
+        PW = num2cell(isValid/nnz(isValid));
+    else
+        PW = num2cell(isValid);
+    end
+    
+    VpopData = [num2cell(Vpop), PW];
     if ~isempty(ICTable)
         [bSpeciesData,idxSpeciesData] = ismember( ICTable.colheaders, obj.PlotSpeciesTable(:,4));
         ICTableHeaders = ICTable.colheaders;

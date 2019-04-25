@@ -70,6 +70,9 @@ classdef VirtualPopulationData < QSP.abstract.BaseProps & uix.mixin.HasTreeRefer
             
             StatusOK = true;
             Message = sprintf('Acceptance Criteria: %s\n%s\n',obj.Name,repmat('-',1,75));
+            if  obj.Session.UseParallel && ~isempty(getCurrentTask())
+                return
+            end
             
             if isdir(obj.FilePath) || ~exist(obj.FilePath,'file')
                 StatusOK = false;

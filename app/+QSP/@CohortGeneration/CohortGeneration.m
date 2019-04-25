@@ -240,6 +240,10 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             StatusOK = true;
             Message = sprintf('Virtual Population Generation: %s\n%s\n',obj.Name,repmat('-',1,75));
             
+            if  obj.Session.UseParallel && ~isempty(getCurrentTask())
+                return
+            end            
+            
             % TODO: Validate that params in vpop exist in the file
             if ~isempty(obj.Settings)
                                 

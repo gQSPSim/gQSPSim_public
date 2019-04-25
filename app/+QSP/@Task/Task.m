@@ -167,6 +167,9 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             
             StatusOK = true;
             Message = '';
+            if  obj.Session.UseParallel && ~isempty(getCurrentTask())
+                return
+            end
             
             if isempty(obj)
                 Message = 'Object is empty!';

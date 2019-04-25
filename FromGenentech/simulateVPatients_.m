@@ -109,13 +109,15 @@ function [Results, nFailedSims, StatusOK, Message, Cancelled] = simulateVPatient
             end % for jj = ...
         else
             p = gcp('nocreate');
+            UDF_files = dir(fullfile(options.UDF,'**','*.m'));
+            UDF_files = arrayfun(@(x) fullfile(x.folder,x.name), UDF_files, 'UniformOutput', false);
             if isempty(p)
-                UDF_files = dir(fullfile(options.UDF,'**','*.m'));
-                UDF_files = arrayfun(@(x) fullfile(x.folder,x.name), UDF_files, 'UniformOutput', false);
-                
-                p = parpool(ParallelCluster, 'AutoAddClientPath', true, 'AttachedFiles', UDF_files);
-
+                p = parpool(ParallelCluster, 'AutoAddClientPath', false); %, 'AutoAddClientPath', true, 'AttachedFiles', UDF_files);
             end
+            
+            addAttachedFiles(p, UDF_files);
+            
+           
             q = parallel.pool.DataQueue;
             listener = afterEach(q, @(jj) updateWaitBar(options.WaitBar, ItemModel, jj) );
 
@@ -134,6 +136,9 @@ function [Results, nFailedSims, StatusOK, Message, Cancelled] = simulateVPatient
             for labindex = 1:numlabs
                 block = blockSize*(labindex-1) + (1:blockSize);
                 block = block(block<=ItemModel.nPatients);
+                if isempty(block)
+                    break
+                end
                 F(labindex) = parfeval(p, @parBlock, 1, block, Names, Values, taskObj, Results);
             end
             wait(F);
@@ -152,7 +157,7 @@ function [Results, nFailedSims, StatusOK, Message, Cancelled] = simulateVPatient
         StatusOK = true;
 %         fprintf('jj = %d\n', jj)
         if ~isempty(WaitBar)
-            StatusOK = uix.utility.CustomWaitbar(jj/ItemModel.nPatients, WaitBar, sprintf('Simulating vpatient %d/%d', nSim, ItemModel.nPatients));
+            StatusOK = uix.utility.CustomWaitbar(nSim/ItemModel.nPatients, WaitBar, sprintf('Simulating vpatient %d/%d', nSim, ItemModel.nPatients));
             if ~StatusOK
                 cancel(F)
                 delete(listener)

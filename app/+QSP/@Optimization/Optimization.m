@@ -215,6 +215,9 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             
             StatusOK = true;
             Message = sprintf('Optimization: %s\n%s\n',obj.Name,repmat('-',1,75));
+            if  obj.Session.UseParallel && ~isempty(getCurrentTask())
+                return
+            end
             
             % Validate
             if ~isempty(obj.Settings)
