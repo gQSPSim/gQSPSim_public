@@ -26,6 +26,12 @@ function [hSpeciesGroup,hDatasetGroup,hLegend,hLegendChildren] = plotVirtualPopu
 %   $Revision: 331 $  $Date: 2016-10-05 18:01:36 -0400 (Wed, 05 Oct 2016) $
 % ---------------------------------------------------------------------
 
+
+[hSpeciesGroup,hDatasetGroup,hLegend,hLegendChildren] = QSP.plotVirtualCohortGeneration(obj,hAxes,'Mode','VP');
+return;
+
+
+
 %% Turn on hold
 
 for index = 1:numel(hAxes)
@@ -358,6 +364,9 @@ elseif strcmp(obj.PlotType,'Diagnostic') && ~isempty(Results)
     spNames = obj.PlotSpeciesTable(:,3);
     dataNames = obj.PlotSpeciesTable(:,4);
     
+    ItemIndices = cell2mat(obj.PlotItemTable(:,1));
+    VisibleItemIndices = find(ItemIndices);
+    
     % loop over axes
     unqAxis = unique(allAxes);
     for axIdx = 1:numel(unqAxis)
@@ -379,9 +388,13 @@ elseif strcmp(obj.PlotType,'Diagnostic') && ~isempty(Results)
             currentDataIdx = strcmp(currentData, obj.PlotSpeciesTable(:,4));
             % loop over all tasks and get the data for this species  
             for itemIdx = 1:numel(Results)
-
+                
+                if ~ismember(itemIdx,VisibleItemIndices)
+                    return;
+                end 
+                    
                 itemNumber = ResultsIdx(itemIdx);
-
+                
                 % species in this task 
                 NumSpecies = numel(Results{itemIdx}.SpeciesNames);
                 currentSpecies = obj.PlotSpeciesTable( strcmp(obj.PlotSpeciesTable(:,4), currentData), 3);
