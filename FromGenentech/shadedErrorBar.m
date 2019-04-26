@@ -152,8 +152,8 @@ lE=y-errBar(2,:);
 
 
 %Add the patch error bar
-holdStatus=ishold;
-if ~holdStatus, hold on,  end
+holdStatus=ishold(parent);
+if ~holdStatus, hold(parent,'on'),  end
 
 
 %Make the patch
@@ -181,7 +181,7 @@ H.edge(2)=plot(x,uE,'-','color',edgeColor,'linewidth',boundarylinewidth,'parent'
 uistack(H.mainLine,'top')
 
 
-if ~holdStatus, hold off, end
+if ~holdStatus, hold(parent,'off'), end
 
 if nargout==1
     varargout{1}=H;

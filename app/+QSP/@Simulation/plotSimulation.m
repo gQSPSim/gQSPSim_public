@@ -131,7 +131,7 @@ SelectedItemColors = cell2mat(colors);
 
 
 %% Plot Simulation Items
-     
+
 for sIdx = 1:size(obj.PlotSpeciesTable,1)
     origAxIdx = str2double(obj.PlotSpeciesTable{sIdx,1});
     axIdx = origAxIdx;
@@ -209,7 +209,6 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
         setIconDisplayStyleOff(hThisTrace);
         
         
-        axes(get(hSpeciesGroup{sIdx,axIdx},'Parent'))
         %                 q50 = quantile(Results(resultIdx).Data(:,ColumnIdx),0.5,2);
         %                 q75 = quantile(Results(resultIdx).Data(:,ColumnIdx),0.75,2);
         %                 q25 = quantile(Results(resultIdx).Data(:,ColumnIdx),0.25,2);
@@ -250,13 +249,24 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
             %                     set(SE.patch,'FaceColor',SelectedItemColors(itemIdx,:));
             %                     set(SE.edge,'Color',SelectedItemColors(itemIdx,:),'LineWidth',2);
             x = ThisResult.Data(:,ColumnIdx);
+            
+            
+            % NOTE: If hSpeciesGroup is not parented to an
+            % axes, then this will pop up a new figure. Set to an
+            % axes and then re-parent after
+            hThisParent = ancestor(hSpeciesGroup{sIdx,axIdx},'axes');
+            % Temporarily parent to the first axes
+            if isempty(hThisParent)
+                hThisParent = hAxes(1);                
+            end
             SE = weightedQuantilePlot(ThisResult.Time, x, w0, ThisColor, ...
                 'linestyle',ThisLineStyle,...
                 'meanlinewidth',obj.PlotSettings(axIdx).MeanLineWidth,...
                 'boundarylinewidth',obj.PlotSettings(axIdx).BoundaryLineWidth,...
-                'parent',hSpeciesGroup{sIdx,axIdx}, ...
-                'quantile', [obj.PlotSettings(axIdx).BandplotLowerQuantile, obj.PlotSettings(axIdx).BandplotUpperQuantile] );
-            
+                'quantile', [obj.PlotSettings(axIdx).BandplotLowerQuantile, obj.PlotSettings(axIdx).BandplotUpperQuantile],...
+                'parent',hThisParent); % hSpeciesGroup{sIdx,axIdx});
+            set([SE.mainLine,SE.edge,SE.patch],'Parent',hSpeciesGroup{sIdx,axIdx});
+                
             if isempty(SE)
                 continue
             end

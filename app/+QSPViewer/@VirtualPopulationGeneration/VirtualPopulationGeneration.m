@@ -135,7 +135,7 @@ classdef VirtualPopulationGeneration < uix.abstract.CardViewPane
             
         end %function
         
-        function onFolderSelection(vObj,h,evt) %#ok<*INUSD>
+        function onFolderSelection(vObj,~,evt) %#ok<*INUSD>
             
             % Update the value
             vObj.TempData.VPopResultsFolderName = evt.NewValue;
@@ -145,7 +145,7 @@ classdef VirtualPopulationGeneration < uix.abstract.CardViewPane
             
         end %function
         
-        function onICFileSelection(vObj,h,e)
+        function onICFileSelection(vObj,~,e)
             % Update IC value
             vObj.TempData.ICFileName = e.NewValue;
   
@@ -213,7 +213,7 @@ classdef VirtualPopulationGeneration < uix.abstract.CardViewPane
             
         end %function
         
-        function onTableButtonPressed(vObj,h,e,TableTag)
+        function onTableButtonPressed(vObj,~,e,TableTag)
             
             FlagRefreshTables = true;
             
@@ -506,7 +506,8 @@ classdef VirtualPopulationGeneration < uix.abstract.CardViewPane
 %                     % No need to call redraw legend
                     
                 if ColIdx == 2
-                    % Style
+%                     % Style - Note this will change the line styles even
+%                     for the patch boundaries
 %                     for sIdx = 1:size(vObj.Data.PlotSpeciesTable,1)
 %                         axIdx = str2double(vObj.Data.PlotSpeciesTable{sIdx,1});
 %                         if ~isnan(axIdx)
@@ -548,23 +549,34 @@ classdef VirtualPopulationGeneration < uix.abstract.CardViewPane
                     % If originally not plotted
                     if isempty(OldAxIdx) && ~isempty(NewAxIdx)
                         vObj.h.SpeciesGroup{sIdx,NewAxIdx} = vObj.h.SpeciesGroup{sIdx,1};
+                        vObj.h.DatasetGroup{sIdx,NewAxIdx} = vObj.h.DatasetGroup{sIdx,1};
                         % Parent
-                        vObj.h.SpeciesGroup{sIdx,NewAxIdx}.Parent = vObj.h.MainAxes(NewAxIdx);                        
+                        vObj.h.SpeciesGroup{sIdx,NewAxIdx}.Parent = vObj.h.MainAxes(NewAxIdx);
+                        vObj.h.DatasetGroup{sIdx,NewAxIdx}.Parent = vObj.h.MainAxes(NewAxIdx);
                     elseif ~isempty(OldAxIdx) && isempty(NewAxIdx)
                         vObj.h.SpeciesGroup{sIdx,1} = vObj.h.SpeciesGroup{sIdx,OldAxIdx};
+                        vObj.h.DatasetGroup{sIdx,1} = vObj.h.DatasetGroup{sIdx,OldAxIdx};
                         % Un-parent
                         vObj.h.SpeciesGroup{sIdx,1}.Parent = matlab.graphics.GraphicsPlaceholder.empty();
+                        vObj.h.DatasetGroup{sIdx,1}.Parent = matlab.graphics.GraphicsPlaceholder.empty();
                         if OldAxIdx ~= 1
                             vObj.h.SpeciesGroup{sIdx,OldAxIdx} = [];
+                            vObj.h.DatasetGroup{sIdx,OldAxIdx} = [];
                         end
                     elseif ~isempty(OldAxIdx) && ~isempty(NewAxIdx)
                         vObj.h.SpeciesGroup{sIdx,NewAxIdx} = vObj.h.SpeciesGroup{sIdx,OldAxIdx};
+                        vObj.h.DatasetGroup{sIdx,NewAxIdx} = vObj.h.DatasetGroup{sIdx,OldAxIdx};
                         % Re-parent
                         vObj.h.SpeciesGroup{sIdx,NewAxIdx}.Parent = vObj.h.MainAxes(NewAxIdx);
+                        vObj.h.DatasetGroup{sIdx,NewAxIdx}.Parent = vObj.h.MainAxes(NewAxIdx);
                         if OldAxIdx ~= NewAxIdx
                             vObj.h.SpeciesGroup{sIdx,OldAxIdx} = [];
+                            vObj.h.DatasetGroup{sIdx,OldAxIdx} = [];
                         end
                     end
+                    
+                    % Update lines (line widths, marker sizes)
+                    updateLines(vObj);
                     
                     AxIndices = [OldAxIdx,NewAxIdx];
                     AxIndices(isnan(AxIndices)) = [];
@@ -581,7 +593,7 @@ classdef VirtualPopulationGeneration < uix.abstract.CardViewPane
             
         end %function
         
-        function onItemsTableSelectionPlot(vObj,h,e)
+        function onItemsTableSelectionPlot(vObj,h,e) %#ok<INUSL>
             
             Indices = e.Indices;
             if isempty(Indices)
@@ -622,8 +634,7 @@ classdef VirtualPopulationGeneration < uix.abstract.CardViewPane
             
             if ColIdx == 5
                 % Display name
-                [vObj.h.AxesLegend,vObj.h.AxesLegendChildren] = updatePlots(vObj.Data,vObj.h.MainAxes,vObj.h.SpeciesGroup,vObj.h.DatasetGroup);
-                
+                [vObj.h.AxesLegend,vObj.h.AxesLegendChildren] = updatePlots(vObj.Data,vObj.h.MainAxes,vObj.h.SpeciesGroup,vObj.h.DatasetGroup);                
                 
             elseif ColIdx == 1
                 % Include
@@ -673,6 +684,28 @@ classdef VirtualPopulationGeneration < uix.abstract.CardViewPane
                         TheseItems = TheseChildren(MatchIdx);
                         set(TheseItems(isprop(TheseItems,'Color')),'Color',NewColor);
                         set(TheseItems(isprop(TheseItems,'FaceColor')),'FaceColor',NewColor);
+                    end
+                    
+                    TheseDataGroups = [vObj.h.DatasetGroup{:}];
+                    for index = 1:numel(TheseDataGroups)
+                        ThisGroup = TheseDataGroups(index);
+                        if ~isvalid(ThisGroup)
+                            warning('Encountered deleted handle')
+                            return
+                        end
+                        TheseChildren = get(ThisGroup,'Children');
+                        KeepIdx = ~strcmpi(get(TheseChildren,'Tag'),'DummyLine');
+                        TheseChildren = TheseChildren(KeepIdx);
+                        
+                        TheseUserData = get(TheseChildren,'UserData');
+                        if iscell(TheseUserData)
+                            TheseUserData = vertcat(TheseUserData{:});
+                        end
+                        % Set the color
+                        MatchIdx = ismember(TheseUserData(:,2),itemIdx);
+                        
+                        TheseItems = TheseChildren(MatchIdx);
+                        set(TheseItems(isprop(TheseItems,'Color')),'Color',NewColor);                        
                     end
                                
                     [vObj.h.AxesLegend,vObj.h.AxesLegendChildren] = updatePlots(vObj.Data,vObj.h.MainAxes,vObj.h.SpeciesGroup,vObj.h.DatasetGroup);

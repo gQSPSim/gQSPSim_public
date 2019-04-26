@@ -1351,8 +1351,12 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                         hPlots = vertcat(hPlots.Children);
                         hPlots(~ishandle(hPlots)) = [];
                     end
-                    set(hPlots,...
-                        'MarkerSize',DataSymbolSize);
+                    ThisTag = get(hPlots,'Tag');
+                    IsDummyLine = strcmpi(ThisTag,'DummyLine');
+                    if ~isempty(hPlots)
+                        set(hPlots(~IsDummyLine),...
+                            'MarkerSize',DataSymbolSize);
+                    end
                 end
             end
             
