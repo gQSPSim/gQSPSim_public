@@ -563,6 +563,8 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
             % check for duplicate name
             ref_obj = [];
             switch class(obj)
+                case 'QSPViewer.Session'
+                    ref_obj = obj.Data.Session;
                 case 'QSPViewer.OptimizationData'
                     ref_obj = obj.Data.Session.Settings.OptimizationData;
                 case 'QSPViewer.Parameters'

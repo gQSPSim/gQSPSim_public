@@ -26,44 +26,13 @@ function refresh(vObj)
 %   $Revision: 281 $  $Date: 2016-09-01 09:27:14 -0400 (Thu, 01 Sep 2016) $
 % ---------------------------------------------------------------------
 
-if isscalar(vObj.Data)
-    RootDir = vObj.Data.RootDirectory;
-    RelativeObjectiveFunctionsPath = vObj.Data.RelativeObjectiveFunctionsPath;
-    RelativeUserDefinedFunctionsPath = vObj.Data.RelativeUserDefinedFunctionsPath;
 
-    RelativeAutoSavePath = vObj.Data.RelativeAutoSavePath;    
-    UseAutoSave = vObj.Data.UseAutoSave;
-    AutoSaveFrequency = vObj.Data.AutoSaveFrequency;
-    AutoSaveBeforeRun = vObj.Data.AutoSaveBeforeRun;
+%% Invoke superclass's refresh
 
-else
-    RootDir = '';
-    RelativeUserDefinedFunctionsPath = '';
-    RelativeObjectiveFunctionsPath = '';
-    RelativeAutoSavePath = '';
-    
-    UseAutoSave = false;
-    AutoSaveFrequency = 1;
-    AutoSaveBeforeRun = false;
-end
-
-vObj.h.RootDirSelector.Value = RootDir;
-vObj.h.ResultsDirSelector.RootDirectory = RootDir;
-% vObj.h.ResultsDirSelector.Value = RelativeResultsPath;
-vObj.h.FunctionsDirSelector.RootDirectory = RootDir;
-vObj.h.ObjectiveFunctionsDirSelector.RootDirectory = RootDir;
-vObj.h.ObjectiveFunctionsDirSelector.Value = RelativeObjectiveFunctionsPath;
-vObj.h.UserDefinedFunctionsDirSelector.RootDirectory = RootDir;
-vObj.h.UserDefinedFunctionsDirSelector.Value = RelativeUserDefinedFunctionsPath;
+refresh@uix.abstract.CardViewPane(vObj);
 
 
-vObj.h.UseAutoSaveCheckbox.Value = UseAutoSave;
-vObj.h.AutoSaveDirSelector.RootDirectory = RootDir;
-vObj.h.AutoSaveDirSelector.Value = RelativeAutoSavePath;
-vObj.h.AutoSaveFrequencyEdit.String = num2str(AutoSaveFrequency);
-vObj.h.AutoSaveBeforeRunCheckbox.Value = AutoSaveBeforeRun;
+%% Invoke update
 
-% Toggle enable
-set(vObj.h.AutoSaveDirSelector,'Enable',uix.utility.tf2onoff(UseAutoSave));
-set(vObj.h.AutoSaveFrequencyEdit,'Enable',uix.utility.tf2onoff(UseAutoSave));
-set(vObj.h.AutoSaveBeforeRunCheckbox,'Enable',uix.utility.tf2onoff(UseAutoSave));
+update(vObj);
+

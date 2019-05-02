@@ -1,4 +1,4 @@
-classdef Session < uix.abstract.ViewPane
+classdef Session < uix.abstract.CardViewPane % uix.abstract.ViewPane
     % Session - View Pane for the object
     % ---------------------------------------------------------------------
     % Display a viewer/editor for the object
@@ -33,8 +33,11 @@ classdef Session < uix.abstract.ViewPane
         % Constructor
         function obj = Session(varargin)
             
+%             % Call superclass constructor
+%             obj = obj@uix.abstract.ViewPane(varargin{:});
             % Call superclass constructor
-            obj = obj@uix.abstract.ViewPane(varargin{:});
+            RunVis = false;
+            obj = obj@uix.abstract.CardViewPane(RunVis,varargin{:});
             
             % Create the graphics objects
             obj.create();
@@ -72,118 +75,108 @@ classdef Session < uix.abstract.ViewPane
         
         function onFileSelection(vObj,h,evt) %#ok<*INUSD>
             
-            StatusOk = true;
+%             StatusOk = true;
             
             % Which field was modified?
             Field = h.Tag;
             
             % Update the value, and trap errors
             try
-                vObj.Data.(Field) = evt.NewValue;
+                vObj.TempData.(Field) = evt.NewValue;
             catch err
-                StatusOk = false;
+%                 StatusOk = false;
                 hDlg = errordlg(err.message,Field,'modal');
                 uiwait(hDlg);
             end
             
-            % Refresh data (no need to refresh data for auto-save path
-            % change)
-            if ~strcmpi(Field,'RelativeAutoSavePath')               
-                refreshData(vObj.Data.Settings);
-            end
-            
             % Update the view
-            refresh(vObj);
-            
-            % Call the callback
-            if StatusOk
-                evt.InteractionType = Field;
-                vObj.callCallback(evt);
-            end
+            update(vObj);
             
         end %function
         
         function onUDFSelection(vObj,h,evt)
             
-            % remove old path
-            removeUDF(vObj.Data);
-            
             % assign value & refresh
             onFileSelection(vObj,h,evt);
-           
-            % add new path
-            addUDF(vObj.Data);
             
         end %function
         
         function onAutoSaveChecked(vObj,h,~)
         
-            vObj.Data.UseAutoSave = logical(h.Value);
-            
-            % Use checkbox to turn on/off timer
-            if vObj.Data.UseAutoSave
-                start(vObj.timerObj);
-            else
-                stop(vObj.timerObj);
-            end
+            vObj.TempData.UseAutoSave = logical(h.Value);
              
             % Update the view
-            refresh(vObj);
-            
-            % Call the callback
-            evt.InteractionType = 'UseAutoSave';
-            vObj.callCallback(evt);
+            update(vObj);
             
         end %function
         
         function onAutoSaveFrequencyEdited(vObj,h,~) %#ok<*INUSD>
             
-            StatusOk = true;
-            
             % Update the value, and trap errors
             Field = 'AutoSaveFrequency';
             try
-                vObj.Data.AutoSaveFrequency = str2double(get(h,'String'));
-                stop(vObj.timerObj)
-                vObj.timerObj.Period = vObj.Data.AutoSaveFrequency * 60; % minutes
-                vObj.timerObj.StartDelay = 0; % Reduce start delay
-                if vObj.Data.UseAutoSave
-                    start(vObj.timerObj)
-                end
+                vObj.TempData.AutoSaveFrequency = str2double(get(h,'String'));
             catch err
-                StatusOk = false;
                 hDlg = errordlg(err.message,Field,'modal');
                 uiwait(hDlg);
             end
             
             % Update the view
-            refresh(vObj);
-            
-            % Call the callback
-            if StatusOk
-                evt.InteractionType = 'AutoSaveFrequency';
-                vObj.callCallback(evt);
-            end
+            update(vObj);
             
         end %function
         
         function onAutoSaveBeforeRunChecked(vObj,h,~)
             
-            vObj.Data.AutoSaveBeforeRun = logical(h.Value);
+            vObj.TempData.AutoSaveBeforeRun = logical(h.Value);
             
             % Update the view
-            refresh(vObj);
-            
-            % Call the callback
-            evt.InteractionType = 'AutoSaveBeforeRun';
-            vObj.callCallback(evt);
+            update(vObj);
             
         end %function
         
         function onTimerCallback(vObj,h,evt)
             
+            % Note, autosave is applied to vObj.Data, not vObj.TempData
             autoSaveFile(vObj.Data,'TimerObj',vObj.timerObj);
             
+        end %function
+        
+        function onButtonPress(vObj,h,e)
+            
+            ThisTag = get(h,'Tag');
+            
+            % remove old path
+            removeUDF(vObj.Data);
+            
+            % Invoke superclass's onButtonPress
+            onButtonPress@uix.abstract.CardViewPane(vObj,h,e);
+            
+            % add new path
+            addUDF(vObj.Data);
+            
+            switch ThisTag
+                case 'Save'
+                    try
+                        % Refresh data (no need to refresh data for auto-save path
+                        % change)
+                        refreshData(vObj.Data.Settings);
+                        
+                        % Stop to set the period and start delay
+                        stop(vObj.timerObj)
+                        vObj.timerObj.Period = vObj.Data.AutoSaveFrequency * 60; % minutes
+                        vObj.timerObj.StartDelay = 0; % Reduce start delay
+                        % Only restart if UseAutoSave is true
+                        if vObj.Data.UseAutoSave
+                            start(vObj.timerObj)
+                        end
+                    catch err
+
+                        hDlg = errordlg(err.message,Field,'modal');
+                        uiwait(hDlg);
+                    end
+            end
+
         end %function
         
     end %methods

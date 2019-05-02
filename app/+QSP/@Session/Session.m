@@ -1,4 +1,4 @@
-classdef Session < matlab.mixin.SetGet & uix.mixin.AssignPVPairs & uix.mixin.HasTreeReference
+classdef Session < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
     % Session - Defines an session object
     % ---------------------------------------------------------------------
     % Abstract: This object defines Session
@@ -43,28 +43,15 @@ classdef Session < matlab.mixin.SetGet & uix.mixin.AssignPVPairs & uix.mixin.Has
     
     %% Properties
     properties
-        SessionName = ''
-        Settings = QSP.Settings.empty(1,0);
-        Simulation = QSP.Simulation.empty(1,0)
-        Optimization = QSP.Optimization.empty(1,0)
-        VirtualPopulationGeneration = QSP.VirtualPopulationGeneration.empty(1,0)
-        CohortGeneration = QSP.CohortGeneration.empty(1,0)
-
-        Deleted = QSP.abstract.BaseProps.empty(1,0)
         RootDirectory = pwd
-        RelativeResultsPath = ''
-        
+        RelativeResultsPath = ''        
         RelativeUserDefinedFunctionsPath = ''
         RelativeObjectiveFunctionsPath = ''        
-        
         RelativeAutoSavePath = ''
         AutoSaveFrequency = 1 % minutes
         AutoSaveBeforeRun = true
         
-        ColorMap1 = QSP.Session.DefaultColorMap
-        ColorMap2 = QSP.Session.DefaultColorMap
-        
-        toRemove = false;
+        Deleted = QSP.abstract.BaseProps.empty(1,0)
     end
     
     properties (Transient=true)
@@ -72,7 +59,19 @@ classdef Session < matlab.mixin.SetGet & uix.mixin.AssignPVPairs & uix.mixin.Has
     end
     
     properties (SetAccess='private')
+        SessionName = ''
         AutoSaveID = 1
+        
+        Settings = QSP.Settings.empty(1,0);
+        Simulation = QSP.Simulation.empty(1,0)
+        Optimization = QSP.Optimization.empty(1,0)
+        VirtualPopulationGeneration = QSP.VirtualPopulationGeneration.empty(1,0)
+        CohortGeneration = QSP.CohortGeneration.empty(1,0)
+        
+        ColorMap1 = QSP.Session.DefaultColorMap
+        ColorMap2 = QSP.Session.DefaultColorMap
+        
+        toRemove = false;
     end
     
     properties (Constant=true)
@@ -145,8 +144,48 @@ classdef Session < matlab.mixin.SetGet & uix.mixin.AssignPVPairs & uix.mixin.Has
         
     end %methods (Static)
     
+    %% Methods defined as abstract
+    methods
+        
+        function Summary = getSummary(obj)
+            
+            % Populate summary
+            Summary = {...
+                'Name',obj.Name;
+                'Last Saved',obj.LastSavedTimeStr;
+                'Description',obj.Description;       
+                'Root Directory',obj.RootDirectory;
+                'Objective Functions Directory',obj.ObjectiveFunctionsDirectory;
+                'User Functions Directory',obj.UserDefinedFunctionsDirectory;
+                'Use AutoSave',mat2str(obj.UseAutoSave);
+                'AutoSave Directory',obj.AutoSaveDirectory;
+                'AutoSave Frequency (min)',num2str(obj.AutoSaveFrequency);
+                'AutoSave Before Run',mat2str(obj.AutoSaveBeforeRun);
+                };
+        end
+        
+        function [StatusOK, Message] = validate(obj,FlagRemoveInvalid) %#ok<INUSD>
+            
+            StatusOK = true;
+            Message = sprintf('Session: %s\n%s\n',obj.Name,repmat('-',1,75));
+            
+            if ~isfolder(obj.RootDirectory)
+                StatusOK = false;
+                Message = sprintf('%s\n* Invalid Root Directory specified "%"',Message,obj.RootDirectory);
+            end
+        end
+        
+        function clearData(obj) %#ok<MANU>
+        end
+    end
+    
     %% Methods
     methods
+        
+        function setSessionName(obj,SessionName)
+            obj.SessionName = SessionName;
+        end %function
+        
         function Colors = getItemColors(obj,NumItems)
             ThisColorMap = obj.ColorMap1;
             if isempty(ThisColorMap) || size(ThisColorMap,2) ~= 3
@@ -216,11 +255,6 @@ classdef Session < matlab.mixin.SetGet & uix.mixin.AssignPVPairs & uix.mixin.Has
     %% Get/Set Methods
     methods
       
-        function set.SessionName(obj,Value)
-            validateattributes(Value,{'char'},{});
-            obj.SessionName = Value;
-        end %function
-        
         function set.RootDirectory(obj,Value)
             validateattributes(Value,{'char'},{});
             obj.RootDirectory = fullfile(Value);
@@ -249,9 +283,10 @@ classdef Session < matlab.mixin.SetGet & uix.mixin.AssignPVPairs & uix.mixin.Has
         function addUDF(obj)
             % add the UDF to the path
             p = path;
-            if exist(obj.RelativeUserDefinedFunctionsPath, 'dir')
-                if isempty(strfind(p, obj.RelativeUserDefinedFunctionsPath))
-                    addpath(genpath(obj.RelativeUserDefinedFunctionsPath))
+            if exist(obj.UserDefinedFunctionsDirectory, 'dir')
+                if ~isempty(obj.RelativeUserDefinedFunctionsPath) && ...
+                        isempty(strfind(p,obj.RelativeUserDefinedFunctionsPath))
+                    addpath(genpath(obj.UserDefinedFunctionsDirectory))
                 end
             end    
         end
@@ -263,29 +298,9 @@ classdef Session < matlab.mixin.SetGet & uix.mixin.AssignPVPairs & uix.mixin.Has
             end
                 
             % remove UDF from the path
-            p = path;
-            subdirs = genpath(obj.RelativeUserDefinedFunctionsPath);
-            if isempty(subdirs)
-                return
+            if ~isempty(obj.RelativeUserDefinedFunctionsPath)
+                rmpath(genpath(obj.UserDefinedFunctionsDirectory));
             end
-            
-            if ispc
-                subdirs = strsplit(subdirs,';');
-                pp = strsplit(p,';');
-            else
-                subdirs = strsplit(subdirs,':');
-                pp = strsplit(p,':');                
-            end
-            
-            pp = setdiff(pp, subdirs);
-            
-            if ispc
-                ppp = strjoin(pp,';');
-            else
-                ppp = strjoin(pp,':');
-            end
-            path(ppp)
-            
         end
         
         function value = get.ResultsDirectory(obj)
