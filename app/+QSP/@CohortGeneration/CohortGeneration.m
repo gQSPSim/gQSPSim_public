@@ -689,12 +689,12 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         end
         
         function set.MaxNumSimulations(obj,Value)
-            validateattributes(Value,{'numeric'},{'scalar','nonnegative'});
+            validateattributes(Value,{'numeric'},{'scalar','positive'});
             obj.MaxNumSimulations = Value;
         end
         
         function set.MaxNumVirtualPatients(obj,Value)
-            validateattributes(Value,{'numeric'},{'scalar','nonnegative'});
+            validateattributes(Value,{'numeric'},{'scalar','positive'});
             obj.MaxNumVirtualPatients = Value;
         end
         

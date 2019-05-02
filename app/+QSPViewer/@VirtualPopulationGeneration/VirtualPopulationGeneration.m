@@ -357,44 +357,17 @@ classdef VirtualPopulationGeneration < uix.abstract.CardViewPane
             
         end %function
         
-        function onMaxNumSimulationsEdit(vObj,h,e)
+        function onMinNumVirtualPatientsEdit(vObj,h,e)
             
-            value = vObj.TempData.MaxNumSimulations;
             try
-                value = str2double(get(h,'Value'));
+                vObj.TempData.MinNumVirtualPatients = str2double(get(h,'Value'));
             catch ME
                 hDlg = errordlg(ME.message,'Invalid Value','modal');
                 uiwait(hDlg);
             end
-            if isnan(value) || value <= 0
-                hDlg = errordlg('Invalid Value','modal');
-                uiwait(hDlg);
-            else
-                vObj.TempData.MaxNumSimulations = value;
-            end
-            % Update the view
-            updateMaxNumSims(vObj);
-            
-        end %function
-        
-        function onMaxNumVirtualPatientsEdit(vObj,h,e)
-            
-            value = vObj.TempData.MaxNumVirtualPatients;
-            try
-                value = str2double(get(h,'Value'));
-            catch ME
-                hDlg = errordlg(ME.message,'Invalid Value','modal');
-                uiwait(hDlg);
-            end
-            if isnan(value) || value <= 0
-                hDlg = errordlg('Invalid Value','modal');
-                uiwait(hDlg);
-            else
-                vObj.TempData.MaxNumVirtualPatients = value;
-            end
             
             % Update the view
-            updateMaxNumVirtualPatients(vObj);
+            updateMinNumVirtualPatients(vObj);
             
         end %function
         

@@ -55,18 +55,20 @@ classdef Session < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
     end
     
     properties (Transient=true)
-        UseAutoSave = false % Make transient so user always needs to toggle this true through Session node
+        UseAutoSave = false % Make transient so user always needs to toggle this true through Session node. Timer is only created when QSPViewer.Session is created (node is clicked)
     end
     
-    properties (SetAccess='private')
-        SessionName = ''
-        AutoSaveID = 1
-        
+    properties (NonCopyable=true)        
         Settings = QSP.Settings.empty(1,0);
         Simulation = QSP.Simulation.empty(1,0)
         Optimization = QSP.Optimization.empty(1,0)
         VirtualPopulationGeneration = QSP.VirtualPopulationGeneration.empty(1,0)
         CohortGeneration = QSP.CohortGeneration.empty(1,0)
+    end
+    
+    properties (SetAccess='private')
+        SessionName = ''
+        AutoSaveID = 1
         
         ColorMap1 = QSP.Session.DefaultColorMap
         ColorMap2 = QSP.Session.DefaultColorMap

@@ -44,6 +44,12 @@ refreshDataset(vObj);
 
 refreshItemsTable(vObj);
 
+
+%% Update MinNumVirtualPatients
+
+updateMinNumVirtualPatients(vObj);
+
+
 %% Refresh SpeciesData Table
 
 refreshSpeciesDataTable(vObj);
