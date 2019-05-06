@@ -50,8 +50,6 @@ classdef Session < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         RelativeAutoSavePath = ''
         AutoSaveFrequency = 1 % minutes
         AutoSaveBeforeRun = true
-        
-        Deleted = QSP.abstract.BaseProps.empty(1,0)
     end
     
     properties (Transient=true)
@@ -64,6 +62,7 @@ classdef Session < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         Optimization = QSP.Optimization.empty(1,0)
         VirtualPopulationGeneration = QSP.VirtualPopulationGeneration.empty(1,0)
         CohortGeneration = QSP.CohortGeneration.empty(1,0)
+        Deleted = QSP.abstract.BaseProps.empty(1,0)
     end
     
     properties (SetAccess='private')
