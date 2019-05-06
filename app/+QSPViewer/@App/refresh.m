@@ -85,14 +85,15 @@ for idx=1:obj.NumSessions
         'TooltipString', obj.SessionPaths{idx} );
     
     % Assign Name
-    obj.Session(idx).SessionName = ThisRawName;
+    setSessionName(obj.Session(idx),ThisRawName);
     
 end
 
 
 % If the current node was updated, check if the node name changed
 if isscalar(SelNode) && isscalar(SelNode.Value) &&...
-        isprop(SelNode.Value,'Name') && ~strcmp(SelNode.Value.Name, SelNode.Name)
+        isprop(SelNode.Value,'Name') && ~strcmp(SelNode.Value.Name, SelNode.Name) && ...
+        ~strcmpi(class(SelNode.Value),'QSP.Session') % Skip for session. Do not use Name to update the Node property; use SessionName
     % Update the node name
     SelNode.Name = SelNode.Value.Name;
 end

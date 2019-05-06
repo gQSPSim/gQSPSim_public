@@ -190,7 +190,11 @@ for axIndex = AxIndices(:)'
                 % Get line style
                 ThisLineStyle = obj.PlotSpeciesTable{sIdx,2};
                 % Set display name for selection only
-                set(TheseItems(thisIdx),'DisplayName',FormattedFullDisplayName,'LineStyle',ThisLineStyle);
+                set(TheseItems(thisIdx),'DisplayName',FormattedFullDisplayName);
+                
+                MatchIdx = ismember(SelectedUserData(:,1),sIdx);
+                set(TheseItems(MatchIdx),'LineStyle',ThisLineStyle);
+                
             end
         end
     end %if ~isempty(ch)

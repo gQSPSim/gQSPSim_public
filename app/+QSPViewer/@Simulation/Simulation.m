@@ -273,15 +273,16 @@ classdef Simulation < uix.abstract.CardViewPane
                 vObj.Data.PlotSpeciesTable(RowIdx,ColIdx) = ThisData(RowIdx,ColIdx);
 
                 if ColIdx == 2
-                    % Style
-                    for sIdx = 1:size(vObj.Data.PlotSpeciesTable,1)
-                        axIdx = str2double(vObj.Data.PlotSpeciesTable{sIdx,1});
-                        if ~isnan(axIdx)
-                            Ch = get(vObj.h.SpeciesGroup{sIdx,axIdx},'Children');
-                            HasLineStyle = isprop(Ch,'LineStyle');
-                            set(Ch(HasLineStyle),'LineStyle',vObj.Data.PlotSpeciesTable{sIdx,2});
-                        end
-                    end   
+%                     % Style - Note this will change the line styles even
+%                     for the patch boundaries
+%                     for sIdx = 1:size(vObj.Data.PlotSpeciesTable,1)
+%                         axIdx = str2double(vObj.Data.PlotSpeciesTable{sIdx,1});
+%                         if ~isnan(axIdx)
+%                             Ch = get(vObj.h.SpeciesGroup{sIdx,axIdx},'Children');
+%                             HasLineStyle = isprop(Ch,'LineStyle');
+%                             set(Ch(HasLineStyle),'LineStyle',vObj.Data.PlotSpeciesTable{sIdx,2});
+%                         end
+%                     end   
                     
                     AxIndices = NewAxIdx;
                     if isempty(AxIndices)
@@ -332,6 +333,9 @@ classdef Simulation < uix.abstract.CardViewPane
                             vObj.h.SpeciesGroup{sIdx,OldAxIdx} = [];
                         end
                     end
+                    
+                    % Update lines (line widths, marker sizes)
+                    updateLines(vObj);
                     
                     AxIndices = [OldAxIdx,NewAxIdx];
                     AxIndices(isnan(AxIndices)) = [];

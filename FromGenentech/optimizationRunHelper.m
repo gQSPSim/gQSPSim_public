@@ -2,6 +2,11 @@ function [StatusOK,Message,ResultsFileNames,VpopNames, groupErrorCounts, groupEr
 % Sets up and runs the optimization contained in the Optimization object
 % "obj".
 
+% Initialize waitbar
+Title = sprintf('Run Optimization');
+DialogMessage = sprintf('Optimization in progress. Please wait...');
+hDlg = warndlg(DialogMessage,Title,'modal');
+
 StatusOK = true;
 Message = '';
 
@@ -700,6 +705,11 @@ end
     end % function
 
 path(myPath);
+
+% close dialog
+if ~isempty(hDlg) && ishandle(hDlg)
+    delete(hDlg);
+end
 
 end % function
 

@@ -44,6 +44,7 @@ refreshDataset(vObj);
 
 refreshItemsTable(vObj);
 
+
 %% Refresh SpeciesData Table
 
 refreshSpeciesDataTable(vObj);
@@ -62,6 +63,7 @@ updateMaxNumSims(vObj);
 %% Update MaxNumVirtualPatients
 
 updateMaxNumVirtualPatients(vObj);
+
 
 %% set initial conditions file
 if ~isempty(vObj.Data)

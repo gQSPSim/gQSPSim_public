@@ -563,6 +563,8 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
             % check for duplicate name
             ref_obj = [];
             switch class(obj)
+                case 'QSPViewer.Session'
+                    ref_obj = obj.Data.Session;
                 case 'QSPViewer.OptimizationData'
                     ref_obj = obj.Data.Session.Settings.OptimizationData;
                 case 'QSPViewer.Parameters'
@@ -1351,8 +1353,12 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                         hPlots = vertcat(hPlots.Children);
                         hPlots(~ishandle(hPlots)) = [];
                     end
-                    set(hPlots,...
-                        'MarkerSize',DataSymbolSize);
+                    ThisTag = get(hPlots,'Tag');
+                    IsDummyLine = strcmpi(ThisTag,'DummyLine');
+                    if ~isempty(hPlots)
+                        set(hPlots(~IsDummyLine),...
+                            'MarkerSize',DataSymbolSize);
+                    end
                 end
             end
             

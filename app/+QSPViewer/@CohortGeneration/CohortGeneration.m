@@ -136,7 +136,7 @@ classdef CohortGeneration < uix.abstract.CardViewPane
             
         end %function
         
-        function onFolderSelection(vObj,h,evt) %#ok<*INUSD>
+        function onFolderSelection(vObj,~,evt) %#ok<*INUSD>
             
             % Update the value
             vObj.TempData.VPopResultsFolderName = evt.NewValue;
@@ -146,7 +146,7 @@ classdef CohortGeneration < uix.abstract.CardViewPane
             
         end %function
         
-        function onICFileSelection(vObj,h,e)
+        function onICFileSelection(vObj,~,e)
             % Update IC value
             vObj.TempData.ICFileName = e.NewValue;
   
@@ -237,7 +237,7 @@ classdef CohortGeneration < uix.abstract.CardViewPane
         end %function        
         
         
-        function onTableButtonPressed(vObj,h,e,TableTag)
+        function onTableButtonPressed(vObj,~,e,TableTag)
             
             FlagRefreshTables = true;
             
@@ -383,19 +383,13 @@ classdef CohortGeneration < uix.abstract.CardViewPane
         
         function onMaxNumSimulationsEdit(vObj,h,e)
             
-            value = vObj.TempData.MaxNumSimulations;
             try
-                value = str2double(get(h,'Value'));
+                vObj.TempData.MaxNumSimulations = str2double(get(h,'Value'));
             catch ME
                 hDlg = errordlg(ME.message,'Invalid Value','modal');
                 uiwait(hDlg);
             end
-            if isnan(value) || value <= 0
-                hDlg = errordlg('Invalid Value','modal');
-                uiwait(hDlg);
-            else
-                vObj.TempData.MaxNumSimulations = value;
-            end
+            
             % Update the view
             updateMaxNumSims(vObj);
             
@@ -403,18 +397,11 @@ classdef CohortGeneration < uix.abstract.CardViewPane
         
         function onMaxNumVirtualPatientsEdit(vObj,h,e)
             
-            value = vObj.TempData.MaxNumVirtualPatients;
             try
-                value = str2double(get(h,'Value'));
+                vObj.TempData.MaxNumVirtualPatients = str2double(get(h,'Value'));
             catch ME
                 hDlg = errordlg(ME.message,'Invalid Value','modal');
                 uiwait(hDlg);
-            end
-            if isnan(value) || value <= 0
-                hDlg = errordlg('Invalid Value','modal');
-                uiwait(hDlg);
-            else
-                vObj.TempData.MaxNumVirtualPatients = value;
             end
             
             % Update the view
@@ -557,7 +544,8 @@ classdef CohortGeneration < uix.abstract.CardViewPane
 %                     % No need to call redraw legend
                     
                 if ColIdx == 2
-                    % Style
+%                     % Style - Note this will change the line styles even
+%                     for the patch boundaries
 %                     for sIdx = 1:size(vObj.Data.PlotSpeciesTable,1)
 %                         axIdx = str2double(vObj.Data.PlotSpeciesTable{sIdx,1});
 %                         if ~isnan(axIdx)
@@ -625,6 +613,9 @@ classdef CohortGeneration < uix.abstract.CardViewPane
                         end
                     end
                     
+                    % Update lines (line widths, marker sizes)
+                    updateLines(vObj);
+                    
                     AxIndices = [OldAxIdx,NewAxIdx];
                     AxIndices(isnan(AxIndices)) = [];
                     
@@ -640,7 +631,7 @@ classdef CohortGeneration < uix.abstract.CardViewPane
             
         end %function
         
-        function onItemsTableSelectionPlot(vObj,h,e)
+        function onItemsTableSelectionPlot(vObj,h,e) %#ok<INUSL>
             
             Indices = e.Indices;
             if isempty(Indices)

@@ -38,6 +38,7 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
         MethodName = 'Maximum likelihood';
         
         GroupName = ''
+        MinNumVirtualPatients = 20
         
         Item = QSP.TaskGroup.empty(0,1)
         SpeciesData = QSP.SpeciesData.empty(0,1)
@@ -203,8 +204,9 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
                 'Last Saved',obj.LastSavedTimeStr;
                 'Description',obj.Description;
                 'Results Path',obj.VPopResultsFolderName;
-                'Cohort used',obj.DatasetName;
+                'Cohort Used',obj.DatasetName;
                 'Group Name',obj.GroupName;
+                'Min No of Virtual Patients',num2str(obj.MinNumVirtualPatients);
                 'Items',VPopGenItems;
                 'Species-data mapping',SpeciesDataItems;
                 'Results',obj.ExcelResultFileName;
@@ -672,6 +674,11 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
             validateattributes(Value,{'char'},{});
             obj.GroupName = Value;
         end        
+        
+        function set.MinNumVirtualPatients(obj,Value)
+            validateattributes(Value,{'numeric'},{'positive'});
+            obj.MinNumVirtualPatients = Value;
+        end
         
         function set.Item(obj,Value)
             validateattributes(Value,{'QSP.TaskGroup'},{});
