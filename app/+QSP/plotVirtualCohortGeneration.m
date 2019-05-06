@@ -365,7 +365,7 @@ if strcmp(obj.PlotType, 'Normal') && ~isempty(Results)
                         'Visible',uix.utility.tf2onoff(IsVisible && obj.bShowTraces(axIdx)));
                     
                     % Plot WeightedQuantile
-%                     axes(get(hSpeciesGroup{sIdx,axIdx},'Parent')) %
+                    axes(get(hSpeciesGroup{sIdx,axIdx},'Parent')) %
 %                     Removed: causes Warning: Negative data ignored > In matlab.graphics.shape.internal.AxesLayoutManager/doUpdate
                     
                     SE = weightedQuantilePlot(Results{itemIdx}.Time, x, w, SelectedItemColors(itemIdx,:),...

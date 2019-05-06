@@ -4,6 +4,8 @@ EchoOutput = true;
 
 warning('off','uix:ViewPaneManager:NoView')
 warning('off','MATLAB:table:ModifiedAndSavedVarnames');
+warning('off','MATLAB:Axes:NegativeDataInLogAxis')
+warning('off','MATLAB:HandleGraphics:ObsoletedProperty:JavaFrame')
 
 if ~isdeployed
     
