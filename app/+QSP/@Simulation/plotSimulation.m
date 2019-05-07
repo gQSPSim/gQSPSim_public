@@ -195,12 +195,34 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
             error('Invalid color selected!')
         end
 
-        SE = [];
-        hThisTrace = plot(hSpeciesGroup{sIdx,axIdx},ThisResult.Time,ThisResult.Data(:,ColumnIdx),...
-            'Color',ThisColor,...
-            'Tag','TraceLine',...
-            'LineStyle',ThisLineStyle,...
-            'LineWidth',obj.PlotSettings(axIdx).LineWidth);
+%         SE = [];
+%         if length(ThisResult.Time) > 1
+        if length(ThisResult.Time) == 1
+            ThisMarkerStyle = 'o';
+        else
+            ThisMarkerStyle = 'none';
+        end
+        
+            hThisTrace = plot(hSpeciesGroup{sIdx,axIdx},ThisResult.Time,ThisResult.Data(:,ColumnIdx),...
+                'Color',ThisColor,...
+                'Tag','TraceLine',...
+                'LineStyle',ThisLineStyle,...
+                'LineWidth',obj.PlotSettings(axIdx).LineWidth, ...
+                'Marker', ThisMarkerStyle);
+%         else % need to use scatter if only one point
+%             hThisTrace = scatter(ThisResult.Time,ThisResult.Data(:,ColumnIdx), 20);
+%             set(hThisTrace, 'Parent', hSpeciesGroup{sIdx,axIdx});
+%             set(hThisTrace,...
+%                 'MarkerFaceColor',ThisColor,...
+%                 'Tag','TraceLine');
+%         end
+        
+%         
+%         hThisTrace = plot(hSpeciesGroup{sIdx,axIdx},ThisResult.Time,ThisResult.Data(:,ColumnIdx),...
+%             'Color',ThisColor,...
+%             'Tag','TraceLine',...
+%             'LineStyle',ThisLineStyle,...
+%             'LineWidth',obj.PlotSettings(axIdx).LineWidth);
         if obj.bShowTraces(axIdx)
             set(hThisTrace,'Visible','on');
         else
@@ -242,7 +264,7 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
         
         %                 Results(resultIdx).Data
         
-        if length(ThisResult.Time') > 1
+%         if length(ThisResult.Time') > 1
             %                     SE=shadedErrorBar(Results(resultIdx).Time', q50, [q975-q50;q50-q025]);
             %                     set(SE.mainLine,'Color',SelectedItemColors(itemIdx,:),...
             %                         'LineStyle',ThisLineStyle);
@@ -265,32 +287,37 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
                 'boundarylinewidth',obj.PlotSettings(axIdx).BoundaryLineWidth,...
                 'quantile', [obj.PlotSettings(axIdx).BandplotLowerQuantile, obj.PlotSettings(axIdx).BandplotUpperQuantile],...
                 'parent',hThisParent); % hSpeciesGroup{sIdx,axIdx});
-            set([SE.mainLine,SE.edge,SE.patch],'Parent',hSpeciesGroup{sIdx,axIdx});
+            
+            if isa(SE, 'matlab.graphics.chart.primitive.ErrorBar')
+                % error bar (one time point)
+                set(SE, 'Parent',hSpeciesGroup{sIdx,axIdx});
+            else
+                % shaded error bar
+                set([SE.mainLine,SE.edge,SE.patch],'Parent',hSpeciesGroup{sIdx,axIdx});
+            end
                 
             if isempty(SE)
                 continue
             end
             
             if obj.bShowQuantiles(axIdx)
-                set([SE.mainLine,SE.edge,SE.patch],'Visible','on');
+                if isa(SE, 'matlab.graphics.chart.primitive.ErrorBar')
+                    set(SE, 'Visible', 'on');
+                else
+                    set([SE.mainLine,SE.edge,SE.patch],'Visible','on');
+                end
             else
-                set([SE.mainLine,SE.edge,SE.patch],'Visible','off');
+                if isa(SE, 'matlab.graphics.chart.primitive.ErrorBar')
+                    set(SE, 'Visible', 'off')
+                else
+                    set([SE.mainLine,SE.edge,SE.patch],'Visible','off');    
+                end
             end
-            setIconDisplayStyleOff([SE.mainLine,SE.edge,SE.patch]);            
+            if ~isa(SE, 'matlab.graphics.chart.primitive.ErrorBar')
+                setIconDisplayStyleOff([SE.mainLine,SE.edge,SE.patch]);            
+            end
             
-        else
-            % NOTE: Justin - code does not enter here (i.e. q50,
-            % etc are not computed)
-            h = errorbar(...
-                'Parent',hSpeciesGroup{sIdx,axIdx},...
-                ThisResult.Time', q50', q50-q025, q975-q50, 'Color', ThisColor, ...
-                'Tag','Errorbar',...
-                'LineStyle',ThisLineStyle);
-            setIconDisplayStyleOff(h);            
-            
-        end
-
-        
+%         
         % Only allow one display name between traces and quantiles
         FormattedFullDisplayName = regexprep(FullDisplayName,'_','\\_'); % For export, use patch since line width is not applied
         if obj.bShowTraces(axIdx)
@@ -310,6 +337,10 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
             set([SE.mainLine,SE.edge,SE.patch],...
                 'UserData',[sIdx,itemIdx],... % SE.mainLine
                 'Visible',uix.utility.tf2onoff(IsVisible));
+        elseif ~isempty(SE) && isa(SE, 'matlab.graphics.chart.primitive.ErrorBar')
+            set(SE,  'UserData',[sIdx,itemIdx],... % SE.mainLine
+                'Visible',uix.utility.tf2onoff(IsVisible));        
+        
         end
         
     end %for itemIdx = 1:numel(Results)
