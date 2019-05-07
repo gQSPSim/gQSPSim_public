@@ -563,7 +563,12 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                         
                         paramsTable = cell2table(PlotParametersData, 'VariableNames', {'Parameter','Value'});
 
-                        tableSpecies = innerjoin(allSpecies, paramsTable);
+                        if ~isempty(allSpecies)
+                            tableSpecies = innerjoin(allSpecies, paramsTable);
+                        else
+                            tableSpecies = paramsTable;
+                        end
+                        
                         allParams = [allParams; tableSpecies.Parameter];
                         
 %                         PlotParametersDataTable = outerjoin( allParams, paramsTable);
