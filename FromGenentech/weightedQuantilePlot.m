@@ -28,9 +28,16 @@ end
 % end
 
 % filter Nans
-ixNan = any(isnan(x));
-x = x(:,~ixNan);
-w = w(~ixNan);
+if size(x,1) > 1
+    ixNan = any(isnan(x));
+    x = x(:,~ixNan);
+    w = w(~ixNan);
+else
+    ixNan = isnan(x);
+    x = x(~ixNan);
+    w = w(~ixNan);
+end
+
 w = w/sum(w);
 if isempty(w)
     h = [];
@@ -51,6 +58,10 @@ for tIdx = 1:size(x,1)
     end
 end
 
-h = shadedErrorBar(t, m, [q_u-m; m-q_l], 'lineprops', {'Color', col, 'LineStyle', style}, 'meanlinewidth', meanlinewidth, 'boundarylinewidth', boundarylinewidth, 'parent', parent);
-
+if length(t) > 1
+    h = shadedErrorBar(t, m, [q_u-m; m-q_l], 'lineprops', {'Color', col, 'LineStyle', style}, 'meanlinewidth', meanlinewidth, 'boundarylinewidth', boundarylinewidth, 'parent', parent);
+else
+    h = errorbar(t, m, m-q_l,q_u-m, 'Color', col, 'LineStyle', style, 'LineWidth',  ...
+        meanlinewidth, 'parent', parent, 'Marker', 'o');
+end
 
