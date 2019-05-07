@@ -2,6 +2,16 @@ function [StatusOK,Message,ResultsFileNames,VpopNames, groupErrorCounts, groupEr
 % Sets up and runs the optimization contained in the Optimization object
 % "obj".
 
+% check for species-data mapping
+if isempty(obj.SpeciesData)
+    StatusOK = false;
+    Message = 'At least one species-data mapping must be defined for optimization to proceed.';
+    ResultsFileNames = {};
+    VpopNames = {};
+    
+    return 
+end
+
 % Initialize waitbar
 Title = sprintf('Run Optimization');
 DialogMessage = sprintf('Optimization in progress. Please wait...');
