@@ -110,7 +110,9 @@ classdef CohortGeneration < uix.abstract.CardViewPane
             for index = 1:numel(tableObj)
                 Pos = get(tableObj(index),'Position');
                 if Pos(3) >= MinimumWidth
-                    
+                    if isempty(tableObj(index).ColumnName)
+                        continue
+                    end
                     nColumns = numel(tableObj(index).ColumnName);
                     ColumnWidth = (Pos(3)-Buffer)/nColumns;
                     ColumnWidth = repmat(ColumnWidth,1,nColumns);

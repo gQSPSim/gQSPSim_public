@@ -202,6 +202,11 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
             tableObj = [obj.h.ParametersTable,obj.h.ItemsTable,obj.h.SpeciesDataTable,obj.h.SpeciesICTable,obj.h.PlotSpeciesTable,obj.h.PlotItemsTable,obj.h.PlotHistoryTable,obj.h.PlotParametersTable];
             
             for index = 1:numel(tableObj)
+                
+                if isempty(tableObj(index).ColumnName)
+                    continue
+                end
+                
                 Pos = get(tableObj(index),'Position');
                 if Pos(3) >= MinimumWidth
                     
