@@ -1,3 +1,4 @@
+
 function [StatusOK,Message,ResultsFileName,VpopName] = vpopGenerationRunHelper(obj)
 % Function that generates a Virtual population by sampling parameter space,
 % running simulations, and comparing the outputs to Acceptance Criteria.
@@ -170,6 +171,8 @@ dataMatrix = [];
 sigY = []; % uncertainty in statistics
 tic
 fprintf('Computing data statistics...')
+hWbar2 = uix.utility.CustomWaitbar(0,'Please wait', 'Computing data statistics...', false);
+
 for spIdx = 1:length(obj.SpeciesData)
     thisSpecies = obj.SpeciesData(spIdx).SpeciesName;
     thisDataName = obj.SpeciesData(spIdx).DataName;
@@ -216,8 +219,11 @@ thisAlg = obj.MethodName;
 
 if strcmp(thisAlg, 'Maximum likelihood')
 %     PW = computePW_MLE(dataMatrix,Y);    
-    redistributePW = false; % TODO this should be abstracted/exposed in UI
-    PW = computePW_MLE(dataMatrix,Y,diag(0.1 * abs(Y) + 1e-3),round(0.1*size(Y,2)), redistributePW);    
+    redistributePW = obj.RedistributeWeights;
+    minVpats = min(obj.MinNumVirtualPatients, nPatients);
+    
+    uix.utility.CustomWaitbar(0, hWbar2, 'Computing prevalence weights...');    
+    PW = computePW_MLE(dataMatrix,Y,diag(0.1 * abs(Y) + 1e-3),minVpats, redistributePW);    
 
 elseif strcmp(thisAlg, 'Bayesian')
     disp('pass')
@@ -251,6 +257,8 @@ if StatusOK
     end
         
     if SaveFlag
+        uix.utility.CustomWaitbar(0,hWbar2,'Writing vpop to disk...');    
+        
         VpopName = ['Results - Vpop Generation = ' obj.Name ' - Date = ' datestr(now,'dd-mmm-yyyy_HH-MM-SS')];
         ResultsFileName = [VpopName '.xlsx'];
         if ispc
@@ -269,14 +277,16 @@ if StatusOK
         if ~ThisStatusOk
             StatusOK = false;
             Message = sprintf('%s\n%s\n',Message,ThisMessage.message);
-        end
+        end               
     else
         StatusOK = false;
         ThisMessage = 'Could not save the output of virtual population generation.';
         Message = sprintf('%s\n%s\n',Message,ThisMessage);
     end
         
-%     delete(hWbar)
+    if ~isempty(hWbar2)
+        delete(hWbar2)
+    end
 end
 
 % restore path

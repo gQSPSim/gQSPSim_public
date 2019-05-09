@@ -183,6 +183,16 @@ classdef VirtualPopulationGeneration < uix.abstract.CardViewPane
             
         end %function
         
+        function onRedistributeWeightsCheck(vObj,h,e)
+            vObj.TempData.RedistributeWeights = get(h,'Value');
+
+            % Update the view
+            refreshDataset(vObj);
+            refreshItemsTable(vObj);
+            refreshSpeciesDataTable(vObj);
+            
+        end
+        
         function onParametersPopup(vObj,h,e)
             
             vObj.TempData.RefParamName = vObj.ParameterPopupItems{get(h,'Value')};

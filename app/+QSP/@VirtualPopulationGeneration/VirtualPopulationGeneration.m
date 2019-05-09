@@ -53,6 +53,8 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
         
         SelectedPlotLayout = '1x1'   
         PlotSettings = repmat(struct(),1,12)
+        
+        RedistributeWeights = false
     end
     
     properties (SetAccess = 'private')
@@ -234,6 +236,7 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
                             StatusOK = false;
                             Message = sprintf('%s\n* %s\n',Message,ThisMessage);
                         end
+                                                
                     end
                 else
                     ThisMessage = 'No Cohort specified';
