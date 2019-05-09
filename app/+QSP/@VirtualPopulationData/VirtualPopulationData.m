@@ -80,9 +80,9 @@ classdef VirtualPopulationData < QSP.abstract.BaseProps & uix.mixin.HasTreeRefer
                 if ~ThisStatusOk
                     Message = sprintf('%s\n* Error loading data "%s". %s\n',Message,obj.FilePath,ThisMessage);
                     StatusOK = false;
-                elseif ~all(ismember(Header,{'Group','Time','Data','LB','UB','Include'}))
+                elseif ~all(ismember(upper(Header),{'GROUP','TIME','DATA','LB','UB'}))
                     % Validate headers
-                    Message = sprintf('%s\n* Acceptance criteria file contains incorrect headers. "%s". %s\n',Message,obj.FilePath,ThisMessage);
+                    Message = sprintf('%s\n* Acceptance criteria file contains incorrect headers. It must contain the columns Group, Time, Data, LB, and UB.\n\n %s\n',ThisMessage);
                     StatusOK = false;
                 end
                 
