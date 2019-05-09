@@ -449,12 +449,20 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
                 if isempty(hThisParent)
                     hThisParent = hAxes(1);
                 end
+                
+                if strcmpi(Mode,'Cohort')
+                    style = 'quantile';
+                else 
+                    style = 'mean_std';
+                end
+                
                 SE = weightedQuantilePlot(Results{itemIdx}.Time, x, w, ItemColors(itemIdx,:),...
                     'linestyle',ThisLineStyle,...
                     'meanlinewidth',obj.PlotSettings(axIdx).MeanLineWidth,...
                     'boundarylinewidth',obj.PlotSettings(axIdx).BoundaryLineWidth,...
                     'quantile',[obj.PlotSettings(axIdx).BandplotLowerQuantile, obj.PlotSettings(axIdx).BandplotUpperQuantile],...
-                    'parent',hThisParent); % hSpeciesGroup{sIdx,axIdx});
+                    'parent',hThisParent, ...
+                    'style', style); % hSpeciesGroup{sIdx,axIdx});
                 
                 
                 if isa(SE, 'matlab.graphics.chart.primitive.ErrorBar')
