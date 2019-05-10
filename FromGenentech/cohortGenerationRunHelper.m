@@ -756,7 +756,7 @@ if ~isempty(accCritHeader) && ~isempty(accCritData)
     % filter out any acceptance criteria that are not included
     includeIdx = accCritData(:,strcmp('Include',accCritHeader));
     if ~isempty(includeIdx)
-        param_candidate = cell2mat(includeIdx);
+        param_candidate = strcmpi(includeIdx,'yes');
         accCritData = accCritData(param_candidate==1,:);
     end
     

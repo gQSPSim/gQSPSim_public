@@ -94,7 +94,7 @@ classdef Parameters < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                     Message = sprintf('%s\n* Error loading data "%s". %s\n',Message,obj.FilePath,ThisMessage);
                 end
                 
-                if ~all(ismember(upper(ParamHeader), {'NAME','SCALE','LB','UB','P0_1'}))
+                if ~all(ismember({'NAME','SCALE','LB','UB','P0_1'}, upper(ParamHeader)))
                     Message = sprintf('%s\n* Parameters file must include columns for Name, Scale, LB, UB, and P0_1\n', Message)
                     StatusOK = false;
                 end
