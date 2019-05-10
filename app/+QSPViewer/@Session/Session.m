@@ -95,51 +95,42 @@ classdef Session <  uix.abstract.CardViewPane % uix.abstract.ViewPane
         
         function onFileSelection(vObj,h,evt) %#ok<*INUSD>
             
-            StatusOk = true;
+%             StatusOk = true;
             
             % Which field was modified?
             Field = h.Tag;
             
             % Update the value, and trap errors
             try
-                vObj.Data.(Field) = evt.NewValue;
+                vObj.TempData.(Field) = evt.NewValue;
             catch err
-                StatusOk = false;
+%                 StatusOk = false;
                 hDlg = errordlg(err.message,Field,'modal');
                 uiwait(hDlg);
             end
             
-            % Refresh data
-            refreshData(vObj.Data.Settings);
-            
             % Update the view
-            refresh(vObj);
-            
-            % Call the callback
-            if StatusOk
-                evt.InteractionType = Field;
-                vObj.callCallback(evt);
-            end
+            update(vObj);
             
         end %function
         
         function onUDFSelection(vObj,h,evt)
             
             % remove old path
-            removeUDF(vObj.Data);
+            removeUDF(vObj.TempData);
             
             % assign value & refresh
             onFileSelection(vObj,h,evt);
            
             % add new path
-            addUDF(vObj.Data);
+            addUDF(vObj.TempData);
 
            
         end
         
         function onParallelCheckbox(vObj,h,evt)
-            vObj.Data.UseParallel = h.Value;
-            if ~vObj.Data.UseParallel
+            vObj.TempData.UseParallel = h.Value;
+            if ~vObj.TempData.UseParallel
                 set(vObj.h.ParallelCluster, 'Enable', 'off')
             else
                 set(vObj.h.ParallelCluster, 'Enable', 'on')
@@ -147,9 +138,9 @@ classdef Session <  uix.abstract.CardViewPane % uix.abstract.ViewPane
                     if isempty(vObj.h.ParallelCluster.String)
                         vObj.h.ParallelCluster.String = parallel.clusterProfiles;
                     end
-                    vObj.Data.ParallelCluster = vObj.h.ParallelCluster.String{vObj.h.ParallelCluster.Value};
+                    vObj.TempData.ParallelCluster = vObj.h.ParallelCluster.String{vObj.h.ParallelCluster.Value};
                 else
-                    vObj.Data.ParallelCluster = vObj.h.ParallelCluster.String;
+                    vObj.TempData.ParallelCluster = vObj.h.ParallelCluster.String;
                 end
             end
         end
@@ -167,7 +158,7 @@ classdef Session <  uix.abstract.CardViewPane % uix.abstract.ViewPane
         end        
         
         function onParallelClusterPopup(vObj,h,evt)
-            vObj.Data.ParallelCluster = h.String{h.Value};
+            vObj.TempData.ParallelCluster = h.String{h.Value};
         end
         
         
@@ -208,13 +199,13 @@ classdef Session <  uix.abstract.CardViewPane % uix.abstract.ViewPane
             ThisTag = get(h,'Tag');
             
             % remove old path
-            removeUDF(vObj.Data);
+            removeUDF(vObj.TempData);
             
             % Invoke superclass's onButtonPress
             onButtonPress@uix.abstract.CardViewPane(vObj,h,e);
             
             % add new path
-            addUDF(vObj.Data);
+            addUDF(vObj.TempData);
             
             switch ThisTag
                 case 'Save'

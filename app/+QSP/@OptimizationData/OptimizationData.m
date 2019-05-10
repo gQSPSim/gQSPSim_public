@@ -110,7 +110,7 @@ classdef OptimizationData < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                     StatusOK = false;
                 end
                 
-                if ~all(ismember(upper(OptimHeader), {'GROUP','ID','TIME'}))
+                if ~all(ismember( {'GROUP','ID','TIME'}, upper(OptimHeader)))
                     Message = sprintf('%s\n* Optimization data must contain columns for Group, ID, and Time\n', Message);
                     StatusOK = false;
                 end

@@ -112,7 +112,9 @@ function [Results, nFailedSims, StatusOK, Message, Cancelled] = simulateVPatient
             UDF_files = dir(fullfile(options.UDF,'**','*.m'));
             UDF_files = arrayfun(@(x) fullfile(x.folder,x.name), UDF_files, 'UniformOutput', false);
             if isempty(p)
-                p = parpool(ParallelCluster, 'AutoAddClientPath', false); %, 'AutoAddClientPath', true, 'AttachedFiles', UDF_files);
+%                 p = parpool(ParallelCluster, 'AutoAddClientPath', false); %, 'AutoAddClientPath', true, 'AttachedFiles', UDF_files);
+                p = parpool(ParallelCluster); %, 'AutoAddClientPath', true, 'AttachedFiles', UDF_files);
+
             end
             
             addAttachedFiles(p, UDF_files);
@@ -140,6 +142,7 @@ function [Results, nFailedSims, StatusOK, Message, Cancelled] = simulateVPatient
                     break
                 end
                 F(labindex) = parfeval(p, @parBlock, 1, block, Names, Values, taskObj, Results);
+%                 Results = parBlock(block, Names, Values, taskObj, Results);
             end
             wait(F);
             try         
@@ -181,10 +184,12 @@ function [Results, nFailedSims, StatusOK, Message, Cancelled] = simulateVPatient
                 else
                     theseValues = Values(jj,:);
                 end
+                                    
                 [simData,simOK,errMessage]  = taskObj.simulate(...
                         'Names', Names, ...
                         'Values', theseValues, ...
                         'OutputTimes', Results.Time);
+                
                 nSim = nSim + 1;                         
                 if ~simOK
 
@@ -208,7 +213,7 @@ function [Results, nFailedSims, StatusOK, Message, Cancelled] = simulateVPatient
             catch err% simulation
                 % If the simulation fails, store NaNs
                 warning(err.identifier, 'simulationRunHelper: %s', err.message)
-                % pad Results.Data with appropriate number of NaNs
+                pad Results.Data with appropriate number of NaNs
                 if ~isempty(taskObj.ActiveSpeciesNames)
                     Results.Data = [Results.Data,NaN*ones(length(Results.Time),length(taskObj.ActiveSpeciesNames))];
                 else
