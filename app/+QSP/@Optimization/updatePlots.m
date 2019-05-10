@@ -252,42 +252,6 @@ for axIndex = AxIndices(:)'
             LegendItems = [];
         end
         
-        if ~isempty(LegendItems)
-            try
-                % Add legend
-                [hLegend{axIndex},hLegendChildren{axIndex}] = legend(hAxes(axIndex),LegendItems);
-                
-                % Color, FontSize, FontWeight
-                for cIndex = 1:numel(hLegendChildren{axIndex})
-                    if isprop(hLegendChildren{axIndex}(cIndex),'FontSize')
-                        hLegendChildren{axIndex}(cIndex).FontSize = obj.PlotSettings(axIndex).LegendFontSize;
-                    end
-                    if isprop(hLegendChildren{axIndex}(cIndex),'FontWeight')
-                        hLegendChildren{axIndex}(cIndex).FontWeight = obj.PlotSettings(axIndex).LegendFontWeight;
-                    end
-                end
-                
-                set(hLegend{axIndex},...
-                    'EdgeColor','none',...
-                    'Visible',obj.PlotSettings(axIndex).LegendVisibility,...
-                    'Location',obj.PlotSettings(axIndex).LegendLocation,...
-                    'FontSize',obj.PlotSettings(axIndex).LegendFontSize,...
-                    'FontWeight',obj.PlotSettings(axIndex).LegendFontWeight);
-            catch ME
-                warning(ME.message)
-            end
-        else
-            Siblings = get(get(hAxes(axIndex),'Parent'),'Children');
-            IsLegend = strcmpi(get(Siblings,'Type'),'legend');
-            
-            if any(IsLegend)
-                if isvalid(Siblings(IsLegend))
-                    delete(Siblings(IsLegend));
-                end
-            end
-            
-            hLegend{axIndex} = [];
-            hLegendChildren{axIndex} = [];
-        end
+        [hLegend{axIndex},hLegendChildren{axIndex}] = uix.abstract.CardViewPane.redrawLegend(hAxes(axIndex),LegendItems,obj.PlotSettings(axIndex));
     end %if RedrawLegend
 end %for axIndex

@@ -131,7 +131,7 @@ SelectedItemColors = cell2mat(colors);
 
 
 %% Plot Simulation Items
-     
+
 for sIdx = 1:size(obj.PlotSpeciesTable,1)
     origAxIdx = str2double(obj.PlotSpeciesTable{sIdx,1});
     axIdx = origAxIdx;
@@ -195,29 +195,27 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
             error('Invalid color selected!')
         end
 
-        SE = [];
-        if length(ThisResult.Time) > 1
+%         if length(ThisResult.Time) > 1
+        if length(ThisResult.Time) == 1
+            ThisMarkerStyle = 'o';
+        else
+            ThisMarkerStyle = 'none';
+        end
+        
             hThisTrace = plot(hSpeciesGroup{sIdx,axIdx},ThisResult.Time,ThisResult.Data(:,ColumnIdx),...
                 'Color',ThisColor,...
                 'Tag','TraceLine',...
                 'LineStyle',ThisLineStyle,...
-                'LineWidth',obj.PlotSettings(axIdx).LineWidth);
-        else % need to use scatter if only one point
-            hThisTrace = scatter(ThisResult.Time,ThisResult.Data(:,ColumnIdx), 20);
-            set(hThisTrace, 'Parent', hSpeciesGroup{sIdx,axIdx});
-            set(hThisTrace,...
-                'MarkerFaceColor',ThisColor,...
-                'Tag','TraceLine');
-        end
+                'LineWidth',obj.PlotSettings(axIdx).LineWidth, ...
+                'Marker', ThisMarkerStyle);
         if obj.bShowTraces(axIdx)
             set(hThisTrace,'Visible','on');
         else
             set(hThisTrace,'Visible','off');
         end
-        thisTraceAnnotation = get(hThisTrace,'Annotation');
+        setIconDisplayStyleOff(hThisTrace);
         
-
-        axes(get(hSpeciesGroup{sIdx,axIdx},'Parent'))
+        
         %                 q50 = quantile(Results(resultIdx).Data(:,ColumnIdx),0.5,2);
         %                 q75 = quantile(Results(resultIdx).Data(:,ColumnIdx),0.75,2);
         %                 q25 = quantile(Results(resultIdx).Data(:,ColumnIdx),0.25,2);
@@ -251,41 +249,59 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
         
         %                 Results(resultIdx).Data
         
-        if length(ThisResult.Time') > 1
+%         if length(ThisResult.Time') > 1
             %                     SE=shadedErrorBar(Results(resultIdx).Time', q50, [q975-q50;q50-q025]);
             %                     set(SE.mainLine,'Color',SelectedItemColors(itemIdx,:),...
             %                         'LineStyle',ThisLineStyle);
             %                     set(SE.patch,'FaceColor',SelectedItemColors(itemIdx,:));
             %                     set(SE.edge,'Color',SelectedItemColors(itemIdx,:),'LineWidth',2);
             x = ThisResult.Data(:,ColumnIdx);
+            
+            
+            % NOTE: If hSpeciesGroup is not parented to an
+            % axes, then this will pop up a new figure. Set to an
+            % axes and then re-parent after
+            hThisParent = ancestor(hSpeciesGroup{sIdx,axIdx},'axes');
+            % Temporarily parent to the first axes
+            if isempty(hThisParent)
+                hThisParent = hAxes(1);                
+            end
             SE = weightedQuantilePlot(ThisResult.Time, x, w0, ThisColor, ...
                 'linestyle',ThisLineStyle,...
                 'meanlinewidth',obj.PlotSettings(axIdx).MeanLineWidth,...
                 'boundarylinewidth',obj.PlotSettings(axIdx).BoundaryLineWidth,...
-                'parent',hSpeciesGroup{sIdx,axIdx}, ...
-                'quantile', [obj.PlotSettings(axIdx).BandplotLowerQuantile, obj.PlotSettings(axIdx).BandplotUpperQuantile] );
+                'quantile', [obj.PlotSettings(axIdx).BandplotLowerQuantile, obj.PlotSettings(axIdx).BandplotUpperQuantile],...
+                'parent',hThisParent); % hSpeciesGroup{sIdx,axIdx});
             
+            if isa(SE, 'matlab.graphics.chart.primitive.ErrorBar')
+                % error bar (one time point)
+                set(SE, 'Parent',hSpeciesGroup{sIdx,axIdx});
+            else
+                % shaded error bar
+                set([SE.mainLine,SE.edge,SE.patch],'Parent',hSpeciesGroup{sIdx,axIdx});
+            end
+                
             if isempty(SE)
                 continue
             end
             
             if obj.bShowQuantiles(axIdx)
-                set([SE.mainLine,SE.edge,SE.patch],'Visible','on');
+                if isa(SE, 'matlab.graphics.chart.primitive.ErrorBar')
+                    set(SE, 'Visible', 'on');
+                else
+                    set([SE.mainLine,SE.edge,SE.patch],'Visible','on');
+                end
             else
-                set([SE.mainLine,SE.edge,SE.patch],'Visible','off');
+                if isa(SE, 'matlab.graphics.chart.primitive.ErrorBar')
+                    set(SE, 'Visible', 'off')
+                else
+                    set([SE.mainLine,SE.edge,SE.patch],'Visible','off');    
+                end
             end
-            thisQuantileAnnotation = get([SE.mainLine,SE.edge,SE.patch],'Annotation');
-        else
-%             % NOTE: Justin - code does not enter here (i.e. q50,
-%             % etc are not computed)
-%             x = ThisResult.Data(:,ColumnIdx);
-%             h = scatter(hSpeciesGroup{sIdx,axIdx}, ThisResult.Time, x, 10);
-%             set(h,'MarkerFaceColor', ThisColor);            
-%             thisTraceAnnotation = get(h,'Annotation');
-            thisQuantileAnnotation = [];
-        end
-
-        
+            if ~isa(SE, 'matlab.graphics.chart.primitive.ErrorBar')
+                setIconDisplayStyleOff([SE.mainLine,SE.edge,SE.patch]);            
+            end
+            
         % Only allow one display name between traces and quantiles
         FormattedFullDisplayName = regexprep(FullDisplayName,'_','\\_'); % For export, use patch since line width is not applied
         if obj.bShowTraces(axIdx)
@@ -305,30 +321,10 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
             set([SE.mainLine,SE.edge,SE.patch],...
                 'UserData',[sIdx,itemIdx],... % SE.mainLine
                 'Visible',uix.utility.tf2onoff(IsVisible));
-        end
+        elseif ~isempty(SE) && isa(SE, 'matlab.graphics.chart.primitive.ErrorBar')
+            set(SE,  'UserData',[sIdx,itemIdx],... % SE.mainLine
+                'Visible',uix.utility.tf2onoff(IsVisible));        
         
-        % Process this trace
-        if iscell(thisTraceAnnotation)
-            thisLegendInformation = get([thisTraceAnnotation{:}],'LegendInformation');
-        else
-            thisLegendInformation = get(thisTraceAnnotation,'LegendInformation');
-        end
-        if iscell(thisLegendInformation)
-            set([thisLegendInformation{:}],'IconDisplayStyle','off');
-        else
-            set(thisLegendInformation,'IconDisplayStyle','off');
-        end
-        
-        % Process this quantile
-        if iscell(thisQuantileAnnotation)
-            thisLegendInformation = get([thisQuantileAnnotation{:}],'LegendInformation');
-        else
-            thisLegendInformation = get(thisQuantileAnnotation,'LegendInformation');
-        end
-        if iscell(thisLegendInformation)
-            set([thisLegendInformation{:}],'IconDisplayStyle','off');
-        else
-            set(thisLegendInformation,'IconDisplayStyle','off');
         end
         
     end %for itemIdx = 1:numel(Results)
@@ -413,6 +409,7 @@ if any(MatchIdx)
                             'Tag','Data',...
                             'DisplayName',regexprep(ThisDisplayName,'_','\\_'),...
                             'UserData',dIdx);
+                        
                         set(get(get(hDatasetGroup{dIdx,axIdx},'Annotation'),'LegendInformation'),'IconDisplayStyle','on')
                         % Add dummy line for legend
                         line(nan,nan,'Parent',hDatasetGroup{dIdx,axIdx},...
@@ -424,14 +421,20 @@ if any(MatchIdx)
                     end
 
                     % Plot but remove from the legend
-                    hThis = plot(hDatasetGroup{dIdx,axIdx},cell2mat(Time(MatchIdx)),cell2mat(OptimData(MatchIdx,ColumnIdx)),...
-                        'Color',SelectedGroupColors(gIdx,:),...
-                        'LineStyle','none',...
-                        'Marker',ThisMarker,...
-                        'MarkerSize',obj.PlotSettings(axIdx).DataSymbolSize,...
-                        'UserData',[dIdx,gIdx],...
-                        'DisplayName',regexprep(sprintf('%s %s',ThisDisplayName,SelectedGroupNames{gIdx}),'_','\\_')); % For export
-                    set(get(get(hThis,'Annotation'),'LegendInformation'),'IconDisplayStyle','off');
+                    try
+                        hThis = plot(hDatasetGroup{dIdx,axIdx},cell2mat(Time(MatchIdx)),cell2mat(OptimData(MatchIdx,ColumnIdx)),...
+                            'Color',SelectedGroupColors(gIdx,:),...
+                            'LineStyle','none',...
+                            'Marker',ThisMarker,...
+                            'MarkerSize',obj.PlotSettings(axIdx).DataSymbolSize,...
+                            'UserData',[dIdx,gIdx],...
+                            'DisplayName',regexprep(sprintf('%s %s',ThisDisplayName,SelectedGroupNames{gIdx}),'_','\\_')); % For export
+                    catch err
+                        errordlg(sprintf('Error encountered plotting data. Please check the optimization data item for valid entries.\n\n%s\n', err.message))                        
+                    end
+                    
+                    setIconDisplayStyleOff(hThis);
+                    
                     set(hThis,'Visible',uix.utility.tf2onoff(IsVisible));
                 end %for gIdx
             end %if

@@ -282,6 +282,12 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             
             % Invoke helper
             if StatusOK
+                
+                % For autosave with tag
+                if obj.Session.UseAutoSave && obj.Session.AutoSaveBeforeRun
+                    autoSaveFile(obj.Session,'Tag','preRunSimulation');
+                end
+                
                 % Run helper
                 [ThisStatusOK,thisMessage,ResultFileNames,Cancelled] = simulationRunHelper(obj);
                 if ~ThisStatusOK && ~Cancelled

@@ -566,7 +566,12 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                         
                         paramsTable = cell2table(PlotParametersData, 'VariableNames', {'Parameter','Value'});
 
-                        tableSpecies = innerjoin(allSpecies, paramsTable);
+                        if ~isempty(allSpecies)
+                            tableSpecies = innerjoin(allSpecies, paramsTable);
+                        else
+                            tableSpecies = paramsTable;
+                        end
+                        
                         allParams = [allParams; tableSpecies.Parameter];
                         
 %                         PlotParametersDataTable = outerjoin( allParams, paramsTable);
@@ -599,6 +604,12 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             
             % Invoke helper
             if StatusOK
+                
+                % For autosave with tag
+                if obj.Session.UseAutoSave && obj.Session.AutoSaveBeforeRun
+                    autoSaveFile(obj.Session,'Tag','preRunOptimization');
+                end
+                
                 % If no initial conditions are specified, only one VPop is
                 % created. If IC are provided, the # of VPops is equivalent
                 % to the number of groups + 1

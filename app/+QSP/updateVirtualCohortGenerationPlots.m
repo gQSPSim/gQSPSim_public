@@ -1,10 +1,10 @@
-function [hLegend,hLegendChildren] = updatePlots(obj,hAxes,hSpeciesGroup,hDatasetGroup,varargin)
-% updatePlots - Redraws the legend
+function [hLegend,hLegendChildren] = updateVirtualCohortGenerationPlots(obj,hAxes,hSpeciesGroup,hDatasetGroup,varargin)
+% updateVirtualCohortGenerationPlots - Redraws the plots
 % -------------------------------------------------------------------------
-% Abstract: Redraws the legend
+% Abstract: Redraws the plots
 %
 % Syntax:
-%           updatePlots(aObj,hAxes)
+%           updateVirtualCohortGenerationPlots(aObj,hAxes)
 %
 % Inputs:
 %           obj - QSP.Simulation object
@@ -40,17 +40,18 @@ p = inputParser;
 p.KeepUnmatched = false;
 
 % Define defaults and requirements for each parameter
+p.addParameter('Mode','Cohort',@(x)any(ismember(x,{'Cohort','VP'})));
 p.addParameter('AxIndices',1:NumAxes); %#ok<*NVREPL>
 p.addParameter('RedrawLegend',true);
 
 p.parse(varargin{:});
 
+Mode = p.Results.Mode;
 AxIndices = p.Results.AxIndices;
 RedrawLegend = p.Results.RedrawLegend;
 
 
 for axIndex = AxIndices(:)'
-    
     
     %---------------------------------------------------------------------%
     % Process Species Group
@@ -78,11 +79,13 @@ for axIndex = AxIndices(:)'
     if iscell(SelectedUserData)
         SelectedUserData = vertcat(SelectedUserData{:});
     end
-    TheseItems = TheseSpeciesGroups;
-    for thisIdx = 1:numel(TheseItems)
+    TheseSimItems = TheseSpeciesGroups;
+    for thisIdx = 1:numel(TheseSimItems)
         sIdx = SelectedUserData(thisIdx);
-        FormattedFullDisplayName = regexprep(obj.PlotSpeciesTable{sIdx,4},'_','\\_'); % For export, use patch since line width is not applied
-        set(TheseItems(thisIdx),'DisplayName',FormattedFullDisplayName);
+        ThisDisplayName = obj.PlotSpeciesTable{sIdx,5};
+        
+        FormattedFullDisplayName = regexprep(sprintf('%s [Sim]',ThisDisplayName),'_','\\_'); % For export, use patch since line width is not applied
+        set(TheseSimItems(thisIdx),'DisplayName',FormattedFullDisplayName);                
     end
     
     
@@ -103,6 +106,7 @@ for axIndex = AxIndices(:)'
         
         % Get all Traces and Quantiles
         TheseChildren = ch(~IsDummyLine);
+        
         ChildrenUserData = get(TheseChildren,'UserData');
         if iscell(ChildrenUserData)
             ChildrenUserData = vertcat(ChildrenUserData{:});
@@ -110,9 +114,19 @@ for axIndex = AxIndices(:)'
         
         IsItemVisible = ismember(ChildrenUserData(:,2),VisibleItemIndices);
         
+        if strcmpi(Mode,'Cohort')
+            IsInvalidVP = strcmpi(get(TheseChildren,'Tag'),'InvalidVP');
+            chInvalidVP = TheseChildren(IsInvalidVP);
+            chInvalidVPVisible = TheseChildren(IsInvalidVP & IsItemVisible);
+        end
+        
         IsTrace = strcmpi(get(TheseChildren,'Tag'),'TraceLine');
         chTrace = TheseChildren(IsTrace);
         chTraceVisible = TheseChildren(IsTrace & IsItemVisible);
+        
+        IsMeanLine = strcmpi(get(TheseChildren,'Tag'),'WeightedMeanLine');
+        chMeanLine = TheseChildren(IsMeanLine);
+        chMeanLineVisible = TheseChildren(IsMeanLine & IsItemVisible);
         
         IsQuantile = strcmpi(get(TheseChildren,'Tag'),'MeanLine');
         chQuantile = TheseChildren(IsQuantile);
@@ -126,9 +140,19 @@ for axIndex = AxIndices(:)'
         chBoundaryPatch = TheseChildren(IsBoundaryPatch);
         chBoundaryPatchVisible = TheseChildren(IsBoundaryPatch & IsItemVisible);
         
+        IsErrorbar = strcmpi(get(TheseChildren,'Tag'),'Errorbar');
+        chErrorbar = TheseChildren(IsErrorbar);
+        chErrorbarVisible = TheseChildren(IsErrorbar & IsItemVisible);
         
-        % Toggle Visibility for items based on ShowTraces, ShowQuantiles, and
+        % Toggle Visibility for items based on ShowInvalidVirtualPatients, ShowTraces, ShowQuantiles, and
         % Selected/Unselected items
+        if strcmpi(Mode,'Cohort')
+            if obj.ShowInvalidVirtualPatients
+                set(chInvalidVPVisible,'Visible','on')
+            else
+                set(chInvalidVP,'Visible','off')
+            end
+        end
         if obj.bShowTraces(axIndex)
             set(chTraceVisible,'Visible','on')
         else
@@ -136,13 +160,18 @@ for axIndex = AxIndices(:)'
         end
         if obj.bShowQuantiles(axIndex)
             set(chQuantileVisible,'Visible','on')
+            set(chMeanLine,'Visible','off')
             set(chIsBoundaryLineVisible,'Visible','on')
             set(chBoundaryPatchVisible,'Visible','on')
         else
             set(chQuantile,'Visible','off')
+            set(chMeanLineVisible,'Visible','on')
             set(chIsBoundaryLine,'Visible','off')
             set(chBoundaryPatch,'Visible','off')
         end
+        
+        set(chErrorbarVisible,'Visible','on')
+        
         MatchIdx = ismember(ChildrenUserData(:,2),InvisibleItemIndices);
         TheseMatches = TheseChildren(MatchIdx);
         set(TheseMatches,'Visible','off')
@@ -150,26 +179,48 @@ for axIndex = AxIndices(:)'
         
         % Update Display Name and LineStyles for Children of SpeciesGroup
         
-        % Turn off displayname for all traces and quantiles
-        set(chTrace,'DisplayName','');
-        set(chQuantile,'DisplayName','');
+        % Turn off displayname for all children (including traces and
+        % quantiles)
+        set(TheseChildren,'DisplayName','');
         
         % Get one type of child - either trace OR quantile
-        TheseItems = [];
-        if obj.bShowTraces(axIndex) && ~isempty(chTrace)
+        TheseSimItems = [];
+        if obj.bShowTraces(axIndex) && obj.bShowQuantiles(axIndex)
             % Process trace to only set ONE display name per unique entry
-            TheseItems = chTrace;
-            
-        elseif ~obj.bShowTraces(axIndex) && ~isempty(chQuantile)
+            if ~isempty(chQuantile)
+                TheseSimItems = [TheseSimItems; chQuantile(:)]; %#ok<AGROW>
+            end
+            if ~isempty(chTrace)
+                TheseSimItems = [TheseSimItems; chTrace(:)]; %#ok<AGROW>
+            end
+        elseif obj.bShowTraces(axIndex) && ~obj.bShowQuantiles(axIndex)
+            % Process trace to only set ONE display name per unique entry
+            if ~isempty(chMeanLine)
+                TheseSimItems = [TheseSimItems; chMeanLine(:)]; %#ok<AGROW>
+            end
+            if ~isempty(chTrace)
+                TheseSimItems = [TheseSimItems; chTrace(:)]; %#ok<AGROW>
+            end
+        elseif ~obj.bShowTraces(axIndex) && obj.bShowQuantiles(axIndex) && ~isempty(chQuantile)
             % Process quantile to only set ONE display name per unique entry
-            TheseItems = chQuantile;
+            TheseSimItems = chQuantile;
+        elseif ~obj.bShowTraces(axIndex) && ~obj.bShowQuantiles(axIndex) && ~isempty(chMeanLine)
+            % Process mean line to only set ONE display name per unique
+            % entry
+            TheseSimItems = chMeanLine;
+        end
+        
+        % Append errorbar (necessary for export, if errorbar is the only
+        % item plotted)        
+        if ~isempty(chErrorbar)
+            TheseSimItems = [TheseSimItems(:); chErrorbar(:)];
         end
         
         % Process species related content
-        if ~isempty(TheseItems)
+        if ~isempty(TheseSimItems)
             
             % Get user data
-            SelectedUserData = get(TheseItems,'UserData'); % Just [sIdx,itemIdx]
+            SelectedUserData = get(TheseSimItems,'UserData'); % Just [sIdx,itemIdx]
             if iscell(SelectedUserData)
                 SelectedUserData = vertcat(SelectedUserData{:});
             end
@@ -183,20 +234,24 @@ for axIndex = AxIndices(:)'
                 itemIdx = ThisUserData(2);
                 
                 % Now create formatted display name
-                ThisDisplayName = obj.PlotSpeciesTable{sIdx,4};
-                FullDisplayName = sprintf('%s %s',ThisDisplayName,obj.PlotItemTable{itemIdx,6});
-                FormattedFullDisplayName = regexprep(FullDisplayName,'_','\\_'); % For export, use patch since line width is not applied
+                ThisDisplayName = obj.PlotSpeciesTable{sIdx,5};
+                FullDisplayName = sprintf('%s %s',ThisDisplayName,obj.PlotItemTable{itemIdx,5});
+                FormattedFullDisplayName = regexprep(sprintf('%s [Sim]',FullDisplayName),'_','\\_'); % For export, use patch since line width is not applied
                 
                 % Get line style
                 ThisLineStyle = obj.PlotSpeciesTable{sIdx,2};
                 % Set display name for selection only
-                type = class(TheseItems(thisIdx));
-                set(TheseItems(thisIdx),'DisplayName',FormattedFullDisplayName);                
-                if ~strcmp(type, 'matlab.graphics.chart.primitive.Scatter')
-                    set(TheseItems(thisIdx),'LineStyle',ThisLineStyle);
+                set(TheseSimItems(thisIdx),'DisplayName',FormattedFullDisplayName);
+                % Do not set line style for errorbars
+                if ~isa(TheseSimItems(thisIdx),'matlab.graphics.chart.primitive.ErrorBar')
+                    MatchIdx = ismember(SelectedUserData(:,1),sIdx);
+                    set(TheseSimItems(MatchIdx),'LineStyle',ThisLineStyle);
+                    % NOTE: Don't just apply line style to the unique entry                    
+                    %                     set(TheseSimItems(thisIdx),'LineStyle',ThisLineStyle);
                 end
             end
         end
+
     end %if ~isempty(ch)
     
     %---------------------------------------------------------------------%
@@ -217,30 +272,23 @@ for axIndex = AxIndices(:)'
     end
     TheseItems = TheseDataGroups;
     for thisIdx = 1:numel(TheseItems)
-        dIdx = SelectedUserData(thisIdx);
-        FormattedFullDisplayName = regexprep(obj.PlotDataTable{dIdx,4},'_','\\_'); % For export, use patch since line width is not applied
-        set(TheseItems(thisIdx),'DisplayName',FormattedFullDisplayName);
+        dIdx = SelectedUserData(thisIdx,1);
+        ThisDisplayName = obj.PlotSpeciesTable{dIdx,5};
+        FullDisplayName = sprintf('%s [Data]',ThisDisplayName); % For export, use patch since line width is not applied
+        set(TheseItems(thisIdx),'DisplayName',FullDisplayName);
     end
     
     if ~isempty(ch)
         
         % Set DummyLine - MarkerStyle
         IsDummyLine = strcmpi(get(ch,'Tag'),'DummyLine');
-        TheseDummyLines = ch(IsDummyLine);
-        SelectedUserData = get(TheseItems,'UserData'); % Just sIdx
-        if iscell(SelectedUserData)
-            SelectedUserData = vertcat(SelectedUserData{:});
-        end
-        for thisIdx = 1:numel(TheseDummyLines)
-            dIdx = SelectedUserData(thisIdx);
-            ThisMarkerStyle = obj.PlotDataTable{dIdx,2};
-            set(TheseDummyLines(thisIdx),'Marker',ThisMarkerStyle);
-        end
         
         TheseChildren = ch(~IsDummyLine);
         
         % Process dataset related content
         if ~isempty(TheseChildren)
+            
+            set(TheseChildren,'DisplayName','');
             
             % Get user data
             SelectedUserData = get(TheseChildren,'UserData'); % Just [sIdx,itemIdx]
@@ -257,18 +305,16 @@ for axIndex = AxIndices(:)'
                 itemIdx = ThisUserData(2);
                 
                 % Now create formatted display name
-                ThisDisplayName = obj.PlotDataTable{dIdx,4};
-                FullDisplayName = sprintf('%s %s',ThisDisplayName,obj.PlotGroupTable{itemIdx,4});
-                FormattedFullDisplayName = regexprep(FullDisplayName,'_','\\_'); % For export, use patch since line width is not applied
+                ThisDisplayName = obj.PlotSpeciesTable{dIdx,5};
+                FullDisplayName = sprintf('%s %s',ThisDisplayName,obj.PlotItemTable{itemIdx,5});
+                FormattedFullDisplayName = regexprep(sprintf('%s [Data]',FullDisplayName),'_','\\_'); % For export, use patch since line width is not applied
                 
-                % Get marker style
-                ThisMarkerStyle = obj.PlotDataTable{dIdx,2};
                 % Set display name for selection only
-                set(TheseChildren(thisIdx),'DisplayName',FormattedFullDisplayName,'Marker',ThisMarkerStyle);
+                set(TheseChildren(thisIdx),'DisplayName',FormattedFullDisplayName);
             end
             
             % Toggle visibility
-            ItemIndices = cell2mat(obj.PlotGroupTable(:,1));
+            ItemIndices = cell2mat(obj.PlotItemTable(:,1));
             VisibleItemIndices = find(ItemIndices);
             InvisibleItemIndices = find(~ItemIndices);
             
@@ -283,7 +329,7 @@ for axIndex = AxIndices(:)'
     end %if ~isempty(ch)
     
     
-    % Append
+    % Append    
     LegendItems = [horzcat(hSpeciesGroup{:,axIndex}) horzcat(hDatasetGroup{:,axIndex})];
     
     if RedrawLegend
@@ -298,7 +344,6 @@ for axIndex = AxIndices(:)'
             LegendItems = [];
         end
         
-       [hLegend{axIndex},hLegendChildren{axIndex}] = uix.abstract.CardViewPane.redrawLegend(hAxes(axIndex),LegendItems,obj.PlotSettings(axIndex));
-       
-    end %if RedrawLegend
-end %for axIndex
+        [hLegend{axIndex},hLegendChildren{axIndex}] = uix.abstract.CardViewPane.redrawLegend(hAxes(axIndex),LegendItems,obj.PlotSettings(axIndex));
+    end
+end

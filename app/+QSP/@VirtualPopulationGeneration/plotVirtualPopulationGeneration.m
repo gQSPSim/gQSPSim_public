@@ -26,6 +26,12 @@ function [hSpeciesGroup,hDatasetGroup,hLegend,hLegendChildren] = plotVirtualPopu
 %   $Revision: 331 $  $Date: 2016-10-05 18:01:36 -0400 (Wed, 05 Oct 2016) $
 % ---------------------------------------------------------------------
 
+
+[hSpeciesGroup,hDatasetGroup,hLegend,hLegendChildren] = QSP.plotVirtualCohortGeneration(obj,hAxes,'Mode','VP');
+return;
+
+
+
 %% Turn on hold
 
 for index = 1:numel(hAxes)
@@ -247,20 +253,10 @@ if strcmp(obj.PlotType, 'Normal') && ~isempty(Results)
                             'Color',[0.5,0.5,0.5],...
                             'LineWidth',obj.PlotSettings(axIdx).LineWidth,...
                             'LineStyle',ThisLineStyle);
-                        hThisAnn = get(hThis,'Annotation');
-                        if iscell(hThisAnn)
-                            hThisAnn = [hThisAnn{:}];
-                        end
-                        hThisAnnLegend = get(hThisAnn,'LegendInformation');
-                        if iscell(hThisAnnLegend)
-                            hThisAnnLegend = [hThisAnnLegend{:}];
-                        end
-                        set(hThisAnnLegend,'IconDisplayStyle','off');
-                        rej_lines = [rej_lines; hThis];
+                        setIconDisplayStyleOff(hThis)
                         
-%                         rej_lines = [rej_lines; plot(hAxes(axIdx),Results{itemIdx}.Time,Results{itemIdx}.Data(:,ColumnIdx_invalid),...
-%                             'LineStyle',ThisLineStyle,...
-%                             'Color',[0.5,0.5,0.5])];  
+                        rej_lines = [rej_lines; hThis]; %#ok<AGROW>
+                        
                     end
                     
                     % valid lines
@@ -271,80 +267,46 @@ if strcmp(obj.PlotType, 'Normal') && ~isempty(Results)
                             hThis = plot(hSpeciesGroup{sIdx,axIdx},Results{itemIdx}.Time,thisData(:,setdiff(ColumnIdx, ColumnIdx_invalid)),...
                                 'Color',SelectedItemColors(itemIdx,:),...
                                 'LineStyle',ThisLineStyle);
-                            acc_lines = [acc_lines; hThis];                        
+                            acc_lines = [acc_lines; hThis];                         %#ok<AGROW>
 
                         end
                         
                         if obj.bShowQuantiles(axIdx)
-% %                             axes(get(hSpeciesGroup{sIdx,axIdx},'Parent'))
-%                             h=shadedErrorBar(Results{itemIdx}.Time, mean(thisData(:,setdiff(ColumnIdx, ColumnIdx_invalid)),2), ...
-%                                 std(thisData(:,setdiff(ColumnIdx, ColumnIdx_invalid)),[],2));
-%                             set(h.mainLine,'Parent',hSpeciesGroup{sIdx,axIdx})
-%                             set(h.patch,'Parent',hSpeciesGroup{sIdx,axIdx})
-%                             set(h.edge,'Parent',hSpeciesGroup{sIdx,axIdx})
-%                             set(h.mainLine, 'Color',SelectedItemColors(itemIdx,:),...
-%                                 'LineStyle',ThisLineStyle);
-%                             set(h.patch,'FaceColor',SelectedItemColors(itemIdx,:));
-%                             hThis = h.mainLine;
+                            
+                            % mean
+                            %                     mean_line = plot(hAxes(axIdx), Results{itemIdx}.Time, thisData(:,ColumnIdx) * obj.PrevalenceWeights/sum(obj.PrevalenceWeights),...
+                            if iscell(Results{itemIdx}.VpopWeights)
+                                vpopWeights = cell2mat(Results{itemIdx}.VpopWeights);
+                            else
+                                vpopWeights = Results{itemIdx}.VpopWeights;
+                            end
+                            
+                            %                         thisMean = thisData(:,ColumnIdx) * vpopWeights/sum(vpopWeights);
+                            x = thisData(:,ColumnIdx);
+                            w0 = vpopWeights/sum(vpopWeights);
+                            
+                            %                         for tIdx = 1:size(thisData,1)
+                            %                             [y,ix] = sort( thisData(tIdx,ColumnIdx), 'Ascend');
+                            %                             q025(tIdx) = y(find(cumsum(w0(ix)) >= 0.025, 1, 'first'));
+                            %                             q975(tIdx) = y(find(cumsum(w0(ix)) >= 0.975, 1, 'first'));
+                            %                             q50(tIdx) = y(find(cumsum(w0(ix)) >= 0.5, 1, 'first'));
+                            %                         end
+                            % %                             thisStd = sqrt( (thisData(:,ColumnIdx) - thisMean).^2 * vpopWeights/sum(vpopWeights));
+                            axes(get(hSpeciesGroup{sIdx,axIdx},'Parent'))
+                            %                         mean_line = shadedErrorBar(Results{itemIdx}.Time, q50,...
+                            %                            [q975-q50; q50-q025]');
+                            %                         set(mean_line.mainLine, 'LineStyle',ThisLineStyle,...
+                            %                             'Color',SelectedItemColors(itemIdx,:), ...
+                            %                             'LineWidth', 3);
+                            
+                            SE = weightedQuantilePlot(Results{itemIdx}.Time,  x, w0, SelectedItemColors(itemIdx,:),...
+                                'linestyle',ThisLineStyle,...
+                                'meanlinewidth',obj.PlotSettings(axIdx).MeanLineWidth,...
+                                'boundarylinewidth',obj.PlotSettings(axIdx).BoundaryLineWidth,...
+                                'quantile',[obj.PlotSettings(axIdx).BandplotLowerQuantile, obj.PlotSettings(axIdx).BandplotUpperQuantile], ...
+                                'parent',hSpeciesGroup{sIdx,axIdx});
+                            setIconDisplayStyleOff([SE.mainLine,SE.edge,SE.patch])
 
-                        
-                        
-%                         hThisAnn = get(hThis,'Annotation');
-%                         if iscell(hThisAnn)
-%                             hThisAnn = [hThisAnn{:}];
-%                         end
-%                         hThisAnnLegend = get(hThisAnn,'LegendInformation');
-%                         if iscell(hThisAnnLegend)
-%                             hThisAnnLegend = [hThisAnnLegend{:}];
-%                         end
-%                         set(hThisAnnLegend,'IconDisplayStyle','off');
-                        
-                        % mean
-    %                     mean_line = plot(hAxes(axIdx), Results{itemIdx}.Time, thisData(:,ColumnIdx) * obj.PrevalenceWeights/sum(obj.PrevalenceWeights),...
-                        if iscell(Results{itemIdx}.VpopWeights)
-                            vpopWeights = cell2mat(Results{itemIdx}.VpopWeights);
-                        else
-                            vpopWeights = Results{itemIdx}.VpopWeights;
-                        end
-                    
-%                         thisMean = thisData(:,ColumnIdx) * vpopWeights/sum(vpopWeights);
-                        x = thisData(:,ColumnIdx);
-                        w0 = vpopWeights/sum(vpopWeights);
-                        
-%                         for tIdx = 1:size(thisData,1)
-%                             [y,ix] = sort( thisData(tIdx,ColumnIdx), 'Ascend');
-%                             q025(tIdx) = y(find(cumsum(w0(ix)) >= 0.025, 1, 'first'));
-%                             q975(tIdx) = y(find(cumsum(w0(ix)) >= 0.975, 1, 'first'));
-%                             q50(tIdx) = y(find(cumsum(w0(ix)) >= 0.5, 1, 'first'));
-%                         end
-% %                             thisStd = sqrt( (thisData(:,ColumnIdx) - thisMean).^2 * vpopWeights/sum(vpopWeights));
-                        axes(get(hSpeciesGroup{sIdx,axIdx},'Parent'))
-%                         mean_line = shadedErrorBar(Results{itemIdx}.Time, q50,...
-%                            [q975-q50; q50-q025]');
-%                         set(mean_line.mainLine, 'LineStyle',ThisLineStyle,...
-%                             'Color',SelectedItemColors(itemIdx,:), ...
-%                             'LineWidth', 3);
-
-                        SE = weightedQuantilePlot(Results{itemIdx}.Time,  x, w0, SelectedItemColors(itemIdx,:),...
-                            'linestyle',ThisLineStyle,...
-                            'meanlinewidth',obj.PlotSettings(axIdx).MeanLineWidth,...
-                            'boundarylinewidth',obj.PlotSettings(axIdx).BoundaryLineWidth,...
-                            'parent',hSpeciesGroup{sIdx,axIdx}, ...
-                            'quantile', [obj.PlotSettings(axIdx).BandplotLowerQuantile, obj.PlotSettings(axIdx).BandplotUpperQuantile] ...
-                            );
-                        thisQuantileAnnotation = get([SE.mainLine,SE.edge,SE.patch],'Annotation');
-                        % Process this quantile
-                        if iscell(thisQuantileAnnotation)
-                            thisLegendInformation = get([thisQuantileAnnotation{:}],'LegendInformation');
-                        else
-                            thisLegendInformation = get(thisQuantileAnnotation,'LegendInformation');
-                        end
-                        if iscell(thisLegendInformation)
-                            set([thisLegendInformation{:}],'IconDisplayStyle','off');
-                        else
-                            set(thisLegendInformation,'IconDisplayStyle','off');
-                        end
-%                         set(mean_line.patch, 'FaceColor',SelectedItemColors(itemIdx,:));    
                         end
                     end
                     
@@ -402,6 +364,9 @@ elseif strcmp(obj.PlotType,'Diagnostic') && ~isempty(Results)
     spNames = obj.PlotSpeciesTable(:,3);
     dataNames = obj.PlotSpeciesTable(:,4);
     
+    ItemIndices = cell2mat(obj.PlotItemTable(:,1));
+    VisibleItemIndices = find(ItemIndices);
+    
     % loop over axes
     unqAxis = unique(allAxes);
     for axIdx = 1:numel(unqAxis)
@@ -423,9 +388,13 @@ elseif strcmp(obj.PlotType,'Diagnostic') && ~isempty(Results)
             currentDataIdx = strcmp(currentData, obj.PlotSpeciesTable(:,4));
             % loop over all tasks and get the data for this species  
             for itemIdx = 1:numel(Results)
-
+                
+                if ~ismember(itemIdx,VisibleItemIndices)
+                    return;
+                end 
+                    
                 itemNumber = ResultsIdx(itemIdx);
-
+                
                 % species in this task 
                 NumSpecies = numel(Results{itemIdx}.SpeciesNames);
                 currentSpecies = obj.PlotSpeciesTable( strcmp(obj.PlotSpeciesTable(:,4), currentData), 3);
@@ -572,15 +541,8 @@ if strcmp(obj.PlotType,'Normal') && any(MatchIdx)
                                 'MarkerSize',obj.PlotSettings(axIdx).DataSymbolSize,...
                                 'Color',SelectedGroupColors(gIdx,:),...
                                 'DisplayName',regexprep(sprintf('%s [Data]',FullDisplayName),'_','\\_')); % For export % 'DisplayName',regexprep(ThisName,'_','\\_'));
-                            hThisAnn = get(hThis,'Annotation');
-                            if iscell(hThisAnn)
-                                hThisAnn = [hThisAnn{:}];
-                            end
-                            hThisAnnLegend = get(hThisAnn,'LegendInformation');
-                            if iscell(hThisAnnLegend)
-                                hThisAnnLegend = [hThisAnnLegend{:}];
-                            end
-                            set(hThisAnnLegend,'IconDisplayStyle','off');                            
+                            setIconDisplayStyleOff(hThis)
+                                       
                         end %if                        
                     end %for
                 end %if
@@ -594,6 +556,7 @@ end %if
 
 % Force a drawnow, to avoid legend issues
 drawnow;
+
 [hLegend,hLegendChildren] = updatePlots(obj,hAxes,hSpeciesGroup,hDatasetGroup);
 
 
@@ -626,7 +589,7 @@ for index = 1:numel(hAxes)
      % Reset zoom state
     hFigure = ancestor(hAxes(index),'Figure');
     if ~isempty(hFigure) && strcmpi(obj.PlotSettings(index).XLimMode,'auto') && strcmpi(obj.PlotSettings(index).YLimMode,'auto')
-        axes(hAxes(index));
+        set(hFigure,'CurrentAxes',hAxes(index)) % This causes the legend fontsize to reset: axes(hAxes(index));
         try
             zoom(hFigure,'out');
             zoom(hFigure,'reset');        

@@ -85,11 +85,43 @@ classdef Simulation < uix.abstract.CardViewPane
             obj.Data.SelectedPlotLayout = obj.PlotLayoutOptions{Value};
             
             onPlotConfigChange@uix.abstract.CardViewPane(obj,h,e);
-        end
-    end
+        end %function
+        
+        function resize(obj)
+            
+            Buffer = 40;
+            MinimumWidth = 50;
+            
+            tableObj = [obj.h.ItemsTable,obj.h.PlotSpeciesTable,obj.h.PlotItemsTable,obj.h.PlotDatasetTable,obj.h.PlotGroupTable];
+            
+            for index = 1:numel(tableObj)
+                Pos = get(tableObj(index),'Position');
+                if Pos(3) >= MinimumWidth
+                    
+                    nColumns = numel(tableObj(index).ColumnName);
+                    ColumnWidth = (Pos(3)-Buffer)/nColumns;
+                    ColumnWidth = repmat(ColumnWidth,1,nColumns);
+                    if isa(tableObj(index).HTable,'matlab.ui.control.Table')
+                        tableObj(index).HTable.ColumnWidth = num2cell(ColumnWidth);
+                    else
+                        tableObj(index).HTable.ColumnWidth = ColumnWidth;
+                    end
+                    
+                end
+            end %for
+        end %function
+        
+    end %methods
+   
     
     %% Callbacks
     methods
+        
+        function onResize(obj,h,e)
+            
+            resize(obj);
+            
+        end %function
         
         function onFolderSelection(vObj,h,evt) %#ok<*INUSD>
             
@@ -241,15 +273,16 @@ classdef Simulation < uix.abstract.CardViewPane
                 vObj.Data.PlotSpeciesTable(RowIdx,ColIdx) = ThisData(RowIdx,ColIdx);
 
                 if ColIdx == 2
-                    % Style
-                    for sIdx = 1:size(vObj.Data.PlotSpeciesTable,1)
-                        axIdx = str2double(vObj.Data.PlotSpeciesTable{sIdx,1});
-                        if ~isnan(axIdx)
-                            Ch = get(vObj.h.SpeciesGroup{sIdx,axIdx},'Children');
-                            HasLineStyle = isprop(Ch,'LineStyle');
-                            set(Ch(HasLineStyle),'LineStyle',vObj.Data.PlotSpeciesTable{sIdx,2});
-                        end
-                    end   
+%                     % Style - Note this will change the line styles even
+%                     for the patch boundaries
+%                     for sIdx = 1:size(vObj.Data.PlotSpeciesTable,1)
+%                         axIdx = str2double(vObj.Data.PlotSpeciesTable{sIdx,1});
+%                         if ~isnan(axIdx)
+%                             Ch = get(vObj.h.SpeciesGroup{sIdx,axIdx},'Children');
+%                             HasLineStyle = isprop(Ch,'LineStyle');
+%                             set(Ch(HasLineStyle),'LineStyle',vObj.Data.PlotSpeciesTable{sIdx,2});
+%                         end
+%                     end   
                     
                     AxIndices = NewAxIdx;
                     if isempty(AxIndices)
@@ -300,6 +333,9 @@ classdef Simulation < uix.abstract.CardViewPane
                             vObj.h.SpeciesGroup{sIdx,OldAxIdx} = [];
                         end
                     end
+                    
+                    % Update lines (line widths, marker sizes)
+                    updateLines(vObj);
                     
                     AxIndices = [OldAxIdx,NewAxIdx];
                     AxIndices(isnan(AxIndices)) = [];

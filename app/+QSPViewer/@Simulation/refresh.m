@@ -35,3 +35,8 @@ refresh@uix.abstract.CardViewPane(vObj);
 
 update(vObj);
 
+
+%% Resize
+
+resize(vObj);
+

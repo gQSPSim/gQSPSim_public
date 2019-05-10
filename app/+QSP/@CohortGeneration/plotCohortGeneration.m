@@ -27,15 +27,22 @@ function [hSpeciesGroup,hDatasetGroup,hLegend,hLegendChildren] = plotCohortGener
 % ---------------------------------------------------------------------
 
 
+[hSpeciesGroup,hDatasetGroup,hLegend,hLegendChildren] = QSP.plotVirtualCohortGeneration(obj,hAxes,'Mode','Cohort');
+return;
+
+
 %% Turn on hold
 
 for index = 1:numel(hAxes)
-%     XLimMode{index} = get(hAxes(index),'XLimMode');
-%     YLimMode{index} = get(hAxes(index),'YLimMode');
+    %     XLimMode{index} = get(hAxes(index),'XLimMode');
+    %     YLimMode{index} = get(hAxes(index),'YLimMode');
     cla(hAxes(index));
+    xr = get(hAxes(index),'xruler');
+    xr.TickLabelRotation = 0;
+    
     legend(hAxes(index),'off')
-%     set(hAxes(index),'XLimMode',XLimMode{index},'YLimMode',YLimMode{index})
-
+    %     set(hAxes(index),'XLimMode',XLimMode{index},'YLimMode',YLimMode{index})
+    
     set(hAxes(index),...
         'XLimMode',obj.PlotSettings(index).XLimMode,...
         'YLimMode',obj.PlotSettings(index).YLimMode);
@@ -52,7 +59,7 @@ for index = 1:numel(hAxes)
             'YLim',tmp);
     end
     
-    hold(hAxes(index),'on')    
+    hold(hAxes(index),'on')
 end
 
 NumAxes = numel(hAxes);
@@ -66,7 +73,7 @@ hLegendChildren = cell(1,NumAxes);
 %% Process
 
 % TODO: These are not passed out
-StatusOK = true;
+
 Message = '';
 
 % load acceptance criteria
@@ -75,13 +82,13 @@ MatchIdx = strcmpi(Names,obj.DatasetName);
 
 if any(MatchIdx)
     vpopObj = obj.Settings.VirtualPopulationData(MatchIdx);
-
+    
     [ThisStatusOk,ThisMessage,accCritHeader,accCritData] = importData(vpopObj,vpopObj.FilePath);
     if ~ThisStatusOk
         StatusOK = false;
-        Message = sprintf('%s\n%s\n',Message,ThisMessage);        
+        Message = sprintf('%s\n%s\n',Message,ThisMessage);
     end
-    else
+else
     accCritHeader = {};
     accCritData = {};
 end
@@ -96,10 +103,14 @@ TimeVec = cell2mat(accCritData(:,strcmp('Time', accCritHeader)));
 %% Get the selections and Task-Vpop pairs
 
 % Get the selected items
-IsSelected = obj.PlotItemTable(:,1);
-if iscell(IsSelected)
-    IsSelected = cell2mat(IsSelected);
+OrigIsSelected = obj.PlotItemTable(:,1);
+if iscell(OrigIsSelected)
+    OrigIsSelected = cell2mat(OrigIsSelected);
 end
+OrigIsSelected = find(OrigIsSelected);
+
+% Process all
+IsSelected = true(size(obj.PlotItemTable,1),1);
 
 if isempty(obj.SimResults)
     IsCached = false(size(obj.PlotItemTable(:,1)));
@@ -107,13 +118,12 @@ if isempty(obj.SimResults)
 else
     IsCached = ~cellfun(@isempty, obj.SimResults);
 end
-CachedInds = find(IsCached);
-RunInds = IsSelected & ~IsCached;    
+RunInds = IsSelected & ~IsCached;
 
 if any(RunInds) && ~isempty(obj.VPopName)
-        
+    
     SelectedInds = find(RunInds);
-
+    
     % make Task-Vpop pairs for each selected task
     nSelected = nnz(RunInds);
     
@@ -132,15 +142,15 @@ else
 end
 
 % get the virtual population object
-allVpopNames = {obj.Settings.VirtualPopulation.Name};
-vObj = obj.Settings.VirtualPopulation(strcmp(obj.VPopName,allVpopNames));
+% allVpopNames = {obj.Settings.VirtualPopulation.Name};
+% vObj = obj.Settings.VirtualPopulation(strcmp(obj.VPopName,allVpopNames));
 
 %% Run the simulations for those that are not cached
 if ~isempty(simObj)
-
+    
     [ThisStatusOK,Message,ResultFileNames,Cancelled,Results] = simulationRunHelper(simObj, [], {}, TimeVec);
     
-    if ~ThisStatusOK  && ~Cancelled     
+    if ~ThisStatusOK  && ~Cancelled
         errordlg(Message)
         return
     end
@@ -152,12 +162,12 @@ if ~isempty(simObj)
     % cache the result to avoid simulating again
     for ii = 1:length(simObj.Item)
         obj.SimResults{SelectedInds(ii)}.Time = Results{ii}.Time;
-        obj.SimResults{SelectedInds(ii)}.SpeciesNames = Results{ii}.SpeciesNames;        
-        obj.SimResults{SelectedInds(ii)}.Data = Results{ii}.Data;    
+        obj.SimResults{SelectedInds(ii)}.SpeciesNames = Results{ii}.SpeciesNames;
+        obj.SimResults{SelectedInds(ii)}.Data = Results{ii}.Data;
         obj.SimResults{SelectedInds(ii)}.VpopWeights = Results{ii}.VpopWeights;
     end
 else
-    Results = [];    
+    Results = [];
 end
 
 
@@ -168,13 +178,13 @@ indCached = find(IsSelected & IsCached);
 newResults = [];
 
 for ii = 1:length(indCached)
-    newResults{indCached(ii)} = obj.SimResults{indCached(ii)};
+    newResults{indCached(ii)} = obj.SimResults{indCached(ii)}; %#ok<AGROW>
 end
 
 indNotCached = find(IsSelected & ~IsCached);
 if ~isempty(Results)
     for ii = 1:length(indNotCached)
-        newResults{indNotCached(ii)} = Results{ii};
+        newResults{indNotCached(ii)} = Results{ii}; %#ok<AGROW>
     end
 end
 
@@ -190,15 +200,14 @@ SelectedItemColors = cell2mat(obj.PlotItemTable(IsSelected,2));
 ResultsIdx = find(IsSelected);
 
 if strcmp(obj.PlotType, 'Normal') && ~isempty(Results)
-    % all axes with species assigned to them
-    allAxes = str2double(obj.PlotSpeciesTable(:,1));
     
     for sIdx = 1:size(obj.PlotSpeciesTable,1)
-        axIdx = str2double(obj.PlotSpeciesTable{sIdx,1});
-%         cla(hAxes(allAxes))
-        if ~isnan(axIdx)
-            set(hAxes(axIdx),'XTickMode','auto','XTickLabelMode','auto','YTickMode','auto','YTickLabelMode','auto')
+        origAxIdx = str2double(obj.PlotSpeciesTable{sIdx,1});
+        axIdx = origAxIdx;
+        if isempty(axIdx) || isnan(axIdx)
+            axIdx = 1;
         end
+        
         ThisLineStyle = obj.PlotSpeciesTable{sIdx,2};
         ThisName = obj.PlotSpeciesTable{sIdx,3};
         ThisDataName = obj.PlotSpeciesTable{sIdx,4};
@@ -207,266 +216,245 @@ if strcmp(obj.PlotType, 'Normal') && ~isempty(Results)
         acc_lines = [];
         rej_lines = [];
         ublb_lines = [];
-        mean_line = [];
         
-        if ~isempty(axIdx) && ~isnan(axIdx)
+        
+        for itemIdx = 1:numel(Results)
+            itemNumber = ResultsIdx(itemIdx);
+            % Plot the species from the simulation item in the appropriate
+            % color
             
-            for itemIdx = 1:numel(Results)
-                itemNumber = ResultsIdx(itemIdx);
-                % Plot the species from the simulation item in the appropriate
-                % color
-
-                % Get the match in Sim 1 (Virtual Patient 1) in this VPop
-                ColumnIdx = find(strcmp(Results{itemIdx}.SpeciesNames,ThisName));
-
-                FullDisplayName = sprintf('%s %s',ThisDisplayName,obj.PlotItemTable{itemIdx,5});
-                
-                % since not all tasks will contain all species...
-                if ~isempty(ColumnIdx)
-                    % Update ColumnIdx to get species for ALL virtual patients
-                    NumSpecies = numel(Results{itemIdx}.SpeciesNames);
-                    ColumnIdx = ColumnIdx:NumSpecies:size(Results{itemIdx}.Data,2);
-                    ColumnIdx_invalid = find(strcmp(Results{itemIdx}.SpeciesNames,ThisName)) + (find(Results{itemIdx}.VpopWeights==0)-1) * NumSpecies;
-
-                    
-                    if isempty(hSpeciesGroup{sIdx,axIdx})
-                        hSpeciesGroup{sIdx,axIdx} = hggroup(hAxes(axIdx),...
-                            'Tag','Species',...
-                            'DisplayName',regexprep(sprintf('%s [Sim]',ThisDisplayName),'_','\\_'));
-                        set(get(get(hSpeciesGroup{sIdx,axIdx},'Annotation'),'LegendInformation'),'IconDisplayStyle','on')
-                        % Add dummy line for legend
-                        line(nan,nan,'Parent',hSpeciesGroup{sIdx,axIdx},...
-                            'LineStyle',ThisLineStyle,...
-                            'Color',[0 0 0],...
-                            'Tag','DummyLine');
-                    end                    
-                    
-                    % Plot
-                    % Normal plot type
-                    % plot over for just the invalid / rejected vpatients
-                    
-                    % transform data 
-                    thisData = obj.SpeciesData(sIdx).evaluate(Results{itemIdx}.Data);
-
-                    % invalid lines
-                    if ~isempty(ColumnIdx_invalid) && obj.ShowInvalidVirtualPatients
-                        % Plot
-                        hThis = plot(hSpeciesGroup{sIdx,axIdx},Results{itemIdx}.Time,thisData(:,ColumnIdx_invalid),...
-                            'Color',[0.5,0.5,0.5],...
-                            'LineStyle',ThisLineStyle,...
-                            'LineWidth',obj.PlotSettings(axIdx).LineWidth);
-                        hThisAnn = get(hThis,'Annotation');
-                        if iscell(hThisAnn)
-                            hThisAnn = [hThisAnn{:}];
-                        end
-                        hThisAnnLegend = get(hThisAnn,'LegendInformation');
-                        if iscell(hThisAnnLegend)
-                            hThisAnnLegend = [hThisAnnLegend{:}];
-                        end
-                        set(hThisAnnLegend,'IconDisplayStyle','off');
-                        rej_lines = [rej_lines; hThis];
-                        
-%                         rej_lines = [rej_lines; plot(hAxes(axIdx),Results{itemIdx}.Time,Results{itemIdx}.Data(:,ColumnIdx_invalid),...
-%                             'LineStyle',ThisLineStyle,...
-%                             'Color',[0.5,0.5,0.5])];  
-                    end
-                    
-                    % valid lines
-                    if ~isempty(Results{itemIdx}.Data(:,setdiff(ColumnIdx, ColumnIdx_invalid)))
-
-                        hThis = [];
-                        
-                        % Plot
-                        if obj.bShowTraces(axIdx)
-                            hThis = plot(hSpeciesGroup{sIdx,axIdx},Results{itemIdx}.Time,thisData(:,setdiff(ColumnIdx, ColumnIdx_invalid)),...
-                                'Color',SelectedItemColors(itemIdx,:),...
-                                'LineStyle',ThisLineStyle,...
-                                'LineWidth',obj.PlotSettings(axIdx).LineWidth);
-                            acc_lines = [acc_lines; hThis];                        
-
-                        end
-                        
-                        if obj.bShowQuantiles(axIdx)
-                            axes(get(hSpeciesGroup{sIdx,axIdx},'Parent'))
-%                             q50 = median(thisData(:,setdiff(ColumnIdx, ColumnIdx_invalid)),2);
-%                             q025 = quantile(thisData(:,setdiff(ColumnIdx, ColumnIdx_invalid)),0.025,2);
-%                             q975 = quantile(thisData(:,setdiff(ColumnIdx, ColumnIdx_invalid)),0.975,2);
-% 
-%                             h=shadedErrorBar(Results{itemIdx}.Time, q50, [q975-q50, q50-q025]);
-% 
-%                             set(h.mainLine,'Parent',hSpeciesGroup{sIdx,axIdx})
-%                             set(h.patch,'Parent',hSpeciesGroup{sIdx,axIdx})
-%                             set(h.edge,'Parent',hSpeciesGroup{sIdx,axIdx})
-%                             set(h.mainLine, 'Color',SelectedItemColors(itemIdx,:),...
-%                                 'LineStyle',ThisLineStyle);
-%                             set(h.patch,'FaceColor',SelectedItemColors(itemIdx,:));
-                            x = thisData(:,setdiff(ColumnIdx, ColumnIdx_invalid));
-                            w = ones(size(x,2),1) * 1/size(x,2);
-                            SE = weightedQuantilePlot(Results{itemIdx}.Time, x, w, SelectedItemColors(itemIdx,:),...
-                                'linestyle',ThisLineStyle,...
-                                'meanlinewidth',obj.PlotSettings(axIdx).MeanLineWidth,...
-                                'boundarylinewidth',obj.PlotSettings(axIdx).BoundaryLineWidth,...
-                                'parent',hSpeciesGroup{sIdx,axIdx}, ...
-                                'quantile', [obj.PlotSettings(axIdx).BandplotLowerQuantile, obj.PlotSettings(axIdx).BandplotUpperQuantile] ...
-                            );
-                            hThis = [SE.mainLine,SE.edge,SE.patch];                            
-                        end
-                                    
-                        hThisAnn = get(hThis,'Annotation');
-                        if iscell(hThisAnn)
-                            hThisAnn = [hThisAnn{:}];
-                        end
-                        hThisAnnLegend = get(hThisAnn,'LegendInformation');
-                        if iscell(hThisAnnLegend)
-                            hThisAnnLegend = [hThisAnnLegend{:}];
-                        end
-                        set(hThisAnnLegend,'IconDisplayStyle','off');
-                        
-%                         acc_lines = [acc_lines; plot(hAxes(axIdx),Results{itemIdx}.Time,Results{itemIdx}.Data(:,setdiff(ColumnIdx, ColumnIdx_invalid)),...
-%                             'LineStyle',ThisLineStyle,...
-%                             'Color',SelectedItemColors(itemIdx,:))];
-
-                        % mean
-    %                     mean_line = plot(hAxes(axIdx), Results{itemIdx}.Time, thisData(:,ColumnIdx) * obj.PrevalenceWeights/sum(obj.PrevalenceWeights),...
-                        if iscell(Results{itemIdx}.VpopWeights)
-                            vpopWeights = cell2mat(Results{itemIdx}.VpopWeights);
-                        else
-                            vpopWeights = Results{itemIdx}.VpopWeights;
-                        end
-                    
-                        % Mean line
-                        hThis = plot(hSpeciesGroup{sIdx,axIdx}, Results{itemIdx}.Time, thisData(:,ColumnIdx) * ...
-                            vpopWeights/sum(vpopWeights),...
-                            'LineStyle',ThisLineStyle,...
-                            'Color',SelectedItemColors(itemIdx,:),...
-                            'LineWidth',obj.PlotSettings(axIdx).MeanLineWidth);
-                            % 'LineWidth', 3); % TODO: Ask Iraj
-                        
-                        % Only allow one display name - don't attach to
-                        % traces and quantiles and instead attach to mean
-                        % line
-                        set(hThis(1),'DisplayName',regexprep(sprintf('%s [Sim]',FullDisplayName),'_','\\_')); % For export, use patch since line width is not applied
-                            
-                        hThisAnn = get(hThis,'Annotation');
-                        if iscell(hThisAnn)
-                            hThisAnn = [hThisAnn{:}];
-                        end
-                        hThisAnnLegend = get(hThisAnn,'LegendInformation');
-                        if iscell(hThisAnnLegend)
-                            hThisAnnLegend = [hThisAnnLegend{:}];
-                        end
-                        set(hThisAnnLegend,'IconDisplayStyle','off');
-                    end
-                    
-
-
-
-                    % add upper and lower bounds if applicable
-                    DataCol = find(strcmp(accCritHeader,'Data'));
-                    accName = obj.PlotSpeciesTable(strcmp(ThisDataName,obj.PlotSpeciesTable(:,4)),4);
-
-                    accDataRows = strcmp(accCritData(:,DataCol), accName) & ...
-                        cell2mat(accCritData(:,strcmp(accCritHeader,'Group'))) == str2num(obj.PlotItemTable{itemNumber,4}) ;
-                    LB = cell2mat(accCritData(accDataRows, strcmp(accCritHeader, 'LB')));
-                    UB = cell2mat(accCritData(accDataRows, strcmp(accCritHeader, 'UB')));
-                    accTime = cell2mat(accCritData(accDataRows, strcmp(accCritHeader, 'Time')));
-
-                    if any(accDataRows)
-                        % Plot
-                        hThis = plot(hSpeciesGroup{sIdx,axIdx},accTime,LB,...
-                            'MarkerFaceColor', SelectedItemColors(itemIdx,:),...
-                            'MarkerEdgeColor','k',...
-                            'LineWidth',obj.PlotSettings(axIdx).BoundaryLineWidth,... 'LineWidth',2,...
-                            'LineStyle','none');
-                        hThisAnn = get(hThis,'Annotation');
-                        if iscell(hThisAnn)
-                            hThisAnn = [hThisAnn{:}];
-                        end
-                        hThisAnnLegend = get(hThisAnn,'LegendInformation');
-                        if iscell(hThisAnnLegend)
-                            hThisAnnLegend = [hThisAnnLegend{:}];
-                        end
-                        set(hThisAnnLegend,'IconDisplayStyle','off');
-                        ublb_lines = [ublb_lines; hThis];      
-                        
-                        hThis = plot(hSpeciesGroup{sIdx,axIdx},accTime,UB,...
-                            'MarkerFaceColor', SelectedItemColors(itemIdx,:),...
-                            'MarkerEdgeColor','k',...                            
-                            'LineWidth',obj.PlotSettings(axIdx).BoundaryLineWidth,... 'LineWidth',2,... % TODO: Ask Iraj
-                            'LineStyle','none');
-                        hThisAnn = get(hThis,'Annotation');
-                        if iscell(hThisAnn)
-                            hThisAnn = [hThisAnn{:}];
-                        end
-                        hThisAnnLegend = get(hThisAnn,'LegendInformation');
-                        if iscell(hThisAnnLegend)
-                            hThisAnnLegend = [hThisAnnLegend{:}];
-                        end
-                        set(hThisAnnLegend,'IconDisplayStyle','off');
-                        ublb_lines = [ublb_lines; hThis];      
-                        
-%                         ublb_lines = [ublb_lines; plot(hAxes(axIdx), accTime, LB, 'ko', 'LineStyle', 'none', 'MarkerFaceColor', SelectedItemColors(itemIdx,:), 'MarkerEdgeColor', 'k', 'LineWidth', 2)];
-%                         ublb_lines = [ublb_lines; plot(hAxes(axIdx), accTime, UB, 'ko', 'LineStyle', 'none', 'MarkerFaceColor', SelectedItemColors(itemIdx,:), 'MarkerEdgeColor', 'k', 'LineWidth', 2)];
-                    end
-                end
+            % Check if it is a selected item
+            if ismember(itemNumber,OrigIsSelected)
+                IsVisible = true;
+            else
+                IsVisible = false;
             end
-
-            uistack([ublb_lines;  acc_lines; rej_lines],'top');
-        end
-    end
+            
+            % Get the match in Sim 1 (Virtual Patient 1) in this VPop
+            ColumnIdx = find(strcmp(Results{itemIdx}.SpeciesNames,ThisName));
+            
+            FullDisplayName = sprintf('%s %s',ThisDisplayName,obj.PlotItemTable{itemIdx,5});
+            
+            % since not all tasks will contain all species...
+            if ~isempty(ColumnIdx)
+                % Update ColumnIdx to get species for ALL virtual patients
+                NumSpecies = numel(Results{itemIdx}.SpeciesNames);
+                ColumnIdx = ColumnIdx:NumSpecies:size(Results{itemIdx}.Data,2);
+                ColumnIdx_invalid = find(strcmp(Results{itemIdx}.SpeciesNames,ThisName)) + (find(Results{itemIdx}.VpopWeights==0)-1) * NumSpecies;
+                
+                
+                if isempty(hSpeciesGroup{sIdx,axIdx})
+                    % Un-parent if not-selected
+                    if isempty(origAxIdx) || isnan(origAxIdx)
+                        ThisParent = matlab.graphics.GraphicsPlaceholder.empty();
+                    else
+                        ThisParent = hAxes(axIdx);
+                    end
+                    hSpeciesGroup{sIdx,axIdx} = hggroup(ThisParent,...
+                        'Tag','Species',...
+                        'DisplayName',regexprep(sprintf('%s [Sim]',ThisDisplayName),'_','\\_'),...
+                        'UserData',sIdx);
+                    set(get(get(hSpeciesGroup{sIdx,axIdx},'Annotation'),'LegendInformation'),'IconDisplayStyle','on')
+                    % Add dummy line for legend
+                    line(nan,nan,'Parent',hSpeciesGroup{sIdx,axIdx},...
+                        'LineStyle',ThisLineStyle,...
+                        'Color',[0 0 0],...
+                        'Tag','DummyLine',...
+                        'UserData',sIdx);
+                end
+                
+                % Normal plot type
+                % plot over for just the invalid / rejected vpatients
+                
+                % transform data
+                thisData = obj.SpeciesData(sIdx).evaluate(Results{itemIdx}.Data);
+                
+                % invalid lines
+                if ~isempty(ColumnIdx_invalid)
+                    % Plot
+                    hThis = plot(hSpeciesGroup{sIdx,axIdx},Results{itemIdx}.Time,thisData(:,ColumnIdx_invalid),...
+                        'Color',[0.5,0.5,0.5],...
+                        'Tag','InvalidVP',...
+                        'LineStyle',ThisLineStyle,...
+                        'LineWidth',obj.PlotSettings(axIdx).LineWidth,...
+                        'UserData',[sIdx,itemIdx]);
+                    if obj.ShowInvalidVirtualPatients
+                        set(hThis,'Visible','on');
+                    else
+                        set(hThis,'Visible','off');
+                    end
+                    setIconDisplayStyleOff(hThis);
+                    rej_lines = [rej_lines; hThis]; %#ok<AGROW>
+                    
+                end
+                
+                % valid lines
+                if ~isempty(Results{itemIdx}.Data(:,setdiff(ColumnIdx, ColumnIdx_invalid)))
+                    
+                    % Plot TraceLine
+                    hThisTrace = plot(hSpeciesGroup{sIdx,axIdx},Results{itemIdx}.Time,thisData(:,setdiff(ColumnIdx, ColumnIdx_invalid)),...
+                        'Color',SelectedItemColors(itemIdx,:),...
+                        'Tag','TraceLine',...
+                        'LineStyle',ThisLineStyle,...
+                        'LineWidth',obj.PlotSettings(axIdx).LineWidth,...
+                        'UserData',[sIdx,itemIdx]);
+                    setIconDisplayStyleOff(hThisTrace);
+                    acc_lines = [acc_lines; hThisTrace]; %#ok<AGROW>
+                    if obj.bShowTraces(axIdx)
+                        set(hThisTrace,'Visible','on');
+                    else
+                        set(hThisTrace,'Visible','off');
+                    end
+                    % Set visibility
+                    set(hThisTrace,...
+                        'Visible',uix.utility.tf2onoff(IsVisible && obj.bShowTraces(axIdx)));
+                    
+                    % Plot WeightedQuantile
+                    axes(get(hSpeciesGroup{sIdx,axIdx},'Parent'))
+                    
+                    x = thisData(:,setdiff(ColumnIdx, ColumnIdx_invalid));
+                    w = ones(size(x,2),1) * 1/size(x,2);
+                    SE = weightedQuantilePlot(Results{itemIdx}.Time, x, w, SelectedItemColors(itemIdx,:),...
+                        'linestyle',ThisLineStyle,...
+                        'meanlinewidth',obj.PlotSettings(axIdx).MeanLineWidth,...
+                        'boundarylinewidth',obj.PlotSettings(axIdx).BoundaryLineWidth,...
+                        'quantile',[obj.PlotSettings(axIdx).BandplotLowerQuantile, obj.PlotSettings(axIdx).BandplotUpperQuantile],...
+                        'parent',hSpeciesGroup{sIdx,axIdx});
+                    setIconDisplayStyleOff([SE.mainLine,SE.edge,SE.patch]);
+                    if obj.bShowQuantiles(axIdx)
+                        set([SE.mainLine,SE.edge,SE.patch],'Visible','on');
+                    else
+                        set([SE.mainLine,SE.edge,SE.patch],'Visible','off');
+                    end
+                    % Set visibility
+                    if ~isempty(SE) && isstruct(SE) && isfield(SE,'mainLine')
+                        set([SE.mainLine,SE.edge,SE.patch],...
+                            'UserData',[sIdx,itemIdx],...
+                            'Visible',uix.utility.tf2onoff(IsVisible && obj.bShowQuantiles(axIdx)));
+                    end
+                    
+                    
+                    % Mean line
+                    if iscell(Results{itemIdx}.VpopWeights)
+                        vpopWeights = cell2mat(Results{itemIdx}.VpopWeights);
+                    else
+                        vpopWeights = Results{itemIdx}.VpopWeights;
+                    end
+                    hThis = plot(hSpeciesGroup{sIdx,axIdx}, Results{itemIdx}.Time, thisData(:,ColumnIdx) * ...
+                        vpopWeights/sum(vpopWeights),...
+                        'LineStyle',ThisLineStyle,...
+                        'Color',SelectedItemColors(itemIdx,:),...
+                        'UserData',[sIdx,itemIdx],... % SE.mainLine
+                        'Tag','WeightedMeanLine',... % TODO: Make unique but ensure plot settings are applied
+                        'LineWidth',obj.PlotSettings(axIdx).MeanLineWidth);
+                    
+                    % Only allow one display name - don't attach to
+                    % traces and quantiles and instead attach to mean
+                    % line
+%                     set(hThis(1),'DisplayName',regexprep(sprintf('%s [Sim]',FullDisplayName),'_','\\_')); % For export, use patch since line width is not applied
+                    setIconDisplayStyleOff(hThis);
+                    set(hThis,'Visible',uix.utility.tf2onoff(IsVisible && ~obj.bShowQuantiles(axIdx)));
+                    
+                end %if
+                
+                
+                % add upper and lower bounds if applicable
+                DataCol = find(strcmp(accCritHeader,'Data'));
+                accName = obj.PlotSpeciesTable(strcmp(ThisDataName,obj.PlotSpeciesTable(:,4)),4);
+                
+                accDataRows = strcmp(accCritData(:,DataCol), accName) & ...
+                    cell2mat(accCritData(:,strcmp(accCritHeader,'Group'))) == str2num(obj.PlotItemTable{itemNumber,4}) ; %#ok<FNDSB,ST2NM>
+                LB = cell2mat(accCritData(accDataRows, strcmp(accCritHeader, 'LB')));
+                UB = cell2mat(accCritData(accDataRows, strcmp(accCritHeader, 'UB')));
+                accTime = cell2mat(accCritData(accDataRows, strcmp(accCritHeader, 'Time')));
+                
+                if any(accDataRows)
+                    % Plot Lower Bound
+                    hThis = plot(hSpeciesGroup{sIdx,axIdx},accTime,LB,...
+                        'MarkerFaceColor', SelectedItemColors(itemIdx,:),...
+                        'MarkerEdgeColor','k',...
+                        'LineWidth',obj.PlotSettings(axIdx).BoundaryLineWidth,... 'LineWidth',2,...
+                        'LineStyle','none',...
+                        'Tag','LowerBound',...
+                        'UserData',[sIdx,itemIdx]);
+                    setIconDisplayStyleOff(hThis);
+                    ublb_lines = [ublb_lines; hThis]; %#ok<AGROW>
+                    
+                    % Plot Upper Bound
+                    hThis = plot(hSpeciesGroup{sIdx,axIdx},accTime,UB,...
+                        'MarkerFaceColor', SelectedItemColors(itemIdx,:),...
+                        'MarkerEdgeColor','k',...
+                        'LineWidth',obj.PlotSettings(axIdx).BoundaryLineWidth,... 'LineWidth',2,... % TODO: Ask Iraj
+                        'LineStyle','none',...
+                        'Tag','UpperBound',...
+                        'UserData',[sIdx,itemIdx]);
+                    setIconDisplayStyleOff(hThis);
+                    ublb_lines = [ublb_lines; hThis]; %#ok<AGROW>
+                    
+                end %if
+            end %if
+        end %for
+        
+        uistack([ublb_lines; acc_lines; rej_lines],'top');
+        
+    end %for
     
     
 elseif strcmp(obj.PlotType,'Diagnostic') && ~isempty(Results)
-   
+    
     % all axes with species assigned to them
     allAxes = str2double(obj.PlotSpeciesTable(:,1));
-
+    
     % all species names
-    spNames = obj.PlotSpeciesTable(:,3);
+    %     spNames = obj.PlotSpeciesTable(:,3);
     dataNames = obj.PlotSpeciesTable(:,4);
     
     % loop over axes
     unqAxis = unique(allAxes);
     for axIdx = 1:numel(unqAxis)
         currentAxis = unqAxis(axIdx);
-%         cla(hAxes(unqAxis(axIdx)))
-
+        %         cla(hAxes(unqAxis(axIdx)))
+        
         % get all species for this axis
         axData = dataNames(allAxes==currentAxis);
-
+        
         axDataArray = {};
         xlabArray = {};
         colorArray = {};
         UBArray = [];
         LBArray = [];
-
+        
         % loop over the species on this axis
-        for dataIdx = 1:length(axData)    
+        for dataIdx = 1:length(axData)
             currentData = axData(dataIdx);
             currentDataIdx = strcmp(currentData, obj.PlotSpeciesTable(:,4));
-            % loop over all tasks and get the data for this species  
+            % loop over all tasks and get the data for this species
             for itemIdx = 1:numel(Results)
-
+                
                 itemNumber = ResultsIdx(itemIdx);
-
-                % species in this task 
+                
+                if ~ismember(itemNumber,OrigIsSelected)
+                    continue;
+                end
+                
+                % species in this task
                 NumSpecies = numel(Results{itemIdx}.SpeciesNames);
                 currentSpecies = obj.PlotSpeciesTable( strcmp(obj.PlotSpeciesTable(:,4), currentData), 3);
                 % time points for this species in this group in the acc. crit.
-                thisTime = TimeVec(grpVec == str2num(obj.PlotItemTable{itemNumber,4}) & strcmp(DataVec, currentData));
+                thisTime = TimeVec(grpVec == str2num(obj.PlotItemTable{itemNumber,4}) & strcmp(DataVec, currentData)); %#ok<ST2NM>
                 if isempty(thisTime)
                     continue
                 end
                 
                 % ub/lb
-                thisUB = UBVec(grpVec == str2num(obj.PlotItemTable{itemNumber,4}) & strcmp(DataVec, currentData));
-                thisLB = LBVec(grpVec == str2num(obj.PlotItemTable{itemNumber,4}) & strcmp(DataVec, currentData));
-
-                % get times that are in the acceptance criteria for this task / species      
+                thisUB = UBVec(grpVec == str2num(obj.PlotItemTable{itemNumber,4}) & strcmp(DataVec, currentData)); %#ok<ST2NM>
+                thisLB = LBVec(grpVec == str2num(obj.PlotItemTable{itemNumber,4}) & strcmp(DataVec, currentData)); %#ok<ST2NM>
+                
+                % get times that are in the acceptance criteria for this task / species
                 [b_time,timeIdx] = ismember(thisTime, Results{itemIdx}.Time);
                 timeIdx = timeIdx(b_time); % rows to subset for data distributions
-
-                % index of all columns for this species in this group 
+                
+                % index of all columns for this species in this group
                 NumVpop = size(Results{itemIdx}.Data,2) / NumSpecies;
                 
                 if ~obj.ShowInvalidVirtualPatients && ~isempty(Results{itemIdx}.VpopWeights)
@@ -482,38 +470,38 @@ elseif strcmp(obj.PlotType,'Diagnostic') && ~isempty(Results)
                 else
                     ColumnIdx = find( strcmp(Results{itemIdx}.SpeciesNames, currentSpecies)) + (0:NumVpop-1)*NumSpecies;
                 end
-
+                
                 thisData = obj.SpeciesData(currentDataIdx).evaluate(Results{itemIdx}.Data(:, ColumnIdx));
                 thisData = thisData(timeIdx, :);
-
+                
                 for tix = 1:length(timeIdx)
-                    axDataArray = [axDataArray, thisData(tix,:)];
+                    axDataArray = [axDataArray, thisData(tix,:)]; %#ok<AGROW>
                 end
-
-                xlabArray = [xlabArray; num2cell(thisTime)]; % add labels to array
-                colorArray = [colorArray; repmat({SelectedItemColors(itemIdx,:)}, length(thisTime), 1)];
-                UBArray = [UBArray; thisUB];
-                LBArray = [LBArray; thisLB];
+                
+                xlabArray = [xlabArray; num2cell(thisTime)]; %#ok<AGROW> % add labels to array
+                colorArray = [colorArray; repmat({SelectedItemColors(itemIdx,:)}, length(thisTime), 1)]; %#ok<AGROW>
+                UBArray = [UBArray; thisUB]; %#ok<AGROW>
+                LBArray = [LBArray; thisLB]; %#ok<AGROW>
             end
         end
-
+        
         % plot distribution plots for this axis
         if isempty(axDataArray)
             continue
         end
         warning('off','DISTRIBUTIONPLOT:ERASINGLABELS')
         distributionPlot(hAxes(currentAxis), axDataArray, 'color', colorArray, 'xNames', xlabArray, 'showMM', 0, 'histOpt', 0)
-
+        
         % add error bars
         for k=1:length(UBArray)
             errorbar(hAxes(currentAxis), k, (UBArray(k)+LBArray(k))/2, (UBArray(k)-LBArray(k))/2, 'Marker', 's', 'LineStyle', 'none',  ..., ...
-                            'Color', 'k',...
-                            'LineWidth',obj.PlotSettings(currentAxis).LineWidth);
-%                             'LineWidth', 2) % colorArray{k} TODO: Ask Iraj
+                'Color', 'k',...
+                'LineWidth',obj.PlotSettings(currentAxis).LineWidth);
+            %                             'LineWidth', 2) % colorArray{k} TODO: Ask Iraj
         end
-
+        
     end
-
+    
 end %if PlotType is normal
 
 
@@ -532,18 +520,18 @@ if strcmp(obj.PlotType,'Normal') && any(MatchIdx)
     % Continue if OK
     if StatusOk
         
-        if any(IsSelected)            
+        if any(IsSelected)
             SelectedGroupColors = vertcat(obj.PlotItemTable{IsSelected,2});
             SelectedGroupIDs = categorical(obj.PlotItemTable(IsSelected,4));
             SelectedItemNames = obj.PlotItemTable(IsSelected,5);
             
             % Get the Group Column from the imported dataset
             GroupColumn = AccCritData(:,strcmp(AccCritHeader,obj.GroupName));
-            if iscell(GroupColumn) 
-                % If numeric column, convert to matrix to use categorical                
+            if iscell(GroupColumn)
+                % If numeric column, convert to matrix to use categorical
                 IsNumeric = cellfun(@(x)isnumeric(x),GroupColumn);
                 if all(IsNumeric)
-                    GroupColumn = cell2mat(GroupColumn);                    
+                    GroupColumn = cell2mat(GroupColumn);
                 else
                     GroupColumn(IsNumeric) = cellfun(@(x)num2str(x),GroupColumn(IsNumeric),'UniformOutput',false);
                 end
@@ -557,13 +545,24 @@ if strcmp(obj.PlotType,'Normal') && any(MatchIdx)
             SpeciesDataColumn = AccCritData(:,strcmp(AccCritHeader,'Data'));
             
             for dIdx = 1:size(obj.PlotSpeciesTable,1)
-                axIdx = str2double(obj.PlotSpeciesTable{dIdx,1});
+                origAxIdx = str2double(obj.PlotSpeciesTable{dIdx,1});
+                axIdx = origAxIdx;
+                if isempty(axIdx) || isnan(axIdx)
+                    axIdx = 1;
+                end
                 ThisName = obj.PlotSpeciesTable{dIdx,4};
                 ThisMarker = '*';
                 ThisDisplayName = obj.PlotSpeciesTable{dIdx,5};
                 
                 if ~isempty(axIdx) && ~isnan(axIdx)
                     for gIdx = 1:numel(SelectedGroupIDs)
+                        
+                        if ismember(gIdx,OrigIsSelected)
+                            IsVisible = true;
+                        else
+                            IsVisible = false;
+                        end
+                        
                         % Find the GroupID match within the GroupColumn and
                         % species name match within the SpeciesColumn
                         MatchIdx = (GroupColumn == SelectedGroupIDs(gIdx) & strcmp(SpeciesDataColumn,ThisName));
@@ -571,18 +570,28 @@ if strcmp(obj.PlotType,'Normal') && any(MatchIdx)
                         % Plot the lower and upper bounds associated with
                         % the selected Group and Species, for each time
                         % point
-                        % Create a group                        
+                        % Create a group
                         if isempty(hDatasetGroup{dIdx,axIdx})
-                            hDatasetGroup{dIdx,axIdx} = hggroup(hAxes(axIdx),...shaded
+                            % Un-parent if not-selected
+                            if isempty(origAxIdx) || isnan(origAxIdx)
+                                ThisParent = matlab.graphics.GraphicsPlaceholder.empty();
+                            else
+                                ThisParent = hAxes(axIdx);
+                            end
+                            
+                            hDatasetGroup{dIdx,axIdx} = hggroup(ThisParent,...shaded
                                 'Tag','Data',...
-                                'DisplayName',regexprep(sprintf('%s [Data]',ThisDisplayName),'_','\\_'));
+                                'DisplayName',regexprep(sprintf('%s [Data]',ThisDisplayName),'_','\\_'),...
+                                'UserData',dIdx);
+                            
                             set(get(get(hDatasetGroup{dIdx,axIdx},'Annotation'),'LegendInformation'),'IconDisplayStyle','on')
                             % Add dummy line for legend
                             line(nan,nan,'Parent',hDatasetGroup{dIdx,axIdx},...
                                 'LineStyle','none',...
-                                'Marker',ThisMarker,...                                
+                                'Marker',ThisMarker,...
                                 'Color',[0 0 0],...
-                                'Tag','DummyLine');
+                                'Tag','DummyLine',...
+                                'UserData',dIdx);
                         end
                         
                         % Plot but remove from the legend
@@ -594,18 +603,14 @@ if strcmp(obj.PlotType,'Normal') && any(MatchIdx)
                                 'LineStyle','none',...
                                 'Marker',ThisMarker,...
                                 'MarkerSize',obj.PlotSettings(axIdx).DataSymbolSize,...
-                                'Color',SelectedGroupColors(gIdx,:));
+                                'Color',SelectedGroupColors(gIdx,:),...
+                                'UserData',[dIdx,gIdx]);
                             set(hThis(1),'DisplayName',regexprep(sprintf('%s [Data]',FullDisplayName),'_','\\_')); % For export 'DisplayName',regexprep(sprintf('%s',ThisName),'_','\\_'));
-                            hThisAnn = get(hThis,'Annotation');
-                            if iscell(hThisAnn)
-                                hThisAnn = [hThisAnn{:}];
-                            end
-                            hThisAnnLegend = get(hThisAnn,'LegendInformation');
-                            if iscell(hThisAnnLegend)
-                                hThisAnnLegend = [hThisAnnLegend{:}];
-                            end
-                            set(hThisAnnLegend,'IconDisplayStyle','off');                            
-                        end %if                        
+                            setIconDisplayStyleOff(hThis);
+                            
+                            set(hThis,'Visible',uix.utility.tf2onoff(IsVisible));
+                            
+                        end %if
                     end %for
                 end %if
             end %for
@@ -618,6 +623,7 @@ end %if
 
 % Force a drawnow, to avoid legend issues
 drawnow;
+
 [hLegend,hLegendChildren] = updatePlots(obj,hAxes,hSpeciesGroup,hDatasetGroup);
 
 
@@ -634,7 +640,7 @@ for index = 1:numel(hAxes)
         'YMinorGrid',obj.PlotSettings(index).YMinorGrid);
     set(hAxes(index).XAxis,...
         'FontSize',obj.PlotSettings(index).XTickLabelFontSize,...
-        'FontWeight',obj.PlotSettings(index).XTickLabelFontWeight);    
+        'FontWeight',obj.PlotSettings(index).XTickLabelFontWeight);
     set(hAxes(index).YAxis,...
         'FontSize',obj.PlotSettings(index).YTickLabelFontSize,...
         'FontWeight',obj.PlotSettings(index).YTickLabelFontWeight);
@@ -647,13 +653,13 @@ for index = 1:numel(hAxes)
     set(hAxes(index),'YScale',obj.PlotSettings(index).YScale);
     
     hold(hAxes(index),'off')
-     % Reset zoom state
+    % Reset zoom state
     hFigure = ancestor(hAxes(index),'Figure');
     if ~isempty(hFigure) && strcmpi(obj.PlotSettings(index).XLimMode,'auto') && strcmpi(obj.PlotSettings(index).YLimMode,'auto')
-        axes(hAxes(index));
+        set(hFigure,'CurrentAxes',hAxes(index)) % This causes the legend fontsize to reset: axes(hAxes(index));
         try
             zoom(hFigure,'out');
-            zoom(hFigure,'reset');        
+            zoom(hFigure,'reset');
         catch ME
             warning(ME.message);
         end

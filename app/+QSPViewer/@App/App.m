@@ -154,7 +154,7 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
     %% Properties
     
     properties (SetAccess=private)
-        Session = QSP.Session.empty(0,1) %Top level session sessions
+        Session = QSP.Session.empty(0,1) %Top level session sessions        
     end
     
     properties (SetAccess=private, Dependent=true)
@@ -198,7 +198,7 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
         function obj = App(varargin)
             
             % Set some superclass properties for the app
-            obj.AppName = 'QSP App';
+            obj.AppName = ['gQSPsim ' obj.Version];
             obj.AllowMultipleSessions = true;
             obj.FileSpec = {'*.qsp.mat','MATLAB QSP MAT File'};
             

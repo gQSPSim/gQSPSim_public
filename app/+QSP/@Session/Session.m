@@ -1,4 +1,4 @@
-classdef Session < matlab.mixin.SetGet & uix.mixin.AssignPVPairs & uix.mixin.HasTreeReference
+classdef Session < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
     % Session - Defines an session object
     % ---------------------------------------------------------------------
     % Abstract: This object defines Session
@@ -43,25 +43,40 @@ classdef Session < matlab.mixin.SetGet & uix.mixin.AssignPVPairs & uix.mixin.Has
     
     %% Properties
     properties
+        RootDirectory = pwd
+        RelativeResultsPath = ''        
+        RelativeUserDefinedFunctionsPath = ''
+        RelativeObjectiveFunctionsPath = ''        
+        RelativeAutoSavePath = ''
+        AutoSaveFrequency = 1 % minutes
+        AutoSaveBeforeRun = true
+        UseParallel = false  
+        ParallelCluster 
+        
+    end
+    
+    properties (Transient=true)
+        UseAutoSaveTimer = false % Make transient so user always needs to toggle this true through Session node. Timer is only created when QSPViewer.Session is created (node is clicked)
+    end
+    
+    properties (NonCopyable=true)        
         Settings = QSP.Settings.empty(1,0);
         Simulation = QSP.Simulation.empty(1,0)
         Optimization = QSP.Optimization.empty(1,0)
         VirtualPopulationGeneration = QSP.VirtualPopulationGeneration.empty(1,0)
         CohortGeneration = QSP.CohortGeneration.empty(1,0)
-
         Deleted = QSP.abstract.BaseProps.empty(1,0)
-        RootDirectory = pwd
-        RelativeResultsPath = ''
-        
-        RelativeUserDefinedFunctionsPath = ''
-        RelativeObjectiveFunctionsPath = ''
+    end
+    
+    properties (SetAccess='private')
+        SessionName = ''
+        AutoSaveID = 1
         
         ColorMap1 = QSP.Session.DefaultColorMap
         ColorMap2 = QSP.Session.DefaultColorMap
         
         toRemove = false;
-        UseParallel = false;
-        ParallelCluster 
+
         
     end
     
@@ -73,10 +88,10 @@ classdef Session < matlab.mixin.SetGet & uix.mixin.AssignPVPairs & uix.mixin.Has
         ResultsDirectory
         ObjectiveFunctionsDirectory
         UserDefinedFunctionsDirectory
+        AutoSaveDirectory
     end
     
-    
-    %% Constructor
+    %% Constructor and Destructor
     methods
         function obj = Session(varargin)
             % Session - Constructor for QSP.Session
@@ -114,16 +129,13 @@ classdef Session < matlab.mixin.SetGet & uix.mixin.AssignPVPairs & uix.mixin.Has
             
         end %function obj = Session(varargin)
         
-    end %methods
-    
-    methods
         % Destructor
         function delete(obj)
-           removeUDF(obj)
-            
+           removeUDF(obj)            
         end
         
-    end
+    end %methods
+    
     
     %% Static methods
     methods (Static=true)
@@ -146,8 +158,48 @@ classdef Session < matlab.mixin.SetGet & uix.mixin.AssignPVPairs & uix.mixin.Has
         
     end %methods (Static)
     
+    %% Methods defined as abstract
+    methods
+        
+        function Summary = getSummary(obj)
+            
+            % Populate summary
+            Summary = {...
+                'Name',obj.Name;
+                'Last Saved',obj.LastSavedTimeStr;
+                'Description',obj.Description;       
+                'Root Directory',obj.RootDirectory;
+                'Objective Functions Directory',obj.ObjectiveFunctionsDirectory;
+                'User Functions Directory',obj.UserDefinedFunctionsDirectory;
+                'Use AutoSave',mat2str(obj.UseAutoSaveTimer);
+                'AutoSave Directory',obj.AutoSaveDirectory;
+                'AutoSave Frequency (min)',num2str(obj.AutoSaveFrequency);
+                'AutoSave Before Run',mat2str(obj.AutoSaveBeforeRun);
+                };
+        end
+        
+        function [StatusOK, Message] = validate(obj,FlagRemoveInvalid) %#ok<INUSD>
+            
+            StatusOK = true;
+            Message = sprintf('Session: %s\n%s\n',obj.Name,repmat('-',1,75));
+            
+            if ~isfolder(obj.RootDirectory)
+                StatusOK = false;
+                Message = sprintf('%s\n* Invalid Root Directory specified "%"',Message,obj.RootDirectory);
+            end
+        end
+        
+        function clearData(obj) %#ok<MANU>
+        end
+    end
+    
     %% Methods
     methods
+        
+        function setSessionName(obj,SessionName)
+            obj.SessionName = SessionName;
+        end %function
+        
         function Colors = getItemColors(obj,NumItems)
             ThisColorMap = obj.ColorMap1;
             if isempty(ThisColorMap) || size(ThisColorMap,2) ~= 3
@@ -158,7 +210,7 @@ classdef Session < matlab.mixin.SetGet & uix.mixin.AssignPVPairs & uix.mixin.Has
             else
                 Colors = [];
             end
-        end
+        end %function
             
         function Colors = getGroupColors(obj,NumGroups)
             ThisColorMap = obj.ColorMap2;
@@ -170,8 +222,47 @@ classdef Session < matlab.mixin.SetGet & uix.mixin.AssignPVPairs & uix.mixin.Has
             else
                 Colors = [];
             end
-        end
-    end
+        end %function
+        
+        function autoSaveFile(obj,varargin)
+            
+            p = inputParser;
+            p.KeepUnmatched = false;
+            
+            % Define defaults and requirements for each parameter
+            p.addParameter('Tag',''); %#ok<*NVREPL>
+            p.addParameter('TimerObj',[]);
+            
+            p.parse(varargin{:});
+            
+            Tag = p.Results.Tag;
+            timerObj = p.Results.TimerObj;
+
+            try
+                % Save when fired
+                s.Session = obj; %#ok<STRNU>
+                % Remove .qsp.mat from name temporarily
+                ThisName = regexprep(obj.SessionName,'\.qsp\.mat','');
+                TimeStamp = datestr(now,'dd-mmm-yyyy_HH-MM-SS');
+                if ~isempty(Tag)
+%                         FileName = sprintf('%05d_%s.mat',obj.AutoSaveID,Tag);
+                    FileName = sprintf('%s_%s_%s.qsp.mat',ThisName,TimeStamp,Tag);
+                else
+%                         FileName = sprintf('%05d.mat',obj.AutoSaveID);
+                    FileName = sprintf('%s_%s.qsp.mat',ThisName,TimeStamp);
+                end
+                FilePath = fullfile(obj.AutoSaveDirectory,FileName);
+                obj.AutoSaveID = obj.AutoSaveID + 1;
+                save(FilePath,'-struct','s')
+            catch err %#ok<NASGU>
+                warning('The file could not be auto-saved');  
+                if ~isempty(timerObj)
+                    start(timerObj);
+                end
+            end
+        end %function
+        
+    end %methods    
     
     %% Get/Set Methods
     methods
@@ -193,10 +284,12 @@ classdef Session < matlab.mixin.SetGet & uix.mixin.AssignPVPairs & uix.mixin.Has
         
         function set.RelativeUserDefinedFunctionsPath(obj,Value)
             validateattributes(Value,{'char'},{});
-       
-            
-            obj.RelativeUserDefinedFunctionsPath = fullfile(Value);
-                
+            obj.RelativeUserDefinedFunctionsPath = fullfile(Value);                
+        end %function
+        
+        function set.RelativeAutoSavePath(obj,Value)
+            validateattributes(Value,{'char'},{});
+            obj.RelativeAutoSavePath = fullfile(Value);                
         end %function
         
         function addUDF(obj)
@@ -206,7 +299,8 @@ classdef Session < matlab.mixin.SetGet & uix.mixin.AssignPVPairs & uix.mixin.Has
             UDF = fullfile(obj.RootDirectory, obj.RelativeUserDefinedFunctionsPath);
             
             if exist(UDF, 'dir')
-                if isempty(strfind(p, UDF))
+                if ~isempty(obj.RelativeUserDefinedFunctionsPath) && ...
+                	isempty(strfind(p, UDF))
                     addpath(genpath(UDF))
                 end
             end    
@@ -240,8 +334,6 @@ classdef Session < matlab.mixin.SetGet & uix.mixin.AssignPVPairs & uix.mixin.Has
             else
                 ppp = strjoin(pp,':');
             end
-            path(ppp)
-            
         end
         
         function value = get.ResultsDirectory(obj)
@@ -254,6 +346,25 @@ classdef Session < matlab.mixin.SetGet & uix.mixin.AssignPVPairs & uix.mixin.Has
         
         function value = get.UserDefinedFunctionsDirectory(obj)
             value = fullfile(obj.RootDirectory, obj.RelativeUserDefinedFunctionsPath);
+        end
+        
+        function value = get.AutoSaveDirectory(obj)
+            value = fullfile(obj.RootDirectory, obj.RelativeAutoSavePath);
+        end
+        
+        function set.UseAutoSaveTimer(obj,Value)
+            validateattributes(Value,{'logical'},{'scalar'});
+            obj.UseAutoSaveTimer = Value;
+        end
+        
+        function set.AutoSaveFrequency(obj,Value)
+            validateattributes(Value,{'numeric'},{'positive'});
+            obj.AutoSaveFrequency = Value;
+        end
+        
+        function set.AutoSaveBeforeRun(obj,Value)
+            validateattributes(Value,{'logical'},{'scalar'});
+            obj.AutoSaveBeforeRun = Value;
         end
         
         function set.ColorMap1(obj,Value)

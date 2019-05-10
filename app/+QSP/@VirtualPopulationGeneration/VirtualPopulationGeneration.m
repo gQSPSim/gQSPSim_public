@@ -38,6 +38,7 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
         MethodName = 'Maximum likelihood';
         
         GroupName = ''
+        MinNumVirtualPatients = 20
         
         Item = QSP.TaskGroup.empty(0,1)
         SpeciesData = QSP.SpeciesData.empty(0,1)
@@ -52,6 +53,8 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
         
         SelectedPlotLayout = '1x1'   
         PlotSettings = repmat(struct(),1,12)
+        
+        RedistributeWeights = false
     end
     
     properties (SetAccess = 'private')
@@ -203,8 +206,9 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
                 'Last Saved',obj.LastSavedTimeStr;
                 'Description',obj.Description;
                 'Results Path',obj.VPopResultsFolderName;
-                'Cohort used',obj.DatasetName;
+                'Cohort Used',obj.DatasetName;
                 'Group Name',obj.GroupName;
+                'Min No of Virtual Patients',num2str(obj.MinNumVirtualPatients);
                 'Items',VPopGenItems;
                 'Species-data mapping',SpeciesDataItems;
                 'Results',obj.ExcelResultFileName;
@@ -235,6 +239,7 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
                             StatusOK = false;
                             Message = sprintf('%s\n* %s\n',Message,ThisMessage);
                         end
+                                                
                     end
                 else
                     ThisMessage = 'No Cohort specified';
@@ -473,6 +478,12 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
             
             % Invoke helper
             if StatusOK
+                
+                % For autosave with tag
+                if obj.Session.UseAutoSave && obj.Session.AutoSaveBeforeRun
+                    autoSaveFile(obj.Session,'Tag','preRunVPopGen');
+                end
+                
                 % Run helper
                 % clear cached results if any
                 obj.SimResults = {};
@@ -669,6 +680,11 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
             validateattributes(Value,{'char'},{});
             obj.GroupName = Value;
         end        
+        
+        function set.MinNumVirtualPatients(obj,Value)
+            validateattributes(Value,{'numeric'},{'positive'});
+            obj.MinNumVirtualPatients = Value;
+        end
         
         function set.Item(obj,Value)
             validateattributes(Value,{'QSP.TaskGroup'},{});

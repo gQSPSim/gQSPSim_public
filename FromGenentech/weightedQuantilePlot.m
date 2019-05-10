@@ -7,15 +7,19 @@ params.addParameter('linestyle','-',@(x)ischar(x));
 params.addParameter('meanlinewidth',0.5,@(x)isnumeric(x));
 params.addParameter('boundarylinewidth',0.5,@(x)isnumeric(x));
 params.addParameter('parent',[]);
+params.addParameter('style','quantile');
+
 
 params.parse(varargin{:});
 
 %Extract values from the inputParser
 q =  params.Results.quantile;
-style =  params.Results.linestyle;
+linestyle =  params.Results.linestyle;
 meanlinewidth = params.Results.meanlinewidth;
 boundarylinewidth = params.Results.boundarylinewidth;
 parent = params.Results.parent;
+
+style = params.Results.style;
 
 if isrow(w)
     w = reshape(w,[],1);
@@ -28,9 +32,16 @@ end
 % end
 
 % filter Nans
-ixNan = any(isnan(x));
-x = x(:,~ixNan);
-w = w(~ixNan);
+if size(x,1) > 1
+    ixNan = any(isnan(x));
+    x = x(:,~ixNan);
+    w = w(~ixNan);
+else
+    ixNan = isnan(x);
+    x = x(~ixNan);
+    w = w(~ixNan);
+end
+
 w = w/sum(w);
 if isempty(w)
     h = [];
@@ -42,15 +53,28 @@ for tIdx = 1:size(x,1)
 
     % median
 %     m(tIdx) = y*w(ix);
-    m(tIdx) = y(find(cumsum(w(ix)) >= 0.5,1,'first'));
     
-    q_l(tIdx) = y(find(cumsum(w(ix)) >= q(1),1,'first'));
-    q_u(tIdx) = y(find(cumsum(w(ix)) >= q(2),1,'first'));
+    if strcmp(style, 'quantile')
+        m(tIdx) = y(find(cumsum(w(ix)) >= 0.5,1,'first'));        
+        q_l(tIdx) = y(find(cumsum(w(ix)) >= q(1),1,'first'));
+        q_u(tIdx) = y(find(cumsum(w(ix)) >= q(2),1,'first'));
+    elseif strcmp(style, 'mean_std')
+        mean_y =  y*w(ix);
+        m(tIdx) = mean_y;
+        std_y = sqrt((y - mean_y).^2 * w(ix));
+        q_l(tIdx) = mean_y - 2*std_y;
+        q_u(tIdx) = mean_y + 2*std_y;
+    end
+    
     if isempty(q_u(tIdx))
         q_u(tIdx) = y(end);
     end
 end
 
-h = shadedErrorBar(t, m, [q_u-m; m-q_l], 'lineprops', {'Color', col, 'LineStyle', style}, 'meanlinewidth', meanlinewidth, 'boundarylinewidth', boundarylinewidth, 'parent', parent);
-
+if length(t) > 1
+    h = shadedErrorBar(t, m, [q_u-m; m-q_l], 'lineprops', {'Color', col, 'LineStyle', linestyle}, 'meanlinewidth', meanlinewidth, 'boundarylinewidth', boundarylinewidth, 'parent', parent);
+else
+    h = errorbar(t, m, m-q_l,q_u-m, 'Color', col, 'LineStyle', linestyle, 'LineWidth',  ...
+        meanlinewidth, 'parent', parent, 'Marker', 'o');
+end
 

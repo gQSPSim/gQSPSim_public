@@ -69,22 +69,27 @@ classdef VirtualPopulationGenerationData < QSP.abstract.BaseProps & uix.mixin.Ha
                 };
         end
         
-        function [StatusOK, Message,OptimHeader] = validate(obj,FlagRemoveInvalid) %#ok<INUSD>
+        function [StatusOK, Message,VpopGenHeader] = validate(obj,FlagRemoveInvalid) %#ok<INUSD>
             
             StatusOK = true;
-            Message = sprintf('Optimization Data: %s\n%s\n',obj.Name,repmat('-',1,75));
-            OptimHeader = {};
+            Message = sprintf('Virtual population generation Data: %s\n%s\n',obj.Name,repmat('-',1,75));
+            VpopGenHeader = {};
             
             if isdir(obj.FilePath) || ~exist(obj.FilePath,'file')
                 StatusOK = false;
-                Message = sprintf('%s\n* Optimization data file "%s" is invalid or does not exist',Message,obj.FilePath);
+                Message = sprintf('%s\n* Virtual population generation data file "%s" is invalid or does not exist',Message,obj.FilePath);
             else
                 DestFormat = 'wide';
                 % Import data
-                [ThisStatusOk,ThisMessage,OptimHeader] = importData(obj,obj.FilePath,DestFormat);
+                [ThisStatusOk,ThisMessage,VpopGenHeader] = importData(obj,obj.FilePath,DestFormat);
                 if ~ThisStatusOk
                     Message = sprintf('%s\n* Error loading data "%s". %s\n',Message,obj.FilePath,ThisMessage);
                 end
+                                
+                if ~all(ismember(upper(VpopGenHeader), {'GROUP', 'TIME', 'SPECIES', 'TYPE', 'VALUE1', 'VALUE2'}))
+                    StatusOK = false;
+                    Message = sprintf('%s\n* Vpop generation data file must contain the columns Group, Time, Species, Type, Value1, and Value2\n', Message);
+                end                
             end
             
         end

@@ -26,10 +26,14 @@ function refresh(vObj)
 %   $Revision: 281 $  $Date: 2016-09-01 09:27:14 -0400 (Thu, 01 Sep 2016) $
 % ---------------------------------------------------------------------
 
+%% Invoke superclass's refresh
+
+refresh@uix.abstract.CardViewPane(vObj);
+
+
+
 if isscalar(vObj.Data)
     RootDir = vObj.Data.RootDirectory;
-%     RelativeResultsPath = vObj.Data.RelativeResultsPath;
-%     RelativeFunctionsPath = vObj.Data.RelativeFunctionsPath;
     RelativeObjectiveFunctionsPath = vObj.Data.RelativeObjectiveFunctionsPath;
     RelativeUserDefinedFunctionsPath = vObj.Data.RelativeUserDefinedFunctionsPath;
     set(vObj.h.ObjectiveFunctionsDirSelector,'RootDirectory',RootDir)
@@ -65,5 +69,7 @@ vObj.h.FunctionsDirSelector.RootDirectory = RootDir;
 vObj.h.ObjectiveFunctionsDirSelector.Value = RelativeObjectiveFunctionsPath;
 vObj.h.UserDefinedFunctionsDirSelector.Value = RelativeUserDefinedFunctionsPath;
 
+%% Invoke update
 
+update(vObj);
 

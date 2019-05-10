@@ -71,7 +71,8 @@ set(obj.h.TreeMenu.Branch.SessionSave,'Enable',uix.utility.tf2onoff(IsSelectedSe
 for idx=1:obj.NumSessions
     
     % Get the session name for this node
-    ThisName = obj.SessionNames{idx};
+    ThisRawName = obj.SessionNames{idx};
+    ThisName = ThisRawName;
     
     % Add dirty flag if needed
     if obj.IsDirty(idx)
@@ -83,12 +84,16 @@ for idx=1:obj.NumSessions
         'Name', ThisName,...
         'TooltipString', obj.SessionPaths{idx} );
     
+    % Assign Name
+    setSessionName(obj.Session(idx),ThisRawName);
+    
 end
 
 
 % If the current node was updated, check if the node name changed
 if isscalar(SelNode) && isscalar(SelNode.Value) &&...
-        isprop(SelNode.Value,'Name') && ~strcmp(SelNode.Value.Name, SelNode.Name)
+        isprop(SelNode.Value,'Name') && ~strcmp(SelNode.Value.Name, SelNode.Name) && ...
+        ~strcmpi(class(SelNode.Value),'QSP.Session') % Skip for session. Do not use Name to update the Node property; use SessionName
     % Update the node name
     SelNode.Name = SelNode.Value.Name;
 end
@@ -108,9 +113,27 @@ if isscalar(SelNode)
     % under Deleted Items.)
     % 2. If UserData is Empty, the class of data in the node's Value
     % indicates the viewer type to launch from the QSPViewer package.
+    
     PaneType = SelNode.UserData;
     Data = SelNode.Value;
     IsDeleted = strcmpi(SelNode.Parent.UserData,'Deleted');
+    
+    % Check if the ActivePane changed
+    if ~isempty(obj.ActivePane)
+        
+        % Save plot settings (i.e. if any axes are in manual mode
+        if ~isempty(obj.ActivePane.Data) && isprop(obj.ActivePane.Data,'PlotSettings')
+            obj.ActivePane.Data.PlotSettings = getSummary(obj.ActivePane.PlotSettings);
+        end
+        
+        % Before launching, turn off zoom/pan/datacursormode if panetype
+        % changes
+        if isa(obj.ActivePane,'uix.abstract.CardViewPane')
+            turnOffZoomPanDatacursor(obj.ActivePane);
+        end
+    end
+    
+    % Then, launch    
     obj.launchPane(Data, PaneType, IsDeleted);
     
     % Assign navigation changed listener (for RHS views - summary, edit, etc.)

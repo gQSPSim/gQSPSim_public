@@ -548,11 +548,23 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
             
         end %function
         
+        function turnOffZoomPanDatacursor(obj)
+            hFigure = ancestor(obj.h.MainLayout,'figure');
+            obj.h.ZoomInButton.Value = false;
+            obj.h.ZoomOutButton.Value = false;
+            obj.h.PanButton.Value = false;
+            obj.h.DatacursorButton.Value = false;
+            zoom(hFigure,'off');
+            pan(hFigure,'off');
+            datacursormode(hFigure,'off');
+        end %function
+        
         function [StatusOK, Message] = checkDuplicateNames(obj, StatusOK, Message)
             % check for duplicate name
-            DuplicateName = false;
             ref_obj = [];
             switch class(obj)
+                case 'QSPViewer.Session'
+                    ref_obj = obj.Data.Session;
                 case 'QSPViewer.OptimizationData'
                     ref_obj = obj.Data.Session.Settings.OptimizationData;
                 case 'QSPViewer.Parameters'
@@ -642,6 +654,9 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                     % Update the view
                     update(obj);
                     
+                    % Resize
+                    resize(obj);
+                    
                     % Notify
                     EventData = uix.abstract.NavigationEventData('Name',View);
                     notify(obj,'NavigationChanged',EventData);
@@ -687,6 +702,7 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                     notify(obj,'NavigationChanged',EventData);
                     
                 case 'Visualize'
+                    % Visualize
                     if obj.Selection == 2
                         Prompt = sprintf('Do you want to continue without saving changes?');
                         Result = questdlg(Prompt,'Continue','Yes','Cancel','Yes');
@@ -694,11 +710,13 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                             obj.Selection = 3;
                             set([obj.h.SummaryButton,obj.h.EditButton,obj.h.RunButton,obj.h.VisualizeButton,obj.h.PlotSettingsButton],'Enable','on');
                             updateVisualizationView(obj);
+                            resize(obj);
                         end
                     else
                         obj.Selection = 3;
                         set([obj.h.SummaryButton,obj.h.EditButton,obj.h.RunButton,obj.h.VisualizeButton,obj.h.PlotSettingsButton],'Enable','on');
                         updateVisualizationView(obj);
+                        resize(obj);
                     end
                     
                     % Update the view
@@ -709,7 +727,7 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                     notify(obj,'NavigationChanged',EventData);
                     
                 case 'CustomizeSettings'
-%                     test = copyobj(obj.PlotSettings);
+
                     bandPlotLB = [obj.PlotSettings.BandplotLowerQuantile];
                     bandPlotUB = [obj.PlotSettings.BandplotUpperQuantile];
                     
@@ -729,7 +747,6 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                         if replot
                             obj.plotData();
                         end
-                       
                        
                         % Mark Dirty
                         notify(obj,'MarkDirty');
@@ -835,11 +852,18 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                     [SaveFileName,SavePathName] = uiputfile(Spec,Title,SaveFilePath);
                     if ~isequal(SaveFileName,0)
                         
+                        hFigure = ancestor(obj.h.MainLayout,'figure');
+                        set(hFigure,'pointer','watch');
+                        drawnow;
+                        
                         SaveFilePath = fullfile(SavePathName,SaveFileName);
                         ThisAxes = get(obj.h.MainAxesContainer(axIndex),'Children');
                         
                         % Call helper to copy axes, format, and print
                         printAxesHelper(obj,ThisAxes,SaveFilePath,obj.PlotSettings(axIndex))                        
+                        
+                        set(hFigure,'pointer','arrow');
+                        drawnow;
                         
                     end %if
                     
@@ -855,6 +879,10 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                     SaveFilePath = pwd; %obj.LastPath;
                     [SaveFileName,SavePathName] = uiputfile(Spec,Title,SaveFilePath);
                     if ~isequal(SaveFileName,0)
+                        
+                        hFigure = ancestor(obj.h.MainLayout,'figure');
+                        set(hFigure,'pointer','watch');
+                        drawnow;
                         
                         % Print using option
                         [~,~,FileExt] = fileparts(SaveFileName);
@@ -916,6 +944,10 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                             end
                           
                         end % for
+                        
+                        set(hFigure,'pointer','arrow');
+                        drawnow;
+                        
                     end %if
                     
 %                 case 'ExportSingleAxes'
@@ -1052,7 +1084,7 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
             obj.updateVisualizationView();
             
             if strcmp(ThisTag,'ShowTraces') || strcmp(ThisTag,'ShowQuantiles')
-                if strcmpi(class(obj),'QSPViewer.Simulation')
+                if any(strcmpi(class(obj),{'QSPViewer.Simulation','QSPViewer.CohortGeneration','QSPViewer.VirtualPopulationGeneration'}))
                     [UpdatedAxesLegend,UpdatedAxesLegendChildren] = updatePlots(...
                         obj.Data,obj.h.MainAxes,obj.h.SpeciesGroup,obj.h.DatasetGroup,...
                         'AxIndices',axIndex);
@@ -1265,7 +1297,11 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
             
         end %function
         
-    end
+        function resize(obj) %#ok<MANU>
+            % Do nothing for now
+        end
+        
+    end %methods
     
     
     methods (Access=protected)
@@ -1290,13 +1326,14 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                     end         
                     ThisTag = get(hPlots,'Tag');
                     IsMeanLine = strcmpi(ThisTag,'MeanLine');
+                    IsWeightedMeanLine = strcmpi(ThisTag,'WeightedMeanLine');
                     IsBoundaryLine = strcmpi(ThisTag,'BoundaryLine');
                     if ~isempty(hPlots)
-                        set(hPlots(IsMeanLine),...
+                        set(hPlots(IsMeanLine | IsWeightedMeanLine),...
                             'LineWidth',MeanLineWidth);
                         set(hPlots(IsBoundaryLine),...
                             'LineWidth',BoundaryLineWidth);
-                        set(hPlots(~IsMeanLine&~IsBoundaryLine),...
+                        set(hPlots(~IsMeanLine & ~IsWeightedMeanLine & ~IsBoundaryLine),...
                             'LineWidth',LineWidth);
                     end
                 end
@@ -1316,8 +1353,12 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                         hPlots = vertcat(hPlots.Children);
                         hPlots(~ishandle(hPlots)) = [];
                     end
-                    set(hPlots,...
-                        'MarkerSize',DataSymbolSize);
+                    ThisTag = get(hPlots,'Tag');
+                    IsDummyLine = strcmpi(ThisTag,'DummyLine');
+                    if ~isempty(hPlots)
+                        set(hPlots(~IsDummyLine),...
+                            'MarkerSize',DataSymbolSize);
+                    end
                 end
             end
             
@@ -1523,6 +1564,7 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
             
             close(hNewFig)
         end %function
+        
     end %methods (protected)
     
     
@@ -1571,6 +1613,53 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
             end
             
         end %function
+        
+        
+         function [hThisLegend,hThisLegendChildren] = redrawLegend(hThisAxes,LegendItems,ThesePlotSettings)
+            
+             hThisLegend = [];
+             hThisLegendChildren = [];
+             
+             if ~isempty(LegendItems)
+                 try
+                     % Add legend
+                     [hThisLegend,hThisLegendChildren] = legend(hThisAxes,LegendItems);
+                     
+                     % Color, FontSize, FontWeight
+                     for cIndex = 1:numel(hThisLegendChildren)
+                         if isprop(hThisLegendChildren(cIndex),'FontSize')
+                             hThisLegendChildren(cIndex).FontSize = ThesePlotSettings.LegendFontSize;
+                         end
+                         if isprop(hThisLegendChildren(cIndex),'FontWeight')
+                             hThisLegendChildren(cIndex).FontWeight = ThesePlotSettings.LegendFontWeight;
+                         end
+                     end
+                     
+                     set(hThisLegend,...
+                         'EdgeColor','none',...
+                         'Visible',ThesePlotSettings.LegendVisibility,...
+                         'Location',ThesePlotSettings.LegendLocation,...
+                         'FontSize',ThesePlotSettings.LegendFontSize,...
+                         'FontWeight',ThesePlotSettings.LegendFontWeight);
+                 catch ME
+                     warning(ME.message)
+                 end
+             else
+                 Siblings = get(get(hThisAxes,'Parent'),'Children');
+                 IsLegend = strcmpi(get(Siblings,'Type'),'legend');
+                 
+                 if any(IsLegend)
+                     if isvalid(Siblings(IsLegend))
+                         delete(Siblings(IsLegend));
+                     end
+                 end
+                 
+                 hThisLegend = [];
+                 hThisLegendChildren = [];
+             end
+             
+        end %function
+        
     end % methods (Static)
     
     methods

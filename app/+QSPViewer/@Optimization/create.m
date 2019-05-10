@@ -271,7 +271,7 @@ Icon = uix.utility.loadIcon('param_edit_24.png');
 vObj.h.SaveAsParametersButton = uicontrol(...
     'Style','pushbutton',...
     'CData',Icon,...
-    'TooltipString','Save as VPop...',...
+    'TooltipString','Save as Parameter set...',...
     'Parent',vObj.h.PlotParametersTableButtonLayout,...
     'Callback',@(h,e)onSaveParametersAsParametersButton(vObj,h,e));
 
@@ -321,4 +321,11 @@ vObj.h.VisualizationLayout.Heights = [-1 -1 -3];
 
 % Semaphore
 % vObj.semaphore = Semaphore();
+
+
+%% Resize
+
+% Attach a resize function
+vObj.h.EditPanel.ResizeFcn = @(h,e)onResize(vObj,h,e);
+vObj.h.VisualizePanel.ResizeFcn = @(h,e)onResize(vObj,h,e);
 
