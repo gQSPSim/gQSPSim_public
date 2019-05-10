@@ -480,7 +480,7 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
             if StatusOK
                 
                 % For autosave with tag
-                if obj.Session.UseAutoSave && obj.Session.AutoSaveBeforeRun
+                if obj.Session.AutoSaveBeforeRun
                     autoSaveFile(obj.Session,'Tag','preRunVPopGen');
                 end
                 
