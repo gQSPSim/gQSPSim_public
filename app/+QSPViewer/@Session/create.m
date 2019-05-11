@@ -238,7 +238,7 @@ vObj.h.AutoSaveLayout.Heights = [25 25 25];
 vObj.h.AutoSaveLayout.Widths = [250 -1];
 
 vObj.h.SessionVbox.Heights = [100, 75, 150];
-vObj.h.AutosaveTimerHbox.Widths = [150 50 -1];
+vObj.h.AutosaveTimerHbox.Widths = [150 75 -1];
 % vObj.h.AutosaveTimerHbox.Heights = 25;
 
 % =======

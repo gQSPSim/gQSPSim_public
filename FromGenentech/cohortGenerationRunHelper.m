@@ -281,9 +281,13 @@ end
 
 
 p = gcp('nocreate');
-if isempty(p)
+if isempty(p) 
     p = parpool(obj.Session.ParallelCluster, ...
         'AttachedFiles', obj.Session.UserDefinedFunctionsDirectory);
+elseif  ~strcmp(p.Cluster,obj.Session.ParallelCluster)
+    delete(gcp('nocreate'))
+    p = parpool(obj.Session.ParallelCluster, ...
+     'AttachedFiles', obj.Session.UserDefinedFunctionsDirectory);
 end
 % p.,);
 % nPat = Composite();

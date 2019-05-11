@@ -46,7 +46,8 @@ if isscalar(vObj.Data)
         enable_cluster = 'off';
     end
     
-    set(vObj.h.ParallelCluster, 'String', vObj.Data.ParallelCluster, 'Enable', enable_cluster);
+    set(vObj.h.ParallelCluster, 'Value', find(strcmp(get(vObj.h.ParallelCluster, 'String'), vObj.Data.ParallelCluster)), ...
+        'Enable', enable_cluster);
 
 else
     RootDir = '';

@@ -222,6 +222,9 @@ classdef Session <  uix.abstract.CardViewPane % uix.abstract.ViewPane
                         if vObj.TempData.UseAutoSaveTimer
                             start(vObj.timerObj)
                         end
+                        
+                        % check if the parallel pool needs to be changed
+                        
                     catch err
 
                         hDlg = errordlg(err.message,Field,'modal');
