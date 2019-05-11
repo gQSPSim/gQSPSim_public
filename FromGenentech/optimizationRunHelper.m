@@ -8,7 +8,7 @@ if isempty(obj.SpeciesData)
     Message = 'At least one species-data mapping must be defined for optimization to proceed.';
     ResultsFileNames = {};
     VpopNames = {};
-    
+   
     return 
 end
 
@@ -300,7 +300,7 @@ switch obj.AlgorithmName
             p0 = estParamData(:,3);
 
             options = optimoptions('ParticleSwarm', 'Display', 'iter', 'FunctionTolerance', .1, 'MaxTime', 12000, ...
-                'UseParallel', true, 'FunValCheck', 'on', 'UseVectorized', false, 'PlotFcn',  @pswplotbestf, ...
+                'UseParallel', obj.Session.UseParallel, 'FunValCheck', 'on', 'UseVectorized', false, 'PlotFcn',  @pswplotbestf, ...
                 'InitialSwarmMatrix', p0');
             
             VpopParams = particleswarm( @(est_p) objectiveFun(est_p',paramObj,ItemModels,Groups,IDs,Time,optimData,dataNames,obj), N, LB, UB, options);
@@ -320,7 +320,7 @@ switch obj.AlgorithmName
 
         % options
         LSQopts = optimoptions(@lsqnonlin,'MaxFunctionEvaluations',1e4,'MaxIterations',1e4,'UseParallel',false,'FunctionTolerance',1e-5,'StepTolerance',1e-3,...
-            'Display', 'iter', 'PlotFcn', @optimplotfval, 'UseParallel', true );
+            'Display', 'iter', 'PlotFcn', @optimplotfval, 'UseParallel', obj.Session.UseParallel );
 
         % fit
         p0 = estParamData(:,3);
