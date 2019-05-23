@@ -240,6 +240,10 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             StatusOK = true;
             Message = sprintf('Virtual Population Generation: %s\n%s\n',obj.Name,repmat('-',1,75));
             
+            if  obj.Session.UseParallel && ~isempty(getCurrentTask())
+                return
+            end            
+            
             % TODO: Validate that params in vpop exist in the file
             if ~isempty(obj.Settings)
                                 
@@ -455,7 +459,7 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             if StatusOK
                 
                 % For autosave with tag
-                if obj.Session.UseAutoSave && obj.Session.AutoSaveBeforeRun
+                if obj.Session.AutoSaveBeforeRun
                     autoSaveFile(obj.Session,'Tag','preRunCohortGeneration');
                 end
                 

@@ -38,7 +38,7 @@ if isscalar(vObj.TempData)
     RelativeUserDefinedFunctionsPath = vObj.TempData.RelativeUserDefinedFunctionsPath;
 
     RelativeAutoSavePath = vObj.TempData.RelativeAutoSavePath;    
-    UseAutoSave = vObj.TempData.UseAutoSave;
+    UseAutoSaveTimer = vObj.TempData.UseAutoSaveTimer;
     AutoSaveFrequency = vObj.TempData.AutoSaveFrequency;
     AutoSaveBeforeRun = vObj.TempData.AutoSaveBeforeRun;
 
@@ -48,7 +48,7 @@ else
     RelativeObjectiveFunctionsPath = '';
     RelativeAutoSavePath = '';
     
-    UseAutoSave = false;
+    UseAutoSaveTimer = false;
     AutoSaveFrequency = 1;
     AutoSaveBeforeRun = false;
 end
@@ -61,15 +61,17 @@ vObj.h.ObjectiveFunctionsDirSelector.RootDirectory = RootDir;
 vObj.h.ObjectiveFunctionsDirSelector.Value = RelativeObjectiveFunctionsPath;
 vObj.h.UserDefinedFunctionsDirSelector.RootDirectory = RootDir;
 vObj.h.UserDefinedFunctionsDirSelector.Value = RelativeUserDefinedFunctionsPath;
+% 
 
-vObj.h.UseAutoSaveCheckbox.Value = UseAutoSave;
+%% autosave
+vObj.h.UseAutoSaveCheckbox.Value = UseAutoSaveTimer;
 vObj.h.AutoSaveDirSelector.RootDirectory = RootDir;
 vObj.h.AutoSaveDirSelector.Value = RelativeAutoSavePath;
 vObj.h.AutoSaveFrequencyEdit.String = num2str(AutoSaveFrequency);
 vObj.h.AutoSaveBeforeRunCheckbox.Value = AutoSaveBeforeRun;
-
-% Toggle enable
-set(vObj.h.AutoSaveDirSelector,'Enable',uix.utility.tf2onoff(UseAutoSave));
-set(vObj.h.AutoSaveFrequencyEdit,'Enable',uix.utility.tf2onoff(UseAutoSave));
-set(vObj.h.AutoSaveBeforeRunCheckbox,'Enable',uix.utility.tf2onoff(UseAutoSave));
+% 
+% % Toggle enable
+% set(vObj.h.AutoSaveDirSelector,'Enable',uix.utility.tf2onoff(UseAutoSave));
+% set(vObj.h.AutoSaveFrequencyEdit,'Enable',uix.utility.tf2onoff(UseAutoSave));
+% set(vObj.h.AutoSaveBeforeRunCheckbox,'Enable',uix.utility.tf2onoff(UseAutoSave));
 

@@ -414,12 +414,20 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
                 end
                 
                 % Plot TraceLine
+                if length(Results{itemIdx}.Time) == 1
+                    ThisMarkerStyle = 'o';
+                else
+                    ThisMarkerStyle = 'none';
+                end                
+                
                 hThisTrace = plot(hSpeciesGroup{sIdx,axIdx},Results{itemIdx}.Time,thisData(:,setdiff(ColumnIdx, ColumnIdx_invalid)),...
                     'Color',ItemColors(itemIdx,:),...
                     'Tag','TraceLine',...
                     'LineStyle',ThisLineStyle,...
                     'LineWidth',obj.PlotSettings(axIdx).LineWidth,...
-                    'UserData',[sIdx,itemIdx]);
+                    'UserData',[sIdx,itemIdx],...
+                    'Marker', ThisMarkerStyle);
+                
                 setIconDisplayStyleOff(hThisTrace);
                 acc_lines = [acc_lines; hThisTrace]; %#ok<AGROW>
                 if obj.bShowTraces(axIdx)
@@ -441,25 +449,61 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
                 if isempty(hThisParent)
                     hThisParent = hAxes(1);
                 end
+                
+                if strcmpi(Mode,'Cohort')
+                    style = 'quantile';
+                else 
+                    style = 'mean_std';
+                end
+                
                 SE = weightedQuantilePlot(Results{itemIdx}.Time, x, w, ItemColors(itemIdx,:),...
                     'linestyle',ThisLineStyle,...
                     'meanlinewidth',obj.PlotSettings(axIdx).MeanLineWidth,...
                     'boundarylinewidth',obj.PlotSettings(axIdx).BoundaryLineWidth,...
                     'quantile',[obj.PlotSettings(axIdx).BandplotLowerQuantile, obj.PlotSettings(axIdx).BandplotUpperQuantile],...
-                    'parent',hThisParent); % hSpeciesGroup{sIdx,axIdx});
-                set([SE.mainLine,SE.edge,SE.patch],'Parent',hSpeciesGroup{sIdx,axIdx});
+                    'parent',hThisParent, ...
+                    'style', style); % hSpeciesGroup{sIdx,axIdx});
                 
-                setIconDisplayStyleOff([SE.mainLine,SE.edge,SE.patch]);
-                if obj.bShowQuantiles(axIdx)
-                    set([SE.mainLine,SE.edge,SE.patch],'Visible','on');
+                
+                if isa(SE, 'matlab.graphics.chart.primitive.ErrorBar')
+                    % error bar (one time point)
+                    set(SE, 'Parent',hSpeciesGroup{sIdx,axIdx});
                 else
-                    set([SE.mainLine,SE.edge,SE.patch],'Visible','off');
+                    % shaded error bar
+                    set([SE.mainLine,SE.edge,SE.patch],'Parent',hSpeciesGroup{sIdx,axIdx});
                 end
+
+                if isempty(SE)
+                    continue
+                end
+                                
+                if ~isa(SE, 'matlab.graphics.chart.primitive.ErrorBar')
+                    setIconDisplayStyleOff([SE.mainLine,SE.edge,SE.patch]);            
+                end
+
+                if obj.bShowQuantiles(axIdx)
+                    if isa(SE, 'matlab.graphics.chart.primitive.ErrorBar')
+                        set(SE, 'Visible', 'on');
+                    else
+                        set([SE.mainLine,SE.edge,SE.patch],'Visible','on');
+                    end
+                else
+                    if isa(SE, 'matlab.graphics.chart.primitive.ErrorBar')
+                        set(SE, 'Visible', 'off')
+                    else
+                        set([SE.mainLine,SE.edge,SE.patch],'Visible','off');    
+                    end
+                end
+                
+                
                 % Set visibility
                 if ~isempty(SE) && isstruct(SE) && isfield(SE,'mainLine')
                     set([SE.mainLine,SE.edge,SE.patch],...
                         'UserData',[sIdx,itemIdx],...
                         'Visible',uix.utility.tf2onoff(IsVisible && obj.bShowQuantiles(axIdx)));
+                elseif ~isempty(SE) && isa(SE, 'matlab.graphics.chart.primitive.ErrorBar')
+                    set(SE,  'UserData',[sIdx,itemIdx],... % SE.mainLine
+                        'Visible',uix.utility.tf2onoff(IsVisible));               
                 end
                 
                 

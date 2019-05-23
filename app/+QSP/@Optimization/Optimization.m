@@ -215,6 +215,9 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             
             StatusOK = true;
             Message = sprintf('Optimization: %s\n%s\n',obj.Name,repmat('-',1,75));
+            if  obj.Session.UseParallel && ~isempty(getCurrentTask())
+                return
+            end
             
             % Validate
             if ~isempty(obj.Settings)
@@ -563,7 +566,12 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                         
                         paramsTable = cell2table(PlotParametersData, 'VariableNames', {'Parameter','Value'});
 
-                        tableSpecies = innerjoin(allSpecies, paramsTable);
+                        if ~isempty(allSpecies)
+                            tableSpecies = innerjoin(allSpecies, paramsTable);
+                        else
+                            tableSpecies = paramsTable;
+                        end
+                        
                         allParams = [allParams; tableSpecies.Parameter];
                         
 %                         PlotParametersDataTable = outerjoin( allParams, paramsTable);
@@ -598,7 +606,7 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             if StatusOK
                 
                 % For autosave with tag
-                if obj.Session.UseAutoSave && obj.Session.AutoSaveBeforeRun
+                if obj.Session.AutoSaveBeforeRun
                     autoSaveFile(obj.Session,'Tag','preRunOptimization');
                 end
                 

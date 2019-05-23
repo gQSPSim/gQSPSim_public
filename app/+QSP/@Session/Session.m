@@ -50,10 +50,13 @@ classdef Session < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         RelativeAutoSavePath = ''
         AutoSaveFrequency = 1 % minutes
         AutoSaveBeforeRun = true
+        UseParallel = false  
+        ParallelCluster 
+        
     end
     
     properties (Transient=true)
-        UseAutoSave = false % Make transient so user always needs to toggle this true through Session node. Timer is only created when QSPViewer.Session is created (node is clicked)
+        UseAutoSaveTimer = false % Make transient so user always needs to toggle this true through Session node. Timer is only created when QSPViewer.Session is created (node is clicked)
     end
     
     properties (NonCopyable=true)        
@@ -73,6 +76,8 @@ classdef Session < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         ColorMap2 = QSP.Session.DefaultColorMap
         
         toRemove = false;
+
+        
     end
     
     properties (Constant=true)
@@ -113,6 +118,14 @@ classdef Session < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             
             % Provide Session handle to Settings
             obj.Settings.Session = obj;
+            
+            info = ver;
+            if ismember('Parallel Computing Toolbox', {info.Name})
+                clusters = parallel.clusterProfiles;
+                obj.ParallelCluster = clusters{1};
+            else
+                obj.ParallelCluster = {''};
+            end
             
         end %function obj = Session(varargin)
         
@@ -158,7 +171,7 @@ classdef Session < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 'Root Directory',obj.RootDirectory;
                 'Objective Functions Directory',obj.ObjectiveFunctionsDirectory;
                 'User Functions Directory',obj.UserDefinedFunctionsDirectory;
-                'Use AutoSave',mat2str(obj.UseAutoSave);
+                'Use AutoSave',mat2str(obj.UseAutoSaveTimer);
                 'AutoSave Directory',obj.AutoSaveDirectory;
                 'AutoSave Frequency (min)',num2str(obj.AutoSaveFrequency);
                 'AutoSave Before Run',mat2str(obj.AutoSaveBeforeRun);
@@ -225,28 +238,26 @@ classdef Session < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             Tag = p.Results.Tag;
             timerObj = p.Results.TimerObj;
 
-            if obj.UseAutoSave
-                try
-                    % Save when fired
-                    s.Session = obj; %#ok<STRNU>
-                    % Remove .qsp.mat from name temporarily
-                    ThisName = regexprep(obj.SessionName,'\.qsp\.mat','');
-                    TimeStamp = datestr(now,'dd-mmm-yyyy_HH-MM-SS');
-                    if ~isempty(Tag)
+            try
+                % Save when fired
+                s.Session = obj; %#ok<STRNU>
+                % Remove .qsp.mat from name temporarily
+                ThisName = regexprep(obj.SessionName,'\.qsp\.mat','');
+                TimeStamp = datestr(now,'dd-mmm-yyyy_HH-MM-SS');
+                if ~isempty(Tag)
 %                         FileName = sprintf('%05d_%s.mat',obj.AutoSaveID,Tag);
-                        FileName = sprintf('%s_%s_%s.qsp.mat',ThisName,TimeStamp,Tag);
-                    else
+                    FileName = sprintf('%s_%s_%s.qsp.mat',ThisName,TimeStamp,Tag);
+                else
 %                         FileName = sprintf('%05d.mat',obj.AutoSaveID);
-                        FileName = sprintf('%s_%s.qsp.mat',ThisName,TimeStamp);
-                    end
-                    FilePath = fullfile(obj.AutoSaveDirectory,FileName);
-                    obj.AutoSaveID = obj.AutoSaveID + 1;
-                    save(FilePath,'-struct','s')
-                catch err %#ok<NASGU>
-                    warning('The file could not be auto-saved');  
-                    if ~isempty(timerObj)
-                        start(timerObj);
-                    end
+                    FileName = sprintf('%s_%s.qsp.mat',ThisName,TimeStamp);
+                end
+                FilePath = fullfile(obj.AutoSaveDirectory,FileName);
+                obj.AutoSaveID = obj.AutoSaveID + 1;
+                save(FilePath,'-struct','s')
+            catch err %#ok<NASGU>
+                warning('The file could not be auto-saved');  
+                if ~isempty(timerObj)
+                    start(timerObj);
                 end
             end
         end %function
@@ -284,10 +295,13 @@ classdef Session < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         function addUDF(obj)
             % add the UDF to the path
             p = path;
-            if exist(obj.UserDefinedFunctionsDirectory, 'dir')
+            
+            UDF = fullfile(obj.RootDirectory, obj.RelativeUserDefinedFunctionsPath);
+            
+            if exist(UDF, 'dir')
                 if ~isempty(obj.RelativeUserDefinedFunctionsPath) && ...
-                        isempty(strfind(p,obj.RelativeUserDefinedFunctionsPath))
-                    addpath(genpath(obj.UserDefinedFunctionsDirectory))
+                	isempty(strfind(p, UDF))
+                    addpath(genpath(UDF))
                 end
             end    
         end
@@ -299,8 +313,26 @@ classdef Session < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             end
                 
             % remove UDF from the path
-            if ~isempty(obj.RelativeUserDefinedFunctionsPath)
-                rmpath(genpath(obj.UserDefinedFunctionsDirectory));
+            p = path;
+            subdirs = genpath(fullfile(obj.RootDirectory, obj.RelativeUserDefinedFunctionsPath));
+            if isempty(subdirs)
+                return
+            end
+            
+            if ispc
+                subdirs = strsplit(subdirs,';');
+                pp = strsplit(p,';');
+            else
+                subdirs = strsplit(subdirs,':');
+                pp = strsplit(p,':');                
+            end
+            
+            pp = setdiff(pp, subdirs);
+            
+            if ispc
+                ppp = strjoin(pp,';');
+            else
+                ppp = strjoin(pp,':');
             end
         end
         
@@ -320,9 +352,9 @@ classdef Session < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             value = fullfile(obj.RootDirectory, obj.RelativeAutoSavePath);
         end
         
-        function set.UseAutoSave(obj,Value)
+        function set.UseAutoSaveTimer(obj,Value)
             validateattributes(Value,{'logical'},{'scalar'});
-            obj.UseAutoSave = Value;
+            obj.UseAutoSaveTimer = Value;
         end
         
         function set.AutoSaveFrequency(obj,Value)
@@ -344,6 +376,7 @@ classdef Session < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             validateattributes(Value,{'numeric'},{});
             obj.ColorMap2 = Value;
         end
+        
         
     end %methods
     

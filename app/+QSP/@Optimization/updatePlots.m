@@ -144,7 +144,8 @@ for axIndex = AxIndices(:)'
                 
                 % Get line style
                 ThisLineStyle = obj.PlotSpeciesTable{sIdx,2};
-                set(TheseItems(thisIdx),'LineStyle',ThisLineStyle);
+                thisLineIdx = thisIdx( ~strcmp(class(TheseItems(thisIdx)), 'matlab.graphics.chart.primitive.Scatter'));
+                set(TheseItems(thisLineIdx),'LineStyle',ThisLineStyle);
                 
                 % Only set DisplayName of unique indices
                 FullDisplayName = sprintf('%s %s [Sim]',ThisDisplayName,obj.PlotItemTable{itemIdx,5});

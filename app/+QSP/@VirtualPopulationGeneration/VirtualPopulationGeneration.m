@@ -53,6 +53,8 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
         
         SelectedPlotLayout = '1x1'   
         PlotSettings = repmat(struct(),1,12)
+        
+        RedistributeWeights = false
     end
     
     properties (SetAccess = 'private')
@@ -218,6 +220,9 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
             
             StatusOK = true;
             Message = sprintf('Virtual Population Generation: %s\n%s\n',obj.Name,repmat('-',1,75));
+            if  obj.Session.UseParallel && ~isempty(getCurrentTask())
+                return
+            end
             
             % TODO: Validate that params in vpop exist in the file
             if ~isempty(obj.Settings)
@@ -234,6 +239,7 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
                             StatusOK = false;
                             Message = sprintf('%s\n* %s\n',Message,ThisMessage);
                         end
+                                                
                     end
                 else
                     ThisMessage = 'No Cohort specified';
@@ -474,7 +480,7 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
             if StatusOK
                 
                 % For autosave with tag
-                if obj.Session.UseAutoSave && obj.Session.AutoSaveBeforeRun
+                if obj.Session.AutoSaveBeforeRun
                     autoSaveFile(obj.Session,'Tag','preRunVPopGen');
                 end
                 

@@ -84,6 +84,10 @@ classdef OptimizationData < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             
             StatusOK = true;
             Message = sprintf('Optimization Data: %s\n%s\n',obj.Name,repmat('-',1,75));
+            if  obj.Session.UseParallel && ~isempty(getCurrentTask())
+                return
+            end
+            
             OptimHeader = {};
             
             if isdir(obj.FilePath) || ~exist(obj.FilePath,'file')
@@ -92,10 +96,30 @@ classdef OptimizationData < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             else
                 DestFormat = 'wide';
                 % Import data
-                [ThisStatusOk,ThisMessage,OptimHeader] = importData(obj,obj.FilePath,DestFormat);
+                [ThisStatusOk,ThisMessage,OptimHeader,OptimData] = importData(obj,obj.FilePath,DestFormat);
                 if ~ThisStatusOk
                     Message = sprintf('%s\n* Error loading data "%s". %s\n',Message,obj.FilePath,ThisMessage);
+                    StatusOK = false;
                 end
+                
+                ixSpecies = strcmpi(OptimHeader, 'Species');
+                try
+                    data = cell2mat(OptimData(:,~ixSpecies));
+                catch
+                    Message = sprintf('%s\n* Optimization data contains invalid non-numeric data\n', Message);
+                    StatusOK = false;
+                end
+                
+                if ~all(ismember( {'GROUP','ID','TIME'}, upper(OptimHeader)))
+                    Message = sprintf('%s\n* Optimization data must contain columns for Group, ID, and Time\n', Message);
+                    StatusOK = false;
+                end
+                
+%                 if ~all(isnumeric(OptimData(:,~ixSpecies)))
+%                     Message = sprintf('%s\n* Optimization data contains invalid non-numeric data\n', Message);
+%                     StatusOK = false;
+%                 end
+                
             end
             
         end

@@ -151,6 +151,10 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             StatusOK = true;
             Message = sprintf('Simulation: %s\n%s\n',obj.Name,repmat('-',1,75));
             
+            if  obj.Session.UseParallel && ~isempty(getCurrentTask())
+                return
+            end
+            
             % Validate task-vpop pair is valid (TODO: AG: check that params in vpop exist in the file)
             if ~isempty(obj.Settings)
                 
@@ -280,7 +284,7 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             if StatusOK
                 
                 % For autosave with tag
-                if obj.Session.UseAutoSave && obj.Session.AutoSaveBeforeRun
+                if obj.Session.AutoSaveBeforeRun
                     autoSaveFile(obj.Session,'Tag','preRunSimulation');
                 end
                 

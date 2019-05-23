@@ -80,17 +80,27 @@ classdef Parameters < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             
             StatusOK = true;
             Message = sprintf('Parameters: %s\n%s\n',obj.Name,repmat('-',1,75));
+            if  obj.Session.UseParallel && ~isempty(getCurrentTask())
+                return
+            end
             
             if isdir(obj.FilePath) || ~exist(obj.FilePath,'file')
                 StatusOK = false;
                 Message = sprintf('%s\n* Parameters file "%s" is invalid or does not exist',Message,obj.FilePath);
             else
                 % Import data
-                [ThisStatusOk,ThisMessage] = importData(obj,obj.FilePath);
+                [ThisStatusOk,ThisMessage,ParamHeader] = importData(obj,obj.FilePath);
                 if ~ThisStatusOk
                     Message = sprintf('%s\n* Error loading data "%s". %s\n',Message,obj.FilePath,ThisMessage);
                 end
+                
+                if ~all(ismember({'NAME','SCALE','LB','UB','P0_1'}, upper(ParamHeader)))
+                    Message = sprintf('%s\n* Parameters file must include columns for Name, Scale, LB, UB, and P0_1\n', Message)
+                    StatusOK = false;
+                end
             end
+            
+            
             
         end %function
         
