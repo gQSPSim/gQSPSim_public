@@ -284,7 +284,7 @@ p = gcp('nocreate');
 if isempty(p) 
     p = parpool(obj.Session.ParallelCluster, ...
         'AttachedFiles', obj.Session.UserDefinedFunctionsDirectory);
-elseif  ~strcmp(p.Cluster,obj.Session.ParallelCluster)
+elseif  ~strcmp(p.Cluster.Profile,obj.Session.ParallelCluster)
     delete(gcp('nocreate'))
     p = parpool(obj.Session.ParallelCluster, ...
      'AttachedFiles', obj.Session.UserDefinedFunctionsDirectory);

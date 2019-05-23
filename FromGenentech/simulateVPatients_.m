@@ -113,10 +113,10 @@ function [Results, nFailedSims, StatusOK, Message, Cancelled] = simulateVPatient
             UDF_files = arrayfun(@(x) fullfile(x.folder,x.name), UDF_files, 'UniformOutput', false);
             if isempty(p)
                 p = parpool(ParallelCluster); %, 'AutoAddClientPath', true, 'AttachedFiles', UDF_files);
-            elseif ~strcmp(p.Cluster, obj.Session.ParallelCluster)
+            elseif ~strcmp(p.Cluster.Profile, taskObj.Session.ParallelCluster)
                 delete(gcp('nocreate'))
                 p = parpool(obj.Session.ParallelCluster, ...
-                 'AttachedFiles', obj.Session.UserDefinedFunctionsDirectory);
+                 'AttachedFiles', taskObj.Session.UserDefinedFunctionsDirectory);
             end
             
             addAttachedFiles(p, UDF_files);
