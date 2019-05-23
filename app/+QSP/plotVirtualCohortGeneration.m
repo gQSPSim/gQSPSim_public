@@ -572,6 +572,16 @@ ItemColors = cell2mat(obj.PlotItemTable(:,2));
 % all axes with species assigned to them
 allAxes = str2double(obj.PlotSpeciesTable(:,1));
 
+% Process all
+IsSelected = true(size(obj.PlotItemTable,1),1);
+ResultsIdx = find(IsSelected);
+
+OrigIsSelected = obj.PlotItemTable(:,1);
+if iscell(OrigIsSelected)
+    OrigIsSelected = cell2mat(OrigIsSelected);
+end
+OrigIsSelected = find(OrigIsSelected);
+
 % all species names
 %     spNames = obj.PlotSpeciesTable(:,3);
 dataNames = obj.PlotSpeciesTable(:,4);
