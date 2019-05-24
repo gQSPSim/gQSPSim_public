@@ -521,7 +521,7 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
             % What are the data object and its parent?
             ParentObj = ParentNode.Value;
 
-            for nodeIdx = 1:length(SelNode);
+            for nodeIdx = 1:length(SelNode)
                 ThisObj = SelNode(nodeIdx).Value;
             
             % Copy the object
@@ -570,8 +570,6 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
             % What type of item?
             ItemType = ParentNode.UserData;
             
-
-            
             % Where is the Deleted Items node?
             hSessionNode = ThisSession.TreeNode;
             hChildNodes = hSessionNode.Children;
@@ -601,10 +599,7 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
             
             obj.ActivePane.Selection = 1; % switch to summary view
 
-
             hDeletedNode.expand();
-            
-
             
             % Mark the current session dirty
             obj.markDirty();
@@ -816,6 +811,7 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
 
                     % Update the display
                     obj.refresh();
+                    
                 otherwise
                     % Do nothing
             end
