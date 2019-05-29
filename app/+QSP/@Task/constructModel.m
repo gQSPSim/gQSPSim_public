@@ -1,6 +1,8 @@
-function constructModel(obj)
+function [StatusOK Message] = constructModel(obj)
 % construct the model and export it for simulation
-
+    StatusOK = true;
+    Message = '';
+    
     % extract model
     if ~isempty(obj.ModelObj)
         model = copyobj(obj.ModelObj.mObj);
@@ -49,8 +51,15 @@ function constructModel(obj)
         
     % get all species names
     species = sbioselect(model, 'Type', 'Species');
-    expModel = export(model, [species; params]);   
-        
+    try
+    
+        expModel = export(model, [species; params]);   
+    catch err        
+        StatusOK = false;
+        Message = sprintf('Error encountered exporting model:\n %s', err.message);
+        return
+    end
+    
     % set MaxWallClockTime in the exported model
     if ~isempty(obj.MaxWallClockTime)
         expModel.SimulationOptions.MaximumWallClock = obj.MaxWallClockTime;
@@ -68,7 +77,10 @@ function constructModel(obj)
     try
         accelerate(expModel)
     catch ME
-        warn('Model acceleration failed. Check that you have a compiler installed and setup. %s', ME.message);        
+        StatusOK = false;
+        Message = sprintf('Model acceleration failed. Check that you have a compiler installed and setup. %s', ME.message);
+
+        return
     end 
     
     % export the model

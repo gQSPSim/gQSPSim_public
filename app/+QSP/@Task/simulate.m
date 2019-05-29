@@ -27,8 +27,12 @@ function [simData, statusOK, Message] = simulate(obj, varargin)
         if ~isempty(Waitbar)
             uix.utility.CustomWaitbar(0,Waitbar,'Rebuilding model');
         end
-        obj.constructModel();
         disp('Rebuilding model')
+        [statusOK, Message] = obj.constructModel();
+        if ~statusOK
+            return
+        end
+        
     end
     
 %     [~,idxSpecies] = ismember(Names, obj.SpeciesNames);    

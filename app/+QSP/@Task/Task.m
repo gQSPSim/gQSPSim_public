@@ -300,7 +300,7 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             end
         end %function
         
-        constructModel(obj)
+        [StatusOK Message] = constructModel(obj)
         
 %         function upToDate = checkModelCurrent(obj)
 %             % check just that the task was saved after the sbproj file was
