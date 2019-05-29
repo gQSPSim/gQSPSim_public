@@ -41,20 +41,21 @@ if isscalar(vObj.Data)
     
     set(vObj.h.UseParallelCheckbox, 'Value', vObj.Data.UseParallel);
     if vObj.Data.UseParallel
-        enable_cluster = 'on';
+        Enable_cluster = 'on';
     else
-        enable_cluster = 'off';
+        Enable_cluster = 'off';
     end
-    
-    set(vObj.h.ParallelCluster, 'Value', find(strcmp(get(vObj.h.ParallelCluster, 'String'), vObj.Data.ParallelCluster)), ...
-        'Enable', enable_cluster);
-
+   
+    ThisCluster = vObj.Data.ParallelCluster;
 else
     RootDir = '';
 %     RelativeResultsPath = '';
     RelativeUserDefinedFunctionsPath = '';
     RelativeObjectiveFunctionsPath = '';
     vObj.h.UseParallelCheckbox.Value = 0;
+    Enable_cluster = 'off';
+    ThisCluster = '';
+    
 %     info = ver;
 %     if ismember('Parallel Computing Toolbox', {info.Name})
 %         vObj.h.ParallelCluster.String = parallel.clusterProfiles;
@@ -69,6 +70,14 @@ vObj.h.ResultsDirSelector.RootDirectory = RootDir;
 vObj.h.FunctionsDirSelector.RootDirectory = RootDir;
 vObj.h.ObjectiveFunctionsDirSelector.Value = RelativeObjectiveFunctionsPath;
 vObj.h.UserDefinedFunctionsDirSelector.Value = RelativeUserDefinedFunctionsPath;
+
+ThisIdx = find(strcmp(get(vObj.h.ParallelCluster, 'String'),ThisCluster));
+if isempty(ThisIdx)
+    ThisIdx = 1;
+end
+set(vObj.h.ParallelCluster, 'Value', ThisIdx, ...
+    'Enable', Enable_cluster);
+
 
 %% Invoke update
 
