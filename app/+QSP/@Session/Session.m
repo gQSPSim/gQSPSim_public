@@ -50,7 +50,7 @@ classdef Session < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         RelativeAutoSavePath = ''
         AutoSaveFrequency = 1 % minutes
         AutoSaveBeforeRun = true
-        UseParallel = false  
+        UseParallel = false
         ParallelCluster 
         
     end
