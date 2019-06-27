@@ -1,4 +1,4 @@
-classdef (Abstract) BaseProps < matlab.mixin.SetGet & matlab.mixin.Heterogeneous & uix.mixin.AssignPVPairs
+classdef (Abstract) BaseProps < matlab.mixin.SetGet & matlab.mixin.Heterogeneous & uix.mixin.AssignPVPairs & QSP.abstract.BasicBaseProps
     % BaseProps  A base class for the base properties for the backend
     % ---------------------------------------------------------------------
     % This is an abstract base class and cannot be instantiated.
@@ -40,9 +40,9 @@ classdef (Abstract) BaseProps < matlab.mixin.SetGet & matlab.mixin.Heterogeneous
     %% Properties
     properties
         Session = QSP.Session.empty(1,0)
-        Name = ''    % Name
+%         Name = ''    % Name
         RelativeFilePath = '' % Path to file
-        Description = '' % Description
+%         Description = '' % Description
         
         bShowTraces = []
         bShowQuantiles = []
@@ -54,13 +54,13 @@ classdef (Abstract) BaseProps < matlab.mixin.SetGet & matlab.mixin.Heterogeneous
     end
     properties (Dependent=true)
         FilePath
-        LastSavedTimeStr
+%         LastSavedTimeStr
     end
     
     %% Protected Properties
     properties (SetAccess=protected)
-        LastSavedTime = [] % Time at which the view was last saved        
-        LastValidatedTime = ''
+%         LastSavedTime = [] % Time at which the view was last saved        
+%         LastValidatedTime = ''
     end
     
     %% Public methods
@@ -73,16 +73,6 @@ classdef (Abstract) BaseProps < matlab.mixin.SetGet & matlab.mixin.Heterogeneous
         end % constructor       
                 
     end % Public methods
-    
-    %% Abstract methods
-    methods( Abstract = true, Access = 'public' )
-        
-        Summary = getSummary(obj) % Cell array of strings (nx2) containing summary of obj; First column contains group name and second column contains value as string
-        
-        [StatusOK, Message] = validate(obj,FlagRemoveInvalid) % Validate current properties
-        
-        clearData(obj) % remove all data after copying
-    end % abstract methods
     
     %% Protected methods
     methods (Access=protected)
@@ -98,11 +88,11 @@ classdef (Abstract) BaseProps < matlab.mixin.SetGet & matlab.mixin.Heterogeneous
     %% Methods
     methods
         
-        function updateLastSavedTime(obj)
-            
-            obj.LastSavedTime = now;
-            
-        end %function
+%         function updateLastSavedTime(obj)
+%             
+%             obj.LastSavedTime = now;
+%             
+%         end %function
         
         function newObj = copy(obj,varargin)
             
@@ -271,76 +261,40 @@ classdef (Abstract) BaseProps < matlab.mixin.SetGet & matlab.mixin.Heterogeneous
             end %for pIdx = 1:numel(sProps)
         end %function
         
-        function Value = isPublicPropsEqual(obj,secondObj)
-            % Initialize
-            Value = true;
-            % TODO: Enhance to look at nested objects (Sim, Optim, VPopGen)
-            
-            if ~isequal(class(obj),class(secondObj))
-                Value = false;
-            else
-                mc = metaclass(obj);
-                pList = mc.PropertyList;
-                isPublicProp = ...
-                    strcmp({pList.SetAccess}, 'public') ...
-                    & strcmp({pList.GetAccess}, 'public');
-                isOkProp = isPublicProp & ...
-                    ~([pList.Constant] | [pList.Dependent] | [pList.NonCopyable] | [pList.Transient]);
-                
-                % Filter props to compare
-                pList = pList(isOkProp);
-                
-                % Iterate through pList
-                for index = 1:numel(pList)
-                    if ~isprop(secondObj,(pList(index).Name))
-                        Value = false;
-                        break;
-                    else
-                        if ~isequal(obj.(pList(index).Name),secondObj.(pList(index).Name))
-                            Value = false;
-                            break;
-                        end
-                        
-                    end
-                end
-            end
-            
-        end %function
-        
     end % methods
     
     %% Get/Set methods
     methods
         
-        function set.Name(obj,value)
-            validateattributes(value,{'char'},{})
-            obj.Name = value;
-        end
+%         function set.Name(obj,value)
+%             validateattributes(value,{'char'},{})
+%             obj.Name = value;
+%         end
         
         function set.RelativeFilePath(obj,value)
             validateattributes(value,{'char'},{})
             obj.RelativeFilePath = value;
         end
         
-        function set.Description(obj,value)
-            validateattributes(value,{'char'},{})
-            obj.Description = value;
-        end
+%         function set.Description(obj,value)
+%             validateattributes(value,{'char'},{})
+%             obj.Description = value;
+%         end
         
-        function set.LastSavedTime(obj,value)    
-            if ischar(value)
-                if isempty(value)
-                    value = [];
-                else
-                    value = datenum(value);
-                end
-            end
-            obj.LastSavedTime = value;
-        end
-        
-        function value = get.LastSavedTimeStr(obj)
-            value = datestr(obj.LastSavedTime);
-        end
+%         function set.LastSavedTime(obj,value)    
+%             if ischar(value)
+%                 if isempty(value)
+%                     value = [];
+%                 else
+%                     value = datenum(value);
+%                 end
+%             end
+%             obj.LastSavedTime = value;
+%         end
+%         
+%         function value = get.LastSavedTimeStr(obj)
+%             value = datestr(obj.LastSavedTime);
+%         end
         
         function value = get.SessionRoot(obj)
             if isscalar(obj.Session)

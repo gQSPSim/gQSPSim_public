@@ -394,6 +394,13 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
                     thisObj = [];
                 end
                             
+                % Updated SelectedSession if needed
+                if ~isempty(e.Source.Data) && strcmpi(class(e.Source.Data),'QSP.Session')                    
+                    obj.SelectedSession = e.Source.Data;
+                    
+                    updateTree(obj,obj.h.SessionTree.Root);
+                end
+                
                 switch e.Name
                     case 'Summary'
                         % Need to disable Visualization button if invalid
@@ -589,14 +596,16 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
                 % Change context menu
                 SelNode(nodeIdx).UIContextMenu = obj.h.TreeMenu.Leaf.Deleted;
             end
-            % Update the tree
+%             
+%             % Update the tree
+%             updateTree(obj,obj.h.SessionTree.Root);
             
             % if deleted objective was the active object, reset the active
             % pane
 %             if obj.ActivePane.Data == ThisObj
 %                 obj.ActivePane.Data = [];
 %             end
-            
+
             obj.ActivePane.Selection = 1; % switch to summary view
 
             hDeletedNode.expand();
@@ -821,6 +830,71 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
     end %methods
     
     
+    %% Methods
+    methods
+        
+        function updateTree(obj,hTree)
+            % TODO: Handle deleted
+            if ~isempty(hTree.Children)
+                Ch = hTree.Children;
+                for idx = 1:numel(Ch)
+                    % Check Parent to see if it's under the Deleted node...
+                    if strcmpi(Ch(idx).Parent.UserData,'Deleted')
+                        Ch(idx).Value = obj.SelectedSession.Deleted(idx);
+                        if isprop(Ch(idx).Value,'Session')
+                            Ch(idx).Value.Session = obj.SelectedSession;
+                        end
+                    else
+                        % Otherwise, it is under the appropriate section
+                        switch class(Ch(idx).Value)
+                            case 'QSP.Session'
+                                Ch(idx).Value = obj.SelectedSession;
+                                
+                            case 'QSP.Settings'
+                                Ch(idx).Value = obj.SelectedSession.Settings;
+                                
+                            case 'QSP.OptimizationData'
+                                Ch(idx).Value = obj.SelectedSession.Settings.OptimizationData(idx);
+                                
+                            case 'QSP.Parameters'
+                                Ch(idx).Value = obj.SelectedSession.Settings.Parameters(idx);
+                                
+                            case 'QSP.Task'
+                                Ch(idx).Value = obj.SelectedSession.Settings.Task(idx);
+                                
+                            case 'QSP.VirtualPopulation'
+                                Ch(idx).Value = obj.SelectedSession.Settings.VirtualPopulation(idx);
+                                
+                            case 'QSP.VirtualPopulationData'
+                                Ch(idx).Value = obj.SelectedSession.Settings.VirtualPopulationData(idx);
+                                
+                            case 'QSP.Simulation'                                
+                                Ch(idx).Value = obj.SelectedSession.Simulation(idx);
+                                Ch(idx).Value.Session = obj.SelectedSession;
+                                
+                            case 'QSP.Optimization'
+                                Ch(idx).Value = obj.SelectedSession.Optimization(idx);
+                                Ch(idx).Value.Session = obj.SelectedSession;
+                                
+                            case 'QSP.CohortGeneration'
+                                Ch(idx).Value = obj.SelectedSession.CohortGeneration(idx);
+                                Ch(idx).Value.Session = obj.SelectedSession;
+                                
+                            case 'QSP.VirtualPopulationGeneration'
+                                Ch(idx).Value = obj.SelectedSession.VirtualPopulationGeneration(idx);
+                                Ch(idx).Value.Session = obj.SelectedSession;
+                        end %switch
+                    end %if
+                    
+                    % Recurse
+                    updateTree(obj,Ch(idx));
+                    
+                end %for                
+            end
+        end %function
+        
+    end %methods    
+    
     
     %% Get/Set methods
     methods
@@ -828,6 +902,11 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
         function value = get.SelectedSession(obj)
             % Grab the session object for the selected session
             value = obj.Session(obj.SelectedSessionIdx);
+        end
+        
+        function set.SelectedSession(obj,value)
+            % Grab the session object for the selected session
+            obj.Session(obj.SelectedSessionIdx) = value;
         end
         
         function value = get.SessionNode(obj)
