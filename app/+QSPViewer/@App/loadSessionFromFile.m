@@ -47,6 +47,9 @@ if StatusOk
     % Add the session to the app
     obj.createNewSession(Session);
     
+    % Start timer
+    initializeTimer(Session);
+    
     % check the session root
     if ~exist(Session.RootDirectory, 'dir') && strcmp(questdlg('Session root directory is invalid. Select a new root directory?', 'Select root directory', 'Yes'),'Yes')        
         rootDir = uigetdir(Session.RootDirectory, 'Select valid session root directory');

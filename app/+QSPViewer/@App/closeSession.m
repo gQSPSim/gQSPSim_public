@@ -15,6 +15,9 @@ function StatusOk = closeSession(obj,idx)
 
 StatusOk = true;
 
+% Delete timer
+deleteTimer(obj.Session(idx));
+
 % Delete the session's tree node
 delete(obj.SessionNode(idx));
 

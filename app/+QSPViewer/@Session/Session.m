@@ -14,9 +14,6 @@ classdef Session <  uix.abstract.CardViewPane % uix.abstract.ViewPane
     %   $Date: 2016-08-24 16:03:36 -0400 (Wed, 24 Aug 2016) $
     % ---------------------------------------------------------------------
   
-    properties (SetAccess=private)
-        timerObj
-    end
     
     %% Methods in separate files with custom permissions
     methods (Access=protected)
@@ -70,22 +67,16 @@ classdef Session <  uix.abstract.CardViewPane % uix.abstract.ViewPane
             % Refresh the view
             obj.refresh();
             
-            % Create timer
-            obj.timerObj = timer(...
-                'ExecutionMode','fixedRate',...
-                'BusyMode','drop',... 
-                'Name','QSPtimer',...
-                'Period',1*60,... % minutes
-                'StartDelay',1,...
-                'TimerFcn',@(h,e)onTimerCallback(obj,h,e));            
         end
         
-        % Destructor
         function delete(obj)
-            stop(obj.timerObj)
-            delete(obj.timerObj)
-        end        
-        
+            % Destructor
+            hTimer = timerfindall('Tag','QSPtimer');
+            if ~isempty(hTimer)
+                stop(hTimer)
+                delete(hTimer)
+            end
+        end
         
     end %methods
     
@@ -124,9 +115,7 @@ classdef Session <  uix.abstract.CardViewPane % uix.abstract.ViewPane
            
             % add new path
             addUDF(vObj.TempData);
-
-           
-        end
+        end %function
         
         function onParallelCheckbox(vObj,h,evt)
             vObj.TempData.UseParallel = h.Value;
@@ -143,7 +132,7 @@ classdef Session <  uix.abstract.CardViewPane % uix.abstract.ViewPane
                     vObj.TempData.ParallelCluster = vObj.h.ParallelCluster.String;
                 end
             end
-        end
+        end %function
         
         function onAutosaveTimerCheckbox(vObj,h,evt)
             vObj.TempData.UseAutoSaveTimer = logical(h.Value);
@@ -155,12 +144,11 @@ classdef Session <  uix.abstract.CardViewPane % uix.abstract.ViewPane
             
             update(vObj);
             
-        end        
+        end %function        
         
         function onParallelClusterPopup(vObj,h,evt)
             vObj.TempData.ParallelCluster = h.String{h.Value};
-        end
-        
+        end %function
         
         function onAutoSaveFrequencyEdited(vObj,h,~) %#ok<*INUSD>
             
@@ -185,13 +173,6 @@ classdef Session <  uix.abstract.CardViewPane % uix.abstract.ViewPane
             % Update the view
             update(vObj);
             
-        end %function
-        
-        function onTimerCallback(vObj,h,evt)
-            
-            % Note, autosave is applied to vObj.Data, not vObj.TempData
-            autoSaveFile(vObj.Data,'TimerObj',vObj.timerObj);
-            
         end %function        
         
         function onButtonPress(vObj,h,e)
@@ -207,6 +188,11 @@ classdef Session <  uix.abstract.CardViewPane % uix.abstract.ViewPane
             % add new path
             addUDF(vObj.TempData);
             
+            % Stop and delete vObj.TempData (temporary) timer
+            deleteTimer(vObj.TempData);
+            % Re-initialize vObj.Data's timer
+            initializeTimer(vObj.Data);
+                        
             switch ThisTag
                 case 'Save'
                     try
@@ -215,12 +201,14 @@ classdef Session <  uix.abstract.CardViewPane % uix.abstract.ViewPane
                         refreshData(vObj.Data.Settings);
                         
                         % Stop to set the period and start delay
-                        stop(vObj.timerObj)
-                        vObj.timerObj.Period = vObj.Data.AutoSaveFrequency * 60; % minutes
-                        vObj.timerObj.StartDelay = 0; % Reduce start delay
+                        if strcmpi(vObj.Data.timerObj.Runnning,'on')
+                            stop(vObj.Data.timerObj)
+                        end
+                        vObj.Data.timerObj.Period = vObj.Data.AutoSaveFrequency * 60; % minutes
+                        vObj.Data.timerObj.StartDelay = 0; % Reduce start delay
                         % Only restart if UseAutoSave is true
-                        if vObj.TempData.UseAutoSaveTimer
-                            start(vObj.timerObj)
+                        if vObj.Data.UseAutoSaveTimer
+                            start(vObj.Data.timerObj)
                         end
                         
                         % check if the parallel pool needs to be changed
@@ -231,10 +219,9 @@ classdef Session <  uix.abstract.CardViewPane % uix.abstract.ViewPane
                         uiwait(hDlg);
                     end
             end
-
         end %function        
         
-    end
+    end %methods
         
     
 % =======

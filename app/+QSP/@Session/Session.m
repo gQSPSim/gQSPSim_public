@@ -51,11 +51,12 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         AutoSaveFrequency = 1 % minutes
         AutoSaveBeforeRun = true
         UseParallel = false
-        ParallelCluster        
+        ParallelCluster
+        UseAutoSaveTimer = false
     end
     
-    properties (Transient=true)
-        UseAutoSaveTimer = false % Make transient so user always needs to toggle this true through Session node. Timer is only created when QSPViewer.Session is created (node is clicked)
+    properties (Transient=true)        
+        timerObj
     end
     
     properties % (NonCopyable=true) % Note: These properties need to be public for tree
@@ -69,7 +70,6 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
     
     properties (SetAccess='private')
         SessionName = ''
-        AutoSaveID = 1
         
         ColorMap1 = QSP.Session.DefaultColorMap
         ColorMap2 = QSP.Session.DefaultColorMap
@@ -124,11 +124,17 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
                 obj.ParallelCluster = {''};
             end
             
+%             % Initialize timer - If you call initialize here, it will
+%             enter a recursive loop. Do not call here. Instead, invoke
+%             initializeTimer on the App side when new sessions are created
+%             and call deleteTimer on the App side when sessions are closed
+%             initializeTimer(obj);            
+            
         end %function obj = Session(varargin)
         
         % Destructor
         function delete(obj)
-           removeUDF(obj)            
+            removeUDF(obj)            
         end
         
     end %methods
@@ -191,10 +197,54 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
     end
     
     
+    %% Callback (non-standard)
+    methods
+
+        function onTimerCallback(obj,~,~)
+            
+            % Note, autosave is applied to vObj.Data, not vObj.TempData
+            autoSaveFile(obj);
+            
+        end %function        
+        
+    end %methods
+    
     %% Methods
     methods
         
+        
+        function initializeTimer(obj)
+            
+            % Delete timer
+            deleteTimer(obj);
+                
+            % Create timer
+            obj.timerObj = timer(...
+                'ExecutionMode','fixedRate',...
+                'BusyMode','drop',...
+                'Tag','QSPtimer',...
+                'Period',1*60,... % minutes
+                'StartDelay',1,...
+                'TimerFcn',@(h,e)onTimerCallback(obj,h,e));
+            
+            % Only start if UseAutoSave is true
+            if obj.UseAutoSaveTimer
+                start(obj.timerObj);
+            end
+            
+        end %function
+        
+        function deleteTimer(obj)
+            if ~isempty(obj.timerObj)
+                if strcmpi(obj.timerObj.Running,'on')
+                    stop(obj.timerObj);
+                end
+                delete(obj.timerObj);
+            end
+        end %function
+        
         function newObj = copy(obj,varargin)
+            % Note: copy actually is used in place of BaseProps copy
             
             if ~isempty(obj)
                 
@@ -214,7 +264,6 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
                 newObj.UseParallel = obj.UseParallel;
                 newObj.ParallelCluster = obj.ParallelCluster;
                 newObj.UseAutoSaveTimer = obj.UseAutoSaveTimer;
-                newObj.AutoSaveID = obj.AutoSaveID;        
                 
                 newObj.LastSavedTime = obj.LastSavedTime;
                 newObj.LastValidatedTime = obj.LastValidatedTime;
@@ -328,13 +377,11 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
             
             % Define defaults and requirements for each parameter
             p.addParameter('Tag',''); %#ok<*NVREPL>
-            p.addParameter('TimerObj',[]);
             
             p.parse(varargin{:});
             
             Tag = p.Results.Tag;
-            timerObj = p.Results.TimerObj;
-
+            
             try
                 % Save when fired
                 s.Session = obj; %#ok<STRNU>
@@ -342,19 +389,16 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
                 ThisName = regexprep(obj.SessionName,'\.qsp\.mat','');
                 TimeStamp = datestr(now,'dd-mmm-yyyy_HH-MM-SS');
                 if ~isempty(Tag)
-%                         FileName = sprintf('%05d_%s.mat',obj.AutoSaveID,Tag);
                     FileName = sprintf('%s_%s_%s.qsp.mat',ThisName,TimeStamp,Tag);
                 else
-%                         FileName = sprintf('%05d.mat',obj.AutoSaveID);
                     FileName = sprintf('%s_%s.qsp.mat',ThisName,TimeStamp);
                 end
                 FilePath = fullfile(obj.AutoSaveDirectory,FileName);
-                obj.AutoSaveID = obj.AutoSaveID + 1;
                 save(FilePath,'-struct','s')
             catch err %#ok<NASGU>
                 warning('The file could not be auto-saved');  
-                if ~isempty(timerObj)
-                    start(timerObj);
+                if strcmpi(obj.timerObj.Running,'off')
+                    start(obj.timerObj);
                 end
             end
         end %function

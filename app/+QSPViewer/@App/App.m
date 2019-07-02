@@ -481,6 +481,11 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
             % What tree branch does this go under?
             ChildNodes = ParentObj.TreeNode.Children;
             ChildTypes = {ChildNodes.UserData};
+            if any(strcmpi(ItemType,{'Simulation','Optimization','CohortGeneration','VirtualPopulationGeneration'}))
+                ThisChildNode = ChildNodes(strcmpi(ChildTypes,'Functionalities'));
+                ChildNodes = ThisChildNode.Children;
+                ChildTypes = {ChildNodes.UserData};
+            end
             ParentNode = ChildNodes(strcmp(ChildTypes,ItemType));
             
             % Create the new item
@@ -641,15 +646,21 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
                 else
                     ParentObj = ThisSession.Settings;
                 end
-
+                
                 % What tree branch does this go under?
-                hChildNodes = ParentObj.TreeNode.Children;
-                ChildTypes = {hChildNodes.UserData};
-                hParentNode = hChildNodes(strcmp(ChildTypes,ItemType));
-
+                ChildNodes = ParentObj.TreeNode.Children;
+                ChildTypes = {ChildNodes.UserData};
+                if any(strcmpi(ItemType,{'Simulation','Optimization','CohortGeneration','VirtualPopulationGeneration'}))
+                    ThisChildNode = ChildNodes(strcmpi(ChildTypes,'Functionalities'));
+                    ChildNodes = ThisChildNode.Children;
+                    ChildTypes = {ChildNodes.UserData};
+                end
+                ParentNode = ChildNodes(strcmp(ChildTypes,ItemType));
+                
                 % check for duplicate names
                 if any(strcmp( SelNode.Value.Name, {ParentObj.(ItemType).Name} ))
-                    errordlg('Cannot restore deleted item because its name is identical to an existing item.')
+                    hDlg = errordlg('Cannot restore deleted item because its name is identical to an existing item.','Restore','modal');
+                    uiwait(hDlg);
                     return
                 end
 
@@ -674,9 +685,9 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
                 ThisObj.Name = sprintf('%s (%s)',ThisObj.Name,TimeStamp);
 
                 % Update the tree
-                SelNode.Parent = hParentNode;
+                SelNode.Parent = ParentNode;
                 SelNode.Tree.SelectedNodes = SelNode;
-                hParentNode.expand();
+                ParentNode.expand();
 
                 % Change context menu
                 SelNode.UIContextMenu = obj.h.TreeMenu.Leaf.(ItemType);

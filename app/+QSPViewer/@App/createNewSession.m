@@ -29,3 +29,6 @@ newIdx = obj.NumSessions + 1;
 
 % Add the session to the app
 obj.Session(newIdx,1) = Session;
+
+% Start timer
+initializeTimer(Session);
