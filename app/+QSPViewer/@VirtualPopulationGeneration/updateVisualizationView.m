@@ -34,6 +34,7 @@ end
 if ~isempty(vObj.Data)
     vObj.Data.bShowTraces = vObj.bShowTraces;
     vObj.Data.bShowQuantiles = vObj.bShowQuantiles;
+    vObj.Data.bShowSD = vObj.bShowSD;
 end
 
 %% Update table contextmenu

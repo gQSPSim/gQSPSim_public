@@ -55,6 +55,8 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
         PlotSettings = repmat(struct(),1,12)
         
         RedistributeWeights = false
+        
+        bShowSD = []
     end
     
     properties (SetAccess = 'private')

@@ -26,6 +26,7 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
     properties (SetAccess=protected)
        bShowTraces = []
        bShowQuantiles = []
+       bShowSD = []
     end
     
     properties (SetAccess=private)        
@@ -1077,13 +1078,20 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                         h.Checked = 'off';
                     else
                         h.Checked = 'on';
-                    end                    
+                    end      
+                case 'ShowSD'
+                    obj.bShowSD(axIndex) = ~obj.bShowSD(axIndex);
+                    if strcmp(h.Checked,'on')
+                        h.Checked = 'off';
+                    else
+                        h.Checked = 'on';
+                    end                         
             end
             
             % Update the display
             obj.updateVisualizationView();
             
-            if strcmp(ThisTag,'ShowTraces') || strcmp(ThisTag,'ShowQuantiles')
+            if strcmp(ThisTag,'ShowTraces') || strcmp(ThisTag,'ShowQuantiles') ||  strcmp(ThisTag,'ShowSD')
                 if any(strcmpi(class(obj),{'QSPViewer.Simulation','QSPViewer.CohortGeneration','QSPViewer.VirtualPopulationGeneration'}))
                     [UpdatedAxesLegend,UpdatedAxesLegendChildren] = updatePlots(...
                         obj.Data,obj.h.MainAxes,obj.h.SpeciesGroup,obj.h.DatasetGroup,...
