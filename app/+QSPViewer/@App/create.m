@@ -16,12 +16,12 @@ function create(obj)
 %% Create QSP Menus
 
 ItemTypes = {
-    'Settings: Optimization Data',      'OptimizationData'
-    'Settings: Parameters',             'Parameters'
+    'Settings: Dataset',      'OptimizationData'
+    'Settings: Parameter',             'Parameters'
     'Settings: Task',                   'Task'
     'Settings: Virtual Population',     'VirtualPopulation'    
     'Settings: Acceptance Criteria',    'VirtualPopulationData'
-    'Settings: Virtual Population Generation Data', 'VirtualPopulationGenerationData'
+    'Settings: Target Statistics', 'VirtualPopulationGenerationData'
     'Simulation',                       'Simulation'
     'Optimization',                     'Optimization'
     'Cohort Generation',                'CohortGeneration'
