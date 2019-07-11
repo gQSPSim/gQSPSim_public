@@ -961,7 +961,7 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
             'Color',ItemColors(itemIdx,:),...
             'UserData',[sIdx,itemIdx],... % SE.mainLine
             'Tag','WeightedMeanMarker',... % TODO: Validate
-            'LineWidth',obj.PlotSettings(axIdx).DataSymbolSize);
+            'MarkerSize',obj.PlotSettings(axIdx).DataSymbolSize);
         
         % Only allow one display name - don't attach to`
         % traces and quantiles and instead attach to mean
