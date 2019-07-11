@@ -44,6 +44,7 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         SelectedPlotLayout = '1x1'
         
         PlotSettings = repmat(struct(),1,12)
+
     end
     
     properties (SetAccess = 'private')
@@ -90,6 +91,11 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             end
             if size(obj.PlotGroupTable,2) == 3
                 obj.PlotGroupTable(:,4) = obj.PlotGroupTable(:,3);
+            end
+            
+            % assign plot settings names
+            for index = 1:length(obj.PlotSettings)
+                obj.PlotSettings(index).Title = sprintf('Plot %d', index);
             end
             
         end %function obj = Simulation(varargin)

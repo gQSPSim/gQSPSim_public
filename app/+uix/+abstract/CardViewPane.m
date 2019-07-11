@@ -218,6 +218,7 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                     % (i.e. 11 to 8.8) for small axes (off screen), even
                     % when FontUnits is points
                     set(obj.h.MainAxes(index),'FontSizeMode','manual')
+                    
                     title(obj.h.MainAxes(index),sprintf('Plot %d',index));
                     xlabel(obj.h.MainAxes(index),QSP.PlotSettings.DefaultXLabel);
                     ylabel(obj.h.MainAxes(index),QSP.PlotSettings.DefaultYLabel);
@@ -243,6 +244,7 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                     
                     % Assign plot settings
                     obj.PlotSettings(index) = QSP.PlotSettings(obj.h.MainAxes(index));
+                    obj.PlotSettings(index).Title = sprintf('Plot %d',index);
                     
                     % Add contextmenu
                     obj.h.ContextMenu(index) = uicontextmenu('Parent',hFigure);

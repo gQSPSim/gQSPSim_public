@@ -113,6 +113,11 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 obj.PlotItemTable(:,5) = obj.PlotItemTable(:,3);
             end
             
+            % assign plot settings names
+            for index = 1:length(obj.PlotSettings)
+                obj.PlotSettings(index).Title = sprintf('Plot %d', index);
+            end            
+            
         end %function obj = VirtualPopulationGeneration(varargin)
         
     end %methods

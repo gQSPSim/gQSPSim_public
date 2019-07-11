@@ -173,12 +173,14 @@ for axIndex = AxIndices(:)'
             set(chIsBoundaryLine,'Visible','off')
             set(chBoundaryPatch,'Visible','off')
         end
-        if obj.bShowSD(axIndex)
-            set(chSDVisible,'Visible','on')
-        else
-            set(chSD,'Visible','off')
-        end        
         
+        if isa(obj, 'QSP.VirtualPopulationGeneration') 
+            if obj.bShowSD(axIndex)
+            set(chSDVisible,'Visible','on')
+            else
+                set(chSD,'Visible','off')
+            end        
+        end
         set(chErrorbarVisible,'Visible','on')
         
         MatchIdx = ismember(ChildrenUserData(:,2),InvisibleItemIndices);
