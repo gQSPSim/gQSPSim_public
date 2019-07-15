@@ -595,7 +595,7 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
             
             % plot the standard deviations (VP only)
             if strcmp(Mode, 'VP')
-                mu = mean(thisData(:,ColumnIdx),2);
+                mu = thisData(:,ColumnIdx) * vpopWeights/sum(vpopWeights) ;
                 wSD = sqrt((thisData(:,ColumnIdx) - mu).^2* ...
                         vpopWeights/sum(vpopWeights));
                     
