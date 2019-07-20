@@ -29,7 +29,7 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
     %% Properties
     properties
         Settings = QSP.Settings.empty(0,1)
-        VPopResultsFolderName = 'VPopResults' 
+        VPopResultsFolderName = 'CohortGenerationResults' 
         ICFileName = ''
         ExcelResultFileName = ''
         VPopName = '' % VPop name from running vpop gen
