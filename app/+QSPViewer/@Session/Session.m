@@ -201,7 +201,7 @@ classdef Session <  uix.abstract.CardViewPane % uix.abstract.ViewPane
                         refreshData(vObj.Data.Settings);
                         
                         % Stop to set the period and start delay
-                        if strcmpi(vObj.Data.timerObj.Runnning,'on')
+                        if strcmpi(vObj.Data.timerObj.Running,'on')
                             stop(vObj.Data.timerObj)
                         end
                         vObj.Data.timerObj.Period = vObj.Data.AutoSaveFrequency * 60; % minutes
@@ -215,7 +215,7 @@ classdef Session <  uix.abstract.CardViewPane % uix.abstract.ViewPane
                         
                     catch err
 
-                        hDlg = errordlg(err.message,Field,'modal');
+                        hDlg = errordlg(err.message,'modal');
                         uiwait(hDlg);
                     end
             end
