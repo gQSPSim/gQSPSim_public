@@ -1,10 +1,6 @@
 % generate a new Target Statistics file from a Optimization Data file
 function createTargetStatistics(appObj, SelNodes)
 
-
- 
-% obj.
-
 if length(SelNodes) ~= 1
     return
 end
@@ -41,6 +37,6 @@ ItemName = sprintf('%s Target Statistics', obj.Name);
 o.Name = ItemName;
 o.FilePath = fullfile(out_relativePath, [obj.Name, '_TargetStatistics.xlsx']);
 
-obj.Session.Settings.VirtualPopulationGenerationData(end+1) = o;
+% obj.Session.Settings.VirtualPopulationGenerationData(end+1) = o;
 
 appObj.addItemToSession(obj.Session, 'VirtualPopulationGenerationData', o, ItemName);

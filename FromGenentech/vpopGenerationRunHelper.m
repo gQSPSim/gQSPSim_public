@@ -169,6 +169,10 @@ Y = []; % observed statistics
 X = []; % simulated statistics
 dataMatrix = [];
 sigY = []; % uncertainty in statistics
+
+M = []; % membership matrix for matching distributions
+f = [];
+
 tic
 fprintf('Computing data statistics...')
 hWbar2 = uix.utility.CustomWaitbar(0,'Please wait', 'Computing data statistics...', false);
@@ -190,25 +194,41 @@ for spIdx = 1:length(obj.SpeciesData)
              
             thisType = thisData(:,typeCol);
 
-            if numel(unique(thisType)) ~= 1
+                
+            if numel(unique(thisType)) ~= 1 && ~all(ismember(upper(thisType), {'DIST_BINS','DIST_DENSITY'})) 
                 StatusOK = false;
                 Message = sprintf('%s\nInvalid vpop generation data. Only one type can be defined per species/time/group.\n', Message);
                 return
             end
             
-            % MEAN only
             spData = reshape(vpatData{itemIdx}(timeIdx,spIdx,:), 1, []);
             
-            dataMatrix = [dataMatrix; spData];
-            Y = [Y; mean(cell2mat(thisData(:,val1Col)))];
+            % MEAN only
+            if strcmpi(thisType, 'MEAN')
+                dataMatrix = [dataMatrix; spData];
+                Y = [Y; mean(cell2mat(thisData(:,val1Col)))];
+            end
             
-            % if STD
-            if strcmp(thisType, 'MEAN_STD')
+            % MEAN + STD
+            if strcmpi(thisType, 'MEAN_STD')
                dataMatrix = [dataMatrix; (spData -  cell2mat(thisData(:,val1Col))).^2];
                 Y = [Y; mean(cell2mat(thisData(:,val2Col)).^2)];         
                 %TODO: use STD to compute uncertainty in the mean? requires
                 %knowledge of sample size to get the std. err.
             end
+            
+            % constraints on the distribution            
+            % bin definition
+            if all(ismember({'DIST_BINS', 'DIST_DENSITY'}, upper(thisType)) )
+                bins = cell2mat(thisData(strcmpi(thisType, 'DIST_BINS'),5:end));
+                density = cell2mat(thisData(strcmpi(thisType, 'DIST_DENSITY'),5:end-1));
+                
+                % add rows to the membership matrix for each bin of this distribution
+                M = [M; spData >= bins(1:end-1)' & spData <= bins(2:end)' ];
+                f = [f; density'/sum(density)];
+            end
+                    
+            
         end
     end
 end
@@ -223,7 +243,15 @@ if strcmp(thisAlg, 'Maximum likelihood')
     minVpats = min(obj.MinNumVirtualPatients, nPatients);
     
     uix.utility.CustomWaitbar(0, hWbar2, 'Computing prevalence weights...');    
-    PW = computePW_MLE(dataMatrix,Y,diag(0.1 * abs(Y) + 1e-3),minVpats, redistributePW);    
+    
+    if ~isempty(dataMatrix) 
+        PW = computePW_MLE(dataMatrix,Y,diag(0.1 * abs(Y) + 1e-3),minVpats, redistributePW, M, f); 
+
+    elseif ~isempty(M) && ~isempty(f)
+        % matching distributions only
+        PW = computePW_MLE(M,f, diag(0.05 * abs(f) + 1e-3) );
+
+    end
 
 elseif strcmp(thisAlg, 'Bayesian')
     disp('pass')
