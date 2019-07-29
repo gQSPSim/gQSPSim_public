@@ -518,32 +518,37 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
                         'Color',ItemColors(itemIdx,:),...
                         'UserData',[sIdx,itemIdx],... % SE.mainLine
                         'Tag','WeightedMeanLine',... % TODO: Validate
-                        'LineWidth',obj.PlotSettings(axIdx).MeanLineWidth);                    
-                else
-                    % VP
-                    spData = vpopGenData( cell2mat(vpopGenData(:,strcmp(vpopGenHeader,'Group'))) == str2num(obj.PlotItemTable{itemNumber,4}) & ...
-                        strcmp(vpopGenData(:,strcmp(vpopGenHeader,'Species')), ThisDataName), :); %#ok<ST2NM>
-                    val1 = cell2mat(spData(:, strcmp(vpopGenHeader, 'Value1')));
+                        'LineWidth',obj.PlotSettings(axIdx).MeanLineWidth);      
                     
-                    type = spData(:, strcmp(vpopGenHeader, 'Type'));
-                    times = cell2mat(spData(:, strcmp(vpopGenHeader, 'Time')));
-                    ixMean = strcmp(type,'MEAN');
-                    
-                    % Mean line
-                    hThis = plot(hSpeciesGroup{sIdx,axIdx}, times(ixMean), val1(ixMean), ...
-                        'LineStyle',ThisLineStyle,...
-                        'Color',ItemColors(itemIdx,:),...
-                        'UserData',[sIdx,itemIdx],... % SE.mainLine
-                        'Tag','WeightedMeanLine',... % TODO: Validate
-                        'LineWidth',obj.PlotSettings(axIdx).MeanLineWidth);
+                    setIconDisplayStyleOff(hThis);
+                    set(hThis,'Visible',uix.utility.tf2onoff(IsVisible && ~obj.bShowQuantiles(axIdx)));
+%                 else
+%                     % VP
+%                     spData = vpopGenData( cell2mat(vpopGenData(:,strcmp(vpopGenHeader,'Group'))) == str2num(obj.PlotItemTable{itemNumber,4}) & ...
+%                         strcmp(vpopGenData(:,strcmp(vpopGenHeader,'Species')), ThisDataName), :); %#ok<ST2NM>
+%                     val1 = cell2mat(spData(:, strcmp(vpopGenHeader, 'Value1')));
+%                     
+%                     type = spData(:, strcmp(vpopGenHeader, 'Type'));
+%                     times = cell2mat(spData(:, strcmp(vpopGenHeader, 'Time')));
+%                     ixMean = strcmp(type,'MEAN');
+%                     
+%                     % Mean line
+%                     hThis = plot(hSpeciesGroup{sIdx,axIdx}, times(ixMean), val1(ixMean), ...
+%                         'LineStyle',ThisLineStyle,...
+%                         'Color',ItemColors(itemIdx,:),...
+%                         'UserData',[sIdx,itemIdx],... % SE.mainLine
+%                         'Tag','WeightedMeanLine',... % TODO: Validate
+%                         'LineWidth',obj.PlotSettings(axIdx).MeanLineWidth);
+%                     
+                    % Show simulation standard deviations
                 end
                 
                 % Only allow one display name - don't attach to
                 % traces and quantiles and instead attach to mean
                 % line
                 %                     set(hThis(1),'DisplayName',regexprep(sprintf('%s [Sim]',FullDisplayName),'_','\\_')); % For export, use patch since line width is not applied
-                setIconDisplayStyleOff(hThis);
-                set(hThis,'Visible',uix.utility.tf2onoff(IsVisible && ~obj.bShowQuantiles(axIdx)));
+%                 setIconDisplayStyleOff(hThis);
+%                 set(hThis,'Visible',uix.utility.tf2onoff(IsVisible && ~obj.bShowQuantiles(axIdx)));
                 
             end %if
             
@@ -587,6 +592,33 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
                     
                 end %if
             end % if Cohort
+            
+            % plot the standard deviations (VP only)
+            if strcmp(Mode, 'VP')
+                mu = thisData(:,ColumnIdx) * vpopWeights/sum(vpopWeights) ;
+                wSD = sqrt((thisData(:,ColumnIdx) - mu).^2* ...
+                        vpopWeights/sum(vpopWeights));
+                    
+                hu = plot(hSpeciesGroup{sIdx,axIdx}, Results{itemIdx}.Time, mu + wSD,...%                         'LineStyle','none',...
+                        'LineStyle',ThisLineStyle,...%                         'Marker', '^', ...%                         'MarkerSize',5,...
+                        'Color',ItemColors(itemIdx,:),...
+                        'UserData',[sIdx,itemIdx],... % SE.mainLine
+                        'Tag','WeightedSD'... % TODO: Validate
+                        );     
+                    
+                hl = plot(hSpeciesGroup{sIdx,axIdx}, Results{itemIdx}.Time, mu - wSD,...
+                        'LineStyle', ThisLineStyle, ...                           
+                        'Color',ItemColors(itemIdx,:),...
+                        'UserData',[sIdx,itemIdx],... % SE.mainLine
+                        'Tag','WeightedSD'... % TODO: Validate
+                        );         
+                    
+                    setIconDisplayStyleOff([hl,hu]);
+                    set([hu,hl],'Visible',uix.utility.tf2onoff(IsVisible && obj.bShowSD(axIdx)));
+                
+            end
+            
+            
             
         end %if
     end %for
@@ -929,7 +961,7 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
             'Color',ItemColors(itemIdx,:),...
             'UserData',[sIdx,itemIdx],... % SE.mainLine
             'Tag','WeightedMeanMarker',... % TODO: Validate
-            'LineWidth',obj.PlotSettings(axIdx).DataSymbolSize);
+            'MarkerSize',obj.PlotSettings(axIdx).DataSymbolSize);
         
         % Only allow one display name - don't attach to`
         % traces and quantiles and instead attach to mean
@@ -948,7 +980,7 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
                 hThisParent = hAxes(1);
             end
             hThis = errorbar('Parent',hThisParent,...
-                times(ixMeanStd), val1(ixMeanStd), 2*val2(ixMeanStd), ThisMarker, 'Color', ItemColors(itemIdx,:),...
+                times(ixMeanStd), val1(ixMeanStd), val2(ixMeanStd), ThisMarker, 'Color', ItemColors(itemIdx,:),...
                 'LineWidth',obj.PlotSettings(axIdx).LineWidth,...
                 'MarkerSize',obj.PlotSettings(axIdx).DataSymbolSize,...
                 'UserData',[sIdx,itemIdx],...

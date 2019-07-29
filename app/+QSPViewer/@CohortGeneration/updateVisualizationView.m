@@ -220,7 +220,13 @@ if ~isempty(vObj.Data)
     % Get the raw SpeciesNames, DataNames
     TaskNames = {vObj.Data.Item.TaskName};
     SpeciesNames = {vObj.Data.SpeciesData.SpeciesName};
+    [~,order] = sort(upper(SpeciesNames));
+    vObj.Data.SpeciesData = vObj.Data.SpeciesData(order);
+    
+    SpeciesNames = {vObj.Data.SpeciesData.SpeciesName};
     DataNames = {vObj.Data.SpeciesData.DataName};
+    
+    
     
     % Get the list of all active species from all valid selected tasks
     ValidSpeciesList = getSpeciesFromValidSelectedTasks(vObj.Data.Settings,TaskNames);

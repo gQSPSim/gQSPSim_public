@@ -97,7 +97,7 @@ if isscalar(SelNode) && isscalar(SelNode.Value) &&...
     % Update the node name
     SelNode.Name = SelNode.Value.Name;
 end
-   
+
 
 
 %% Update the right pane viewer

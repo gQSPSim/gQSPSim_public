@@ -26,6 +26,7 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
     properties (SetAccess=protected)
        bShowTraces = []
        bShowQuantiles = []
+       bShowSD = []
     end
     
     properties (SetAccess=private)        
@@ -217,6 +218,7 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                     % (i.e. 11 to 8.8) for small axes (off screen), even
                     % when FontUnits is points
                     set(obj.h.MainAxes(index),'FontSizeMode','manual')
+                    
                     title(obj.h.MainAxes(index),sprintf('Plot %d',index));
                     xlabel(obj.h.MainAxes(index),QSP.PlotSettings.DefaultXLabel);
                     ylabel(obj.h.MainAxes(index),QSP.PlotSettings.DefaultYLabel);
@@ -242,6 +244,7 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                     
                     % Assign plot settings
                     obj.PlotSettings(index) = QSP.PlotSettings(obj.h.MainAxes(index));
+                    obj.PlotSettings(index).Title = sprintf('Plot %d',index);
                     
                     % Add contextmenu
                     obj.h.ContextMenu(index) = uicontextmenu('Parent',hFigure);
@@ -564,7 +567,7 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
             ref_obj = [];
             switch class(obj)
                 case 'QSPViewer.Session'
-                    ref_obj = obj.Data.Session;
+                    ref_obj = obj.Data; %obj.Data.Session;
                 case 'QSPViewer.OptimizationData'
                     ref_obj = obj.Data.Session.Settings.OptimizationData;
                 case 'QSPViewer.Parameters'
@@ -1077,13 +1080,20 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                         h.Checked = 'off';
                     else
                         h.Checked = 'on';
-                    end                    
+                    end      
+                case 'ShowSD'
+                    obj.bShowSD(axIndex) = ~obj.bShowSD(axIndex);
+                    if strcmp(h.Checked,'on')
+                        h.Checked = 'off';
+                    else
+                        h.Checked = 'on';
+                    end                         
             end
             
             % Update the display
             obj.updateVisualizationView();
             
-            if strcmp(ThisTag,'ShowTraces') || strcmp(ThisTag,'ShowQuantiles')
+            if strcmp(ThisTag,'ShowTraces') || strcmp(ThisTag,'ShowQuantiles') ||  strcmp(ThisTag,'ShowSD')
                 if any(strcmpi(class(obj),{'QSPViewer.Simulation','QSPViewer.CohortGeneration','QSPViewer.VirtualPopulationGeneration'}))
                     [UpdatedAxesLegend,UpdatedAxesLegendChildren] = updatePlots(...
                         obj.Data,obj.h.MainAxes,obj.h.SpeciesGroup,obj.h.DatasetGroup,...

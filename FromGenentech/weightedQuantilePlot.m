@@ -61,9 +61,18 @@ for tIdx = 1:size(x,1)
     elseif strcmp(style, 'mean_std')
         mean_y =  y*w(ix);
         m(tIdx) = mean_y;
-        std_y = sqrt((y - mean_y).^2 * w(ix));
-        q_l(tIdx) = mean_y - 2*std_y;
-        q_u(tIdx) = mean_y + 2*std_y;
+        
+        q_l(tIdx) = y(find(cumsum(w(ix)) >= q(1),1,'first'));
+        q_u(tIdx) = y(find(cumsum(w(ix)) >= q(2),1,'first'));
+%     elseif strcmp(style, 'mean_std')        
+%         m(tIdx) = mean_y;
+%         std_y = sqrt((y - mean_y).^2 * w(ix));
+%         if strcmp(get(parent,'YScale'),'log')
+%             q_l(tIdx) = max(1e-10, mean_y - 2*std_y);
+%         else
+%             q_l(tIdx) = mean_y - 2*std_y;
+%         end
+%         q_u(tIdx) = mean_y + 2*std_y;
     end
     
     if isempty(q_u(tIdx))

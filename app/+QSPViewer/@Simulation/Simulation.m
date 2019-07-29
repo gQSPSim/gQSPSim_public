@@ -393,7 +393,7 @@ classdef Simulation < uix.abstract.CardViewPane
             
             vObj.Data.PlotItemTable(RowIdx,ColIdx) = ThisData(RowIdx,ColIdx);
             
-            if ColIdx == 5
+            if ColIdx == 6
                 % Display name                
                 [vObj.h.AxesLegend,vObj.h.AxesLegendChildren] = updatePlots(vObj.Data,vObj.h.MainAxes,vObj.h.SpeciesGroup,vObj.h.DatasetGroup);
                 

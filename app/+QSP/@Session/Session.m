@@ -1,4 +1,4 @@
-classdef Session < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
+classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
     % Session - Defines an session object
     % ---------------------------------------------------------------------
     % Abstract: This object defines Session
@@ -51,15 +51,15 @@ classdef Session < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         AutoSaveFrequency = 1 % minutes
         AutoSaveBeforeRun = true
         UseParallel = false
-        ParallelCluster 
-        
+        ParallelCluster
+        UseAutoSaveTimer = false
     end
     
-    properties (Transient=true)
-        UseAutoSaveTimer = false % Make transient so user always needs to toggle this true through Session node. Timer is only created when QSPViewer.Session is created (node is clicked)
+    properties (Transient=true)        
+        timerObj
     end
     
-    properties (NonCopyable=true)        
+    properties % (NonCopyable=true) % Note: These properties need to be public for tree
         Settings = QSP.Settings.empty(1,0);
         Simulation = QSP.Simulation.empty(1,0)
         Optimization = QSP.Optimization.empty(1,0)
@@ -70,14 +70,11 @@ classdef Session < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
     
     properties (SetAccess='private')
         SessionName = ''
-        AutoSaveID = 1
         
         ColorMap1 = QSP.Session.DefaultColorMap
         ColorMap2 = QSP.Session.DefaultColorMap
         
         toRemove = false;
-
-        
     end
     
     properties (Constant=true)
@@ -127,11 +124,17 @@ classdef Session < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 obj.ParallelCluster = {''};
             end
             
+%             % Initialize timer - If you call initialize here, it will
+%             enter a recursive loop. Do not call here. Instead, invoke
+%             initializeTimer on the App side when new sessions are created
+%             and call deleteTimer on the App side when sessions are closed
+%             initializeTimer(obj);            
+            
         end %function obj = Session(varargin)
         
         % Destructor
         function delete(obj)
-           removeUDF(obj)            
+            removeUDF(obj)            
         end
         
     end %methods
@@ -193,8 +196,151 @@ classdef Session < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         end
     end
     
+    
+    %% Callback (non-standard)
+    methods
+
+        function onTimerCallback(obj,~,~)
+            
+            % Note, autosave is applied to vObj.Data, not vObj.TempData
+            autoSaveFile(obj);
+            
+        end %function        
+        
+    end %methods
+    
     %% Methods
     methods
+        
+        
+        function initializeTimer(obj)
+            
+            % Delete timer
+            deleteTimer(obj);
+                
+            % Create timer
+            obj.timerObj = timer(...
+                'ExecutionMode','fixedRate',...
+                'BusyMode','drop',...
+                'Tag','QSPtimer',...
+                'Period',1*60,... % minutes
+                'StartDelay',1,...
+                'TimerFcn',@(h,e)onTimerCallback(obj,h,e));
+            
+            % Only start if UseAutoSave is true
+            if obj.UseAutoSaveTimer
+                start(obj.timerObj);
+            end
+            
+        end %function
+        
+        function deleteTimer(obj)
+            if ~isempty(obj.timerObj)
+                if strcmpi(obj.timerObj.Running,'on')
+                    stop(obj.timerObj);
+                end
+                delete(obj.timerObj);
+            end
+        end %function
+        
+        function newObj = copy(obj,varargin)
+            % Note: copy actually is used in place of BaseProps copy
+            
+            if ~isempty(obj)
+                
+                % Copy basic properties
+                newObj = QSP.Session;
+                newObj.Name = obj.Name;
+                newObj.SessionName = obj.SessionName; % Do not copy name, as this changes the tree node
+                newObj.Description = obj.Description;                
+              
+                newObj.RootDirectory = obj.RootDirectory;
+                newObj.RelativeResultsPath = obj.RelativeResultsPath;
+                newObj.RelativeUserDefinedFunctionsPath = obj.RelativeUserDefinedFunctionsPath;
+                newObj.RelativeObjectiveFunctionsPath = obj.RelativeObjectiveFunctionsPath;
+                newObj.RelativeAutoSavePath = obj.RelativeAutoSavePath;
+                newObj.AutoSaveFrequency = obj.AutoSaveFrequency;
+                newObj.AutoSaveBeforeRun = obj.AutoSaveBeforeRun;
+                newObj.UseParallel = obj.UseParallel;
+                newObj.ParallelCluster = obj.ParallelCluster;
+                newObj.UseAutoSaveTimer = obj.UseAutoSaveTimer;
+                
+                newObj.LastSavedTime = obj.LastSavedTime;
+                newObj.LastValidatedTime = obj.LastValidatedTime;
+                
+                newObj.TreeNode = obj.TreeNode;
+                
+                % Carry-over Settings object; just assign Session
+                sObj = obj.Settings;                
+                sObj.Session = newObj;
+                
+                newObj.Settings = sObj;
+                newObj.Simulation = obj.Simulation;
+                newObj.Optimization = obj.Optimization;
+                newObj.VirtualPopulationGeneration = obj.VirtualPopulationGeneration;
+                newObj.CohortGeneration = obj.CohortGeneration;
+                newObj.Deleted = obj.Deleted;
+                
+                for idx = 1:numel(obj.Settings.Task)
+%                     sObj.Task(idx) = copy(obj.Settings.Task(idx));
+                    sObj.Task(idx).Session = newObj;
+                end
+                for idx = 1:numel(obj.Settings.VirtualPopulation)
+%                     sObj.VirtualPopulation(idx) = copy(obj.Settings.VirtualPopulation(idx));
+                    sObj.VirtualPopulation(idx).Session = newObj;
+                end
+                for idx = 1:numel(obj.Settings.Parameters)
+%                     sObj.Parameters(idx) = copy(obj.Settings.Parameters(idx));
+                    sObj.Parameters(idx).Session = newObj;
+                end
+                for idx = 1:numel(obj.Settings.OptimizationData)
+%                     sObj.OptimizationData(idx) = copy(obj.Settings.OptimizationData(idx));
+                    sObj.OptimizationData(idx).Session = newObj;
+                end
+                for idx = 1:numel(obj.Settings.VirtualPopulationData)
+%                     sObj.VirtualPopulationData(idx) = copy(obj.Settings.VirtualPopulationData(idx));
+                    sObj.VirtualPopulationData(idx).Session = newObj;
+                end
+                for idx = 1:numel(obj.Settings.VirtualPopulationGenerationData)
+%                     sObj.VirtualPopulationGenerationData(idx) = copy(obj.Settings.VirtualPopulationGenerationData(idx));
+                    sObj.VirtualPopulationGenerationData(idx).Session = newObj;
+                end
+          
+                % Get all BaseProps and if isprop(...,'QSP.Session)...
+                for idx = 1:numel(obj.Simulation)
+%                     newObj.Simulation(idx) = copy(obj.Simulation(idx));
+                    newObj.Simulation(idx).Session = newObj;
+                    newObj.Simulation(idx).Settings = sObj;
+                end
+                for idx = 1:numel(obj.Optimization)
+%                     newObj.Optimization(idx) = copy(obj.Optimization(idx));
+                    newObj.Optimization(idx).Session = newObj;
+                    newObj.Optimization(idx).Settings = sObj;
+                end
+                for idx = 1:numel(obj.VirtualPopulationGeneration)
+%                     newObj.VirtualPopulationGeneration(idx) = copy(obj.VirtualPopulationGeneration(idx));
+                    newObj.VirtualPopulationGeneration(idx).Session = newObj;
+                    newObj.VirtualPopulationGeneration(idx).Settings = sObj;
+                end
+                for idx = 1:numel(obj.CohortGeneration)
+%                     newObj.CohortGeneration(idx) = copy(obj.CohortGeneration(idx));
+                    newObj.CohortGeneration(idx).Session = newObj;
+                    newObj.CohortGeneration(idx).Settings = sObj;
+                end
+             
+                % TODO:
+                for index = 1:numel(obj.Deleted)
+%                     newObj.Deleted(index) = copy(obj.Deleted(index));
+                    if isprop(newObj.Deleted(index),'Settings')
+                        newObj.Deleted(index).Settings = sObj;
+                    end
+                    if isprop(newObj.Deleted(index),'Session')
+                        newObj.Deleted(index).Session = newObj;
+                    end
+                end 
+            end %if
+            
+        end %function
         
         function setSessionName(obj,SessionName)
             obj.SessionName = SessionName;
@@ -231,13 +377,11 @@ classdef Session < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             
             % Define defaults and requirements for each parameter
             p.addParameter('Tag',''); %#ok<*NVREPL>
-            p.addParameter('TimerObj',[]);
             
             p.parse(varargin{:});
             
             Tag = p.Results.Tag;
-            timerObj = p.Results.TimerObj;
-
+            
             try
                 % Save when fired
                 s.Session = obj; %#ok<STRNU>
@@ -245,19 +389,16 @@ classdef Session < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 ThisName = regexprep(obj.SessionName,'\.qsp\.mat','');
                 TimeStamp = datestr(now,'dd-mmm-yyyy_HH-MM-SS');
                 if ~isempty(Tag)
-%                         FileName = sprintf('%05d_%s.mat',obj.AutoSaveID,Tag);
                     FileName = sprintf('%s_%s_%s.qsp.mat',ThisName,TimeStamp,Tag);
                 else
-%                         FileName = sprintf('%05d.mat',obj.AutoSaveID);
                     FileName = sprintf('%s_%s.qsp.mat',ThisName,TimeStamp);
                 end
                 FilePath = fullfile(obj.AutoSaveDirectory,FileName);
-                obj.AutoSaveID = obj.AutoSaveID + 1;
                 save(FilePath,'-struct','s')
             catch err %#ok<NASGU>
                 warning('The file could not be auto-saved');  
-                if ~isempty(timerObj)
-                    start(timerObj);
+                if strcmpi(obj.timerObj.Running,'off')
+                    start(obj.timerObj);
                 end
             end
         end %function

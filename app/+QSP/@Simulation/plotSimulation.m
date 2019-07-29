@@ -146,6 +146,9 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
         % Plot the species from the simulation item in the appropriate
         % color
         ThisResult = Results(resultIdx);
+        if isempty(ThisResult.Data) || all(all(isnan(ThisResult.Data)))
+            continue
+        end
         itemIdx = ItemIndices(resultIdx);
         
         % Check if it is a selected item

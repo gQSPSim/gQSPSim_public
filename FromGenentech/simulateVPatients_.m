@@ -60,6 +60,7 @@ function [Results, nFailedSims, StatusOK, Message, Cancelled] = simulateVPatient
                     else
                         theseValues = Values(jj,:);
                     end
+                    
                     [simData,simOK,errMessage]  = taskObj.simulate(...
                             'Names', Names, ...
                             'Values', theseValues, ...
@@ -108,6 +109,7 @@ function [Results, nFailedSims, StatusOK, Message, Cancelled] = simulateVPatient
                 end
             end % for jj = ...
         else
+            
             p = gcp('nocreate');
             UDF_files = dir(fullfile(options.UDF,'**','*.m'));
             UDF_files = arrayfun(@(x) fullfile(x.folder,x.name), UDF_files, 'UniformOutput', false);
@@ -143,14 +145,18 @@ function [Results, nFailedSims, StatusOK, Message, Cancelled] = simulateVPatient
                 if isempty(block)
                     break
                 end
-                F(labindex) = parfeval(p, @parBlock, 1, block, Names, Values, taskObj, Results);
+%                 F(labindex) = parfeval(p, @parBlock, 2, block, Names, Values, taskObj, Results);
+                F(labindex) = parfeval(p, @parBlock, 3, block, Names, Values, taskObj, Results);
+                
 %                 Results = parBlock(block, Names, Values, taskObj, Results);
             end
             wait(F);
             try         
-                Results = fetchOutputs(F);
+%                 [Results, taskObj] = fetchOutputs(F);
+                [Results, StatusOK, Message] = fetchOutputs(F);
+                
             catch err
-            
+                warning(err.message)
             end
         end
             
@@ -171,10 +177,13 @@ function [Results, nFailedSims, StatusOK, Message, Cancelled] = simulateVPatient
 
     end
 
-    function Results = parBlock(block, Names, Values, taskObj, Results)   
+    function [Results, StatusOK, Message] = parBlock(block, Names, Values, taskObj, Results)   
         
     
         nSim = 0;
+        Message = '';
+        StatusOK = true;
+        
 %                 disp(block)
         for jj = block
 %             disp([' ', num2str(jj),' '])
@@ -198,6 +207,7 @@ function [Results, nFailedSims, StatusOK, Message, Cancelled] = simulateVPatient
 %                     ME = MException('simulationRunHelper:simulateVPatients', 'Simulation failed with error: %s', errMessage );
 %                     throw(ME)
                     StatusOK = false;
+                    Message = sprintf('%s\n%s', Message, errMessage);
                     warning('Simulation %d failed with error: %s\n', jj, errMessage);
                     activeSpec_j = NaN(size(Results.Time,1), length(taskObj.ActiveSpeciesNames));
                 else
@@ -215,7 +225,7 @@ function [Results, nFailedSims, StatusOK, Message, Cancelled] = simulateVPatient
             catch err% simulation
                 % If the simulation fails, store NaNs
                 warning(err.identifier, 'simulationRunHelper: %s', err.message)
-                pad Results.Data with appropriate number of NaNs
+%                 pad Results.Data with appropriate number of NaNs
                 if ~isempty(taskObj.ActiveSpeciesNames)
                     Results.Data = [Results.Data,NaN*ones(length(Results.Time),length(taskObj.ActiveSpeciesNames))];
                 else

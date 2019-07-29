@@ -29,7 +29,7 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
     %% Properties
     properties
         Settings = QSP.Settings.empty(0,1)
-        VPopResultsFolderName = 'VPopResults' 
+        VPopResultsFolderName = 'CohortGenerationResults' 
         ICFileName = ''
         ExcelResultFileName = ''
         VPopName = '' % VPop name from running vpop gen
@@ -112,6 +112,11 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             if size(obj.PlotItemTable,2) == 4
                 obj.PlotItemTable(:,5) = obj.PlotItemTable(:,3);
             end
+            
+            % assign plot settings names
+            for index = 1:length(obj.PlotSettings)
+                obj.PlotSettings(index).Title = sprintf('Plot %d', index);
+            end            
             
         end %function obj = VirtualPopulationGeneration(varargin)
         

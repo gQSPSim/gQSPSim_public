@@ -144,6 +144,10 @@ for axIndex = AxIndices(:)'
         chErrorbar = TheseChildren(IsErrorbar);
         chErrorbarVisible = TheseChildren(IsErrorbar & IsItemVisible);
         
+        IsSD = strcmpi(get(TheseChildren,'Tag'),'WeightedSD');
+        chSD = TheseChildren(IsSD);
+        chSDVisible = TheseChildren(IsSD & IsItemVisible);
+        
         % Toggle Visibility for items based on ShowInvalidVirtualPatients, ShowTraces, ShowQuantiles, and
         % Selected/Unselected items
         if strcmpi(Mode,'Cohort')
@@ -170,6 +174,13 @@ for axIndex = AxIndices(:)'
             set(chBoundaryPatch,'Visible','off')
         end
         
+        if isa(obj, 'QSP.VirtualPopulationGeneration') 
+            if obj.bShowSD(axIndex)
+            set(chSDVisible,'Visible','on')
+            else
+                set(chSD,'Visible','off')
+            end        
+        end
         set(chErrorbarVisible,'Visible','on')
         
         MatchIdx = ismember(ChildrenUserData(:,2),InvisibleItemIndices);

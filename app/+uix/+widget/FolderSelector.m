@@ -289,7 +289,12 @@ classdef FolderSelector < uix.abstract.Editable
 
         function onButtonClick(obj,~,~)
 
-            StartPath = obj.FullPath;
+            if exist(obj.FullPath, 'dir')                
+                StartPath = obj.FullPath;
+            else
+                StartPath = obj.RootDirectory;
+            end
+            
             if strcmpi( obj.Enable, 'ON' )
                 foldername = uigetdir( ...
                     StartPath, ...

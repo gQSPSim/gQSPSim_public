@@ -247,3 +247,15 @@ VisualizationLayout.Heights = [150 -1];
 vObj.h.EditPanel.ResizeFcn = @(h,e)onResize(vObj,h,e);
 vObj.h.VisualizePanel.ResizeFcn = @(h,e)onResize(vObj,h,e);
 
+%% Add option to context menu
+for index = 1:vObj.MaxNumPlots
+    uimenu(vObj.h.ContextMenu(index),...
+        'Label','Show Standard Deviations',...
+        'Checked', 'off',...
+        'Tag','ShowSD',...
+        'Callback',@(h,e)onAxesContextMenu(vObj,h,e,index));
+    set(vObj.h.MainAxes(index),'UIContextMenu',vObj.h.ContextMenu(index));
+
+    vObj.bShowSD(index) = false;
+end
+                    

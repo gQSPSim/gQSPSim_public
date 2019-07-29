@@ -55,6 +55,8 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
         PlotSettings = repmat(struct(),1,12)
         
         RedistributeWeights = false
+        
+        bShowSD = []
     end
     
     properties (SetAccess = 'private')
@@ -106,6 +108,11 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
             % For compatibility
             if size(obj.PlotItemTable,2) == 4
                 obj.PlotItemTable(:,5) = obj.PlotItemTable(:,3);
+            end
+            
+            % assign plot settings names
+            for index = 1:length(obj.PlotSettings)
+                obj.PlotSettings(index).Title = sprintf('Plot %d', index);
             end
             
         end %function obj = VirtualPopulationGeneration(varargin)
@@ -361,7 +368,7 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
                 %%% Remove the invalid task/group combos if any
                 if all(isvalid(obj.Item))
                     [TaskItemIndex,MatchTaskIndex] = ismember({obj.Item.TaskName},{obj.Settings.Task.Name});
-                    if ~isempty({obj.Item.GroupID}) || ~isempty(GroupIDs)
+                    if ~isempty({obj.Item.GroupID}) && ~isempty(GroupIDs)
                         GroupItemIndex = ismember({obj.Item.GroupID},GroupIDs(:)');
                     else
                         GroupItemIndex = [];

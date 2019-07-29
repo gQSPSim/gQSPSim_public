@@ -105,7 +105,7 @@ classdef VirtualPopulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             else
                 
                 FileInfo = dir(obj.FilePath);
-                if FileInfo.datenum > obj.validationDateNum
+                if FileInfo.datenum > obj.validationDateNum || obj.NumVirtualPatients==0
                     % has been modified since the last validation                    
                     % Import data
                     tic
