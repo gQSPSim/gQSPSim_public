@@ -59,8 +59,9 @@ function [simData, statusOK, Message] = simulate(obj, varargin)
     if any(idxMisc)
         % found some columns which are neither parameter nor species
         statusOK = false;
-        Message = ['Invalid parameters specified for simulation. Please check virtual population and/or parameters file for consistency with model.' ... 
-            '  Note that reaction-scoped parameters must be named [reaction name].[parameter name]'];
+        Message = sprintf(['Invalid parameters specified for simulation. Please check virtual population and/or parameters file for consistency with model.\n' ... 
+            'Note that reaction-scoped parameters must be named [reaction name].[parameter name]\n%s'], ...
+            strjoin(cellfun(@(s) sprintf('* %s',s), Names(idxMisc), 'UniformOutput', false), '\n') );
         
         return
     end
