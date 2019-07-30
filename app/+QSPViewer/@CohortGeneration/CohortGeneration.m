@@ -432,8 +432,11 @@ classdef CohortGeneration < uix.abstract.CardViewPane
         function onPlotParameterDistributionDiagnostics(vObj,h,e)
             
             if ~isempty(vObj.Data.VPopName)
-                h = figure('Name', 'Parameter Distribution Diagnostic'); %, 'Units', 'pixels', 'Position', [0 0 1000 1000]);
-                p = uix.ScrollingPanel('Parent', h, 'Units', 'Normalized', 'Position', [0 0 1 1]); %,  'Units', 'pixels', 'Position', [0 0 1000 600]);
+%                 h = figure('Name', 'Parameter Distribution Diagnostic', 'WindowStyle', 'modal', 'Units', 'pixels', 'Position', [0 0 1000 1000]);
+                h = figure('Name', 'Parameter Distribution Diagnostic', 'Units', 'pixels', 'Position', [0 0 1000 1000], 'WindowStyle', 'modal');
+%                 p0 = uix.HBox('Parent', h);
+                scrollingPanel = uix.ScrollingPanel('Parent', h); %, 'Units', 'Normalized', 'Position', [0 0 1 1]); %,  'Units', 'pixels', 'Position', [0 0 1000 600]);
+%                 p0.Widths = -1;
 
                 vpopFile = fullfile(vObj.Data.FilePath, vObj.Data.VPopResultsFolderName, vObj.Data.ExcelResultFileName);                
                 try
@@ -448,14 +451,22 @@ classdef CohortGeneration < uix.abstract.CardViewPane
                 
                 % Get the parameter values (everything but the header)
                 if size(Raw,1) > 1
-                    ParamValues = cell2mat(Raw(2:end,:));
+                    ParamValues = cell2mat(Raw(2:end,:));                    
                 else
                     ParamValues = [];
                 end
                     
-                nCol = size(Raw,2);
-               
-                g = uix.Grid('Parent', p); %,  'Units', 'pixels', 'Position', [0 0 200*dims(1) 200*dims(2)], 'Spacing', 1);
+                
+                % filter invalids if checked
+                if ~vObj.h.ShowInvalidVirtualPatientsCheckbox.Value && ismember('PWeight', ParamNames)
+                    ParamValues = ParamValues( ParamValues(:, strcmp(ParamNames,'PWeight')) > 0, :);
+                end
+                
+                ParamValues = ParamValues(:,~strcmp(ParamNames,'PWeight'));
+                ParamNames = setdiff(ParamNames,'PWeight');
+                nCol = length(ParamNames);
+                
+                gridLayout = uix.Grid('Parent', scrollingPanel); %,  'Units', 'pixels', 'Position', [0 0 200*dims(1) 200*dims(2)], 'Spacing', 1);
                 MatchIdx = find(strcmp(vObj.Data.RefParamName,{vObj.Data.Settings.Parameters.Name}));
                 
                 LB = [];
@@ -472,7 +483,9 @@ classdef CohortGeneration < uix.abstract.CardViewPane
                 end
                 
                 for k=1:nCol
-                    ax=axes('Parent', g);
+                    c = uicontainer(...
+                        'Parent',gridLayout);
+                    ax=axes('Parent', c);
                     hist(ax, ParamValues(:,k))
                     if k <= length(LB)
                         h2(1)=line(LB(k)*ones(1,2), get(ax,'YLim'));
@@ -485,11 +498,21 @@ classdef CohortGeneration < uix.abstract.CardViewPane
                 
                 % add empty placeholders
                 for k=(nCol+1):3*ceil(nCol/3)
-                    uix.Empty('Parent', g)
+                    uix.Empty('Parent', gridLayout)
                 end
 
-                set(g, 'Widths', 300*ones(1,3), 'Heights', 300*ones(1,ceil(nCol/3)));
-                set(p, 'Widths', 900, 'Heights', 300*ceil(nCol/3))
+                gridLayout.Widths = [300,300,300];
+                gridLayout.Heights = [300,300,300];
+                gridLayout.MinimumHeights = [300,300,300];
+                gridLayout.MinimumWidths = [300,300,300];
+
+
+%                 set(gridLayout, 'Widths', 500*ones(1,3), 'Heights', 500*ones(1,ceil(nCol/3)), 'Spacing'); % 200*ones(1,3)
+                
+%                 set(scrollingPanel, 'Widths', -1); %, 'Heights', 300*ceil(nCol/3))
+                set(scrollingPanel, 'Widths', 1500, 'Heights', 1000);
+%                 g.Widths = [-1,-1,-1]; g.Heights = -1;
+%                 p.Widths = -1; p.Heights = -1;
                 
             end
 %             uiwait(h)
