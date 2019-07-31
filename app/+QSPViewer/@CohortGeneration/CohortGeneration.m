@@ -492,8 +492,11 @@ classdef CohortGeneration < uix.abstract.CardViewPane
                         h2(2)=line(UB(k)*ones(1,2), get(ax,'YLim'));
                         set(h2,'LineStyle','--','Color','r')
                     end
-                    title(ax, ParamNames{k}, 'Interpreter', 'none')
+                    title(ax, ParamNames{k}, 'Interpreter', 'none', 'FontSize', 20)
                     set(ax, 'TitleFontWeight', 'bold' )
+                    if strcmpi(Raw.Scale(k), 'log')
+                        set(gca,'XScale', 'log', 'FontSize', 20)
+                    end
                 end          
                 
                 % add empty placeholders
