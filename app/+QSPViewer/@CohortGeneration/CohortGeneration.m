@@ -493,9 +493,9 @@ classdef CohortGeneration < uix.abstract.CardViewPane
                         set(h2,'LineStyle','--','Color','r')
                     end
                     title(ax, ParamNames{k}, 'Interpreter', 'none', 'FontSize', 20)
-                    set(ax, 'TitleFontWeight', 'bold' )
+                    set(ax, 'TitleFontWeight', 'bold', 'FontSize', 20 )
                     if strcmpi(Raw.Scale(k), 'log')
-                        set(gca,'XScale', 'log', 'FontSize', 20)
+                        set(gca,'XScale', 'log')
                     end
                 end          
                 
