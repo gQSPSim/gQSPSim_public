@@ -19,7 +19,7 @@ ItemTypes = {
     'Settings: Dataset',      'OptimizationData'
     'Settings: Parameter',             'Parameters'
     'Settings: Task',                   'Task'
-    'Settings: Virtual Population',     'VirtualPopulation'    
+    'Settings: Virtual Patient(s)',     'VirtualPopulation'    
     'Settings: Acceptance Criteria',    'VirtualPopulationData'
     'Settings: Target Statistics', 'VirtualPopulationGenerationData'
     'Simulation',                       'Simulation'
