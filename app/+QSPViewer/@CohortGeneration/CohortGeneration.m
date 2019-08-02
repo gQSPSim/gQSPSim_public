@@ -463,7 +463,7 @@ classdef CohortGeneration < uix.abstract.CardViewPane
                 end
                 
                 ParamValues = ParamValues(:,~strcmp(ParamNames,'PWeight'));
-                ParamNames = setdiff(ParamNames,'PWeight');
+                ParamNames(strcmpi(ParamNames,'PWeight')) = [];
                 nCol = length(ParamNames);
                 
                 gridLayout = uix.Grid('Parent', scrollingPanel); %,  'Units', 'pixels', 'Position', [0 0 200*dims(1) 200*dims(2)], 'Spacing', 1);
