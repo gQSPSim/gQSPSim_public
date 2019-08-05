@@ -450,11 +450,15 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
                     hThisParent = hAxes(1);
                 end
                 
-                if strcmpi(Mode,'Cohort')
-                    style = 'quantile';
-                else 
-                    style = 'mean_std';
-                end
+                % use median for cohort, mean for vpop
+%                 if strcmpi(Mode,'Cohort')
+%                     style = 'quantile';
+%                 else 
+%                     style = 'mean_std';
+%                 end
+
+                % use mean for all
+                style = 'mean_std';
                 
                 SE = weightedQuantilePlot(Results{itemIdx}.Time, x, w, ItemColors(itemIdx,:),...
                     'linestyle',ThisLineStyle,...

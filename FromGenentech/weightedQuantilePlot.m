@@ -55,10 +55,12 @@ for tIdx = 1:size(x,1)
 %     m(tIdx) = y*w(ix);
     
     if strcmp(style, 'quantile')
+        % weighted median
         m(tIdx) = y(find(cumsum(w(ix)) >= 0.5,1,'first'));        
         q_l(tIdx) = y(find(cumsum(w(ix)) >= q(1),1,'first'));
         q_u(tIdx) = y(find(cumsum(w(ix)) >= q(2),1,'first'));
     elseif strcmp(style, 'mean_std')
+        % weighted mean
         mean_y =  y*w(ix);
         m(tIdx) = mean_y;
         
