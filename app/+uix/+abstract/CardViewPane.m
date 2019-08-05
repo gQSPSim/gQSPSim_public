@@ -920,9 +920,10 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                             
                             % Check if the plot has children
                             TheseChildren = get(ThisAxes,'Children');     
-                            if ~isempty(TheseChildren)
+                            if ~isempty(TheseChildren) && iscell(TheseChildren) 
                                 HasVisibleItem = true(1,numel(TheseChildren));
                                 for chIdx = 1:numel(TheseChildren)
+                                    
                                     ThisGroup = TheseChildren{chIdx};
                                     ThisGroupChildren = get(ThisGroup,'Children');
                                     if ~iscell(ThisGroupChildren)
@@ -934,6 +935,8 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                                     else
                                         HasVisibleItem(chIdx) = false;
                                     end
+                                    
+                                    
                                 end
                                 % Filter to only allow export of plots that
                                 % have children (at least one visible item
