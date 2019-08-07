@@ -463,7 +463,13 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
             % special case since vpop data has been renamed to acceptance
             % criteria
             if strcmp(ItemType, 'VirtualPopulationData')
-                ItemName = 'AcceptanceCriteria';
+                ItemName = 'Acceptance Criteria';
+            elseif strcmp(ItemType, 'VirtualPopulationGenerationData')
+                ItemName = 'Target Statistics';
+            elseif strcmp(ItemType, 'VirtualPopulation')
+                ItemName = 'Virtual Patients';
+            elseif strcmp(ItemType, 'OptimizationData')
+                ItemName = 'Dataset';
             else
                 ItemName = ItemType;
             end
