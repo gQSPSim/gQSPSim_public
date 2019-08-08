@@ -453,6 +453,11 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
                 return
             end
                 
+            % don't do anything if the UDF is empty
+            if isempty(obj.RelativeUserDefinedFunctionsPath)
+                return
+            end
+            
             % remove UDF from the path
             p = path;
             subdirs = genpath(fullfile(obj.RootDirectory, obj.RelativeUserDefinedFunctionsPath));
