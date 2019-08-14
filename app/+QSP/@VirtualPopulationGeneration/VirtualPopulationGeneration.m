@@ -217,7 +217,7 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
                 'Group Name',obj.GroupName;
                 'Min No of Virtual Subjects',num2str(obj.MinNumVirtualPatients);
                 'Items',VPopGenItems;
-                'Species-data mapping',SpeciesDataItems;
+                'Species-data Mapping',SpeciesDataItems;
                 'Results',obj.ExcelResultFileName;
                 };
             

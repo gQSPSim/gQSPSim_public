@@ -228,14 +228,14 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 'Dataset',obj.DatasetName;
                 'Group Name',obj.GroupName;
                 'Items',VPopGenItems;
-                'Parameter file',obj.RefParamName;
-                'Parameters used for cohort generation',UsedParamNames;
-                'Species-data mapping',SpeciesDataItems;
-                'Initial conditions file',obj.ICFileName;
+                'Parameter File',obj.RefParamName;
+                'Parameters Used for Cohort Generation',UsedParamNames;
+                'Species-data Mapping',SpeciesDataItems;
+                'Initial Conditions File',obj.ICFileName;
                 'Max No of Simulations',num2str(obj.MaxNumSimulations);
                 'Max No of Virtual Subjects',num2str(obj.MaxNumVirtualPatients);
-                'Number of valid virtual subjects', nValid; ...
-                'Number of invalid virtual subjects', nInvalid...
+                'Number of Valid Virtual Subjects', nValid; ...
+                'Number of Invalid Virtual Subjects', nInvalid...
                 };
             
         end %function

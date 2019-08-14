@@ -71,8 +71,8 @@ classdef Parameters < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 'Name',obj.Name;
                 'Last Saved',obj.LastSavedTimeStr;
                 'Description',obj.Description;
-                'File name',obj.RelativeFilePath;                
-                'No of parameters',obj.NumParameters;
+                'File Name',obj.RelativeFilePath;                
+                'No of Parameters',obj.NumParameters;
                 };
         end
         

@@ -62,7 +62,7 @@ classdef VirtualPopulationData < QSP.abstract.BaseProps & uix.mixin.HasTreeRefer
                 'Name',obj.Name;
                 'Last Saved',obj.LastSavedTimeStr;
                 'Description',obj.Description;       
-                'File name',obj.RelativeFilePath;                         
+                'File Name',obj.RelativeFilePath;                         
                 };
         end
         

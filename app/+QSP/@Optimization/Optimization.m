@@ -202,15 +202,15 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 'Last Saved',obj.LastSavedTimeStr;
                 'Description',obj.Description;
                 'Results Path',obj.OptimResultsFolderName;
-                'Optimization algorithm',obj.AlgorithmName;
+                'Optimization Algorithm',obj.AlgorithmName;
                 'Dataset',obj.DatasetName;
                 'Group Name',obj.GroupName;
                 'Items',OptimizationItems;
-                'Parameter file',obj.RefParamName;
-                'Parameters used for optimization',UsedParamNames;
-                'Fixed parameters', UnusedParamNames;
-                'Species-data mapping',SpeciesDataItems;
-                'Species-initial conditions',SpeciesICItems;
+                'Parameter File',obj.RefParamName;
+                'Parameters Used for Optimization',UsedParamNames;
+                'Fixed Parameters', UnusedParamNames;
+                'Species-data Mapping',SpeciesDataItems;
+                'Species-initial Conditions',SpeciesICItems;
                 'Results',obj.ExcelResultFileName;
                 };
             
