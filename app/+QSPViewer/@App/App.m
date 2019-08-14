@@ -467,7 +467,7 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
             elseif strcmp(ItemType, 'VirtualPopulationGenerationData')
                 ItemName = 'Target Statistics';
             elseif strcmp(ItemType, 'VirtualPopulation')
-                ItemName = 'Virtual Patients';
+                ItemName = 'Virtual Subjects';
             elseif strcmp(ItemType, 'OptimizationData')
                 ItemName = 'Dataset';
             else

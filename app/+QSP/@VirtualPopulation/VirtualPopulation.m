@@ -83,7 +83,7 @@ classdef VirtualPopulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 'Last Saved',obj.LastSavedTimeStr;
                 'Description',obj.Description;
                 'File name',obj.RelativeFilePath;                
-                'No of virtual patients',obj.NumVirtualPatients;
+                'No of virtual subjects',obj.NumVirtualPatients;
                 'No of parameters/species',obj.NumParameters;
                 'Prevalence Weights',obj.PrevalenceWeightsStr;
                 'Groups', obj.Groups;
@@ -126,7 +126,7 @@ classdef VirtualPopulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             % NumVirtualPatients
             if obj.NumVirtualPatients == 0
                 StatusOK = false;
-                Message = sprintf('%s\n* Number of VirtualPatients in %s must not be 0',Message,obj.Name);
+                Message = sprintf('%s\n* Number of Virtual Subjects in %s must not be 0',Message,obj.Name);
             end
             
             % NumParameters
