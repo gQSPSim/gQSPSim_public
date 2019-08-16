@@ -133,9 +133,9 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         end %function obj = Session(varargin)
         
         % Destructor
-        function delete(obj)
-            removeUDF(obj)            
-        end
+%         function delete(obj)
+%             removeUDF(obj)             
+%         end
         
     end %methods
     
@@ -146,6 +146,10 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
             
             obj = s;
             
+            info = ver;
+            if ~any(contains({info.Name},'Parallel Computing Toolbox'))
+                obj.UseParallel = false; % disable parallel
+            end
             % Invoke refreshData
             try 
                 [StatusOK,Message] = refreshData(obj.Settings);
@@ -436,6 +440,10 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         function addUDF(obj)
             % add the UDF to the path
             p = path;
+            if isempty(obj.RelativeUserDefinedFunctionsPath)
+                % don't add anything unless UDF is defined
+                return
+            end
             
             UDF = fullfile(obj.RootDirectory, obj.RelativeUserDefinedFunctionsPath);
             
@@ -480,6 +488,8 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
             else
                 ppp = strjoin(pp,':');
             end
+            
+            path(ppp)
         end
         
         function value = get.ResultsDirectory(obj)
