@@ -182,14 +182,18 @@ classdef Session <  uix.abstract.CardViewPane % uix.abstract.ViewPane
             % remove old path
             removeUDF(vObj.TempData);
             
+            % Stop and delete vObj.TempData (temporary) timer - BEFORE
+            % Session copy, since no custom copy operation exists for
+            % timer. Note, re-initialization happens for vObj.Data below
+            deleteTimer(vObj.TempData);
+            deleteTimer(vObj.Data);
+            
             % Invoke superclass's onButtonPress
             onButtonPress@uix.abstract.CardViewPane(vObj,h,e);
             
             % add new path
             addUDF(vObj.TempData);
             
-            % Stop and delete vObj.TempData (temporary) timer
-            deleteTimer(vObj.TempData);
             % Re-initialize vObj.Data's timer
             initializeTimer(vObj.Data);
                         
