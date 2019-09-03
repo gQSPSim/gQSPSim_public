@@ -114,9 +114,13 @@ for axIndex = AxIndices(:)'
         chTrace = TheseChildren(IsTrace);
         chTraceVisible = TheseChildren(IsTrace & IsItemVisible);
         
-        IsQuantile = strcmpi(get(TheseChildren,'Tag'),'MeanLine');
-        chQuantile = TheseChildren(IsQuantile);
-        chQuantileVisible = TheseChildren(IsQuantile & IsItemVisible);
+        IsMeanLine = strcmpi(get(TheseChildren,'Tag'),'MeanLine');
+        chMeanLine = TheseChildren(IsMeanLine);
+        chMeanLineVisible = TheseChildren(IsMeanLine & IsItemVisible);
+        
+        IsMedianLine = strcmpi(get(TheseChildren,'Tag'),'MedianLine');
+        chMedianLine = TheseChildren(IsMedianLine);
+        chMedianLineVisible = TheseChildren(IsMedianLine & IsItemVisible);
         
         IsBoundaryLine = strcmpi(get(TheseChildren,'Tag'),'BoundaryLine');
         chIsBoundaryLine = TheseChildren(IsBoundaryLine);
@@ -126,6 +130,9 @@ for axIndex = AxIndices(:)'
         chBoundaryPatch = TheseChildren(IsBoundaryPatch);
         chBoundaryPatchVisible = TheseChildren(IsBoundaryPatch & IsItemVisible);
         
+        IsSD = strcmpi(get(TheseChildren,'Tag'),'WeightedSD');
+        chSD = TheseChildren(IsSD);
+        chSDVisible = TheseChildren(IsSD & IsItemVisible);
         
         % Toggle Visibility for items based on ShowTraces, ShowQuantiles, and
         % Selected/Unselected items
@@ -134,15 +141,29 @@ for axIndex = AxIndices(:)'
         else
             set(chTrace,'Visible','off')
         end
-        if obj.bShowQuantiles(axIndex)
-            set(chQuantileVisible,'Visible','on')
+        if obj.bShowQuantiles(axIndex)            
             set(chIsBoundaryLineVisible,'Visible','on')
             set(chBoundaryPatchVisible,'Visible','on')
         else
-            set(chQuantile,'Visible','off')
             set(chIsBoundaryLine,'Visible','off')
             set(chBoundaryPatch,'Visible','off')
         end
+        if obj.bShowMean(axIndex)
+            set(chMeanLineVisible,'Visible','on')
+        else
+            set(chMeanLine,'Visible','off')
+        end
+        if obj.bShowMedian(axIndex)
+            set(chMedianLineVisible,'Visible','on')
+        else
+            set(chMedianLine,'Visible','off')
+        end
+        if obj.bShowSD(axIndex)
+            set(chSDVisible,'Visible','on')
+        else
+            set(chSD,'Visible','off')
+        end
+        
         MatchIdx = ismember(ChildrenUserData(:,2),InvisibleItemIndices);
         TheseMatches = TheseChildren(MatchIdx);
         set(TheseMatches,'Visible','off')
@@ -152,7 +173,9 @@ for axIndex = AxIndices(:)'
         
         % Turn off displayname for all traces and quantiles
         set(chTrace,'DisplayName','');
-        set(chQuantile,'DisplayName','');
+        set(chMeanLine,'DisplayName','');
+        set(chMedianLine,'DisplayName','');
+        set(chSD,'DisplayName','');
         
         % Get one type of child - either trace OR quantile
         TheseItems = [];
@@ -160,9 +183,17 @@ for axIndex = AxIndices(:)'
             % Process trace to only set ONE display name per unique entry
             TheseItems = chTrace;
             
-        elseif ~obj.bShowTraces(axIndex) && ~isempty(chQuantile)
-            % Process quantile to only set ONE display name per unique entry
-            TheseItems = chQuantile;
+        elseif obj.bShowMean(axIndex) && ~isempty(chMeanLine)
+            % Process meanLine to only set ONE display name per unique entry
+            TheseItems = chMeanLine;
+            
+        elseif obj.bShowMedian(axIndex) && ~isempty(chMedianLine)
+            % Process meanLine to only set ONE display name per unique entry
+            TheseItems = chMedianLine;
+            
+        elseif obj.bShowSD(axIndex) && ~isempty(chSD)
+            % Process meanLine to only set ONE display name per unique entry
+            TheseItems = chSD;
         end
         
         % Process species related content

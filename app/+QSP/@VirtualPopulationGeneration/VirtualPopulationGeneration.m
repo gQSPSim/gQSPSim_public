@@ -54,9 +54,7 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
         SelectedPlotLayout = '1x1'   
         PlotSettings = repmat(struct(),1,12)
         
-        RedistributeWeights = false
-        
-        bShowSD = []
+        RedistributeWeights = false        
     end
     
     properties (SetAccess = 'private')

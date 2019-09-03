@@ -254,8 +254,8 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
                 
                 % Copy basic properties
                 newObj = QSP.Session;
-                newObj.Name = obj.Name;
-                newObj.SessionName = obj.SessionName; % Do not copy name, as this changes the tree node
+                newObj.Name = obj.Name; % Do not copy name, as this changes the tree node
+                newObj.SessionName = obj.SessionName; 
                 newObj.Description = obj.Description;                
               
                 newObj.RootDirectory = obj.RootDirectory;
