@@ -48,6 +48,9 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         PlotSpeciesTable = cell(0,5)
         PlotItemTable = cell(0,5)
         
+        FixRNGSeed = false
+        RNGSeed = 100
+        
         PlotProfile = QSP.Profile.empty(0,1)
         SelectedProfileRow = []
         
@@ -618,6 +621,11 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 % If no initial conditions are specified, only one VPop is
                 % created. If IC are provided, the # of VPops is equivalent
                 % to the number of groups + 1
+                
+                % set RNG if specified
+                if obj.FixRNGSeed
+                    rng(obj.RNGSeed)
+                end
                 
                 % Run helper
                 [StatusOK,Message,ResultsFileNames,VPopNames] = optimizationRunHelper(obj);

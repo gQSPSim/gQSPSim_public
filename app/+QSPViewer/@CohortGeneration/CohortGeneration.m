@@ -872,7 +872,7 @@ classdef CohortGeneration < uix.abstract.CardViewPane
                 set(vObj.h.RNGSeedEdit,'Enable','off')
             end
             
-            updateVisualizationView(vObj);
+            updateEditView(vObj);
 
             
         end

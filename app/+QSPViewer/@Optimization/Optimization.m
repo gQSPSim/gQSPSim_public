@@ -43,6 +43,9 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
         ParametersHeader = {} % From RefParamName
         ParametersData = {} % From RefParamName
         
+        FixRNGSeed = false
+        RNGSeed = 100
+        
         ObjectiveFunctions = {'defaultObj'}
         
         PlotSpeciesAsInvalidTable = cell(0,3)
@@ -1317,6 +1320,36 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
             onNavigation@uix.abstract.CardViewPane(vObj,View);
             
         end %function
+        
+        function onFixRNGSeed(vObj,h,e)
+            vObj.TempData.FixRNGSeed = h.Value;
+            if vObj.TempData.FixRNGSeed
+                set(vObj.h.RNGSeedEdit,'Enable','on')
+            else
+                set(vObj.h.RNGSeedEdit,'Enable','off')
+            end
+            
+            updateEditView(vObj);
+
+            
+        end
+        
+        function onRNGSeedEdit(vObj,h,e)
+            
+            value = vObj.TempData.RNGSeed;
+            try
+                value = str2double(get(h,'Value'));
+            catch ME
+                hDlg = errordlg(ME.message,'Invalid Value','modal');
+                uiwait(hDlg);
+            end
+            if isnan(value) || value < 0 || floor(value) ~= value
+                hDlg = errordlg('Please enter a non-negative integer value for RNG seed','modal');
+                uiwait(hDlg);
+            else
+                vObj.TempData.RNGSeed = value;
+            end                        
+        end        
         
     end
         

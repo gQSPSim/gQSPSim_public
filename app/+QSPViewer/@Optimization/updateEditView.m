@@ -64,4 +64,5 @@ updateResultsDir(vObj);
 
 updateAlgorithms(vObj);
 
-
+%% update RNG
+set(vObj.h.RNGSeedEdit, 'Value', vObj.TempData.RNGSeed)

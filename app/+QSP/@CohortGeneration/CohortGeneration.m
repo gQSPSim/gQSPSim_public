@@ -47,6 +47,7 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         MaxNumSimulations = 5000
         MaxNumVirtualPatients = 500
         MCMCTuningParam = 0.15
+       
         FixRNGSeed = false
         RNGSeed = 100
         
