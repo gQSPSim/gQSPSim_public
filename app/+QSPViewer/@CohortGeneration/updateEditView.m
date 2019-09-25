@@ -65,6 +65,9 @@ updateMaxNumSims(vObj);
 updateMaxNumVirtualPatients(vObj);
 
 
+%% update RNG
+set(vObj.h.RNGSeedEdit, 'Value', vObj.TempData.RNGSeed)
+
 %% set initial conditions file
 if ~isempty(vObj.Data)
     set(vObj.h.ICFileSelector,'Value',vObj.Data.ICFileName);

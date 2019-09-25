@@ -47,6 +47,8 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         MaxNumSimulations = 5000
         MaxNumVirtualPatients = 500
         MCMCTuningParam = 0.15
+        FixRNGSeed = false
+        RNGSeed = 100
         
         PlotSpeciesTable = cell(0,5)
         PlotItemTable = cell(0,5) 
@@ -219,6 +221,12 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 nInvalid = 'N/A';
             end
             
+            % random seed
+            if obj.FixRNGSeed
+                randomSeedStr = num2str(obj.RNGSeed);
+            else
+                randomSeedStr = 'not fixed';
+            end
             % Populate summary
             Summary = {...
                 'Name',obj.Name;
@@ -235,7 +243,8 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 'Max No of Simulations',num2str(obj.MaxNumSimulations);
                 'Max No of Virtual Subjects',num2str(obj.MaxNumVirtualPatients);
                 'Number of Valid Virtual Subjects', nValid; ...
-                'Number of Invalid Virtual Subjects', nInvalid...
+                'Number of Invalid Virtual Subjects', nInvalid;...
+                'Random Seed', randomSeedStr
                 };
             
         end %function
@@ -469,6 +478,12 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 end
                 
                 % Run helper
+                
+                % set RNG if specified
+                if obj.FixRNGSeed
+                    rng(obj.RNGSeed)
+                end
+                
                 % clear cached results if any
                 obj.SimResults = {};
                 obj.SimFlag = [];
