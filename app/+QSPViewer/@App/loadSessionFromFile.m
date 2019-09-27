@@ -35,7 +35,16 @@ end
 % Validate the file
 try
     validateattributes(s.Session,{'QSP.Session'},{'scalar'})
-    Session = s.Session;
+
+    % check the session root
+    if ~exist(s.Session.RootDirectory, 'dir') && strcmp(questdlg('Session root directory is invalid. Select a new root directory?', 'Select root directory', 'Yes'),'Yes')        
+        rootDir = uigetdir(s.Session.RootDirectory, 'Select valid session root directory');
+        if rootDir ~= 0
+            s.Session.RootDirectory = rootDir;
+        end
+    end
+    
+    Session = copy(s.Session);
 catch err
     StatusOk = false;
     Message = sprintf(['The file %s did not contain a valid '...
@@ -43,17 +52,13 @@ catch err
 end
 
 if StatusOk
+
+
     
     % Add the session to the app
     obj.createNewSession(Session);
 
-    % check the session root
-    if ~exist(Session.RootDirectory, 'dir') && strcmp(questdlg('Session root directory is invalid. Select a new root directory?', 'Select root directory', 'Yes'),'Yes')        
-        rootDir = uigetdir(Session.RootDirectory, 'Select valid session root directory');
-        if rootDir ~= 0
-            Session.RootDirectory = rootDir;
-        end
-    end
+
 else
     hDlg = errordlg(Message,'Open File','modal'); uiwait(hDlg);
 end
