@@ -110,7 +110,7 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             if ~isempty(obj.Item)
                 SimulationItems = {};
                 % Check what items are stale or invalid
-                [StaleFlag,ValidFlag,InvalidMessages] = getStaleItemIndices(obj);                
+                [StaleFlag,ValidFlag,InvalidMessages,StaleReasons] = getStaleItemIndices(obj);                
                 
                 for index = 1:numel(obj.Item)
                     ThisResultFilePath = obj.Item(index).MATFileName;
@@ -122,7 +122,7 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                     ThisItem = sprintf('%s - %s (%s)',obj.Item(index).TaskName,obj.Item(index).VPopName,ThisResultFilePath);
                     if StaleFlag(index)
                         % Item may be out of date
-                            ThisItem = sprintf('***WARNING*** %s\n%s',ThisItem,'***Item may be out of date***');
+                            ThisItem = sprintf('***WARNING*** %s\n%s',ThisItem, sprintf('***Item may be out of date %s***', StaleReasons{index}));
                     elseif ~ValidFlag(index)
                         % Display invalid
                         ThisItem = sprintf('***ERROR*** %s\n***%s***',ThisItem,InvalidMessages{index});
@@ -328,10 +328,11 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             obj.SpeciesLineStyles{Index} = NewLineStyle;
         end %function
         
-        function [StaleFlag,ValidFlag,InvalidMessages] = getStaleItemIndices(obj)
+        function [StaleFlag,ValidFlag,InvalidMessages,StaleReason] = getStaleItemIndices(obj)
             
             StaleFlag = false(1,numel(obj.Item));
             ValidFlag = true(1,numel(obj.Item));
+            StaleReason = cell(1,numel(obj.Item));
             InvalidMessages = cell(1,numel(obj.Item));
             
             for index = 1:numel(obj.Item)
@@ -376,14 +377,25 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                     end
                     
                     % Check
-                    if SimLastSavedTime < TaskLastSavedTime || ...
-                            SimLastSavedTime < TaskProjectLastSavedTime || ...
-                            (~isempty(ThisVPop) && SimLastSavedTime < VPopLastSavedTime) || ... % Guard for NullVPop
-                            (~isempty(ThisVPop) && SimLastSavedTime < VPopFileLastSavedTime) || ... % Guard for NullVPop
-                            (~isempty(ResultLastSavedTime) && ResultLastSavedTime < SimLastSavedTime)
-                        % Item may be out of date
-                        StaleFlag(index) = true;
-                    end                    
+                    if ~isempty(ResultLastSavedTime)
+                        STALE_REASON = '';
+                        if ResultLastSavedTime < TaskLastSavedTime  % task has changed
+                            STALE_REASON = '(Task has changed)';
+                        elseif ~isempty(ThisVPop) && ResultLastSavedTime < VPopFileLastSavedTime % Vpop has changed
+                            STALE_REASON = '(Vpop has changed)';
+                        elseif ResultLastSavedTime < SimLastSavedTime % simulation has changed
+                            STALE_REASON = '(Simulation has changed)';
+                        elseif ResultLastSavedTime < TaskProjectLastSavedTime % sbproj has changed
+                            STALE_REASON = '(Sbproj has changed)';
+                        end
+                        
+                        if ~isempty(STALE_REASON)
+                            % Item may be out of date
+                            StaleFlag(index) = true;
+                            StaleReason{index} = STALE_REASON;
+                        end                    
+                    end
+                    
                 elseif isempty(ThisTask) || isempty(ThisVPop)
                     % Display invalid
                     ValidFlag(index) = false;      
