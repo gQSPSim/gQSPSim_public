@@ -463,7 +463,13 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
             % special case since vpop data has been renamed to acceptance
             % criteria
             if strcmp(ItemType, 'VirtualPopulationData')
-                ItemName = 'AcceptanceCriteria';
+                ItemName = 'Acceptance Criteria';
+            elseif strcmp(ItemType, 'VirtualPopulationGenerationData')
+                ItemName = 'Target Statistics';
+            elseif strcmp(ItemType, 'VirtualPopulation')
+                ItemName = 'Virtual Subjects';
+            elseif strcmp(ItemType, 'OptimizationData')
+                ItemName = 'Dataset';
             else
                 ItemName = ItemType;
             end
@@ -844,61 +850,75 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
     %% Methods
     methods
         
-        function updateTree(obj,hTree)
+        function updateTree(obj,hTree,varargin)
+            
+            if nargin > 2
+                RootLevel = false;
+                ThisSession = varargin{1}; % Used everywhere except for initial call/top-level (QSP.Session)
+            else
+                RootLevel = true;
+                ThisSession = QSP.Session.empty(0,1);
+            end
+            
             % TODO: Handle deleted
             if ~isempty(hTree.Children)
                 Ch = hTree.Children;
                 for idx = 1:numel(Ch)
                     % Check Parent to see if it's under the Deleted node...
                     if strcmpi(Ch(idx).Parent.UserData,'Deleted')
-                        Ch(idx).Value = obj.SelectedSession.Deleted(idx);
+                        Ch(idx).Value = ThisSession.Deleted(idx);
                         if isprop(Ch(idx).Value,'Session')
-                            Ch(idx).Value.Session = obj.SelectedSession;
+                            Ch(idx).Value.Session = ThisSession;
                         end
                     else
                         % Otherwise, it is under the appropriate section
                         switch class(Ch(idx).Value)
                             case 'QSP.Session'
-                                Ch(idx).Value = obj.SelectedSession;
+                                % NOTE: This assumes tree children are ordered in same order as
+                                % session's children!
+                                if RootLevel % First time only (Session-level in tree), then use obj.Session(idx) directly
+                                    ThisSession = obj.Session(idx);
+                                end
+                                Ch(idx).Value = ThisSession;
                                 
                             case 'QSP.Settings'
-                                Ch(idx).Value = obj.SelectedSession.Settings;
+                                Ch(idx).Value = ThisSession.Settings;
                                 
                             case 'QSP.OptimizationData'
-                                Ch(idx).Value = obj.SelectedSession.Settings.OptimizationData(idx);
+                                Ch(idx).Value = ThisSession.Settings.OptimizationData(idx);
                                 
                             case 'QSP.Parameters'
-                                Ch(idx).Value = obj.SelectedSession.Settings.Parameters(idx);
+                                Ch(idx).Value = ThisSession.Settings.Parameters(idx);
                                 
                             case 'QSP.Task'
-                                Ch(idx).Value = obj.SelectedSession.Settings.Task(idx);
+                                Ch(idx).Value = ThisSession.Settings.Task(idx);
                                 
                             case 'QSP.VirtualPopulation'
-                                Ch(idx).Value = obj.SelectedSession.Settings.VirtualPopulation(idx);
+                                Ch(idx).Value = ThisSession.Settings.VirtualPopulation(idx);
                                 
                             case 'QSP.VirtualPopulationData'
-                                Ch(idx).Value = obj.SelectedSession.Settings.VirtualPopulationData(idx);
+                                Ch(idx).Value = ThisSession.Settings.VirtualPopulationData(idx);
                                 
                             case 'QSP.Simulation'                                
-                                Ch(idx).Value = obj.SelectedSession.Simulation(idx);
-                                Ch(idx).Value.Session = obj.SelectedSession;
+                                Ch(idx).Value = ThisSession.Simulation(idx);
+                                Ch(idx).Value.Session = ThisSession;
                                 
                             case 'QSP.Optimization'
-                                Ch(idx).Value = obj.SelectedSession.Optimization(idx);
-                                Ch(idx).Value.Session = obj.SelectedSession;
+                                Ch(idx).Value = ThisSession.Optimization(idx);
+                                Ch(idx).Value.Session = ThisSession;
                                 
                             case 'QSP.CohortGeneration'
-                                Ch(idx).Value = obj.SelectedSession.CohortGeneration(idx);
-                                Ch(idx).Value.Session = obj.SelectedSession;
+                                Ch(idx).Value = ThisSession.CohortGeneration(idx);
+                                Ch(idx).Value.Session = ThisSession;
                                 
                             case 'QSP.VirtualPopulationGeneration'
-                                Ch(idx).Value = obj.SelectedSession.VirtualPopulationGeneration(idx);
-                                Ch(idx).Value.Session = obj.SelectedSession;
+                                Ch(idx).Value = ThisSession.VirtualPopulationGeneration(idx);
+                                Ch(idx).Value.Session = ThisSession;
                         end %switch
                     end %if
                     
                     % Recurse
-                    updateTree(obj,Ch(idx));
+                    updateTree(obj,Ch(idx),ThisSession);
                     
                 end %for                
             end

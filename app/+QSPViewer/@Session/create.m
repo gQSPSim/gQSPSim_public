@@ -212,7 +212,7 @@ vObj.h.AutoSaveDirSelector = uix.widget.FolderSelector(...
 
 vObj.h.AutosaveTimerHbox = uix.HBox(...
     'Parent', vObj.h.AutoSaveLayout,...
-    'Padding',5,...
+    'Padding',0,...
     'Spacing',10);
 
 
@@ -241,7 +241,7 @@ vObj.h.AutoSaveLayout.Heights = [25 25 25];
 vObj.h.AutoSaveLayout.Widths = [250 -1];
 
 vObj.h.SessionVbox.Heights = [100, 100, 150];
-vObj.h.AutosaveTimerHbox.Widths = [150 75 -1];
+vObj.h.AutosaveTimerHbox.Widths = [175 75 -1];
 % vObj.h.AutosaveTimerHbox.Heights = 25;
 
 % =======

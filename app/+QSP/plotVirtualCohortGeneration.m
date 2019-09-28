@@ -450,15 +450,20 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
                     hThisParent = hAxes(1);
                 end
                 
-                if strcmpi(Mode,'Cohort')
-                    style = 'quantile';
-                else 
-                    style = 'mean_std';
-                end
+                % use median for cohort, mean for vpop
+%                 if strcmpi(Mode,'Cohort')
+%                     style = 'quantile';
+%                 else 
+%                     style = 'mean_std';
+%                 end
+
+                % use mean for all
+                style = 'mean_std';
                 
                 SE = weightedQuantilePlot(Results{itemIdx}.Time, x, w, ItemColors(itemIdx,:),...
                     'linestyle',ThisLineStyle,...
                     'meanlinewidth',obj.PlotSettings(axIdx).MeanLineWidth,...
+                    'medianlinewidth',obj.PlotSettings(axIdx).MedianLineWidth,...
                     'boundarylinewidth',obj.PlotSettings(axIdx).BoundaryLineWidth,...
                     'quantile',[obj.PlotSettings(axIdx).BandplotLowerQuantile, obj.PlotSettings(axIdx).BandplotUpperQuantile],...
                     'parent',hThisParent, ...
@@ -470,7 +475,7 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
                     set(SE, 'Parent',hSpeciesGroup{sIdx,axIdx});
                 else
                     % shaded error bar
-                    set([SE.mainLine,SE.edge,SE.patch],'Parent',hSpeciesGroup{sIdx,axIdx});
+                    set([SE.meanLine,SE.medianLine,SE.edge,SE.patch],'Parent',hSpeciesGroup{sIdx,axIdx});
                 end
 
                 if isempty(SE)
@@ -478,50 +483,59 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
                 end
                                 
                 if ~isa(SE, 'matlab.graphics.chart.primitive.ErrorBar')
-                    setIconDisplayStyleOff([SE.mainLine,SE.edge,SE.patch]);            
+                    setIconDisplayStyleOff([SE.meanLine,SE.medianLine,SE.edge,SE.patch]);            
                 end
 
+                
+                if obj.bShowMean(axIdx)
+                    set(SE.meanLine,'Visible','on');
+                else
+                    set(SE.meanLine,'Visible','off');
+                end
+                if obj.bShowMedian(axIdx)
+                    set(SE.medianLine,'Visible','on');
+                else
+                    set(SE.medianLine,'Visible','off');
+                end
                 if obj.bShowQuantiles(axIdx)
                     if isa(SE, 'matlab.graphics.chart.primitive.ErrorBar')
                         set(SE, 'Visible', 'on');
                     else
-                        set([SE.mainLine,SE.edge,SE.patch],'Visible','on');
+                        set([SE.edge,SE.patch],'Visible','on');
                     end
                 else
                     if isa(SE, 'matlab.graphics.chart.primitive.ErrorBar')
                         set(SE, 'Visible', 'off')
                     else
-                        set([SE.mainLine,SE.edge,SE.patch],'Visible','off');    
+                        set([SE.edge,SE.patch],'Visible','off');    
                     end
                 end
-                
-                
                 % Set visibility
-                if ~isempty(SE) && isstruct(SE) && isfield(SE,'mainLine')
-                    set([SE.mainLine,SE.edge,SE.patch],...
+                if ~isempty(SE) && isstruct(SE) && isfield(SE,'meanLine')
+                    set([SE.meanLine,SE.medianLine,SE.edge,SE.patch],...
                         'UserData',[sIdx,itemIdx],...
                         'Visible',uix.utility.tf2onoff(IsVisible && obj.bShowQuantiles(axIdx)));
                 elseif ~isempty(SE) && isa(SE, 'matlab.graphics.chart.primitive.ErrorBar')
-                    set(SE,  'UserData',[sIdx,itemIdx],... % SE.mainLine
+                    set(SE,  'UserData',[sIdx,itemIdx],... % SE.meanLine
                         'Visible',uix.utility.tf2onoff(IsVisible));               
                 end
                 
                 
-                % Plot Mean line
-                if strcmpi(Mode,'Cohort')
-                    % Cohort
-                    
-                    % Mean line
-                    hThis = plot(hSpeciesGroup{sIdx,axIdx}, Results{itemIdx}.Time, thisData(:,ColumnIdx) * ...
-                        vpopWeights/sum(vpopWeights),...
-                        'LineStyle',ThisLineStyle,...
-                        'Color',ItemColors(itemIdx,:),...
-                        'UserData',[sIdx,itemIdx],... % SE.mainLine
-                        'Tag','WeightedMeanLine',... % TODO: Validate
-                        'LineWidth',obj.PlotSettings(axIdx).MeanLineWidth);      
-                    
-                    setIconDisplayStyleOff(hThis);
-                    set(hThis,'Visible',uix.utility.tf2onoff(IsVisible && ~obj.bShowQuantiles(axIdx)));
+%                 % Plot Mean line
+%                 if strcmpi(Mode,'Cohort')
+%                     % Cohort
+%                     
+%                     % Mean line
+%                     hThis = plot(hSpeciesGroup{sIdx,axIdx}, Results{itemIdx}.Time, thisData(:,ColumnIdx) * ...
+%                         vpopWeights/sum(vpopWeights),...
+%                         'LineStyle',ThisLineStyle,...
+%                         'Color',ItemColors(itemIdx,:),...
+%                         'UserData',[sIdx,itemIdx],... % SE.meanLine
+%                         'Tag','WeightedMeanLine',... % TODO: Validate
+%                         'LineWidth',obj.PlotSettings(axIdx).MeanLineWidth);      
+%                     
+%                     setIconDisplayStyleOff(hThis);
+%                     set(hThis,'Visible',uix.utility.tf2onoff(IsVisible && ~obj.bShowQuantiles(axIdx)));
 %                 else
 %                     % VP
 %                     spData = vpopGenData( cell2mat(vpopGenData(:,strcmp(vpopGenHeader,'Group'))) == str2num(obj.PlotItemTable{itemNumber,4}) & ...
@@ -536,12 +550,12 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
 %                     hThis = plot(hSpeciesGroup{sIdx,axIdx}, times(ixMean), val1(ixMean), ...
 %                         'LineStyle',ThisLineStyle,...
 %                         'Color',ItemColors(itemIdx,:),...
-%                         'UserData',[sIdx,itemIdx],... % SE.mainLine
+%                         'UserData',[sIdx,itemIdx],... % SE.meanLine
 %                         'Tag','WeightedMeanLine',... % TODO: Validate
 %                         'LineWidth',obj.PlotSettings(axIdx).MeanLineWidth);
 %                     
                     % Show simulation standard deviations
-                end
+%                 end
                 
                 % Only allow one display name - don't attach to
                 % traces and quantiles and instead attach to mean
@@ -597,29 +611,27 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
             if strcmp(Mode, 'VP')
                 mu = thisData(:,ColumnIdx) * vpopWeights/sum(vpopWeights) ;
                 wSD = sqrt((thisData(:,ColumnIdx) - mu).^2* ...
-                        vpopWeights/sum(vpopWeights));
-                    
-                hu = plot(hSpeciesGroup{sIdx,axIdx}, Results{itemIdx}.Time, mu + wSD,...%                         'LineStyle','none',...
-                        'LineStyle',ThisLineStyle,...%                         'Marker', '^', ...%                         'MarkerSize',5,...
-                        'Color',ItemColors(itemIdx,:),...
-                        'UserData',[sIdx,itemIdx],... % SE.mainLine
-                        'Tag','WeightedSD'... % TODO: Validate
-                        );     
-                    
-                hl = plot(hSpeciesGroup{sIdx,axIdx}, Results{itemIdx}.Time, mu - wSD,...
-                        'LineStyle', ThisLineStyle, ...                           
-                        'Color',ItemColors(itemIdx,:),...
-                        'UserData',[sIdx,itemIdx],... % SE.mainLine
-                        'Tag','WeightedSD'... % TODO: Validate
-                        );         
-                    
-                    setIconDisplayStyleOff([hl,hu]);
-                    set([hu,hl],'Visible',uix.utility.tf2onoff(IsVisible && obj.bShowSD(axIdx)));
+                    vpopWeights/sum(vpopWeights));
                 
-            end
-            
-            
-            
+                hu = plot(hSpeciesGroup{sIdx,axIdx}, Results{itemIdx}.Time, mu + wSD,...%                         'LineStyle','none',...
+                    'LineStyle',ThisLineStyle,...%                         'Marker', '^', ...%                         'MarkerSize',5,...
+                    'LineWidth',obj.PlotSettings(axIdx).StandardDevLineWidth,...
+                    'Color',ItemColors(itemIdx,:),...
+                    'UserData',[sIdx,itemIdx],...
+                    'Tag','WeightedSD'... % TODO: Validate
+                    );
+                
+                hl = plot(hSpeciesGroup{sIdx,axIdx}, Results{itemIdx}.Time, mu - wSD,...
+                    'LineStyle', ThisLineStyle, ...
+                    'LineWidth',obj.PlotSettings(axIdx).StandardDevLineWidth,...
+                    'Color',ItemColors(itemIdx,:),...
+                    'UserData',[sIdx,itemIdx],...
+                    'Tag','WeightedSD'... % TODO: Validate
+                    );
+                
+                setIconDisplayStyleOff([hl,hu]);
+                set([hu,hl],'Visible',uix.utility.tf2onoff(IsVisible && obj.bShowSD(axIdx)));
+            end %if
         end %if
     end %for
     
@@ -959,7 +971,7 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
             'LineStyle','none',...
             'Marker',ThisMarker,...
             'Color',ItemColors(itemIdx,:),...
-            'UserData',[sIdx,itemIdx],... % SE.mainLine
+            'UserData',[sIdx,itemIdx],... % SE.meanLine
             'Tag','WeightedMeanMarker',... % TODO: Validate
             'MarkerSize',obj.PlotSettings(axIdx).DataSymbolSize);
         

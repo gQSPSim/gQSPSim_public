@@ -56,7 +56,7 @@ for idx=1:numel(AllData)
             
             hOptimData = i_addNode(hSettings, Data.Settings, ...
                 'Datasets', 'datatable_24.png',...
-                obj.h.TreeMenu.Branch.OptimizationData, 'OptimizationData', 'Optimization Data');
+                obj.h.TreeMenu.Branch.OptimizationData, 'OptimizationData', 'Datasets');
             thisFcn(hOptimData, Data.Settings.OptimizationData);
             
            
@@ -67,13 +67,13 @@ for idx=1:numel(AllData)
 
             hVPopGenDatas = i_addNode(hSettings, Data.Settings, ...
                 'Target Statistics', 'target_stats.png',...
-                obj.h.TreeMenu.Branch.VirtualPopulationGenerationData, 'VirtualPopulationGenerationData', 'Virtual Population Generation Data');
+                obj.h.TreeMenu.Branch.VirtualPopulationGenerationData, 'VirtualPopulationGenerationData', 'Target Statistics');
             thisFcn(hVPopGenDatas, Data.Settings.VirtualPopulationGenerationData);
             
             
             hVPops = i_addNode(hSettings, Data.Settings, ...
-                'Virtual Patient(s)', 'stickman3.png',...
-                obj.h.TreeMenu.Branch.VirtualPopulation, 'VirtualPopulation', 'Virtual Populations');
+                'Virtual Subject(s)', 'stickman3.png',...
+                obj.h.TreeMenu.Branch.VirtualPopulation, 'VirtualPopulation', 'Virtual Subject(s)');
             thisFcn(hVPops, Data.Settings.VirtualPopulation);
             
             % Functionalities node and children

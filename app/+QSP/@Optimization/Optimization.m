@@ -48,6 +48,9 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         PlotSpeciesTable = cell(0,5)
         PlotItemTable = cell(0,5)
         
+        FixRNGSeed = false
+        RNGSeed = 100
+        
         PlotProfile = QSP.Profile.empty(0,1)
         SelectedProfileRow = []
         
@@ -202,15 +205,15 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 'Last Saved',obj.LastSavedTimeStr;
                 'Description',obj.Description;
                 'Results Path',obj.OptimResultsFolderName;
-                'Optimization algorithm',obj.AlgorithmName;
+                'Optimization Algorithm',obj.AlgorithmName;
                 'Dataset',obj.DatasetName;
                 'Group Name',obj.GroupName;
                 'Items',OptimizationItems;
-                'Parameter file',obj.RefParamName;
-                'Parameters used for optimization',UsedParamNames;
-                'Fixed parameters', UnusedParamNames;
-                'Species-data mapping',SpeciesDataItems;
-                'Species-initial conditions',SpeciesICItems;
+                'Parameter File',obj.RefParamName;
+                'Parameters Used for Optimization',UsedParamNames;
+                'Fixed Parameters', UnusedParamNames;
+                'Species-data Mapping',SpeciesDataItems;
+                'Species-initial Conditions',SpeciesICItems;
                 'Results',obj.ExcelResultFileName;
                 };
             
@@ -618,6 +621,11 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 % If no initial conditions are specified, only one VPop is
                 % created. If IC are provided, the # of VPops is equivalent
                 % to the number of groups + 1
+                
+                % set RNG if specified
+                if obj.FixRNGSeed
+                    rng(obj.RNGSeed)
+                end
                 
                 % Run helper
                 [StatusOK,Message,ResultsFileNames,VPopNames] = optimizationRunHelper(obj);

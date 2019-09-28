@@ -75,7 +75,7 @@ classdef OptimizationData < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 'Name',obj.Name;
                 'Last Saved',obj.LastSavedTimeStr;
                 'Description',obj.Description;
-                'File name',obj.RelativeFilePath;                
+                'File Name',obj.RelativeFilePath;                
                 'Dataset Type',obj.DatasetType;
                 };
         end

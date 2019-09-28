@@ -46,6 +46,9 @@ classdef (Abstract) BaseProps < matlab.mixin.SetGet & matlab.mixin.Heterogeneous
         
         bShowTraces = []
         bShowQuantiles = []
+        bShowMean = []
+        bShowMedian = []
+        bShowSD = []
     end
     
     %% Dependent properties
