@@ -74,7 +74,7 @@ if ~isempty(paramData)
     end
    
     % remove any NaNs at bottom of file
-    paramData = paramData(~cellfun(@isnan,paramData(:,colId.P0)),:);
+    paramData = paramData(~all(cellfun(@isnan,paramData(:,colId.P0)),2),:);
     optimizeIdx = find(strcmpi('Yes',paramData(:,colId.Include)));
     
     
