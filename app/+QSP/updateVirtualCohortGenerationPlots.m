@@ -7,7 +7,9 @@ function [hLegend,hLegendChildren] = updateVirtualCohortGenerationPlots(obj,hAxe
 %           updateVirtualCohortGenerationPlots(aObj,hAxes)
 %
 % Inputs:
-%           obj - QSP.Simulation object
+%           obj - QSP.VirtualPopulationGeneration or QSP.CohortGeneration object
+%
+%           hAxes
 %
 %           hSpeciesGroup
 %
@@ -24,7 +26,7 @@ function [hLegend,hLegendChildren] = updateVirtualCohortGenerationPlots(obj,hAxe
 % Notes: none
 %
 
-% Copyright 2014-2015 The MathWorks, Inc.
+% Copyright 2019 The MathWorks, Inc.
 %
 % Auth/Revision:
 %   MathWorks Consulting

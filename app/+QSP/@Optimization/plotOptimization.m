@@ -1,13 +1,13 @@
-function [hSpeciesGroup,hDatasetGroup,hLegend,hLegendChildren] = plotOptimization(obj,hAxes, varargin)
-% plot - plots the analysis
+function [hSpeciesGroup,hDatasetGroup,hLegend,hLegendChildren] = plotOptimization(obj,hAxes,varargin)
+% plot - plots the Optimization visualization
 % -------------------------------------------------------------------------
-% Abstract: This plots the analysis based on the settings and data table.
+% Abstract: This plots the optimization visualization
 %
 % Syntax:
-%           plot(aObj,hAxes)
+%           plotOptimization(aObj,hAxes)
 %
 % Inputs:
-%           obj - QSP.Simulation object
+%           obj - QSP.Optimization object
 %
 % Outputs:
 %           none
@@ -18,7 +18,7 @@ function [hSpeciesGroup,hDatasetGroup,hLegend,hLegendChildren] = plotOptimizatio
 % Notes: none
 %
 
-% Copyright 2014-2015 The MathWorks, Inc.
+% Copyright 2019 The MathWorks, Inc.
 %
 % Auth/Revision:
 %   MathWorks Consulting
