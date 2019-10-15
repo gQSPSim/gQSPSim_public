@@ -95,7 +95,7 @@ vObj.h.ParametersPopup = uix.widget.PopupFieldWithLabel(...
     'Tag','ParametersPopup',...
     'Callback',@(h,e)onParametersPopup(vObj,h,e));
 
-uix.Empty('Parent',GridLayout);
+% uix.Empty('Parent',GridLayout);
 
 % Dataset
 vObj.h.DatasetPopup = uix.widget.PopupFieldWithLabel(...
@@ -157,7 +157,7 @@ vObj.h.RNGSeedEdit = uix.widget.EditFieldWithLabel(...
     'Enable', 'off',...
     'Callback',@(h,e)onRNGSeedEdit(vObj,h,e));
 
-GridLayout.Heights = [WidgetHeight WidgetHeight WidgetHeight];
+GridLayout.Heights = [WidgetHeight WidgetHeight WidgetHeight ];
 GridLayout.Widths = [-1 -1];
 
 
