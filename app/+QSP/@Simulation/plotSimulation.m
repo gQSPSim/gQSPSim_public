@@ -228,7 +228,7 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
         if isempty(w0)
             w0 = ones(1, size(ThisResult.Data,2)/length(ThisResult.SpeciesNames));
         end
-        w0 = w0./sum(w0); % renormalization
+        w0 = reshape(w0./sum(w0),[],1); % renormalization
         
         %                 NT = size(Results(resultIdx).Data,1);
         %                 q50 = zeros(1,NT);
@@ -347,6 +347,30 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
             set(SE,'UserData',[sIdx,itemIdx],... % SE.meanLine
                 'Visible',uix.utility.tf2onoff(IsVisible));
         end
+        
+        % plot the weighted standard deviations 
+        mu = x * w0 ;
+        wSD = sqrt((x - mu).^2 * w0);            
+
+        hu = plot(hSpeciesGroup{sIdx,axIdx}, ThisResult.Time, mu + wSD,...%                         'LineStyle','none',...
+            'LineStyle',ThisLineStyle,...%                         'Marker', '^', ...%                         'MarkerSize',5,...
+            'LineWidth',obj.PlotSettings(axIdx).StandardDevLineWidth,...
+            'Color',ThisColor,...
+            'UserData',[sIdx,itemIdx],...
+            'Tag','WeightedSD'... % TODO: Validate
+            );
+
+        hl = plot(hSpeciesGroup{sIdx,axIdx}, ThisResult.Time, mu - wSD,...
+            'LineStyle', ThisLineStyle, ...
+            'LineWidth',obj.PlotSettings(axIdx).StandardDevLineWidth,...
+            'Color',ThisColor,...
+            'UserData',[sIdx,itemIdx],...
+            'Tag','WeightedSD'... % TODO: Validate
+            );
+
+        setIconDisplayStyleOff([hl,hu]);
+        set([hu,hl],'Visible',uix.utility.tf2onoff(IsVisible && obj.bShowSD(axIdx)));        
+        
         
     end %for itemIdx = 1:numel(Results)
     
