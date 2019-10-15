@@ -25,7 +25,7 @@ function varargout = CustomizePlots(varargin)
 %
 % See also: GUIDE, GUIDATA, GUIHANDLES
 
-%   Copyright 2017 The MathWorks, Inc.
+%   Copyright 2019 The MathWorks, Inc.
 %
 % Auth/Revision:
 %   MathWorks Consulting

@@ -7,7 +7,7 @@ function updateVisualizationView(vObj)
 %           updateVisualizationView(vObj)
 %
 % Inputs:
-%           vObj - The MyPackageViewer.Empty vObject
+%           vObj - QSPViewer.Optimization vObject
 %
 % Outputs:
 %           none
@@ -18,7 +18,7 @@ function updateVisualizationView(vObj)
 % Notes: none
 %
 
-% Copyright 2014-2015 The MathWorks, Inc.
+% Copyright 2019 The MathWorks, Inc.
 %
 % Auth/Revision:
 %   MathWorks Consulting

@@ -4,7 +4,7 @@ function create(obj)
 % Abstract: This method creates all parts of the main obj display
 %
 
-% Copyright 2016 The MathWorks, Inc.
+% Copyright 2019 The MathWorks, Inc.
 %
 % Auth/Revision:
 %   MathWorks Consulting

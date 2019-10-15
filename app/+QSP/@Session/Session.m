@@ -33,7 +33,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
     %    
     %
     
-    % Copyright 2016 The MathWorks, Inc.
+    % Copyright 2019 The MathWorks, Inc.
     %
     % Auth/Revision:
     %   MathWorks Consulting

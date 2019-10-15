@@ -1,13 +1,13 @@
 function update(vObj)
-% redraw - Updates all parts of the viewer display
+% update - Updates all parts of the viewer display
 % -------------------------------------------------------------------------
 % Abstract: This function updates all parts of the viewer display
 %
 % Syntax:
-%           redraw(vObj)
+%           update(vObj)
 %
 % Inputs:
-%           vObj - The MyPackageViewer.Empty vObject
+%           vObj - QSPViewer.VirtualPopulationGeneration vObject
 %
 % Outputs:
 %           none
@@ -18,7 +18,7 @@ function update(vObj)
 % Notes: none
 %
 
-% Copyright 2014-2015 The MathWorks, Inc.
+% Copyright 2019 The MathWorks, Inc.
 %
 % Auth/Revision:
 %   MathWorks Consulting

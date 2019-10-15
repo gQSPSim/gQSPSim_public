@@ -5,7 +5,7 @@ function StatusOk = closeSession(obj,idx)
 % session to a file
 %
 
-% Copyright 2016 The MathWorks, Inc.
+% Copyright 2019 The MathWorks, Inc.
 %
 % Auth/Revision:
 %   MathWorks Consulting

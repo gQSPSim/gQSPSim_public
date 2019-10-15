@@ -1,10 +1,10 @@
 function [hSpeciesGroup,hDatasetGroup,hLegend,hLegendChildren] = plotSimulation(obj,hAxes)
-% plot - plots the analysis
+% plotSimulation - plots the simulation
 % -------------------------------------------------------------------------
-% Abstract: This plots the analysis based on the settings and data table.
+% Abstract: This plots the simulation analysis.
 %
 % Syntax:
-%           plot(aObj,hAxes)
+%           plotSimulation(aObj,hAxes)
 %
 % Inputs:
 %           obj - QSP.Simulation object
@@ -18,7 +18,7 @@ function [hSpeciesGroup,hDatasetGroup,hLegend,hLegendChildren] = plotSimulation(
 % Notes: none
 %
 
-% Copyright 2014-2015 The MathWorks, Inc.
+% Copyright 2019 The MathWorks, Inc.
 %
 % Auth/Revision:
 %   MathWorks Consulting
