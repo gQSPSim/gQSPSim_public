@@ -1,13 +1,14 @@
 function [hSpeciesGroup,hDatasetGroup,hLegend,hLegendChildren] = plotVirtualPopulationGeneration(obj,hAxes)
-% plot - plots the analysis
+% plotVirtualPopulationGeneration - plots the virtual population generation
+% analysis.
 % -------------------------------------------------------------------------
-% Abstract: This plots the analysis based on the settings and data table.
+% Abstract: This plots the virtual population generation analysis.
 %
 % Syntax:
-%           plot(aObj,hAxes)
+%           plotVirtualPopulationGeneration(aObj,hAxes)
 %
 % Inputs:
-%           obj - QSP.Simulation object
+%           obj - QSP.VirtualPopulationGeneration object
 %
 % Outputs:
 %           none
@@ -18,7 +19,7 @@ function [hSpeciesGroup,hDatasetGroup,hLegend,hLegendChildren] = plotVirtualPopu
 % Notes: none
 %
 
-% Copyright 2014-2015 The MathWorks, Inc.
+% Copyright 2019 The MathWorks, Inc.
 %
 % Auth/Revision:
 %   MathWorks Consulting

@@ -1,13 +1,15 @@
 function [hLegend,hLegendChildren] = updatePlots(obj,hAxes,hSpeciesGroup,hDatasetGroup,varargin)
-% updatePlots - Redraws the legend
+% updatePlots - Updates the plot
 % -------------------------------------------------------------------------
-% Abstract: Redraws the legend
+% Abstract: Updates the plot
 %
 % Syntax:
-%           updatePlots(aObj,hAxes)
+%           updatePlots(obj,hAxes)
 %
 % Inputs:
 %           obj - QSP.Simulation object
+%
+%           hAxes
 %
 %           hSpeciesGroup
 %
@@ -24,7 +26,7 @@ function [hLegend,hLegendChildren] = updatePlots(obj,hAxes,hSpeciesGroup,hDatase
 % Notes: none
 %
 
-% Copyright 2014-2015 The MathWorks, Inc.
+% Copyright 2019 The MathWorks, Inc.
 %
 % Auth/Revision:
 %   MathWorks Consulting

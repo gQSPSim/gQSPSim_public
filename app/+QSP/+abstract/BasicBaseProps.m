@@ -27,7 +27,7 @@ classdef (Abstract) BasicBaseProps < matlab.mixin.SetGet & uix.mixin.AssignPVPai
     %   getSummary, validate
     %
     
-    %   Copyright 2008-2016 The MathWorks, Inc.
+    %   Copyright 2008-2019 The MathWorks, Inc.
     %
     % Auth/Revision:
     %   MathWorks Consulting

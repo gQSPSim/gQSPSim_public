@@ -1,24 +1,24 @@
 classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
-    % VirtualPopulationGeneration - Defines a VirtualPopulationGeneration object
+    % CohortGeneration - Defines a CohortGeneration object
     % ---------------------------------------------------------------------
-    % Abstract: This object defines VirtualPopulationGeneration
+    % Abstract: This object defines CohortGeneration
     %
     % Syntax:
-    %           obj = QSP.VirtualPopulationGeneration
-    %           obj = QSP.VirtualPopulationGeneration('Property','Value',...)
+    %           obj = QSP.CohortGeneration
+    %           obj = QSP.CohortGeneration('Property','Value',...)
     %
     %   All properties may be assigned at object construction using
     %   property-value pairs.
     %
-    % QSP.VirtualPopulationGeneration Properties:
+    % QSP.CohortGeneration Properties:
     %
     %
-    % QSP.VirtualPopulationGeneration Methods:
+    % QSP.CohortGeneration Methods:
     %
     %
     %
     
-    % Copyright 2016 The MathWorks, Inc.
+    % Copyright 2019 The MathWorks, Inc.
     %
     % Auth/Revision:
     %   MathWorks Consulting

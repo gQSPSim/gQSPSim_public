@@ -72,7 +72,7 @@ classdef PlotSettings < matlab.mixin.SetGet & uix.mixin.AssignPVPairs
     % QSP.PlotSettings Methods:
     %
     
-    % Copyright 2017 The MathWorks, Inc.
+    % Copyright 2019 The MathWorks, Inc.
     %
     % Auth/Revision:
     %   MathWorks Consulting

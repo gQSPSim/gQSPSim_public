@@ -21,7 +21,7 @@ classdef Profile < QSP.abstract.BaseProps
     % QSP.Profile Methods:
     %
     
-    % Copyright 2017 The MathWorks, Inc.
+    % Copyright 2019 The MathWorks, Inc.
     %
     % Auth/Revision:
     %   MathWorks Consulting

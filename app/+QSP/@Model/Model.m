@@ -1,7 +1,7 @@
 classdef Model < QSP.abstract.BaseProps
-    % SpeciesData - Defines a SpeciesData object
+    % Model - Defines a Model object
     % ---------------------------------------------------------------------
-    % Abstract: This object defines SpeciesData
+    % Abstract: This object defines Model
     %
     % Syntax:
     %           obj = QSP.Model
@@ -18,7 +18,7 @@ classdef Model < QSP.abstract.BaseProps
     %
     %
     
-    % Copyright 2016 The MathWorks, Inc.
+    % Copyright 2019 The MathWorks, Inc.
     %
     % Auth/Revision:
     %   MathWorks Consulting
