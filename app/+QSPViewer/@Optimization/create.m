@@ -157,7 +157,7 @@ vObj.h.RNGSeedEdit = uix.widget.EditFieldWithLabel(...
     'Enable', 'off',...
     'Callback',@(h,e)onRNGSeedEdit(vObj,h,e));
 
-GridLayout.Heights = [WidgetHeight WidgetHeight WidgetHeight ];
+GridLayout.Heights = [WidgetHeight WidgetHeight WidgetHeight];
 GridLayout.Widths = [-1 -1];
 
 
