@@ -1,14 +1,14 @@
-function [StatusOK,Message,ResultsFileName,VpopName] = cohortGenerationRunHelper(obj)
+function [StatusOK,Message,ResultsFileName,VpopName,MatFileName] = cohortGenerationRunHelper(obj)
        
     if obj.Session.UseParallel
-        [StatusOK,Message,ResultsFileName,VpopName] = cohortGenerationRunHelper_par(obj);
+        [StatusOK,Message,ResultsFileName,VpopName,MatFileName] = cohortGenerationRunHelper_par(obj);
     else
-        [StatusOK,Message,ResultsFileName,VpopName] = cohortGenerationRunHelper_ser(obj);    
+        [StatusOK,Message,ResultsFileName,VpopName,MatFileName] = cohortGenerationRunHelper_ser(obj);    
     end
     
 end
 
-function [StatusOK,Message,ResultsFileName,VpopName] = cohortGenerationRunHelper_par(obj)
+function [StatusOK,Message,ResultsFileName,VpopName,MatFileName] = cohortGenerationRunHelper_par(obj)
 % Function that generates a Virtual population by sampling parameter space,
 % running simulations, and comparing the outputs to Acceptance Criteria.
 
@@ -16,6 +16,7 @@ StatusOK = true;
 Message = '';
 ResultsFileName = '';
 VpopName = '';
+MatFileName = '';
 
 %% update path to include everything in subdirectories of the root folder
 myPath = path;
@@ -709,7 +710,7 @@ end
 path(myPath);
 end
 
-function [StatusOK,Message,ResultsFileName,VpopName] = cohortGenerationRunHelper_ser(obj)
+function [StatusOK,Message,ResultsFileName,VpopName,MatFileName] = cohortGenerationRunHelper_ser(obj)
 % Function that generates a Virtual population by sampling parameter space,
 % running simulations, and comparing the outputs to Acceptance Criteria.
 
@@ -717,6 +718,7 @@ StatusOK = true;
 Message = '';
 ResultsFileName = '';
 VpopName = '';
+MatFileName = '';
 
 %% update path to include everything in subdirectories of the root folder
 myPath = path;
@@ -960,6 +962,42 @@ bCancelled = false;
 %Preallocate the normally distributed random number:
 my_randn = randn(obj.MaxNumSimulations, length(P)); 
 
+for ixGrp = 1:length(unqGroups)
+    Results{ixGrp}.Data = [];
+    Results{ixGrp}.VpopWeights = [];
+    
+    currGrp = unqGroups(ixGrp);        
+    % get matching taskGroup item based on group ID        
+    itemIdx = strcmp({obj.Item.GroupID}, num2str(currGrp));
+    % get task object for this item based on name
+    tskInd = strcmp(obj.Item(itemIdx).TaskName,{obj.Settings.Task.Name});
+    taskObj = obj.Settings.Task(tskInd);
+        
+    if ~isempty(taskObj.OutputTimes)
+        taskTimes = taskObj.OutputTimes;
+    else
+        taskTimes = taskObj.DefaultOutputTimes;
+    end        
+    
+    grpInds = find(Groups == currGrp);
+
+    % get group information
+    Time_grp = Time(grpInds);
+
+    % change output times for the exported model
+    OutputTimes = union(sort(unique(Time_grp)), taskTimes);
+
+    Results{ixGrp}.Time = OutputTimes;
+    Results{ixGrp}.SpeciesNames = [];
+    
+    if ~isempty(taskObj.ActiveSpeciesNames)
+        Results{ixGrp}.SpeciesNames = taskObj.ActiveSpeciesNames;
+    else
+        Results{ixGrp}.SpeciesNames = taskObj.SpeciesNames;
+    end    
+
+end
+
 while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients
     nSim = nSim+1; % tic up the number of simulations
     
@@ -996,8 +1034,10 @@ while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients
     model_outputs = [];
     LB_violation = [];
     UB_violation = [];   
-    
+   
     % loop over unique groups in the acceptance criteria file
+    activeSpecData = cell(1,length(unqGroups));
+
     for grpIdx = 1:length(unqGroups) %nItems
         currGrp = unqGroups(grpIdx);
         
@@ -1029,7 +1069,8 @@ while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients
         UB_grp = UB_accCrit(grpInds);
         
         % change output times for the exported model
-        OutputTimes = sort(unique(Time_grp));
+%         OutputTimes = sort(unique(Time_grp));
+        OutputTimes = Results{ixGrp}.Time; % use the task times + the AC times
         
         % set the initial conditions to the value in the IC file if specified
         if ~isempty(ICTable)
@@ -1119,6 +1160,14 @@ while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients
                     UB_outputs = [UB_outputs; UB_grp_spec];
 
                 end % for spec
+                
+                % extract active species data, if specified
+                if ~isempty(taskObj.ActiveSpeciesNames)
+                    [~,activeSpecData{grpIdx}] = selectbyname(simData,taskObj.ActiveSpeciesNames);
+                else
+                    [~,activeSpecData{grpIdx}] = selectbyname(simData,taskObj.SpeciesNames);                
+                end
+                
             catch ME2
                 % if the simulation fails, replace model outputs with Inf so
                 % that the parameter set fails the acceptance criteria
@@ -1139,9 +1188,22 @@ while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients
     if ~isempty(model_outputs) 
         Vpop(nSim,:) = Values0'; % store the parameter set
         isValid(nSim) = double(all(model_outputs>=LB_outputs) && all(model_outputs<=UB_outputs));
+               
+        % store the result
+        
         if isValid(nSim)
             nPat = nPat+1; % if conditions are satisfied, tick up the number of virutal patients
             param_candidate_old = param_candidate; % keep new candidate as starting point
+        end
+        
+        if isValid(nSim) || ~strcmp(obj.SaveInvalid, 'Save valid vpatients')
+
+            % Add results of the simulation to Results.Data
+            for ixGrp = 1:length(unqGroups)
+                Results{ixGrp}.Data = [Results{ixGrp}.Data, activeSpecData{ixGrp}];
+                Results{ixGrp}.VpopWeights = [Results{ixGrp}.VpopWeights; isValid(nSim)];
+            end
+            
         end
         
         waitStatus = uix.utility.CustomWaitbar(nPat/obj.MaxNumVirtualPatients,hWbar,sprintf('Succesfully generated %d/%d vpatients. (%d/%d Failed)',  ...
@@ -1256,6 +1318,8 @@ if StatusOK && bProceed
  
     
     if SaveFlag
+        
+        % save vpop into the excel file
         VpopName = ['Results - Cohort Generation = ' obj.Name ' - Date = ' datestr(now,'dd-mmm-yyyy_HH-MM-SS')];
         ResultsFileName = [VpopName '.xlsx'];
         if ispc
@@ -1267,6 +1331,12 @@ if StatusOK && bProceed
             StatusOK = false;
             Message = sprintf('%s\n%s\n',Message,ThisMessage.message);
         end
+        
+        % save results into the .mat file
+        MatFileName = [VpopName '.mat'];
+        save(fullfile(SaveFilePath,MatFileName), 'Results')
+            
+        
     else
         StatusOK = false;
         ThisMessage = 'Could not save the output of virtual cohort generation.';
