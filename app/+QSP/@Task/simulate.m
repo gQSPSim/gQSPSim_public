@@ -10,11 +10,13 @@ function [simData, statusOK, Message] = simulate(obj, varargin)
     p.addParameter('OutputTimes', obj.OutputTimes);
     p.addParameter('StopTime', obj.TimeToSteadyState);
     p.addParameter('Waitbar', []);
+    p.addParameter('CheckCurrent', true);
 
     parse(p, varargin{:});
-    Names = p.Results.Names;
+    Names = p.Results.Names; 
     Values = p.Results.Values;
     Waitbar = p.Results.Waitbar;
+    CheckCurrent = p.Results.CheckCurrent;
     
     % filter out missing values
     ixOK = find(~isnan(p.Results.Values));
@@ -22,21 +24,19 @@ function [simData, statusOK, Message] = simulate(obj, varargin)
     Values = Values(ixOK);
     
     % rebuild model if necessary
-    if ~obj.checkExportedModelCurrent()
-%         uix.utility.CustomWaitbar(ii/nBuildItems,hWbar1,sprintf('Configuring model for %s', obj.Name);        
-        if ~isempty(Waitbar)
-            uix.utility.CustomWaitbar(0,Waitbar,'Rebuilding model');
-        end
-        disp('Rebuilding model')
-        [statusOK, Message] = obj.constructModel();
+    if CheckCurrent        
+        [statusOK, Message] = obj.update();
         if ~statusOK
             return
         end
-        
     end
+            
+    modelSpecies = sbioselect(obj.VarModelObj,'Type','Species'); 
+    speciesNames = get(modelSpecies, 'Name');
+
+    fprintf('Species names %s', strjoin(speciesNames,'\n'));
     
-%     [~,idxSpecies] = ismember(Names, obj.SpeciesNames);    
-    [hSpecies,idxSpecies] = ismember(Names, obj.SpeciesNames);    
+    [hSpecies,idxSpecies] = ismember(Names, speciesNames);    
     ICSpecies = Names(hSpecies);      
     ICValues = Values(hSpecies);
 
@@ -64,8 +64,10 @@ function [simData, statusOK, Message] = simulate(obj, varargin)
         % found some columns which are neither parameter nor species
         statusOK = false;
         Message = sprintf(['Invalid parameters specified for simulation. Please check virtual population and/or parameters file for consistency with model.\n' ... 
-            'Note that reaction-scoped parameters must be named [reaction name].[parameter name]\n%s'], ...
-            strjoin(cellfun(@(s) sprintf('* %s',s), Names(idxMisc), 'UniformOutput', false), '\n') );
+            'Note that reaction-scoped parameters must be named [reaction name].[parameter name]\n%s\nSpecies:\n%s\nParameters:\n%s'], ...
+            strjoin(cellfun(@(s) sprintf('* %s',s), Names(idxMisc), 'UniformOutput', false), '\n'), ...
+            strjoin(cellfun(@(s) sprintf('* %s',s), obj.SpeciesNames, 'UniformOutput', false), '\n'), ...
+            strjoin(cellfun(@(s) sprintf('* %s',s), pNames, 'UniformOutput', false), '\n') );
         
         return
     end
@@ -97,9 +99,14 @@ function [simData, statusOK, Message] = simulate(obj, varargin)
         ICValues = cell2mat(get(obj.VarModelObj.Species, 'InitialAmount'));
     else 
         % set initial conditions from argument
-        [~,spIdx] = ismember(ICSpecies, obj.SpeciesNames);
+        [~,spIdx] = ismember(ICSpecies, speciesNames);
         ICs_all = cell2mat(get(obj.VarModelObj.Species, 'InitialAmount'));
         idxValid = ~isnan(ICValues);
+        if ~any(idxValid)
+            statusOK = false;
+            Message = sprintf('All species initial values were invalid');
+            return
+        end
         ICs_all(spIdx(idxValid)) = ICValues(idxValid);
         ICValues = ICs_all;       
     end

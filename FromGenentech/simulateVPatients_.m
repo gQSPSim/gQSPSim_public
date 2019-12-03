@@ -1,8 +1,9 @@
 
-function [Results, nFailedSims, StatusOK, Message, Cancelled] = simulateVPatients_(ItemModel, options, Message)  
+function [Results, nFailedSims, StatusOK, Message, Cancelled, taskID] = simulateVPatients_(ItemModel, options, Message, job)  
     Cancelled = false;
     nFailedSims = 0;
     taskObj = ItemModel.Task;
+    taskID = [];
     
     % clear the results of the previous simulation
     Results = [];
@@ -108,14 +109,28 @@ function [Results, nFailedSims, StatusOK, Message, Cancelled] = simulateVPatient
                 end
             end % for jj = ...
         else
-%             ParallelCluster = options.ParallelCluster;
-%             c = parcluster(ParallelCluster);
-% %             j = createJob(c, 'AttachedFiles', taskObj.Session.UserDefinedFunctionsDirectory);
+
 %             j = batch(c, @simulateVPatients_batch, 4, {taskObj, ItemModel, options, Results});
 %             wait(j)
 %             data = fetchOutputs(j);
 %             [Results, StatusOK, Message, nFailedSims] = fetchOutputs(j);
-            [Results, StatusOK, Message, nFailedSims] = simulateVPatients_batch(taskObj, ItemModel, options, Results);            
+%             [Results, StatusOK, Message, nFailedSims, job] = simulateVPatients_batch(taskObj, ItemModel, options, Results, job);
+              if ~isempty(ParamValues_in)
+                    Names = options.paramNames;
+                    Values = ParamValues_in;
+              else
+                    Names = ItemModel.Names;
+                    Values = ItemModel.Values;
+              end
+                block = 1:ItemModel.nPatients;
+                
+            % update outside of the batch job to avoid filesystem
+            % calls
+            taskObj.update(); 
+
+            taskID = job.createTask(@parBlock,5,{block, Names, Values, taskObj, Results});
+    
+    
         end
             
     end % if
