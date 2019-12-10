@@ -168,7 +168,7 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
     end
     
     properties(Constant)
-        Version = '1.0'
+        Version = 'v1.0'
     end
         
     %% Methods in separate files with custom permissions
