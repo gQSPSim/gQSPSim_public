@@ -1176,7 +1176,9 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
                     [StatusOk,~,Header,Data] = importData(pObj, pObj.FilePath);
                     if StatusOk
                         idP0 = strcmpi(Header,'P0_1');
-                        Data(:,idP0) = Values(2,:);
+                        idName = strcmpi(Header,'Name');
+                        [~,ix] = ismember(Data(:,idName), Values(1,:));
+                        Data(:,idP0) = Values(2,ix);
                         xlwrite(parameterObj.FilePath,[Header; Data]); 
                         
                     end
