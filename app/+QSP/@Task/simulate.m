@@ -34,7 +34,7 @@ function [simData, statusOK, Message] = simulate(obj, varargin)
     modelSpecies = sbioselect(obj.VarModelObj,'Type','Species'); 
     speciesNames = get(modelSpecies, 'Name');
 
-    fprintf('Species names %s', strjoin(speciesNames,'\n'));
+%     fprintf('Species names %s', strjoin(speciesNames,'\n'));
     
     [hSpecies,idxSpecies] = ismember(Names, speciesNames);    
     ICSpecies = Names(hSpecies);      

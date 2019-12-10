@@ -209,9 +209,13 @@ if ~isempty(ItemModels)
     
     taskIndex = 1;
     if ~isempty(taskIDs)
+        set(hWbar2, 'Name', 'Please wait')        
+        uix.utility.CustomWaitbar(0,hWbar2,sprintf('Submitted job with %d tasks to cluster %s.\nWaiting for completion.', nRunItems, ParallelCluster));        
         submit(job)
         wait(job)
         data = fetchOutputs(job);
+%         delete(hWbar2);
+        
         % unpack results
         
         for ii = runItems        
@@ -229,9 +233,14 @@ if ~isempty(ItemModels)
     
     % gather results
     taskIndex = 1;
+    if isvalid(hWbar2)
+        set(hWbar2, 'Name', 'Processing results')
+    end
     for ii = runItems        
         ItemModel = ItemModels(options.runIndices(ii));
-        
+        if isvalid(hWbar2)
+            uix.utility.CustomWaitbar(ii/length(runItems),hWbar2,'');
+        end
         for jj=1:length(options.Pin)
 
             if ~StatusOK_array{ii,jj}
