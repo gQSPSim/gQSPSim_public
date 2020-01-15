@@ -80,7 +80,6 @@ classdef ApplicationUI < matlab.apps.AppBase
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %Properties for handling sessions
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    
     properties  
         Sessions = QSP.Session.empty(0,1)
         AppName
@@ -117,7 +116,6 @@ classdef ApplicationUI < matlab.apps.AppBase
     % UI handle properties
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     properties (Access = public)
-        
         %These components are created when the application is created
         UIFigure                 matlab.ui.Figure
         FileMenu                 matlab.ui.container.Menu
@@ -148,11 +146,8 @@ classdef ApplicationUI < matlab.apps.AppBase
         SessionExplorerPanel     matlab.ui.container.Panel
         TreeRoot                 matlab.ui.container.Tree
         h = struct() %For widgets to store internal handles
-        
-    
     end
     
-  
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %Constructors and Destructors 
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -160,7 +155,6 @@ classdef ApplicationUI < matlab.apps.AppBase
 
         % Construct app
         function app = ApplicationUI
-
             % Create UIFigure and components
             app.AppName = ['gQSPsim ' app.Version];
             app.AllowMultipleSessions = true;
@@ -175,32 +169,29 @@ classdef ApplicationUI < matlab.apps.AppBase
             % Refresh the entire view
             app.refresh();
             app.redraw();
-            %matlab.appsapp.redrawrecentdfiles(); %TODO
-
+            app.redrawrecentdfiles();
             
             if nargout == 0
                 clear app
             end
-           
         end
 
         % Code that executes before app deletion TODO
         function delete(app)
-
             % Delete UIFigure when app is deleted
             delete(app.UIFigure)
         end
+        
     end
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %Methods to initilize application UI components
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     methods (Access = private)
+        
         % Create UIFigure and components
         function create(app)
             %for reference in callbacks
-
             % Create UIFigure and hide until all components are created
             app.UIFigure = uifigure('Visible', 'off');
             app.UIFigure.Position = [100 100 1005 864];
@@ -351,120 +342,109 @@ classdef ApplicationUI < matlab.apps.AppBase
             app.UIFigure.Visible = 'on';
         end
         
-        
     end
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %Callbacks for menu items and context menus
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    
     methods (Access = private)
-        function onOpenFile(app,~,~)
-            disp("File Menu Opened: TODO");
-        end
         
         function onNew(app,~,~)
             %We are using multiple sessions so 
             if app.AllowMultipleSessions || app.promptToSave()
                 app.createUntitledSession();
             end
-
         end
         
         function onOpen(app,~,~)
-            disp("Open session: TODO");
+            disp("TODO: Open selected");
         end
         
         function onOpenRecentSelected(app,~,~)
-            disp("Open Recent:TODO");
+            disp("TODO: Open Recent Selected");
         end
         
         function onClose(app,~,~)
-            disp("Open Recent:TODO");
+            disp("TODO: Close Selected");
         end
         
         function onSave(app,~,~)
-            disp("Save:TODO")
+            disp("TODO: Save Selected")
         end
         
         function onSaveAs(app,~,~)
-            disp("Save As:TODO");
+            disp("TODO: Save As Selected")
         end
         
         function onDeleteSelectedItem(app,~,~)
-            disp("Delete Item:TODO");
+            disp("TODO: Delete Selected");
         end
         
         function onRestoreSelectedItem(app,~,~)
-            disp("RestoreItem:TODO");
+            disp("TODO: Restore Selected");
         end
         
         function onExit(app,~,~)
-            disp("exit:TODO");
+            disp("TODO: Selected");
         end
         
         function onAbout(app,~,~)
-            disp("About menu: TODO")
+            disp("TODO: About Selected")
         end
         
         function onTreeSelectionChanged(app,handle,event)
-                %Handle is the roort handle
-                % event is the event data
-                
-                
-                
-                %We can selected mutliple nodes at once. Therefore we need to consider if SelectedNodes is a vector
-                SelectedNodes = event.SelectedNodes;
-                Root = handle;
-                
-                if length(SelectedNodes)>1
-                    %multiselect
-                    %We dont do any updates other than drawing
-                    return
-                end
-                
-                SelNode = SelectedNodes;
-                ThisSessionNode = SelectedNodes;
-                
-                %Find which session is the parent of the current one
-                 while ~isempty(ThisSessionNode) && ThisSessionNode.Parent~=Root
-                    ThisSessionNode = ThisSessionNode.Parent;                
-                 end
-                 
-                %Update which session is currently selected
-                 if isempty(ThisSessionNode)
-                    app.SelectedSessionIdx = [];
-                 else
-                    % update path to include drop the UDF for previous session
-                    % and include the UDF for current session
-                    app.SelectedSession.removeUDF();
+            %handle is the root handle
+            %event is the event data
+            %We can selected mutliple nodes at once. Therefore we need to consider if SelectedNodes is a vector
+            SelectedNodes = event.SelectedNodes;
+            Root = handle;
 
-                    app.SelectedSessionIdx = find(ThisSessionNode == app.SessionNode);
-                    app.SelectedSession.addUDF();
-                 end
-                 
-                 app.refresh();
-                 
-                 %Disable interaction while we do what we have to do
-                if ~isempty(SelNode) ...
-                        && ~isempty(app.ActivePane) && isprop(app.ActivePane,'h') && isfield(app.ActivePane.h,'MainAxes')
-                    thisObj = SelNode.Value;
-                    if any(ismember(app.ActivePane.Selection,[1 3]))
-                        % Call updateVisualizationView to disable Visualization button if invalid items                    
-                        switch class(thisObj)
-                            case {'QSP.Simulation','QSP.Optimization','QSP.VirtualPopulationGeneration','QSP.CohortGeneration'}
-                                if app.ActivePane.Selection == 3
-                                    plotData(app.ActivePane);
-                                end
-                                updateVisualizationView(app.ActivePane);                                   
-                        end                    
-                    end                
-                end
-                
+            if length(SelectedNodes)>1
+                %multiselect
+                %We dont do any updates other than drawing
+                return
+            end
+
+            SelNode = SelectedNodes;
+            ThisSessionNode = SelectedNodes;
+
+            %Find which session is the parent of the current one
+             while ~isempty(ThisSessionNode) && ThisSessionNode.Parent~=Root
+                ThisSessionNode = ThisSessionNode.Parent;                
+             end
+
+            %Update which session is currently selected
+             if isempty(ThisSessionNode)
+                app.SelectedSessionIdx = [];
+             else
+                % update path to include drop the UDF for previous session
+                % and include the UDF for current session
+                app.SelectedSession.removeUDF();
+
+                app.SelectedSessionIdx = find(ThisSessionNode == app.SessionNode);
+                app.SelectedSession.addUDF();
+             end
+
+             app.refresh();
+
+             %Disable interaction while we do what we have to do
+            if ~isempty(SelNode) ...
+                    && ~isempty(app.ActivePane) && isprop(app.ActivePane,'h') && isfield(app.ActivePane.h,'MainAxes')
+                thisObj = SelNode.Value;
+                if any(ismember(app.ActivePane.Selection,[1 3]))
+                    % Call updateVisualizationView to disable Visualization button if invalid items                    
+                    switch class(thisObj)
+                        case {'QSP.Simulation','QSP.Optimization','QSP.VirtualPopulationGeneration','QSP.CohortGeneration'}
+                            if app.ActivePane.Selection == 3
+                                plotData(app.ActivePane);
+                            end
+                            updateVisualizationView(app.ActivePane);                                   
+                    end                    
+                end                
+            end    
         end
          
         function onAddItem(app,ItemType)
-            
             if ischar(ItemType)
                 ThisObj = QSP.(ItemType)();
             elseif isobject(ItemType)
@@ -541,23 +521,17 @@ classdef ApplicationUI < matlab.apps.AppBase
             
             % Update the display
             app.refresh();
-            
         end
         
-            
-        
     end
-    
-    
-    
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Methods for interacting with the active sessions
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     methods (Hidden = true)
+        
         function createUntitledSession(app)
             % Add a new session called 'untitled_x'
-            
             % Clear existing sessions if needed
             if ~app.AllowMultipleSessions
                 app.SessionPaths = cell.empty(0,1);
@@ -572,24 +546,21 @@ classdef ApplicationUI < matlab.apps.AppBase
             idxNew = app.NumSessions +1;
             app.SessionPaths{idxNew,1} = NewName;
             app.IsDirty(idxNew,1) = false;
-            %TODO
+
             % remove UDF from selected session
             app.SelectedSession.removeUDF();
             app.SelectedSessionIdx = idxNew;
             
-            %TODO
-            % Refresh app components
-            %app.redraw();
+            app.redraw();
             app.refresh(); %Call refresh of the main app
-            
         end
         
         function createNewSession(app,Session)
-                        % Was a session provided? If not, make a new one
+            % Was a session provided? If not, make a new one
             if nargin < 2
                 Session = QSP.Session();
             end
-
+            
             % Add the session to the tree
             Root = app.TreeRoot;
             app.createTree(Root, Session);
@@ -601,11 +572,12 @@ classdef ApplicationUI < matlab.apps.AppBase
             newIdx = app.NumSessions + 1;
 
             % Add the session to the app
-            app.Sessions(newIdx,1) = Session;
+            app.Sessions(newIdx) = Session;
 
             % Start timer
             initializeTimer(Session);
         end
+        
     end
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -616,7 +588,6 @@ classdef ApplicationUI < matlab.apps.AppBase
         function createTree(app, Parent, AllData)
             % Nodes that take children have the type of child as a string in the UserData
             % property. Nodes that are children and are movable have [] in UserData.
-
             % Get short name to call this function recursively
             thisFcn = @(Parent,Data) createTree(app, Parent, Data);
 
@@ -780,22 +751,19 @@ classdef ApplicationUI < matlab.apps.AppBase
                         continue
 
                 end %switch
-
-                % If the node is deleted, swap out the context menu
-                %TODO
-                %if strcmp(Parent.Name,'Deleted Items')
-                %    hNode.UIContextMenu = obj.h.TreeMenu.Leaf.Deleted;
-                %end
-
+                if strcmp(Parent.Name,'Deleted Items')
+                    hNode.UIContextMenu = obj.h.TreeMenu.Leaf.Deleted;
+                end
             end %for
        end %function
+       
     end
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %methods for toggling interactivity and updating the view
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    
     methods (Access = protected)
+        
         function redraw(app)
             % Get some criteria on selection and whether it's dirty
             SelectionNotEmpty = ~isempty(app.SessionNames) && ~isempty(app.SelectedSessionIdx);
@@ -819,14 +787,14 @@ classdef ApplicationUI < matlab.apps.AppBase
             
             % Enable File->SaveAs and File->Close only if selection is made
             set([app.SaveAsMenu, app.CloseMenu],...
-                'Enable',app.tf2onoff(SelectionNotEmpty));
-            
+                'Enable',app.tf2onoff(SelectionNotEmpty)); 
         end
+        
         function markDirty(app)
-            
+            %TODO: markDirty
         end
+        
         function refresh(app)
-            
            if ~app.IsConstructed
               return
            end
@@ -872,29 +840,23 @@ classdef ApplicationUI < matlab.apps.AppBase
                 if app.IsDirty(idx)
                     ThisName = strcat(ThisName, ' *');
                 end
-
                 setSessionName(app.Sessions(idx),ThisRawName);
             end
-       
-
         end
         
     end
-    
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %Static Methods 
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     methods(Static)
-        function answer = tf2onoff(TorF)
-            
+        
+       function answer = tf2onoff(TorF)
             if TorF ==true
                 answer =  'on';
             else
                 answer = 'off';
             end
-            
-            
         end
         
        function hNode = i_addNode(Parent, Data, Name, Icon, CMenu, PaneType, Tooltip)
@@ -905,11 +867,7 @@ classdef ApplicationUI < matlab.apps.AppBase
             'Text', Name,...
             'UserData',PaneType,...
             'Icon',uix.utility.findIcon(Icon));
-        
-        
-        %Add context menu
-        %Add tooltip
-
+        %TODO: Add Context Menu
         end %function
         
     end
@@ -917,7 +875,6 @@ classdef ApplicationUI < matlab.apps.AppBase
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %Get/Set Methods 
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    
     methods      
         
         function value = get.SessionNames(app)
@@ -989,7 +946,7 @@ classdef ApplicationUI < matlab.apps.AppBase
             app.redraw()
         end
         
-                function value = get.SelectedSession(app)
+        function value = get.SelectedSession(app)
             % Grab the session object for the selected session
             value = app.Sessions(app.SelectedSessionIdx);
         end
@@ -1006,9 +963,7 @@ classdef ApplicationUI < matlab.apps.AppBase
                 value = [app.Sessions.TreeNode];
             end
         end
-        
-        
-    
+       
     end
     
 end
