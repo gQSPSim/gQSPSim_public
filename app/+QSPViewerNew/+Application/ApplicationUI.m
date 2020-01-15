@@ -111,7 +111,6 @@ classdef ApplicationUI < matlab.apps.AppBase
         SessionNode
     end
     
-   
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % UI handle properties
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -169,17 +168,11 @@ classdef ApplicationUI < matlab.apps.AppBase
             % Refresh the entire view
             app.refresh();
             app.redraw();
-            app.redrawrecentdfiles();
+            app.redrawrecentfiles();
             
             if nargout == 0
                 clear app
             end
-        end
-
-        % Code that executes before app deletion TODO
-        function delete(app)
-            % Delete UIFigure when app is deleted
-            delete(app.UIFigure)
         end
         
     end
@@ -200,7 +193,6 @@ classdef ApplicationUI < matlab.apps.AppBase
             % Create FileMenu
             app.FileMenu = uimenu(app.UIFigure);
             app.FileMenu.Text = 'File';
-            app.FileMenu.MenuSelectedFcn = @app.onOpenFile;
 
             % Create NewCtrlNMenu
             app.NewCtrlNMenu = uimenu(app.FileMenu);
@@ -337,9 +329,80 @@ classdef ApplicationUI < matlab.apps.AppBase
             app.TreeRoot.Position = [1 0 278 820];
             app.TreeRoot.Multiselect = 'on';
             app.TreeRoot.SelectionChangedFcn = @app.onTreeSelectionChanged;
-
+            
+            ItemTypes = {
+            'Dataset',                          'OptimizationData'
+            'Parameter',                        'Parameters'
+            'Task',                             'Task'
+            'Virtual Subject(s)',               'VirtualPopulation'    
+            'Acceptance Criteria',              'VirtualPopulationData'
+            'Target Statistics',                'VirtualPopulationGenerationData'
+            'Simulation',                       'Simulation'
+            'Optimization',                     'Optimization'
+            'Cohort Generation',                'CohortGeneration'
+            'Virtual Population Generation',    'VirtualPopulationGeneration'
+            };
+        
+            for idx=1:size(ItemTypes,1)
+                %Here we create the context menus for the tree, but we dont actually
+                %assign them to any components because they havent been
+                %created yet
+                ThisItemType = strrep(ItemTypes{idx,1},'Settings: ','');
+                app.h.TreeMenu.Branch.(ItemTypes{idx,2}) = uicontextmenu('Parent', app.UIFigure);
+                uimenu(app.h.TreeMenu.Branch.(ItemTypes{idx,2}),...
+                    'Label', ['Add new ' ThisItemType],...
+                    'MenuSelectedFcn', @(h,e)app.onAddItem(ItemTypes{idx,2}));
+                % For Leaves
+                app.h.TreeMenu.Leaf.(ItemTypes{idx,2}) = uicontextmenu('Parent', app.UIFigure);
+                uimenu(...
+                   'Parent', app.h.TreeMenu.Leaf.(ItemTypes{idx,2}),...
+                   'Text', ['Duplicate this ' ThisItemType],...
+                   'MenuSelectedFcn', @app.onDuplicateItem);
+                uimenu(...
+                   'Parent', app.h.TreeMenu.Leaf.(ItemTypes{idx,2}),...
+                   'Text', ['Delete this ' ThisItemType],...
+                   'Separator', 'on',...
+                   'MenuSelectedFcn', @app.onDeleteSelectedItem);
+            end     
+            
+            %Session context menu
+            app.h.TreeMenu.Branch.Session = uicontextmenu('Parent', app.UIFigure);
+            uimenu(...
+                'Parent', app.h.TreeMenu.Branch.Session,...
+                'Text', 'Close',...
+                'MenuSelectedFcn', @(h,e)onClose(app));
+            app.h.TreeMenu.Branch.SessionSave = uimenu(...
+                'Parent', app.h.TreeMenu.Branch.Session,...
+                'Text', 'Save',...
+                'Separator', 'on',...
+                'MenuSelectedFcn', @(h,e)onSave(app));
+            uimenu(...
+                'Parent', app.h.TreeMenu.Branch.Session,...
+                'Text', 'SaveAs',...
+                'MenuSelectedFcn', @(h,e)onSaveAs(app));
+            
+            
+            % For Deleted Items
+            app.h.TreeMenu.Branch.Deleted = uicontextmenu('Parent', app.UIFigure);
+            uimenu(...
+                'Parent', app.h.TreeMenu.Branch.Deleted,...
+                'Text', 'Empty Deleted Items',...
+                'MenuSelectedFcn', @(h,e)onEmptyDeletedItems(app,true));
+            app.h.TreeMenu.Leaf.Deleted = uicontextmenu('Parent', app.UIFigure);
+            uimenu(...
+                'Parent', app.h.TreeMenu.Leaf.Deleted,...
+                'Text', 'Restore',...
+                'MenuSelectedFcn', @(h,e)onRestoreItem(app));
+            uimenu(...
+                'Parent', app.h.TreeMenu.Leaf.Deleted,...
+                'Text', 'Permanently Delete',...
+                'Separator', 'on',...
+                'MenuSelectedFcn', @(h,e)onEmptyDeletedItems(app,false));
+            
             % Show the figure after all components are created
             app.UIFigure.Visible = 'on';
+            
+            
         end
         
     end
@@ -523,6 +586,10 @@ classdef ApplicationUI < matlab.apps.AppBase
             app.refresh();
         end
         
+        function onDuplicateItem(app,h,e)
+            disp("TODO: Duplicate This item")
+        end
+        
     end
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -608,7 +675,7 @@ classdef ApplicationUI < matlab.apps.AppBase
                         % Session node
                         hSession = app.i_addNode(Parent, Data, ...
                             'Session', 'folder_24.png',...
-                            '', [], 'Session');
+                             app.h.TreeMenu.Branch.Session, [], 'Session');
                         Data.TreeNode = hSession; %Store node in the object for cross-ref
 
                         % Settings node and children
@@ -619,34 +686,34 @@ classdef ApplicationUI < matlab.apps.AppBase
 
                         hTasks = app.i_addNode(hSettings, Data.Settings, ...
                             'Tasks', 'flask2.png',...
-                            '', 'Task', 'Tasks');
+                            app.h.TreeMenu.Branch.Task, 'Task', 'Tasks');
                         thisFcn(hTasks, Data.Settings.Task);
 
                         hParameters = app.i_addNode(hSettings, Data.Settings, ...
                             'Parameters', 'param_edit_24.png',...
-                            '', 'Parameters', 'Parameters');
+                            app.h.TreeMenu.Branch.Parameters, 'Parameters', 'Parameters');
                         thisFcn(hParameters, Data.Settings.Parameters);
 
                         hOptimData = app.i_addNode(hSettings, Data.Settings, ...
                             'Datasets', 'datatable_24.png',...
-                            '', 'OptimizationData', 'Datasets');
+                            app.h.TreeMenu.Branch.OptimizationData, 'OptimizationData', 'Datasets');
                         thisFcn(hOptimData, Data.Settings.OptimizationData);
 
 
                         hVPopDatas = app.i_addNode(hSettings, Data.Settings, ...
                             'Acceptance Criteria', 'acceptance_criteria.png',...
-                            '', 'VirtualPopulationData', 'Acceptance Criteria');
+                            app.h.TreeMenu.Branch.VirtualPopulationData, 'VirtualPopulationData', 'Acceptance Criteria');
                         thisFcn(hVPopDatas, Data.Settings.VirtualPopulationData);
 
                         hVPopGenDatas = app.i_addNode(hSettings, Data.Settings, ...
                             'Target Statistics', 'target_stats.png',...
-                            '', 'VirtualPopulationGenerationData', 'Target Statistics');
+                            app.h.TreeMenu.Branch.VirtualPopulationGenerationData, 'VirtualPopulationGenerationData', 'Target Statistics');
                         thisFcn(hVPopGenDatas, Data.Settings.VirtualPopulationGenerationData);
 
 
                         hVPops = app.i_addNode(hSettings, Data.Settings, ...
                             'Virtual Subject(s)', 'stickman3.png',...
-                            '', 'VirtualPopulation', 'Virtual Subject(s)');
+                             app.h.TreeMenu.Branch.VirtualPopulation, 'VirtualPopulation', 'Virtual Subject(s)');
                         thisFcn(hVPops, Data.Settings.VirtualPopulation);
 
                         % Functionalities node and children
@@ -656,27 +723,27 @@ classdef ApplicationUI < matlab.apps.AppBase
 
                         hSimulations = app.i_addNode(hFunctionalities, Data, ...
                             'Simulations', 'simbio_24.png',...
-                            '', 'Simulation', 'Simulation');
+                            app.h.TreeMenu.Branch.Simulation, 'Simulation', 'Simulation');
                         thisFcn(hSimulations, Data.Simulation);
 
                         hOptims = app.i_addNode(hFunctionalities, Data, ...
                             'Optimizations', 'optim_24.png',...
-                            '', 'Optimization', 'Optimization');
+                            app.h.TreeMenu.Branch.Optimization, 'Optimization', 'Optimization');
                         thisFcn(hOptims, Data.Optimization);
 
                         hCohortGen = app.i_addNode(hFunctionalities, Data, ...
                             'Virtual Cohort Generations', 'stickman-3.png',...   
-                           '', 'CohortGeneration', 'Cohort Generation');
+                           app.h.TreeMenu.Branch.CohortGeneration, 'CohortGeneration', 'Cohort Generation');
                         thisFcn(hCohortGen, Data.CohortGeneration);
 
                         hVPopGens = app.i_addNode(hFunctionalities, Data, ...
                             'Virtual Population Generations', 'stickman-3-color.png',...
-                            '', 'VirtualPopulationGeneration', 'Virtual Population Generation');
+                            app.h.TreeMenu.Branch.VirtualPopulationGeneration, 'VirtualPopulationGeneration', 'Virtual Population Generation');
                         thisFcn(hVPopGens, Data.VirtualPopulationGeneration);
 
                         hDeleteds = app.i_addNode(hSession, Data, ...
                             'Deleted Items', 'trash_24.png',...
-                            '', 'Deleted', 'Deleted Items');
+                            app.h.TreeMenu.Branch.Deleted, 'Deleted', 'Deleted Items');
                         thisFcn(hDeleteds, Data.Deleted);
 
                         % Expand Nodes
@@ -686,61 +753,61 @@ classdef ApplicationUI < matlab.apps.AppBase
                     case 'QSP.OptimizationData'
 
                         hNode = app.i_addNode(Parent, Data, Data.Name, 'datatable_24.png',...
-                            '', [], '');
+                            app.h.TreeMenu.Leaf.OptimizationData, [], '');
                         Data.TreeNode = hNode; %Store node in the object for cross-ref
 
                     case 'QSP.Parameters'
 
                         hNode = app.i_addNode(Parent, Data, Data.Name, 'param_edit_24.png',...
-                            '', [], '');
+                            app.h.TreeMenu.Leaf.Parameters, [], '');
                         Data.TreeNode = hNode; %Store node in the object for cross-ref
 
                     case 'QSP.Task'
 
                         hNode = app.i_addNode(Parent, Data, Data.Name, 'flask2.png',...
-                            '', [], '');
+                            app.h.TreeMenu.Leaf.Task, [], '');
                         Data.TreeNode = hNode; %Store node in the object for cross-ref
 
                     case 'QSP.VirtualPopulation'
 
                         hNode = app.i_addNode(Parent, Data, Data.Name, 'stickman3.png',...
-                            '', [], '');
+                            app.h.TreeMenu.Leaf.VirtualPopulation, [], '');
                         Data.TreeNode = hNode; %Store node in the object for cross-ref
 
 
                     case 'QSP.VirtualPopulationData'
 
                         hNode = app.i_addNode(Parent, Data, Data.Name, 'acceptance_criteria.png',...
-                            '', [], '');
+                            app.h.TreeMenu.Leaf.VirtualPopulationData, [], '');
                         Data.TreeNode = hNode; %Store node in the object for cross-ref
 
                     case 'QSP.Simulation'
 
                         hNode = app.i_addNode(Parent, Data, Data.Name, 'simbio_24.png',...
-                            '', [], '');
+                            app.h.TreeMenu.Leaf.Simulation, [], '');
                         Data.TreeNode = hNode; %Store node in the object for cross-ref
 
                     case 'QSP.Optimization'
 
                         hNode = app.i_addNode(Parent, Data, Data.Name, 'optim_24.png',...
-                            '', [], '');
+                            app.h.TreeMenu.Leaf.Optimization, [], '');
                         Data.TreeNode = hNode; %Store node in the object for cross-ref
 
                     case 'QSP.CohortGeneration'
 
                         hNode = app.i_addNode(Parent, Data, Data.Name, 'stickman-3.png',...
-                            '', [], '');
+                            app.h.TreeMenu.Leaf.CohortGeneration, [], '');
                         Data.TreeNode = hNode; %Store node in the object for cross-ref            
 
                     case 'QSP.VirtualPopulationGeneration'
 
                         hNode = app.i_addNode(Parent, Data, Data.Name, 'stickman-3-color.png',...
-                            '', [], '');
+                            app.h.TreeMenu.Leaf.VirtualPopulationGeneration, [], '');
                         Data.TreeNode = hNode; %Store node in the object for cross-ref
 
                     case 'QSP.VirtualPopulationGenerationData'
                         hNode = app.i_addNode(Parent, Data, Data.Name, 'target_stats.png',...
-                            '', [], '');
+                            app.h.TreeMenu.Leaf.VirtualPopulationGeneration, [], '');
                         Data.TreeNode = hNode; %Store node in the object for cross-ref
 
                     otherwise
@@ -751,8 +818,8 @@ classdef ApplicationUI < matlab.apps.AppBase
                         continue
 
                 end %switch
-                if strcmp(Parent.Name,'Deleted Items')
-                    hNode.UIContextMenu = obj.h.TreeMenu.Leaf.Deleted;
+                if isa(Parent,'matlab.ui.container.TreeNode') && strcmp(Parent.Text,'Deleted Items')
+                    hNode.UIContextMenu = app.h.TreeMenu.Leaf.Deleted;
                 end
             end %for
        end %function
@@ -844,6 +911,10 @@ classdef ApplicationUI < matlab.apps.AppBase
             end
         end
         
+        function redrawrecentfiles(app)
+            
+        end
+       
     end
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -867,7 +938,7 @@ classdef ApplicationUI < matlab.apps.AppBase
             'Text', Name,...
             'UserData',PaneType,...
             'Icon',uix.utility.findIcon(Icon));
-        %TODO: Add Context Menu
+        hNode.ContextMenu = CMenu;
         end %function
         
     end
@@ -891,13 +962,13 @@ classdef ApplicationUI < matlab.apps.AppBase
             value = app.LastFolder;
         end
         
-        function value = get.SelectedSessionPath(obj)
+        function value = get.SelectedSessionPath(app)
             % Grab the session object for the selected session
             sIdx = app.SelectedSessionIdx;
-            if isempty(sIdx) || isempty(obj.SessionPaths)
+            if isempty(sIdx) || isempty(app.SessionPaths)
                 value = '';
             else
-                value = obj.SessionPaths{obj.SelectedSessionIdx};
+                value = app.SessionPaths{app.SelectedSessionIdx};
             end
         end
         
