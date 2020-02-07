@@ -1,5 +1,5 @@
 classdef SessionPane < QSPViewerNew.Application.ViewPane 
-    %  Session - A Class for the session settings view pane. This is the
+    %  SessionPane - A Class for the session settings view pane. This is the
     %  'viewer' counterpart to the 'model' class QSP.Session
     %
     % 
