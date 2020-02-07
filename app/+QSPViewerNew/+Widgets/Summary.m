@@ -30,13 +30,15 @@ classdef Summary < handle
         function obj = Summary(varargin)
             %This requires a parent that is a grid layout and information
             %For the box
-            if nargin ~= 2
+            if nargin ~= 4
                 error("Requires a parent  and information as Input");
             end
             %Call create to instantiate the graphics
             parent =  varargin{1};
-            information =  varargin{2};
-            obj.create(parent,information);
+            information =  varargin{4};
+            row = varargin{2};
+            column = varargin{3};
+            obj.create(parent,row,column,information);
         end
         
     end
@@ -46,10 +48,12 @@ classdef Summary < handle
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     methods(Access = private)
         
-        function create(obj,parent,information)
+        function create(obj,parent,row,column,information)
             %Assing Values and create the ui component
             obj.Parent = parent;
             obj.HtmlComponent = uihtml(obj.Parent);
+            obj.HtmlComponent.Layout.Row = row;
+            obj.HtmlComponent.Layout.Column = column;
             obj.Information = information;
         end
         

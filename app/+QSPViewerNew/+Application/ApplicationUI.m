@@ -98,7 +98,8 @@ classdef ApplicationUI < matlab.apps.AppBase
         IsDirty = logical.empty(0,1) 
         RecentSessionPaths = cell.empty(0,1)
         LastFolder = pwd
-        ActivePane  %= QSPViewerNew.Application.ViewPane.empty(0,1)
+        ActivePane
+        Panes
         IsConstructed = false;
         Type
         TypeStr
@@ -111,6 +112,7 @@ classdef ApplicationUI < matlab.apps.AppBase
         SessionNames
         SelectedSession
         SessionNode
+        PaneTypes
     end
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -500,15 +502,14 @@ classdef ApplicationUI < matlab.apps.AppBase
         end
         
         function onTreeSelectionChanged(app,handle,event)
-            %handle is the root handle
-            %event is the event data
-            %We can selected mutliple nodes at once. Therefore we need to consider if SelectedNodes is a vector
+            %First we determine the session that is selected
+            
+            %We can select mutliple nodes at once. Therefore we need to consider if SelectedNodes is a vector
             SelectedNodes = event.SelectedNodes;
             Root = handle;
 
             if length(SelectedNodes)>1
-                %multiselect
-                %We dont do any updates other than drawing
+                %We do not handle the case of multi select
                 return
             end
 
@@ -527,29 +528,18 @@ classdef ApplicationUI < matlab.apps.AppBase
                 % update path to include drop the UDF for previous session
                 % and include the UDF for current session
                 app.SelectedSession.removeUDF();
-
                 app.SelectedSessionIdx = find(ThisSessionNode == app.SessionNode);
                 app.SelectedSession.addUDF();
              end
-
+             
+             
+             %TODO We need to update the visualization plots
+             
+             %Now that we have the correct session, we can work with the
+             app.redraw();
              app.refresh();
-
-             %Disable interaction while we do what we have to do
-            if ~isempty(SelNode) ...
-                    && ~isempty(app.ActivePane) && isprop(app.ActivePane,'h') && isfield(app.ActivePane.h,'MainAxes')
-                thisObj = SelNode.Value;
-                if any(ismember(app.ActivePane.Selection,[1 3]))
-                    % Call updateVisualizationView to disable Visualization button if invalid items                    
-                    switch class(thisObj)
-                        case {'QSP.Simulation','QSP.Optimization','QSP.VirtualPopulationGeneration','QSP.CohortGeneration'}
-                            if app.ActivePane.Selection == 3
-                                plotData(app.ActivePane);
-                            end
-                            updateVisualizationView(app.ActivePane);                                   
-                    end                    
-                end                
-            end    
-        end
+                      
+        end    
          
         function onAddItem(app,ItemType)
             if ischar(ItemType)
@@ -834,11 +824,11 @@ classdef ApplicationUI < matlab.apps.AppBase
     end
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    % Methods for drawing UI components dynamically
+    % Methods for drawing UI components.
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    methods (Access = protected)
+    methods (Access = public)
         
-        function createTree(app, Parent, AllData)
+       function createTree(app, Parent, AllData)
             % Nodes that take children have the type of child as a string in the UserData
             % property. Nodes that are children and are movable have [] in UserData.
             % Get short name to call this function recursively
@@ -1010,6 +1000,27 @@ classdef ApplicationUI < matlab.apps.AppBase
             end %for
        end %function
        
+       function disableInteraction(app)
+           app.TreeRoot.Enable = 'off';
+           app.FileMenu.Enable = 'off';
+           app.QSPMenu.Enable = 'off';
+       end
+       
+       function enableInteraction(app)
+           app.TreeRoot.Enable = 'on';
+           app.FileMenu.Enable = 'on';
+           app.QSPMenu.Enable = 'on';
+       end
+       
+       function changeInBackEnd(app,newSession)
+           %1.Replace the current Session with the newSession
+           app.Sessions(app.SelectedSessionIdx) = newSession;
+           
+           %2. It must update the tree to reflect all the new values from
+           %the session
+           app.updateTree(app.TreeRoot.Children(app.SelectedSessionIdx),newSession,'Session')
+        end
+       
     end
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1018,6 +1029,7 @@ classdef ApplicationUI < matlab.apps.AppBase
     methods (Access = protected)
         
         function redraw(app)
+            %redraw redraws the titles of the sessions
             % Get some criteria on selection and whether it's dirty
             SelectionNotEmpty = ~isempty(app.SessionNames) && ~isempty(app.SelectedSessionIdx);
             SelectionIsDirty = SelectionNotEmpty && any(app.IsDirty(app.SelectedSessionIdx));
@@ -1048,6 +1060,7 @@ classdef ApplicationUI < matlab.apps.AppBase
         end
         
         function refresh(app)
+            %refresh changes the actual UI components
            if ~app.IsConstructed
               return
            end
@@ -1099,6 +1112,17 @@ classdef ApplicationUI < matlab.apps.AppBase
                 %Assign the new name
                 setSessionName(app.Sessions(idx),ThisRawName);
             end
+            
+            % Update the name on the tree
+            checkScaler = isscalar(SelNode) && isscalar(SelNode.NodeData);
+            checkType =~isempty(SelNode) && isprop(SelNode.NodeData,'Name') && ~strcmp(SelNode.NodeData.Name, SelNode.Text) && ...
+            ~strcmpi(class(SelNode.NodeData),'QSP.Session'); %We dont want to update the name for a session
+            
+            if checkScaler && checkType
+                SelNode.Name = SelNode.Value.Name;
+            end
+            
+            app.updatePane(SelNode);
         end
         
         function redrawRecentFiles(app)
@@ -1119,6 +1143,165 @@ classdef ApplicationUI < matlab.apps.AppBase
                 app.OpenRecentMenu.Enable = 'off';
             else
                 app.OpenRecentMenu.Enable = 'on';
+            end 
+        end
+        
+        function updatePane(app,NodeSelected)
+            %Determine if the Node will launch a Pane
+            LaunchPane = ~isempty(NodeSelected) && isempty(NodeSelected.UserData);
+            
+            %If we shouldnt launch a pane and there is currently a pane,
+            %close it
+            if ~LaunchPane && ~isempty(app.ActivePane)
+                app.ActivePane.hideThisPane();
+                app.ActivePane = [];
+                return
+            elseif ~LaunchPane
+                return
+            end
+               
+            %Determine if the pane type has already been loaded
+            PaneType = app.GetPaneClassFromQSPClass(class(NodeSelected.NodeData));
+            idxPane = find(strcmp(PaneType,app.PaneTypes),1);
+            if isempty(idxPane)
+                %Launch a new Panewith the data provided
+                app.launchNewPane(NodeSelected.NodeData);
+            else
+                %Launch a pane that already exists with the new data
+                app.launchOldPane(NodeSelected.NodeData);
+            end
+        end
+        
+        function launchNewPane(app,NodeData)
+            %Inputs that the pane API should require in the constructor
+            classInputs = {app.GridLayout,1,2,app};
+            
+            %This switch determines the correct type of Pane and creates it
+            %The default is that it is not shown
+            switch class(NodeData)
+                case 'QSP.Session'
+                    app.ActivePane = QSPViewerNew.Application.SessionPane(classInputs);
+                case 'QSP.OptimizationData'
+                    %app.ActivePane = QSPViewerNew.Application.OptimizationDataPane(app.GridLayout);
+                    disp("TODO: Create a QSPViewerNew.Application.OptimizationDataPane class to launch");
+                case 'QSP.Parameters'
+                    %app.ActivePane = QSPViewerNew.Application.ParametersPane(app.GridLayout);
+                    disp("TODO: Create a QSPViewerNew.Application.OptimizationDataPane class to launch");
+                case 'QSP.Task'
+                    %app.ActivePane = QSPViewerNew.Application.TaskPane(app.GridLayout);
+                    disp("TODO: Create a QSPViewerNew.Application.ParametersPane class to launch");
+                case 'QSP.VirtualPopulation'
+                    %app.ActivePane = QSPViewerNew.Application.VirtualPopulationPane(app.GridLayout);
+                    disp("TODO: Create a QSPViewerNew.Application.VirtualPopulationPane class to launch");
+                case 'QSP.VirtualPopulationData'
+                    %app.ActivePane = QSPViewerNew.Application.VirtualPopulationDataPane(app.GridLayout);
+                    disp("TODO: Create a QSPViewerNew.Application.VirtualPopulationDataPane class to launch");
+                case 'QSP.Simulation'
+                    %app.ActivePane = QSPViewerNew.Application.SimulationPane(app.GridLayout);
+                    disp("TODO: Create a QSPViewerNew.Application.SimulationPane class to launch");
+                case 'QSP.Optimization'
+                    %app.ActivePane = QSPViewerNew.Application.OptimizationPane(app.GridLayout);
+                    disp("TODO: Create a QSPViewerNew.Application.OptimizationPane class to launch");
+                case 'QSP.CohortGeneration'
+                    %app.ActivePane = QSPViewerNew.Application.CohortGenerationPane(app.GridLayout);
+                    disp("TODO: Create a QSPViewerNew.Application.CohortGenerationPane class to launch");
+                case 'QSP.VirtualPopulationGeneration'
+                    %app.ActivePane = QSPViewerNew.Application.VirtualPopulationGenerationPane(app.GridLayout);
+                    disp("TODO: Create a QSPViewerNew.Application.VirtualPopulationGenerationPane class to launch");
+                case 'QSP.VirtualPopulationGenerationData'
+                    %app.ActivePane = QSPViewerNew.Application.VirtualPopulationGenerationDataPane(app.GridLayout);
+                    disp("TODO: Create a QSPViewerNew.Application.VirtualPopulationGenerationDataPane class to launch");
+            end
+            if ~isempty(app.ActivePane)
+                %Now take the pane and display it.
+                app.Panes = horzcat(app.ActivePane);
+                app.ActivePane.attachNewSession(NodeData);
+                app.ActivePane.showThisPane();
+            end
+        end
+        
+        function launchOldPane(app,NodeData)
+            %Find the index of the correct pane type
+            PaneType = app.GetPaneClassFromQSPClass(class(NodeData));
+            idxPane = find(strcmp(PaneType,app.PaneTypes),1);
+            
+            if app.ActivePane~=app.Panes(idxPane)
+                %The pane shown is not correct, we need to change it.
+                app.ActivePane.hideThisPane();
+                app.ActivePane = app.Panes(idxPane);
+                app.ActivePane.attachNewSession(NodeData);
+                app.ActivePane.showThisPane();
+            elseif isempty(app.ActivePane)
+                %There is no pane shown
+                app.ActivePane = app.Panes(idxPane);
+                app.ActivePane.attachNewSession(NodeData);
+                app.ActivePane.showThisPane();
+            else
+                %The pane is already launched, just need to update the data
+                app.ActivePane.attachNewSession(NodeData);
+                app.ActivePane.showThisPane();
+            end
+            
+        end
+        
+        function updateTree(app,Tree,NewData,type)
+            %1. Update the Node information
+            Tree.NodeData = NewData;
+            
+            %2. Determine what type of Node this is.
+            % We have to pass the type of the children because the node userdata types are
+            % often the same between different types of nodes
+            switch type
+                case 'Session'
+                    %If a session, we must check settings,functionalties,
+                    %and deleted item
+                    app.updateTree(Tree.Children(1),NewData.Settings,'BuildingBlocks')
+                    app.updateTree(Tree.Children(2),NewData,'Functionalities')
+                    app.updateTree(Tree.Children(3),NewData.Deleted,'Deleted')
+                    
+                    %If we are updating the session, we need to update the
+                    %name
+                    app.setCurrentSessionDirty()
+                    
+                case 'Building Blocks'
+                    %Iterate through the 5 Subcategories
+                    app.updateTree(Tree.Children(1),NewData,'TaskGroup')
+                    app.updateTree(Tree.Children(2),NewData,'ParameterGroup')
+                    app.updateTree(Tree.Children(3),NewData,'OptimizationDataGroup')
+                    app.updateTree(Tree.Children(4),NewData,'VirtualPopulationDataGroup')
+                    app.updateTree(Tree.Children(5),NewData,'VirtualPopulationGenerationDataGroup')
+                    
+                case 'TaskGroup'
+                    for idx = 1:numel(NewData.Task)
+                        app.updateTree(Tree.Children(idx),NewData.Task(idx),'Task')
+                    end
+                case 'ParameterGroup'
+                    for idx = 1:numel(NewData.Parameters)
+                        app.updateTree(Tree.Children(idx),NewData.Parameters(idx),'Parameters')
+                    end
+                case 'OptimizationDataGroup'
+                    for idx = 1:numel(NewData.OptimizationData)
+                        app.updateTree(Tree.Children(idx),NewData.OptimizationData(idx),'OptimizationData')
+                    end
+                case 'VirtualPopulationDataGroup'
+                     for idx = 1:numel(NewData.VirtualPopulationData)
+                        app.updateTree(Tree.Children(idx),NewData.VirtualPopulationData(idx),'VirtualPopulationData')
+                    end
+                case 'VirtualPopulationGenerationDataGroup'
+                     for idx = 1:numel(NewData.VirtualPopulationGenerationData)
+                        app.updateTree(Tree.Children(idx),NewData.VirtualPopulationGenerationData(idx),'VirtualPopulationGenerationData')
+                     end
+                     
+                %The following rewuire the session to be updated as well. 
+                %This is dictated by the model
+                case 'Simulation'                                
+                    Tree.NodeData.Session = app.Sessions(app.SelectedSessionIdx);
+                case 'Optimization'
+                    Tree.NodeData.Session = app.Sessions(app.SelectedSessionIdx);
+                case 'CohortGeneration'
+                    Tree.NodeData.Session = app.Sessions(app.SelectedSessionIdx);
+                case 'VirtualPopulationGeneration'
+                    Tree.NodeData.Session = app.Sessions(app.SelectedSessionIdx);
             end 
         end
        
@@ -1148,6 +1331,35 @@ classdef ApplicationUI < matlab.apps.AppBase
         hNode.ContextMenu = CMenu;
         end %function
        
+        function PaneClass = GetPaneClassFromQSPClass(QSPClass)
+            %This method takes a QSP class and returns what type of pane it
+            %launches
+            switch QSPClass
+                case 'QSP.Session'
+                    PaneClass = 'QSPViewerNew.Application.SessionPane';
+                case 'QSP.OptimizationData'
+                   PaneClass = 'QSPViewerNew.Application.OptimizationDataPane';
+                case 'QSP.Parameters'
+                   PaneClass = 'QSPViewerNew.Application.ParametersPane';
+                case 'QSP.Task'
+                   PaneClass = 'QSPViewerNew.Application.TaskPane';
+                case 'QSP.VirtualPopulation'
+                    PaneClass = 'QSPViewerNew.Application.VirtualPopulationPane';
+                case 'QSP.VirtualPopulationData'
+                    PaneClass = 'QSPViewerNew.Application.VirtualPopulationDataPane';
+                case 'QSP.Simulation'
+                    PaneClass = 'QSPViewerNew.Application.SimulationPane';
+                case 'QSP.Optimization'
+                    PaneClass = 'QSPViewerNew.Application.OptimizationPane';
+                case 'QSP.CohortGeneration'
+                    PaneClass = 'QSPViewerNew.Application.CohortGenerationPane';
+                case 'QSP.VirtualPopulationGeneration'
+                    PaneClass = 'QSPViewerNew.Application.VirtualPopulationGenerationPane';
+                case 'QSP.VirtualPopulationGenerationData'
+                    PaneClass = 'QSPViewerNew.Application.VirtualPopulationGenerationDataPane';
+            end
+        end
+        
     end
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1241,7 +1453,26 @@ classdef ApplicationUI < matlab.apps.AppBase
                 value = [app.Sessions.TreeNode];
             end
         end
-       
+        
+        function value = get.PaneTypes(app)
+            value = cell(size(app.Panes));
+            for idx = 1:numel(app.Panes)
+                value{idx} = class(app.Panes);
+            end
+        end
+        
+        function setCurrentSessionDirty(app)
+            app.IsDirty(app.SelectedSessionIdx) = true;
+            app.redraw();
+            app.refresh();
+        end
+        
+        function setCurrentSessionCleam(app)
+            app.IsDirty(app.SelectedSessionIdx) = true;
+            app.redraw();
+            app.refresh();
+        end
+            
     end
     
 end
