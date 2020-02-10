@@ -10,76 +10,15 @@ classdef ApplicationUI < matlab.apps.AppBase
     %
     %       matlab.apps.AppBase 
     %
-    % Properties
-    %   Title- the title of the application to be displayed at the top of
-    %   the window. this includes the current session
-    %
-    %   AppName - Name of the application
-    %    
-    %   Sessions - top level QSP.Session objects for each session that is loaded
-    %
-    %   Version - Version of the application
-    %
-    %   AllowMultipleSessions - indicates whether this app is
-    %   single-session or multi-session [true|(false)] 
-    %
-    %   SelectionSessionIdx - The index of the selected Session
-    %
-    %   FileSpec - file type specification for load save (see doc
-    %   uigetfile) [{'*.mat','MATLAB MAT File'}]
-    %
-    %   IsDirty - logical array inidicating which session files are dirty
-    %
-    %   SessionPaths - file paths of sessions currently loaded
-    %
-    %   SelectedSessionIdx - index of currently selected session
-    %
-    %   SessionNames (read-only) - filename and extension of sessions
-    %   currently loaded, based on the SessionPaths property
-    %
-    %   NumSessions (read-only) - indicates number of sessions currently
-    %   loaded, based on the SessionPaths property
-    %
-    %   RecentSessionPaths = cell.empty(0,1) %List of recent session files
-    %
-    %   LastFolder - The last folder to be accessed. 
-    %
-    %   ActivePane - The pane that is currently displayed
-    % 
-    %   IsConstructed - Is the application constructed[t or f]\
-    %
-    %   SelectedSessionName (Dependent) - Name of selected Session
-    %
-    %   SelectedSessionPath (Dependent) - Path of selected Session
-    %
-    %   NumSessions (Dependent) - Num of session loaded
-    %
-    %   SessionNames (Dependent) - Name of all sessions loaded
-    %
-    %   SelectedSession (Dependent) - Session that is currently loaded
-    %
-    %   SessionNode (Dependent) - Treenode of the currently selected
-    %   session
-    %   
-    %
-    %   
-    %
-    % Methods to create
+
+    % TODO: Methods to create
     %
     % onExit()
     %
     %
-    %   Copyright 2019 The MathWorks, Inc.
-    %
-    % Auth/Revision:
-    %   Author: Max Tracy 
-    %   Revision: 1
-    %   1/8/20
-    % ---------------------------------------------------------------------
+    %   Copyright 2020 The MathWorks, Inc.
+    %    
     
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    %Properties for handling sessions
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     properties  
         Sessions = QSP.Session.empty(0,1)
         AppName
@@ -115,11 +54,7 @@ classdef ApplicationUI < matlab.apps.AppBase
         PaneTypes
     end
     
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    % UI handle properties
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     properties (Access = public)
-        %These components are created when the application is created
         UIFigure                 matlab.ui.Figure
         FileMenu                 matlab.ui.container.Menu
         NewCtrlNMenu             matlab.ui.container.Menu
@@ -152,16 +87,10 @@ classdef ApplicationUI < matlab.apps.AppBase
         OpenRecentMenuArray 
     end
     
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    %Constructors and Destructors 
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     methods (Access = public)
-
-        % Construct app
+        
         function app = ApplicationUI
-            % Create UIFigure and components
             app.AppName = ['gQSPsim ' app.Version];
-            app.AllowMultipleSessions = true;
             app.FileSpec = {'*.qsp.mat','MATLAB QSP MAT File'};
             
             % Create the graphics objects
@@ -197,18 +126,14 @@ classdef ApplicationUI < matlab.apps.AppBase
         function delete(app)
             %Upon deletion, save the recent sessions and last folder to use
             %in the next instance of the application
-            setpref(app.TypeStr,'LastFolder',app.LastFolder)
-            setpref(app.TypeStr,'RecentSessionPaths',app.RecentSessionPaths)
+            setpref(app.TypeStr, 'LastFolder', app.LastFolder)
+            setpref(app.TypeStr, 'RecentSessionPaths', app.RecentSessionPaths)
         end
         
     end
     
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    %Methods to initilize application UI components
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     methods (Access = private)
         
-        % Create UIFigure and components
         function create(app)
             %for reference in callbacks
             % Create UIFigure and hide until all components are created
@@ -427,15 +352,12 @@ classdef ApplicationUI < matlab.apps.AppBase
             
             % Show the figure after all components are created
             app.UIFigure.Visible = 'on';
-            
-            
         end
-        
     end
     
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %%
     %Callbacks for menu items and context menus
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %%
     methods (Access = private)
         
         function onNew(app,~,~)
@@ -626,9 +548,9 @@ classdef ApplicationUI < matlab.apps.AppBase
         
     end
     
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %%
     % Methods for interacting with the active sessions
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %%
     methods (Hidden = true)
         
         function createUntitledSession(app)
@@ -667,7 +589,7 @@ classdef ApplicationUI < matlab.apps.AppBase
             app.createTree(Root, Session);
 
 
-            %% Update the app state
+            % % Update the app state
             
             % Which session is this?
             newIdx = app.NumSessions + 1;
@@ -679,24 +601,21 @@ classdef ApplicationUI < matlab.apps.AppBase
             initializeTimer(Session);
         end
         
-        function loadSessionFromPath(app,FullFilePath)  
-            %Error check to verify that the input is correct
-            sessionStatus = app.verifyValidSessionFilePath(FullFilePath);
+        function loadSessionFromPath(app, fullFilePath)  
+            % Loads a session file from disk found at fullFilePath.
+            
+            sessionStatus = app.verifyValidSessionFilePath(fullFilePath);
             StatusOk = true;
             if ~sessionStatus
                 return;
             end
 
-            %Extract the path and file name
-            [~,FileName] = fileparts(FullFilePath);
-
             %Try to load the session
             try
-               loadedSession = load(FullFilePath, 'Session');
+               loadedSession = load(fullFilePath, 'Session');
             catch err
                 StatusOk = false;
-                Message = sprintf('The file %s could not be loaded:\n%s',...
-                    FileName, err.message);
+                Message = sprintf('The file %s could not be loaded:\n%s', fullFilePath, err.message);
             end
 
             %Verify that the Session file has the correct atrributes
@@ -705,14 +624,14 @@ classdef ApplicationUI < matlab.apps.AppBase
             catch err
                  StatusOk =false;
                  Message = sprintf(['The file %s did not contain a valid '...
-                    'Session object:\n%s'], FileName, err.message);
+                    'Session object:\n%s'], fullFilePath, err.message);
             end
 
             %Check if the file is supposed to be removed
             if StatusOk && loadedSession.Session.toRemove
                StatusOk = false;
                Message = sprintf(['The file %s did not contain a valid '...
-                    'Session object:\n%s'], FileName, err.message);
+                    'Session object:\n%s'], fullFilePath, err.message);
             end
 
             %If any of the above failed, we exit and disply why
@@ -739,33 +658,32 @@ classdef ApplicationUI < matlab.apps.AppBase
             %Edit the app properties to reflect a new loaded session was
             %added
             idxNew = app.NumSessions + 1;
-            app.SessionPaths{idxNew} = FullFilePath;
+            app.SessionPaths{idxNew} = fullFilePath;
             app.IsDirty(idxNew) = false;
             app.SelectedSessionIdx = idxNew;
-            app.addRecentSessionPath(FullFilePath);
-            
+            app.addRecentSessionPath(fullFilePath);
 
             %Refresh the view
             app.redraw();
             app.refresh();
         end
         
-        function [status] = verifyValidSessionFilePath(app,FullFilePath)
-           %This status function checks whether the filepath provided is valid
+        function status = verifyValidSessionFilePath(app, fullFilePath)
+            % This status function checks whether the filepath provided is valid
             %If not, it will try to find a valid session path
             %If the user cannot find a valid session path, the output is
             %false
-           status = true;
+            status = true;
            
-           if ~exist(FullFilePath,'file')
-                Message = sprintf('The specified file does not exist: \n%s',FullFilePath);
+           if ~exist(fullFilePath,'file')
+                Message = sprintf('The specified file does not exist: \n%s',fullFilePath);
                 uialert(app.UIFigure,Message,'Invalid File');
                 status =false;
             end
             
             %Check that the file isnt already loaded
-            if ismember(FullFilePath, app.SessionPaths)
-                Message = sprintf('The specified file is already open: \n%s',FullFilePath);
+            if ismember(fullFilePath, app.SessionPaths)
+                Message = sprintf('The specified file is already open: \n%s',fullFilePath);
                 uialert(app.UIFigure,Message,'Invalid File');
                 status = false;
             end
@@ -823,9 +741,9 @@ classdef ApplicationUI < matlab.apps.AppBase
         
     end
     
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %%
     % Methods for drawing UI components.
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %%
     methods (Access = public)
         
        function createTree(app, Parent, AllData)
@@ -1023,9 +941,9 @@ classdef ApplicationUI < matlab.apps.AppBase
        
     end
     
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %
     %methods for toggling interactivity and updating the view
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %
     methods (Access = protected)
         
         function redraw(app)
@@ -1126,16 +1044,15 @@ classdef ApplicationUI < matlab.apps.AppBase
         end
         
         function redrawRecentFiles(app)
-            %Take the list of recent Files and create the context Menus
+            % Construct menu items for each path in RecentSessionPaths. 
             
-            %Delete the old menus
-            delete(app.OpenRecentMenuArray);
+            % Delete the old menus
+            delete(app.OpenRecentMenuArray);            
             
-            %Add the new items
             for idx = 1:numel(app.RecentSessionPaths)
                 app.OpenRecentMenuArray(idx) = uimenu(app.OpenRecentMenu);
                 set(app.OpenRecentMenuArray(idx), 'Text', app.RecentSessionPaths{idx});
-                set(app.OpenRecentMenuArray(idx), 'MenuSelectedFcn', @(h,e) app.loadSessionFromPath(app.RecentSessionPaths{idx}));
+                set(app.OpenRecentMenuArray(idx), 'MenuSelectedFcn', @(h, filePath) app.loadSessionFromPath(app.RecentSessionPaths{idx}));                
             end
             
             %If there are no menus to show, remove the option
@@ -1307,9 +1224,9 @@ classdef ApplicationUI < matlab.apps.AppBase
        
     end
     
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %%
     %Static Methods 
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %%
     methods(Static)
         
        function answer = tf2onoff(TorF)
@@ -1362,9 +1279,9 @@ classdef ApplicationUI < matlab.apps.AppBase
         
     end
     
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %%
     %Get/Set Methods 
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %%
     methods      
         
         function value = get.SessionNames(app)
