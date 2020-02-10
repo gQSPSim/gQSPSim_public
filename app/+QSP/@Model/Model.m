@@ -182,7 +182,13 @@ classdef Model < QSP.abstract.BaseProps
             end
             
             if StatusOk
-                AllModels = cell2mat(struct2cell(AllModels));
+                AllModelsCell = struct2cell(AllModels);
+                AllModelsMat = SimBiology.Model.empty(0,length(AllModelsCell));
+                for idx = 1:length(length(AllModelsCell))
+                    AllModelsMat(idx) = AllModelsCell{idx};
+                end
+                
+                AllModels = AllModelsMat;
                 m1 = sbioselect(AllModels,'type','sbiomodel');
                 
                 if isempty(m1)
