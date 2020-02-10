@@ -14,10 +14,5 @@ function registerUnits
             % Add to library
             sbioaddtolibrary(unitObj);
         end
-    end
-    %%
-    %% 
-    %% 
-    %% 
-    
+    end        
 end
