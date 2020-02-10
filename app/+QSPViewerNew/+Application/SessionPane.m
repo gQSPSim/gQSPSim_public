@@ -34,17 +34,11 @@ classdef SessionPane < QSPViewerNew.Application.ViewPane
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Constructor and destructor
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    methods
-        
+    methods        
         function obj = SessionPane(varargin)
             obj = obj@QSPViewerNew.Application.ViewPane(varargin{:}{:},false);
             obj.create();
-        end
-        
-        function delete(obj)
-            %Destructor
-        end
-        
+        end             
     end
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -133,8 +127,7 @@ classdef SessionPane < QSPViewerNew.Application.ViewPane
         end
         
     end
-    
-    
+       
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Methods that must be instantiated as per superclass
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -175,8 +168,6 @@ classdef SessionPane < QSPViewerNew.Application.ViewPane
             else
                 uialert(obj.getUIFigure,sprintf('Cannot save changes. Please review invalid entries:\n\n%s',Message),'Cannot Save','modal');
             end
-            
-            
         end
 
         function checkForInvalid(obj)
@@ -194,9 +185,6 @@ classdef SessionPane < QSPViewerNew.Application.ViewPane
             obj.updateNameBox(obj.TemporarySession.Name);
             obj.updateSummary(obj.TemporarySession.getSummary());
         end
-            
-        
     end
-
 end
 
