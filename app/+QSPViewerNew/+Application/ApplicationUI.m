@@ -92,14 +92,17 @@ classdef ApplicationUI < matlab.apps.AppBase
     
     properties (SetAccess = private)
         AllowMultipleSessions = true;
-        FileSpec 
+        FileSpec ={'*.mat','MATLAB MAT File'}
         SelectedSessionIdx = double.empty(0,1)
         SessionPaths = cell.empty(0,1) 
         IsDirty = logical.empty(0,1) 
         RecentSessionPaths = cell.empty(0,1)
         LastFolder = pwd
-        ActivePane  %= QSPViewerNew.Application.ViewPane.empty(0,1)
+        ActivePane
+        Panes
         IsConstructed = false;
+        Type
+        TypeStr
     end
     
     properties (SetAccess = private, Dependent = true, AbortSet = true)
@@ -109,6 +112,7 @@ classdef ApplicationUI < matlab.apps.AppBase
         SessionNames
         SelectedSession
         SessionNode
+        PaneTypes
     end
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -144,7 +148,8 @@ classdef ApplicationUI < matlab.apps.AppBase
         GridLayout               matlab.ui.container.GridLayout
         SessionExplorerPanel     matlab.ui.container.Panel
         TreeRoot                 matlab.ui.container.Tree
-        h = struct() %For widgets to store internal handles
+        TreeMenu
+        OpenRecentMenuArray 
     end
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -168,11 +173,32 @@ classdef ApplicationUI < matlab.apps.AppBase
             % Refresh the entire view
             app.refresh();
             app.redraw();
-            app.redrawrecentfiles();
+            
+            %Save the type of the  for use in preferences
+            app.Type = class(app);
+            app.TypeStr = matlab.lang.makeValidName(app.Type);
+            
+            %Get the previous file locations from preferences
+            app.LastFolder = getpref(app.TypeStr,'LastFolder',app.LastFolder);
+            app.RecentSessionPaths = getpref(app.TypeStr,'RecentSessionPaths',app.RecentSessionPaths);
+            
+            % Validate each recent file, and remove any invalid files
+            idxOk = cellfun(@(x)exist(x,'file'),app.RecentSessionPaths);
+            app.RecentSessionPaths(~idxOk) = [];
+            
+            %Draw the recent files to the menu
+            app.redrawRecentFiles();
             
             if nargout == 0
                 clear app
             end
+        end
+        
+        function delete(app)
+            %Upon deletion, save the recent sessions and last folder to use
+            %in the next instance of the application
+            setpref(app.TypeStr,'LastFolder',app.LastFolder)
+            setpref(app.TypeStr,'RecentSessionPaths',app.RecentSessionPaths)
         end
         
     end
@@ -348,53 +374,53 @@ classdef ApplicationUI < matlab.apps.AppBase
                 %assign them to any components because they havent been
                 %created yet
                 ThisItemType = strrep(ItemTypes{idx,1},'Settings: ','');
-                app.h.TreeMenu.Branch.(ItemTypes{idx,2}) = uicontextmenu('Parent', app.UIFigure);
-                uimenu(app.h.TreeMenu.Branch.(ItemTypes{idx,2}),...
+                app.TreeMenu.Branch.(ItemTypes{idx,2}) = uicontextmenu('Parent', app.UIFigure);
+                uimenu(app.TreeMenu.Branch.(ItemTypes{idx,2}),...
                     'Label', ['Add new ' ThisItemType],...
                     'MenuSelectedFcn', @(h,e)app.onAddItem(ItemTypes{idx,2}));
                 % For Leaves
-                app.h.TreeMenu.Leaf.(ItemTypes{idx,2}) = uicontextmenu('Parent', app.UIFigure);
+                app.TreeMenu.Leaf.(ItemTypes{idx,2}) = uicontextmenu('Parent', app.UIFigure);
                 uimenu(...
-                   'Parent', app.h.TreeMenu.Leaf.(ItemTypes{idx,2}),...
+                   'Parent', app.TreeMenu.Leaf.(ItemTypes{idx,2}),...
                    'Text', ['Duplicate this ' ThisItemType],...
                    'MenuSelectedFcn', @app.onDuplicateItem);
                 uimenu(...
-                   'Parent', app.h.TreeMenu.Leaf.(ItemTypes{idx,2}),...
+                   'Parent', app.TreeMenu.Leaf.(ItemTypes{idx,2}),...
                    'Text', ['Delete this ' ThisItemType],...
                    'Separator', 'on',...
                    'MenuSelectedFcn', @app.onDeleteSelectedItem);
             end     
             
             %Session context menu
-            app.h.TreeMenu.Branch.Session = uicontextmenu('Parent', app.UIFigure);
+            app.TreeMenu.Branch.Session = uicontextmenu('Parent', app.UIFigure);
             uimenu(...
-                'Parent', app.h.TreeMenu.Branch.Session,...
+                'Parent', app.TreeMenu.Branch.Session,...
                 'Text', 'Close',...
                 'MenuSelectedFcn', @(h,e)onClose(app));
-            app.h.TreeMenu.Branch.SessionSave = uimenu(...
-                'Parent', app.h.TreeMenu.Branch.Session,...
+            app.TreeMenu.Branch.SessionSave = uimenu(...
+                'Parent', app.TreeMenu.Branch.Session,...
                 'Text', 'Save',...
                 'Separator', 'on',...
                 'MenuSelectedFcn', @(h,e)onSave(app));
             uimenu(...
-                'Parent', app.h.TreeMenu.Branch.Session,...
+                'Parent', app.TreeMenu.Branch.Session,...
                 'Text', 'SaveAs',...
                 'MenuSelectedFcn', @(h,e)onSaveAs(app));
             
             
             % For Deleted Items
-            app.h.TreeMenu.Branch.Deleted = uicontextmenu('Parent', app.UIFigure);
+            app.TreeMenu.Branch.Deleted = uicontextmenu('Parent', app.UIFigure);
             uimenu(...
-                'Parent', app.h.TreeMenu.Branch.Deleted,...
+                'Parent', app.TreeMenu.Branch.Deleted,...
                 'Text', 'Empty Deleted Items',...
                 'MenuSelectedFcn', @(h,e)onEmptyDeletedItems(app,true));
-            app.h.TreeMenu.Leaf.Deleted = uicontextmenu('Parent', app.UIFigure);
+            app.TreeMenu.Leaf.Deleted = uicontextmenu('Parent', app.UIFigure);
             uimenu(...
-                'Parent', app.h.TreeMenu.Leaf.Deleted,...
+                'Parent', app.TreeMenu.Leaf.Deleted,...
                 'Text', 'Restore',...
                 'MenuSelectedFcn', @(h,e)onRestoreItem(app));
             uimenu(...
-                'Parent', app.h.TreeMenu.Leaf.Deleted,...
+                'Parent', app.TreeMenu.Leaf.Deleted,...
                 'Text', 'Permanently Delete',...
                 'Separator', 'on',...
                 'MenuSelectedFcn', @(h,e)onEmptyDeletedItems(app,false));
@@ -420,11 +446,31 @@ classdef ApplicationUI < matlab.apps.AppBase
         end
         
         function onOpen(app,~,~)
-            disp("TODO: Open selected");
-        end
-        
-        function onOpenRecentSelected(app,~,~)
-            disp("TODO: Open Recent Selected");
+            %Here we will determine the file path of the folder to call.
+            [FileName,PathName] = uigetfile(app.FileSpec,'Open File', app.LastFolder,'MultiSelect','on');
+
+            %Determine what type of output was provided
+            outputType = class(FileName);
+            
+            %Determine if the output was invalid
+            
+            switch outputType
+                case 'double'
+                    %The user canceled. Do Nothing
+                    return
+                case 'char'
+                    %The user selected a single path
+                    app.LastFolder = PathName;
+                    fullFilePath = fullfile(PathName,FileName);
+                    app.loadSessionFromPath(fullFilePath);
+                case 'cell'
+                    %The user selected multiple files
+                    app.LastFolder = PathName;
+                    for fileIndex = 1:length(FileName)
+                        fullFilePath = fullfile(PathName,FileName{fileIndex});
+                        app.loadSessionFromPath(fullFilePath);
+                    end
+            end
         end
         
         function onClose(app,~,~)
@@ -456,15 +502,14 @@ classdef ApplicationUI < matlab.apps.AppBase
         end
         
         function onTreeSelectionChanged(app,handle,event)
-            %handle is the root handle
-            %event is the event data
-            %We can selected mutliple nodes at once. Therefore we need to consider if SelectedNodes is a vector
+            %First we determine the session that is selected
+            
+            %We can select mutliple nodes at once. Therefore we need to consider if SelectedNodes is a vector
             SelectedNodes = event.SelectedNodes;
             Root = handle;
 
             if length(SelectedNodes)>1
-                %multiselect
-                %We dont do any updates other than drawing
+                %We do not handle the case of multi select
                 return
             end
 
@@ -483,29 +528,18 @@ classdef ApplicationUI < matlab.apps.AppBase
                 % update path to include drop the UDF for previous session
                 % and include the UDF for current session
                 app.SelectedSession.removeUDF();
-
                 app.SelectedSessionIdx = find(ThisSessionNode == app.SessionNode);
                 app.SelectedSession.addUDF();
              end
-
+             
+             
+             %TODO We need to update the visualization plots
+             
+             %Now that we have the correct session, we can work with the
+             app.redraw();
              app.refresh();
-
-             %Disable interaction while we do what we have to do
-            if ~isempty(SelNode) ...
-                    && ~isempty(app.ActivePane) && isprop(app.ActivePane,'h') && isfield(app.ActivePane.h,'MainAxes')
-                thisObj = SelNode.Value;
-                if any(ismember(app.ActivePane.Selection,[1 3]))
-                    % Call updateVisualizationView to disable Visualization button if invalid items                    
-                    switch class(thisObj)
-                        case {'QSP.Simulation','QSP.Optimization','QSP.VirtualPopulationGeneration','QSP.CohortGeneration'}
-                            if app.ActivePane.Selection == 3
-                                plotData(app.ActivePane);
-                            end
-                            updateVisualizationView(app.ActivePane);                                   
-                    end                    
-                end                
-            end    
-        end
+                      
+        end    
          
         function onAddItem(app,ItemType)
             if ischar(ItemType)
@@ -611,8 +645,8 @@ classdef ApplicationUI < matlab.apps.AppBase
             % Create the new session and select it
             NewName = matlab.lang.makeUniqueStrings('untitled',app.SessionNames);
             idxNew = app.NumSessions +1;
-            app.SessionPaths{idxNew,1} = NewName;
-            app.IsDirty(idxNew,1) = false;
+            app.SessionPaths{idxNew} = NewName;
+            app.IsDirty(idxNew) = false;
 
             % remove UDF from selected session
             app.SelectedSession.removeUDF();
@@ -637,7 +671,7 @@ classdef ApplicationUI < matlab.apps.AppBase
             
             % Which session is this?
             newIdx = app.NumSessions + 1;
-
+            
             % Add the session to the app
             app.Sessions(newIdx) = Session;
 
@@ -645,14 +679,156 @@ classdef ApplicationUI < matlab.apps.AppBase
             initializeTimer(Session);
         end
         
+        function loadSessionFromPath(app,FullFilePath)  
+            %Error check to verify that the input is correct
+            sessionStatus = app.verifyValidSessionFilePath(FullFilePath);
+            StatusOk = true;
+            if ~sessionStatus
+                return;
+            end
+
+            %Extract the path and file name
+            [~,FileName] = fileparts(FullFilePath);
+
+            %Try to load the session
+            try
+               loadedSession = load(FullFilePath, 'Session');
+            catch err
+                StatusOk = false;
+                Message = sprintf('The file %s could not be loaded:\n%s',...
+                    FileName, err.message);
+            end
+
+            %Verify that the Session file has the correct atrributes
+            try
+                validateattributes(loadedSession.Session, {'QSP.Session'}, {'scalar'});
+            catch err
+                 StatusOk =false;
+                 Message = sprintf(['The file %s did not contain a valid '...
+                    'Session object:\n%s'], FileName, err.message);
+            end
+
+            %Check if the file is supposed to be removed
+            if StatusOk && loadedSession.Session.toRemove
+               StatusOk = false;
+               Message = sprintf(['The file %s did not contain a valid '...
+                    'Session object:\n%s'], FileName, err.message);
+            end
+
+            %If any of the above failed, we exit and disply why
+            if StatusOk == false
+                uialert(app.UIFigure, Message, 'Invalid File')
+                return
+            end
+
+            %We have verified the session path, now verify the root
+            %directory
+            [status,newFilePath] = app.getValidSessionRootDirectory(loadedSession.Session.RootDirectory);
+
+            %If the status is false, we cannot find a valid root. Abandon
+            %call
+            if ~status
+                return
+            end
+
+            %Copy the sessionobject, then add it the application
+            Session = copy(loadedSession.Session);
+            loadedSession.Session.RootDirectory = newFilePath;
+            app.createNewSession(Session);
+            
+            %Edit the app properties to reflect a new loaded session was
+            %added
+            idxNew = app.NumSessions + 1;
+            app.SessionPaths{idxNew} = FullFilePath;
+            app.IsDirty(idxNew) = false;
+            app.SelectedSessionIdx = idxNew;
+            app.addRecentSessionPath(FullFilePath);
+            
+
+            %Refresh the view
+            app.redraw();
+            app.refresh();
+        end
+        
+        function [status] = verifyValidSessionFilePath(app,FullFilePath)
+           %This status function checks whether the filepath provided is valid
+            %If not, it will try to find a valid session path
+            %If the user cannot find a valid session path, the output is
+            %false
+           status = true;
+           
+           if ~exist(FullFilePath,'file')
+                Message = sprintf('The specified file does not exist: \n%s',FullFilePath);
+                uialert(app.UIFigure,Message,'Invalid File');
+                status =false;
+            end
+            
+            %Check that the file isnt already loaded
+            if ismember(FullFilePath, app.SessionPaths)
+                Message = sprintf('The specified file is already open: \n%s',FullFilePath);
+                uialert(app.UIFigure,Message,'Invalid File');
+                status = false;
+            end
+        end
+       
+        function [status,newFilePath] = getValidSessionRootDirectory(app,filePath)
+            %Check if a directory exists. If not, find a valid one.
+            existence = exist(filePath,'dir');
+            
+            %Check if the directory exists
+            if existence
+                
+                %If the directory exists, we set the output values
+                status =true;
+                newFilePath = filePath;
+            else
+                questionResult = uiconfirm(app.UIFigure,'Session root directory is invalid. Select a new root directory?',...
+                    'Select root directory','Options', {'Yes','Cancel'}, 'Icon', 'question');
+
+                %If they they would like to add a new root directory
+                if strcmp(questionResult,'Yes')
+                    rootDir = uigetdir('Select valid session root directory');
+
+                    %If the new root directory is valid
+                    if rootDir ~= 0
+                         status =true;
+                         newFilePath = rootDir;
+                    else 
+                        status =false;
+                        newFilePath = '';
+                        uialert(app.UIFigure,'The newly selected root directory was not valid','Invalid Directory');
+                    end
+                else
+                    %They chose not to select a new file. 
+                    status = false;
+                    newFilePath = '';
+                end
+            end     
+        end
+        
+        function addRecentSessionPath(app,newPath)
+            %Check if the new location is already listed
+            isInRecent  = ismember(app.RecentSessionPaths,newPath);
+            app.RecentSessionPaths(isInRecent) = [];
+            
+            %Add the File to the top of the list
+            app.RecentSessionPaths = vertcat(newPath,app.RecentSessionPaths);
+            
+            %Crop the 9 most recent entries;
+            app.RecentSessionPaths(9:end) = [];
+            
+            %redraw this context menu
+            app.redrawRecentFiles()
+        end
+        
     end
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    % Methods for drawing UI components dynamically
+    % Methods for drawing UI components.
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    methods (Access = protected)
+    methods (Access = public)
         
-        function createTree(app, Parent, AllData)
+       function createTree(app, Parent, AllData)
             % Nodes that take children have the type of child as a string in the UserData
             % property. Nodes that are children and are movable have [] in UserData.
             % Get short name to call this function recursively
@@ -675,7 +851,7 @@ classdef ApplicationUI < matlab.apps.AppBase
                         % Session node
                         hSession = app.i_addNode(Parent, Data, ...
                             'Session', 'folder_24.png',...
-                             app.h.TreeMenu.Branch.Session, [], 'Session');
+                             app.TreeMenu.Branch.Session, [], 'Session');
                         Data.TreeNode = hSession; %Store node in the object for cross-ref
 
                         % Settings node and children
@@ -686,34 +862,34 @@ classdef ApplicationUI < matlab.apps.AppBase
 
                         hTasks = app.i_addNode(hSettings, Data.Settings, ...
                             'Tasks', 'flask2.png',...
-                            app.h.TreeMenu.Branch.Task, 'Task', 'Tasks');
+                            app.TreeMenu.Branch.Task, 'Task', 'Tasks');
                         thisFcn(hTasks, Data.Settings.Task);
 
                         hParameters = app.i_addNode(hSettings, Data.Settings, ...
                             'Parameters', 'param_edit_24.png',...
-                            app.h.TreeMenu.Branch.Parameters, 'Parameters', 'Parameters');
+                            app.TreeMenu.Branch.Parameters, 'Parameters', 'Parameters');
                         thisFcn(hParameters, Data.Settings.Parameters);
 
                         hOptimData = app.i_addNode(hSettings, Data.Settings, ...
                             'Datasets', 'datatable_24.png',...
-                            app.h.TreeMenu.Branch.OptimizationData, 'OptimizationData', 'Datasets');
+                            app.TreeMenu.Branch.OptimizationData, 'OptimizationData', 'Datasets');
                         thisFcn(hOptimData, Data.Settings.OptimizationData);
 
 
                         hVPopDatas = app.i_addNode(hSettings, Data.Settings, ...
                             'Acceptance Criteria', 'acceptance_criteria.png',...
-                            app.h.TreeMenu.Branch.VirtualPopulationData, 'VirtualPopulationData', 'Acceptance Criteria');
+                            app.TreeMenu.Branch.VirtualPopulationData, 'VirtualPopulationData', 'Acceptance Criteria');
                         thisFcn(hVPopDatas, Data.Settings.VirtualPopulationData);
 
                         hVPopGenDatas = app.i_addNode(hSettings, Data.Settings, ...
                             'Target Statistics', 'target_stats.png',...
-                            app.h.TreeMenu.Branch.VirtualPopulationGenerationData, 'VirtualPopulationGenerationData', 'Target Statistics');
+                            app.TreeMenu.Branch.VirtualPopulationGenerationData, 'VirtualPopulationGenerationData', 'Target Statistics');
                         thisFcn(hVPopGenDatas, Data.Settings.VirtualPopulationGenerationData);
 
 
                         hVPops = app.i_addNode(hSettings, Data.Settings, ...
                             'Virtual Subject(s)', 'stickman3.png',...
-                             app.h.TreeMenu.Branch.VirtualPopulation, 'VirtualPopulation', 'Virtual Subject(s)');
+                             app.TreeMenu.Branch.VirtualPopulation, 'VirtualPopulation', 'Virtual Subject(s)');
                         thisFcn(hVPops, Data.Settings.VirtualPopulation);
 
                         % Functionalities node and children
@@ -723,27 +899,27 @@ classdef ApplicationUI < matlab.apps.AppBase
 
                         hSimulations = app.i_addNode(hFunctionalities, Data, ...
                             'Simulations', 'simbio_24.png',...
-                            app.h.TreeMenu.Branch.Simulation, 'Simulation', 'Simulation');
+                            app.TreeMenu.Branch.Simulation, 'Simulation', 'Simulation');
                         thisFcn(hSimulations, Data.Simulation);
 
                         hOptims = app.i_addNode(hFunctionalities, Data, ...
                             'Optimizations', 'optim_24.png',...
-                            app.h.TreeMenu.Branch.Optimization, 'Optimization', 'Optimization');
+                            app.TreeMenu.Branch.Optimization, 'Optimization', 'Optimization');
                         thisFcn(hOptims, Data.Optimization);
 
                         hCohortGen = app.i_addNode(hFunctionalities, Data, ...
                             'Virtual Cohort Generations', 'stickman-3.png',...   
-                           app.h.TreeMenu.Branch.CohortGeneration, 'CohortGeneration', 'Cohort Generation');
+                           app.TreeMenu.Branch.CohortGeneration, 'CohortGeneration', 'Cohort Generation');
                         thisFcn(hCohortGen, Data.CohortGeneration);
 
                         hVPopGens = app.i_addNode(hFunctionalities, Data, ...
                             'Virtual Population Generations', 'stickman-3-color.png',...
-                            app.h.TreeMenu.Branch.VirtualPopulationGeneration, 'VirtualPopulationGeneration', 'Virtual Population Generation');
+                            app.TreeMenu.Branch.VirtualPopulationGeneration, 'VirtualPopulationGeneration', 'Virtual Population Generation');
                         thisFcn(hVPopGens, Data.VirtualPopulationGeneration);
 
                         hDeleteds = app.i_addNode(hSession, Data, ...
                             'Deleted Items', 'trash_24.png',...
-                            app.h.TreeMenu.Branch.Deleted, 'Deleted', 'Deleted Items');
+                            app.TreeMenu.Branch.Deleted, 'Deleted', 'Deleted Items');
                         thisFcn(hDeleteds, Data.Deleted);
 
                         % Expand Nodes
@@ -753,61 +929,61 @@ classdef ApplicationUI < matlab.apps.AppBase
                     case 'QSP.OptimizationData'
 
                         hNode = app.i_addNode(Parent, Data, Data.Name, 'datatable_24.png',...
-                            app.h.TreeMenu.Leaf.OptimizationData, [], '');
+                            app.TreeMenu.Leaf.OptimizationData, [], '');
                         Data.TreeNode = hNode; %Store node in the object for cross-ref
 
                     case 'QSP.Parameters'
 
                         hNode = app.i_addNode(Parent, Data, Data.Name, 'param_edit_24.png',...
-                            app.h.TreeMenu.Leaf.Parameters, [], '');
+                            app.TreeMenu.Leaf.Parameters, [], '');
                         Data.TreeNode = hNode; %Store node in the object for cross-ref
 
                     case 'QSP.Task'
 
                         hNode = app.i_addNode(Parent, Data, Data.Name, 'flask2.png',...
-                            app.h.TreeMenu.Leaf.Task, [], '');
+                            app.TreeMenu.Leaf.Task, [], '');
                         Data.TreeNode = hNode; %Store node in the object for cross-ref
 
                     case 'QSP.VirtualPopulation'
 
                         hNode = app.i_addNode(Parent, Data, Data.Name, 'stickman3.png',...
-                            app.h.TreeMenu.Leaf.VirtualPopulation, [], '');
+                            app.TreeMenu.Leaf.VirtualPopulation, [], '');
                         Data.TreeNode = hNode; %Store node in the object for cross-ref
 
 
                     case 'QSP.VirtualPopulationData'
 
                         hNode = app.i_addNode(Parent, Data, Data.Name, 'acceptance_criteria.png',...
-                            app.h.TreeMenu.Leaf.VirtualPopulationData, [], '');
+                            app.TreeMenu.Leaf.VirtualPopulationData, [], '');
                         Data.TreeNode = hNode; %Store node in the object for cross-ref
 
                     case 'QSP.Simulation'
 
                         hNode = app.i_addNode(Parent, Data, Data.Name, 'simbio_24.png',...
-                            app.h.TreeMenu.Leaf.Simulation, [], '');
+                            app.TreeMenu.Leaf.Simulation, [], '');
                         Data.TreeNode = hNode; %Store node in the object for cross-ref
 
                     case 'QSP.Optimization'
 
                         hNode = app.i_addNode(Parent, Data, Data.Name, 'optim_24.png',...
-                            app.h.TreeMenu.Leaf.Optimization, [], '');
+                            app.TreeMenu.Leaf.Optimization, [], '');
                         Data.TreeNode = hNode; %Store node in the object for cross-ref
 
                     case 'QSP.CohortGeneration'
 
                         hNode = app.i_addNode(Parent, Data, Data.Name, 'stickman-3.png',...
-                            app.h.TreeMenu.Leaf.CohortGeneration, [], '');
+                            app.TreeMenu.Leaf.CohortGeneration, [], '');
                         Data.TreeNode = hNode; %Store node in the object for cross-ref            
 
                     case 'QSP.VirtualPopulationGeneration'
 
                         hNode = app.i_addNode(Parent, Data, Data.Name, 'stickman-3-color.png',...
-                            app.h.TreeMenu.Leaf.VirtualPopulationGeneration, [], '');
+                            app.TreeMenu.Leaf.VirtualPopulationGeneration, [], '');
                         Data.TreeNode = hNode; %Store node in the object for cross-ref
 
                     case 'QSP.VirtualPopulationGenerationData'
                         hNode = app.i_addNode(Parent, Data, Data.Name, 'target_stats.png',...
-                            app.h.TreeMenu.Leaf.VirtualPopulationGeneration, [], '');
+                            app.TreeMenu.Leaf.VirtualPopulationGeneration, [], '');
                         Data.TreeNode = hNode; %Store node in the object for cross-ref
 
                     otherwise
@@ -819,10 +995,31 @@ classdef ApplicationUI < matlab.apps.AppBase
 
                 end %switch
                 if isa(Parent,'matlab.ui.container.TreeNode') && strcmp(Parent.Text,'Deleted Items')
-                    hNode.UIContextMenu = app.h.TreeMenu.Leaf.Deleted;
+                    hNode.UIContextMenu = app.TreeMenu.Leaf.Deleted;
                 end
             end %for
        end %function
+       
+       function disableInteraction(app)
+           app.TreeRoot.Enable = 'off';
+           app.FileMenu.Enable = 'off';
+           app.QSPMenu.Enable = 'off';
+       end
+       
+       function enableInteraction(app)
+           app.TreeRoot.Enable = 'on';
+           app.FileMenu.Enable = 'on';
+           app.QSPMenu.Enable = 'on';
+       end
+       
+       function changeInBackEnd(app,newSession)
+           %1.Replace the current Session with the newSession
+           app.Sessions(app.SelectedSessionIdx) = newSession;
+           
+           %2. It must update the tree to reflect all the new values from
+           %the session
+           app.updateTree(app.TreeRoot.Children(app.SelectedSessionIdx),newSession,'Session')
+        end
        
     end
     
@@ -832,6 +1029,7 @@ classdef ApplicationUI < matlab.apps.AppBase
     methods (Access = protected)
         
         function redraw(app)
+            %redraw redraws the titles of the sessions
             % Get some criteria on selection and whether it's dirty
             SelectionNotEmpty = ~isempty(app.SessionNames) && ~isempty(app.SelectedSessionIdx);
             SelectionIsDirty = SelectionNotEmpty && any(app.IsDirty(app.SelectedSessionIdx));
@@ -862,6 +1060,7 @@ classdef ApplicationUI < matlab.apps.AppBase
         end
         
         function refresh(app)
+            %refresh changes the actual UI components
            if ~app.IsConstructed
               return
            end
@@ -895,7 +1094,6 @@ classdef ApplicationUI < matlab.apps.AppBase
             % Only do this if the session is dirty
             set(app.SaveCtrlSMenu,'Enable',app.tf2onoff(IsSelectedSessionDirty))
             
-            
             % Update each session node in the tree
             for idx=1:app.NumSessions
     
@@ -907,12 +1105,204 @@ classdef ApplicationUI < matlab.apps.AppBase
                 if app.IsDirty(idx)
                     ThisName = strcat(ThisName, ' *');
                 end
+                
+                %Update the Node
+                app.SessionNode(idx).Text = ThisName;
+                
+                %Assign the new name
                 setSessionName(app.Sessions(idx),ThisRawName);
+            end
+            
+            % Update the name on the tree
+            checkScaler = isscalar(SelNode) && isscalar(SelNode.NodeData);
+            checkType =~isempty(SelNode) && isprop(SelNode.NodeData,'Name') && ~strcmp(SelNode.NodeData.Name, SelNode.Text) && ...
+            ~strcmpi(class(SelNode.NodeData),'QSP.Session'); %We dont want to update the name for a session
+            
+            if checkScaler && checkType
+                SelNode.Name = SelNode.Value.Name;
+            end
+            
+            app.updatePane(SelNode);
+        end
+        
+        function redrawRecentFiles(app)
+            %Take the list of recent Files and create the context Menus
+            
+            %Delete the old menus
+            delete(app.OpenRecentMenuArray);
+            
+            %Add the new items
+            for idx = 1:numel(app.RecentSessionPaths)
+                app.OpenRecentMenuArray(idx) = uimenu(app.OpenRecentMenu);
+                set(app.OpenRecentMenuArray(idx), 'Text', app.RecentSessionPaths{idx});
+                set(app.OpenRecentMenuArray(idx), 'MenuSelectedFcn', @(h,e) app.loadSessionFromPath(app.RecentSessionPaths{idx}));
+            end
+            
+            %If there are no menus to show, remove the option
+            if isempty(app.RecentSessionPaths)
+                app.OpenRecentMenu.Enable = 'off';
+            else
+                app.OpenRecentMenu.Enable = 'on';
+            end 
+        end
+        
+        function updatePane(app,NodeSelected)
+            %Determine if the Node will launch a Pane
+            LaunchPane = ~isempty(NodeSelected) && isempty(NodeSelected.UserData);
+            
+            %If we shouldnt launch a pane and there is currently a pane,
+            %close it
+            if ~LaunchPane && ~isempty(app.ActivePane)
+                app.ActivePane.hideThisPane();
+                app.ActivePane = [];
+                return
+            elseif ~LaunchPane
+                return
+            end
+               
+            %Determine if the pane type has already been loaded
+            PaneType = app.GetPaneClassFromQSPClass(class(NodeSelected.NodeData));
+            idxPane = find(strcmp(PaneType,app.PaneTypes),1);
+            if isempty(idxPane)
+                %Launch a new Panewith the data provided
+                app.launchNewPane(NodeSelected.NodeData);
+            else
+                %Launch a pane that already exists with the new data
+                app.launchOldPane(NodeSelected.NodeData);
             end
         end
         
-        function redrawrecentfiles(app)
+        function launchNewPane(app,NodeData)
+            %Inputs that the pane API should require in the constructor
+            classInputs = {app.GridLayout,1,2,app};
             
+            %This switch determines the correct type of Pane and creates it
+            %The default is that it is not shown
+            switch class(NodeData)
+                case 'QSP.Session'
+                    app.ActivePane = QSPViewerNew.Application.SessionPane(classInputs);
+                case 'QSP.OptimizationData'
+                    %app.ActivePane = QSPViewerNew.Application.OptimizationDataPane(app.GridLayout);
+                    disp("TODO: Create a QSPViewerNew.Application.OptimizationDataPane class to launch");
+                case 'QSP.Parameters'
+                    %app.ActivePane = QSPViewerNew.Application.ParametersPane(app.GridLayout);
+                    disp("TODO: Create a QSPViewerNew.Application.OptimizationDataPane class to launch");
+                case 'QSP.Task'
+                    %app.ActivePane = QSPViewerNew.Application.TaskPane(app.GridLayout);
+                    disp("TODO: Create a QSPViewerNew.Application.ParametersPane class to launch");
+                case 'QSP.VirtualPopulation'
+                    %app.ActivePane = QSPViewerNew.Application.VirtualPopulationPane(app.GridLayout);
+                    disp("TODO: Create a QSPViewerNew.Application.VirtualPopulationPane class to launch");
+                case 'QSP.VirtualPopulationData'
+                    %app.ActivePane = QSPViewerNew.Application.VirtualPopulationDataPane(app.GridLayout);
+                    disp("TODO: Create a QSPViewerNew.Application.VirtualPopulationDataPane class to launch");
+                case 'QSP.Simulation'
+                    %app.ActivePane = QSPViewerNew.Application.SimulationPane(app.GridLayout);
+                    disp("TODO: Create a QSPViewerNew.Application.SimulationPane class to launch");
+                case 'QSP.Optimization'
+                    %app.ActivePane = QSPViewerNew.Application.OptimizationPane(app.GridLayout);
+                    disp("TODO: Create a QSPViewerNew.Application.OptimizationPane class to launch");
+                case 'QSP.CohortGeneration'
+                    %app.ActivePane = QSPViewerNew.Application.CohortGenerationPane(app.GridLayout);
+                    disp("TODO: Create a QSPViewerNew.Application.CohortGenerationPane class to launch");
+                case 'QSP.VirtualPopulationGeneration'
+                    %app.ActivePane = QSPViewerNew.Application.VirtualPopulationGenerationPane(app.GridLayout);
+                    disp("TODO: Create a QSPViewerNew.Application.VirtualPopulationGenerationPane class to launch");
+                case 'QSP.VirtualPopulationGenerationData'
+                    %app.ActivePane = QSPViewerNew.Application.VirtualPopulationGenerationDataPane(app.GridLayout);
+                    disp("TODO: Create a QSPViewerNew.Application.VirtualPopulationGenerationDataPane class to launch");
+            end
+            if ~isempty(app.ActivePane)
+                %Now take the pane and display it.
+                app.Panes = horzcat(app.ActivePane);
+                app.ActivePane.attachNewSession(NodeData);
+                app.ActivePane.showThisPane();
+            end
+        end
+        
+        function launchOldPane(app,NodeData)
+            %Find the index of the correct pane type
+            PaneType = app.GetPaneClassFromQSPClass(class(NodeData));
+            idxPane = find(strcmp(PaneType,app.PaneTypes),1);
+            
+            if app.ActivePane~=app.Panes(idxPane)
+                %The pane shown is not correct, we need to change it.
+                app.ActivePane.hideThisPane();
+                app.ActivePane = app.Panes(idxPane);
+                app.ActivePane.attachNewSession(NodeData);
+                app.ActivePane.showThisPane();
+            elseif isempty(app.ActivePane)
+                %There is no pane shown
+                app.ActivePane = app.Panes(idxPane);
+                app.ActivePane.attachNewSession(NodeData);
+                app.ActivePane.showThisPane();
+            else
+                %The pane is already launched, just need to update the data
+                app.ActivePane.attachNewSession(NodeData);
+                app.ActivePane.showThisPane();
+            end
+            
+        end
+        
+        function updateTree(app,Tree,NewData,type)
+            %1. Update the Node information
+            Tree.NodeData = NewData;
+            
+            %2. Determine what type of Node this is.
+            % We have to pass the type of the children because the node userdata types are
+            % often the same between different types of nodes
+            switch type
+                case 'Session'
+                    %If a session, we must check settings,functionalties,
+                    %and deleted item
+                    app.updateTree(Tree.Children(1),NewData.Settings,'BuildingBlocks')
+                    app.updateTree(Tree.Children(2),NewData,'Functionalities')
+                    app.updateTree(Tree.Children(3),NewData.Deleted,'Deleted')
+                    
+                    %If we are updating the session, we need to update the
+                    %name
+                    app.setCurrentSessionDirty()
+                    
+                case 'Building Blocks'
+                    %Iterate through the 5 Subcategories
+                    app.updateTree(Tree.Children(1),NewData,'TaskGroup')
+                    app.updateTree(Tree.Children(2),NewData,'ParameterGroup')
+                    app.updateTree(Tree.Children(3),NewData,'OptimizationDataGroup')
+                    app.updateTree(Tree.Children(4),NewData,'VirtualPopulationDataGroup')
+                    app.updateTree(Tree.Children(5),NewData,'VirtualPopulationGenerationDataGroup')
+                    
+                case 'TaskGroup'
+                    for idx = 1:numel(NewData.Task)
+                        app.updateTree(Tree.Children(idx),NewData.Task(idx),'Task')
+                    end
+                case 'ParameterGroup'
+                    for idx = 1:numel(NewData.Parameters)
+                        app.updateTree(Tree.Children(idx),NewData.Parameters(idx),'Parameters')
+                    end
+                case 'OptimizationDataGroup'
+                    for idx = 1:numel(NewData.OptimizationData)
+                        app.updateTree(Tree.Children(idx),NewData.OptimizationData(idx),'OptimizationData')
+                    end
+                case 'VirtualPopulationDataGroup'
+                     for idx = 1:numel(NewData.VirtualPopulationData)
+                        app.updateTree(Tree.Children(idx),NewData.VirtualPopulationData(idx),'VirtualPopulationData')
+                    end
+                case 'VirtualPopulationGenerationDataGroup'
+                     for idx = 1:numel(NewData.VirtualPopulationGenerationData)
+                        app.updateTree(Tree.Children(idx),NewData.VirtualPopulationGenerationData(idx),'VirtualPopulationGenerationData')
+                     end
+                     
+                %The following rewuire the session to be updated as well. 
+                %This is dictated by the model
+                case 'Simulation'                                
+                    Tree.NodeData.Session = app.Sessions(app.SelectedSessionIdx);
+                case 'Optimization'
+                    Tree.NodeData.Session = app.Sessions(app.SelectedSessionIdx);
+                case 'CohortGeneration'
+                    Tree.NodeData.Session = app.Sessions(app.SelectedSessionIdx);
+                case 'VirtualPopulationGeneration'
+                    Tree.NodeData.Session = app.Sessions(app.SelectedSessionIdx);
+            end 
         end
        
     end
@@ -940,6 +1330,35 @@ classdef ApplicationUI < matlab.apps.AppBase
             'Icon',uix.utility.findIcon(Icon));
         hNode.ContextMenu = CMenu;
         end %function
+       
+        function PaneClass = GetPaneClassFromQSPClass(QSPClass)
+            %This method takes a QSP class and returns what type of pane it
+            %launches
+            switch QSPClass
+                case 'QSP.Session'
+                    PaneClass = 'QSPViewerNew.Application.SessionPane';
+                case 'QSP.OptimizationData'
+                   PaneClass = 'QSPViewerNew.Application.OptimizationDataPane';
+                case 'QSP.Parameters'
+                   PaneClass = 'QSPViewerNew.Application.ParametersPane';
+                case 'QSP.Task'
+                   PaneClass = 'QSPViewerNew.Application.TaskPane';
+                case 'QSP.VirtualPopulation'
+                    PaneClass = 'QSPViewerNew.Application.VirtualPopulationPane';
+                case 'QSP.VirtualPopulationData'
+                    PaneClass = 'QSPViewerNew.Application.VirtualPopulationDataPane';
+                case 'QSP.Simulation'
+                    PaneClass = 'QSPViewerNew.Application.SimulationPane';
+                case 'QSP.Optimization'
+                    PaneClass = 'QSPViewerNew.Application.OptimizationPane';
+                case 'QSP.CohortGeneration'
+                    PaneClass = 'QSPViewerNew.Application.CohortGenerationPane';
+                case 'QSP.VirtualPopulationGeneration'
+                    PaneClass = 'QSPViewerNew.Application.VirtualPopulationGenerationPane';
+                case 'QSP.VirtualPopulationGenerationData'
+                    PaneClass = 'QSPViewerNew.Application.VirtualPopulationGenerationDataPane';
+            end
+        end
         
     end
     
@@ -1034,7 +1453,26 @@ classdef ApplicationUI < matlab.apps.AppBase
                 value = [app.Sessions.TreeNode];
             end
         end
-       
+        
+        function value = get.PaneTypes(app)
+            value = cell(size(app.Panes));
+            for idx = 1:numel(app.Panes)
+                value{idx} = class(app.Panes);
+            end
+        end
+        
+        function setCurrentSessionDirty(app)
+            app.IsDirty(app.SelectedSessionIdx) = true;
+            app.redraw();
+            app.refresh();
+        end
+        
+        function setCurrentSessionCleam(app)
+            app.IsDirty(app.SelectedSessionIdx) = true;
+            app.redraw();
+            app.refresh();
+        end
+            
     end
     
 end

@@ -1,8 +1,7 @@
-classdef ViewPane < uix.mixin.AssignPVPairs & handle
-    % ViewPane - A Base class for view panes to be shown on the right side
-    % of the QSP viewer application
+classdef ViewPane < handle
+    % ViewPane - An abstract base class for various view panes
     % ---------------------------------------------------------------------
-    % Base properties and methods for a view pane. 
+    % Base properties that should be observed by all subclasses
     %
     %    Copyright 2020 The Mathworks, Inc.
     %
@@ -10,564 +9,462 @@ classdef ViewPane < uix.mixin.AssignPVPairs & handle
     %   Max Tracy
     %   1/14/20
     % ---------------------------------------------------------------------
-    
-    properties
-        TempData % Stores all the temporary data for this pane
-        Data % A saved version of TempData 
-        Selection = 1
-        IsDeleted = false
-        SelectedPlotLayout = '1x1'
-        PlotSettings = QSP.PlotSettings.empty(0,1) 
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % Status of the UI
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    properties(Access = private) 
+        IsConstructed = false
+        Parent
+        CurrentPane
+        LayoutColumn
+        LayoutRow
+        ParentApp
+        Focus = '';
+        HasVisualization
+    end
+  
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % Graphical Components
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    properties(Access = private)
+        OuterGrid           matlab.ui.container.GridLayout
+        SummaryPanel        matlab.ui.container.Panel
+        SummaryGrid         matlab.ui.container.GridLayout
+        SummaryContent      
+        EditPanel           matlab.ui.container.Panel
+        EditLayout          matlab.ui.container.GridLayout
+        FileSelectLayout    matlab.ui.container.GridLayout
+        EditButtonLayout    matlab.ui.container.GridLayout
+        RemoveButton        matlab.ui.control.Button
+        SaveButton          matlab.ui.control.Button
+        CancelButton        matlab.ui.control.Button
+        DescriptionLabel    matlab.ui.control.Label
+        DescriptionEditBox  matlab.ui.control.EditField
+        NameLabel           matlab.ui.control.Label
+        NameEditBox         matlab.ui.control.EditField
+        EditButton          matlab.ui.control.Button
+        SummaryButton       matlab.ui.control.Button
+        ButtonsLayout       matlab.ui.container.GridLayout
+        SummaryLabel        matlab.ui.control.Label
+        EditLabel           matlab.ui.control.Label
     end
     
-    properties (SetAccess=protected)
-       bShowTraces = []
-       bShowQuantiles = []
-       bShowMean = []
-       bShowMedian = []
-       bShowSD = []
-    end
-    
-    properties      
-        UseRunVis = false % Determines if the pane gets the added buttons
-        LastPath = pwd % Not sure what this is yet %TODO
-        Parent % Can be a grid 
-        OuterGrid % should be a panel
-        h = struct() % struct containing the graphcs objects
-        Position;
-    end 
-    
-    properties (Constant=true)
-        MaxNumPlots = 12 %Available plot options
-        PlotLayoutOptions = {'1x1','1x2','2x1','2x2','3x2','3x3','3x4'}
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % Constants for UI specification
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    properties (Constant = true)
+        ButtonPadding = [0,0,0,0];
+        ButtonWidthSpacing = 0; 
+        ButtonHeightSpacing = 0; 
+        WidgetPadding = [5,5,5,5];
+        WidgetWidthSpacing = 0; 
+        WidgetHeightSpacing = 0; 
+        PanelPadding = [0,0,0,0];
+        PanelWidthSpacing = 0; 
+        PanelHeightSpacing = 0; 
+        OuterGridPadding = [0,0,0,0];
+        OuterGridColumnSpacing = 0;
+        OuterGridRowSpacing = 0;
+        ButtonWidth = 30;
+        ButtonHeight = 30;
+        WidgetHeight = 40;
+        TextBoxHeight = 30;
+        HeaderColor = [.25,.60,.72];
+        FontSize = 15;
+        Font = 'default';
+        HeaderHeight = 20;
+        RowSpacing = 0;
+        LabelLength = 100;
+        NameProportion = '3x';
+        DescriptionProportion = '5x';
+        RemoveInvalidButtonWidth = 100;
+        SaveButtonWidth = 100;
+        CancelButtonWidth = 100;
+        EditLabelText = ' Edit';
+        SummaryLabelText = ' Summary'
+        PanelBackgroundColor = [.997,.97,.97];
     end
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Constructor and destructor
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    methods
-        
-        function obj = ViewPane(UseRunVis,varargin)
-            % Assign PV pairs to properties
-            obj.assignPVPairs(varargin{:});
+    methods 
+        function obj = ViewPane(varargin)
+            if nargin == 5 && isa(varargin{1},'matlab.ui.container.GridLayout')
+                obj.Parent = varargin{1};
+                obj.LayoutRow = varargin{2};
+                obj.LayoutColumn = varargin{3};
+                obj.ParentApp = varargin{4};
+                obj.HasVisualization = varargin{5};
+            else
+                message = ['This constructor requires one of the following of inputs' ...
+                    newline '1.' ...
+                    newline '-Graphical Parent: uigridlayout...' ...
+                    newline '-GridRow: int' ...
+                    newline '-GridColumn: int' ...
+                    newline '-uigridlayout...' ...
+                    newline '-Parent application: matlab.apps.AppBase' ...
+                    newline '-VisualizationYorN: boolean'];
+                    error(message)
+            end
 
-            % Set UseRunVis before calling create
-            obj.UseRunVis = UseRunVis;
-            
-            %create
+            %create the objects on our end
             obj.create();
-        end 
+            
+            %Mark as constructed
+            obj.IsConstructed = true;
+            
+            %Set the focus to the summary screen
+            obj.Focus = 'Summary';
+        end
+        
+        function delete(~)
+            %Destructor
+            hTimer = timerfindall('Tag','QSPtimer');
+            if ~isempty(hTimer)
+                stop(hTimer)
+                delete(hTimer)
+            end
+        end
         
     end
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    % Create UI components
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    methods (Access = protected)
-        
-        function create(obj)     
-           ButtonSize = 30 ;%Enter the button size;
-           
+    % Methods for UI components initilization
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    methods (Access = private)
+       function create(obj)
            %Setup Outer Panel         
            obj.OuterGrid = uigridlayout(obj.Parent);
            obj.OuterGrid.ColumnWidth = {'1x'};
-           obj.OuterGrid.RowHeight = {ButtonSize,'1x'};
-           obj.OuterGrid.Padding = [0,0,0,0];
-           obj.OuterGrid.RowSpacing = 0;
+           obj.OuterGrid.RowHeight = {obj.ButtonHeight,'1x'};
+           obj.OuterGrid.ColumnWidth = {'1x'};
+           obj.OuterGrid.Padding = obj.OuterGridPadding;
+           obj.OuterGrid.RowSpacing = obj.OuterGridRowSpacing;
+           obj.OuterGrid.Layout.Row = obj.LayoutRow;
+           obj.OuterGrid.Layout.Column = obj.LayoutColumn;
 
            %Setup the Summary Panel and Button
-           obj.h.SummaryPanel = uipanel(obj.OuterGrid);
-           obj.h.SummaryPanel.BackgroundColor = [.9,.9,.9];
-           obj.h.SummaryPanel.Layout.Row = 2;
-           obj.h.SummaryPanel.Layout.Column = 1;
-           
+           obj.SummaryPanel = uipanel(obj.OuterGrid);
+           obj.SummaryPanel.BackgroundColor = [.9,.9,.9];
+           obj.SummaryPanel.Layout.Row = 2;
+           obj.SummaryPanel.Layout.Column = 1;
+           obj.SummaryPanel.BackgroundColor = obj.PanelBackgroundColor;
+           obj.SummaryPanel.Visible = 'off';
            %Setup SummaryGrid
-           obj.h.SummaryGrid = uigridlayout(obj.h.SummaryPanel);
-           obj.h.SummaryGrid.ColumnWidth = {'1x'};
-           obj.h.SummaryGrid.RowHeight = {'1x'};
+           obj.SummaryGrid = uigridlayout(obj.SummaryPanel);
+           obj.SummaryGrid.ColumnWidth = {'1x'};
+           obj.SummaryGrid.RowHeight = {obj.HeaderHeight,'1x'};
+           obj.SummaryGrid.Padding = obj.PanelPadding;
+           obj.SummaryGrid.RowSpacing = obj.PanelHeightSpacing;
+           obj.SummaryGrid.RowSpacing = obj.PanelWidthSpacing;
+           
+           %Add label to the top
+           obj.SummaryLabel = uilabel(obj.SummaryGrid);
+           obj.SummaryLabel.Text = obj.SummaryLabelText;
+           obj.SummaryLabel.FontName = obj.Font;
+           obj.SummaryLabel.BackgroundColor = obj.HeaderColor;
+           obj.SummaryLabel.Layout.Row = 1;
+           obj.SummaryLabel.Layout.Column = 1;
            
            %Summary Widget
-           obj.h.SummaryContent = QSPViewerNew.Widgets.Summary(obj.h.SummaryGrid,{'Dummy','info';'Purpose','Testing'});
-           obj.h.SummaryContent.Information = {'Yellow','Dog'; 'Blue','Cat'};
-           obj.h.SummaryContent.HtmlComponent.Visible = 'off';
+           obj.SummaryContent = QSPViewerNew.Widgets.Summary(obj.SummaryGrid,2,1,{'Dummy','info';'Purpose','Testing'});
+           obj.SummaryContent.Information = {'Yellow','Dog'; 'Blue','Cat'};
             
            %Edit Panel
-           obj.h.EditPanel = uipanel(obj.OuterGrid);
-           obj.h.EditPanel.BackgroundColor = [.9,.9,.9];
-           obj.h.EditPanel.Layout.Row = 2;
-           obj.h.EditPanel.Layout.Column = 1;
+           obj.EditPanel = uipanel(obj.OuterGrid);
+           obj.EditPanel.BackgroundColor = obj.PanelBackgroundColor;
+           obj.EditPanel.Layout.Row = 2;
+           obj.EditPanel.Layout.Column = 1;
+           obj.EditPanel.Visible = 'off';
            
            %All Edit Panels have the following 3 subpanels
            % 1. the name and description
            % 2. The contents of the panel
            % 3. The svae/cancel/remove invalid button
+        
+            %Setup EditGrid
+           obj.EditLayout = uigridlayout(obj.EditPanel);
+           obj.EditLayout.ColumnWidth = {'1x'};
+           obj.EditLayout.RowHeight = {obj.HeaderHeight,obj.WidgetHeight,'1x',obj.ButtonHeight};
+           obj.EditLayout.Padding = obj.PanelPadding;
+           obj.EditLayout.RowSpacing = obj.PanelHeightSpacing;
+           obj.EditLayout.RowSpacing = obj.PanelWidthSpacing;
            
-           %First setup the grid layout
-           obj.h.EditLayout = uigridlayout(obj.h.EditPanel);
-           obj.h.EditLayout.ColumnWidth = {'1x'};
-           obj.h.EditLayout.RowHeight = {ButtonSize,'1x',ButtonSize};
-           obj.h.EditLayout.Padding = [4,4,4,4];
-         
-           %Row 1: The name and secription
-           obj.h.FileSelectLayout = uigridlayout(obj.h.EditLayout);
-           obj.h.FileSelectLayout.ColumnWidth = {80,'3x',80,'5x'};
-           obj.h.FileSelectLayout.RowHeight = {'1x'};
-           obj.h.FileSelectLayout.Padding = [0,0,0,2];
-           obj.h.FileSelectLayout.ColumnSpacing = 0;
+           %Setup Edit Panel Label
+           obj.EditLabel = uilabel(obj.EditLayout);
+           obj.EditLabel.Text = obj.EditLabelText;
+           obj.EditLabel.FontName = obj.Font;
+           obj.EditLabel.BackgroundColor = obj.HeaderColor;
+           obj.EditLabel.Layout.Row = 1;
+           obj.EditLabel.Layout.Column = 1;
            
-           obj.h.FileSelect(1) = uilabel(obj.h.FileSelectLayout);
-           obj.h.FileSelect(1).Layout.Row = 1;
-           obj.h.FileSelect(1).Layout.Column = 1;
-           obj.h.FileSelect(1).Text = 'Name';
-           obj.h.FileSelect(1).HorizontalAlignment = 'center';
-           obj.h.FileSelect(1).FontWeight = 'bold';
+           %Row 1: The name and desecription
+           obj.FileSelectLayout = uigridlayout(obj.EditLayout);
+           obj.FileSelectLayout.ColumnWidth = {obj.LabelLength,obj.NameProportion,obj.LabelLength,obj.DescriptionProportion};
+           obj.FileSelectLayout.RowHeight = {'1x'};
+           obj.FileSelectLayout.Padding = obj.WidgetPadding;
+           obj.FileSelectLayout.ColumnSpacing = obj.WidgetWidthSpacing;
+           obj.FileSelectLayout.RowSpacing = obj.WidgetHeightSpacing;
+           obj.FileSelectLayout.Layout.Row = 2;
+           obj.FileSelectLayout.Layout.Column = 1;
            
-           obj.h.FileSelect(2) = uieditfield(obj.h.FileSelectLayout);
-           obj.h.FileSelect(2).Layout.Row = 1;
-           obj.h.FileSelect(2).Layout.Column = 2;
-           obj.h.FileSelect(2).ValueChangedFcn = @obj.onEditName;
+           obj.NameLabel = uilabel(obj.FileSelectLayout);
+           obj.NameLabel.Layout.Row = 1;
+           obj.NameLabel.Layout.Column = 1;
+           obj.NameLabel.Text = 'Name';
+           obj.NameLabel.HorizontalAlignment = 'center';
+           obj.NameLabel.FontWeight = 'bold';
+           obj.NameLabel.FontName = obj.Font;
            
-           obj.h.FileSelect(3) = uilabel(obj.h.FileSelectLayout);
-           obj.h.FileSelect(3).Layout.Row = 1;
-           obj.h.FileSelect(3).Layout.Column = 3;
-           obj.h.FileSelect(3).Text = 'Description';
-           obj.h.FileSelect(3).HorizontalAlignment = 'center';
-           obj.h.FileSelect(3).FontWeight = 'bold';
+           obj.NameEditBox = uieditfield(obj.FileSelectLayout);
+           obj.NameEditBox.Layout.Row = 1;
+           obj.NameEditBox.Layout.Column = 2;
+           obj.NameEditBox.ValueChangedFcn = @(h,e) obj.onEdit('Name',e.Value);
            
-           obj.h.FileSelect(4) = uieditfield(obj.h.FileSelectLayout);
-           obj.h.FileSelect(4).Layout.Row = 1;
-           obj.h.FileSelect(4).Layout.Column = 4;
-           obj.h.FileSelect(4).ValueChangedFcn = @obj.onEditDescription;
+           obj.DescriptionLabel = uilabel(obj.FileSelectLayout);
+           obj.DescriptionLabel.Layout.Row = 1;
+           obj.DescriptionLabel.Layout.Column = 3;
+           obj.DescriptionLabel.Text = 'Description';
+           obj.DescriptionLabel.HorizontalAlignment = 'center';
+           obj.DescriptionLabel.FontWeight = 'bold';
+           obj.DescriptionLabel.FontName = obj.Font;
+           
+           obj.DescriptionEditBox = uieditfield(obj.FileSelectLayout);
+           obj.DescriptionEditBox.Layout.Row = 1;
+           obj.DescriptionEditBox.Layout.Column = 4;
+           obj.DescriptionEditBox.ValueChangedFcn = @(h,e) obj.onEdit('Description',e.Value);
           
            %Rows 3: Save/cancel/Remove invalid
-           obj.h.EditButtonLayout = uigridlayout(obj.h.EditLayout);
-           obj.h.EditButtonLayout.Layout.Column = 1;
-           obj.h.EditButtonLayout.Layout.Row = 3;
-           obj.h.EditButtonLayout.ColumnWidth = {'1x',100,80,80};
-           obj.h.EditButtonLayout.RowHeight = {'1x'};
-           obj.h.EditButtonLayout.Padding= [0,2,0,0];
-           obj.h.EditButtonLayout.ColumnSpacing = 0;
+           obj.EditButtonLayout = uigridlayout(obj.EditLayout);
+           obj.EditButtonLayout.Layout.Column = 1;
+           obj.EditButtonLayout.Layout.Row = 4;
+           obj.EditButtonLayout.ColumnWidth = {'1x',obj.RemoveInvalidButtonWidth,obj.SaveButtonWidth,obj.CancelButtonWidth};
+           obj.EditButtonLayout.RowHeight = {'1x'};
+           obj.EditButtonLayout.Padding= obj.ButtonPadding;
+           obj.EditButtonLayout.ColumnSpacing = obj.ButtonWidthSpacing;
            
-           obj.h.RemoveButton = uibutton(obj.h.EditButtonLayout,'push');
-           obj.h.RemoveButton.Layout.Row = 1;
-           obj.h.RemoveButton.Layout.Column = 2;
-           obj.h.RemoveButton.Text = 'Remove Invalid';
-           obj.h.RemoveButton.Tag = 'Remove';
-           obj.h.RemoveButton.ButtonPushedFcn = @obj.onEditButtonPress;
+           obj.RemoveButton = uibutton(obj.EditButtonLayout,'push');
+           obj.RemoveButton.Layout.Row = 1;
+           obj.RemoveButton.Layout.Column = 2;
+           obj.RemoveButton.Text = 'Remove Invalid';
+           obj.RemoveButton.Tag = 'Remove';
+           obj.RemoveButton.ButtonPushedFcn = @(~,~) obj.onRemoveInvalid();
            
-           obj.h.SaveButton = uibutton(obj.h.EditButtonLayout,'push');
-           obj.h.SaveButton.Layout.Row = 1;
-           obj.h.SaveButton.Layout.Column = 3;
-           obj.h.SaveButton.Text = 'Save';
-           obj.h.SaveButton.Tag = 'Save';
-           obj.h.SaveButton.ButtonPushedFcn = @obj.onEditButtonPress;
+           obj.SaveButton = uibutton(obj.EditButtonLayout,'push');
+           obj.SaveButton.Layout.Row = 1;
+           obj.SaveButton.Layout.Column = 3;
+           obj.SaveButton.Text = 'Save';
+           obj.SaveButton.Tag = 'Save';
+           obj.SaveButton.ButtonPushedFcn = @(~,~) obj.onSave();
            
-           obj.h.CancelButton = uibutton(obj.h.EditButtonLayout,'push');
-           obj.h.CancelButton.Layout.Row = 1;
-           obj.h.CancelButton.Layout.Column = 4;
-           obj.h.CancelButton.Text = 'Cancel';
-           obj.h.CancelButton.Tag = 'Cancel';
-           obj.h.CancelButton.ButtonPushedFcn = @obj.onEditButtonPress;
+           obj.CancelButton = uibutton(obj.EditButtonLayout,'push');
+           obj.CancelButton.Layout.Row = 1;
+           obj.CancelButton.Layout.Column = 4;
+           obj.CancelButton.Text = 'Cancel';
+           obj.CancelButton.Tag = 'Cancel';
+           obj.CancelButton.ButtonPushedFcn = @(~,~) obj.onCancel();
            
-           %Only enter if this cardview will use visualization
-           if obj.UseRunVis
-               
-               %Setup visulization panel
-               obj.h.VisualizePanel = uipanel(obj.OuterGrid);
-               obj.h.VisualizePanel.BackgroundColor = [.9,.9,.9];
-               obj.h.VisualizePanel.Layout.Row = 2;
-               obj.h.VisualizePanel.Layout.Column = 1;
-               obj.h.VisualizePanel.Visible = 'off';
-               
-               %Visualization grid
-               obj.h.VisualizationLayout = uigridlayout(obj.h.VisualizePanel);
-               obj.h.VisualizationLayout.ColumnWidth = {'2x','1x'};
-               obj.h.VisualizationLayout.RowHeight = {'1x'};
-               obj.h.VisualizationLayout.Padding = [0,0,0,0];
-               
-               
-               %LHS: The grid of plots
-               obj.h.PlotGrid = uigridlayout(obj.h.VisualizationLayout);
-               obj.h.PlotGrid.ColumnWidth = {'1x','1x','1x','1x'};
-               obj.h.PlotGrid.RowHeight = {'1x','1x','1x'};
-               
-               for index = 1:obj.MaxNumPlots
-                   %Add Axis;
-                   obj.h.MainAxes(index) = uiaxes(obj.h.PlotGrid,'Visible','on');
-                   
-                   %Setup Plot Title; 
-                   obj.h.MainAxes(index).Title.String = sprintf('Plot %d',index);
-                   obj.h.MainAxes(index).Title.FontSize = QSP.PlotSettings.DefaultTitleFontSize;
-                   obj.h.MainAxes(index).Title.FontWeight = QSP.PlotSettings.DefaultTitleFontWeight;
-                   
-                   %Setup Xlabel; 
-                   obj.h.MainAxes(index).XLabel.String = QSP.PlotSettings.DefaultXLabel;
-                   obj.h.MainAxes(index).XLabel.FontSize = QSP.PlotSettings.DefaultXLabelFontSize;
-                   obj.h.MainAxes(index).XLabel.FontWeight = QSP.PlotSettings.DefaultXLabelFontWeight;
-                   
-                   %Setup XRuler
-                   obj.h.MainAxes(index).XAxis.FontSize = QSP.PlotSettings.DefaultXTickLabelFontSize;
-                   obj.h.MainAxes(index).XAxis.FontWeight = QSP.PlotSettings.DefaultXTickLabelFontWeight;
-                   
-                   %Setup Ylabel
-                   obj.h.MainAxes(index).YLabel.String = QSP.PlotSettings.DefaultYLabel;
-                   obj.h.MainAxes(index).YLabel.FontSize = QSP.PlotSettings.DefaultYLabelFontSize;
-                   obj.h.MainAxes(index).YLabel.FontWeight = QSP.PlotSettings.DefaultYLabelFontWeight;
-                   
-                   %Setup YRuler
-                   obj.h.MainAxes(index).YAxis.FontSize = QSP.PlotSettings.DefaultYTickLabelFontSize;
-                   obj.h.MainAxes(index).YAxis.FontWeight = QSP.PlotSettings.DefaultYTickLabelFontWeight;
-                   
-                   %Setup Axis grid properties;
-                   obj.h.MainAxes(index).XGrid = QSP.PlotSettings.DefaultXGrid;
-                   obj.h.MainAxes(index).YGrid = QSP.PlotSettings.DefaultYGrid;
-                   obj.h.MainAxes(index).XMinorGrid = QSP.PlotSettings.DefaultXMinorGrid;
-                   obj.h.MainAxes(index).YMinorGrid = QSP.PlotSettings.DefaultYMinorGrid;
-                   obj.h.MainAxes(index).YScale = QSP.PlotSettings.DefaultYScale;
-                   obj.h.MainAxes(index).XLim = str2num(QSP.PlotSettings.DefaultCustomXLim);
-                   obj.h.MainAxes(index).XLimMode = QSP.PlotSettings.DefaultXLimMode;
-                   obj.h.MainAxes(index).YLim = str2num(QSP.PlotSettings.DefaultCustomYLim);
-                   obj.h.MainAxes(index).YLimMode = QSP.PlotSettings.DefaultYLimMode;
-                   
-                   %Assign plot settings
-                   
-                   %TODO: Assign the current plot settings to the plot
-                   %settings array. This is not currently possible becuase
-                   %the QSP.PlotSettings Class does not support UIAXes,
-                   %only Axes. This also includes checking if they want
-                   %default interactivity 
-                   
-                   %Find the outermost uifigure handle
-                   hFigure = ancestor(obj.Parent,'Figure');
-                   
-                   obj.h.ContextMenu(index) = uicontextmenu('Parent',hFigure);
-                   obj.h.MainAxes(index).ContextMenu = obj.h.ContextMenu(index);
-                   obj.h.ContextMenuYScale(index) = uimenu(obj.h.ContextMenu(index),...
-                        'Label','Y-Scale',...
-                        'Tag','YScale');
-                    uimenu(obj.h.ContextMenuYScale(index),...
-                        'Label','Linear',...
-                        'Tag','YScaleLinear',...
-                        'Checked','on',...
-                        'Callback',@(h,e)onAxesContextMenu(obj,h,e,index));
-                    uimenu(obj.h.ContextMenuYScale(index),...
-                        'Label','Log',...
-                        'Tag','YScaleLog',...
-                        'Checked','off',...
-                        'Callback',@(h,e)onAxesContextMenu(obj,h,e,index));
-                    uimenu(obj.h.ContextMenu(index),...
-                        'Label','Save Current Axes...',...
-                        'Tag','ExportSingleAxes',...
-                        'Separator','on',...
-                        'Callback',@(h,e)onAxesContextMenu(obj,h,e,index));
-                    uimenu(obj.h.ContextMenu(index),...
-                        'Label','Save Full View...',...
-                        'Tag','ExportAllAxes',...
-                        'Callback',@(h,e)onAxesContextMenu(obj,h,e,index));                    
-                    
-                    if strcmpi(class(obj),'QSPViewer.VirtualPopulationGeneration')
-                        obj.bShowTraces(index) = false; % default off
-                        obj.bShowQuantiles(index) = true; % default on
-                        obj.bShowMean(index) = true; % default on
-                        obj.bShowMedian(index) = false; % default off
-                        obj.bShowSD(index) = false; % default off
-                    else
-                        obj.bShowTraces(index) = false; % default off
-                        obj.bShowQuantiles(index) = true; % default on
-                        obj.bShowMean(index) = false; % default off
-                        obj.bShowMedian(index) = true; % default on
-                        obj.bShowSD(index) = false; % default off
-                    end
-                    
-                    % Show traces/quantiles/mean/median/SD
-                    obj.h.ContextMenuTraces(index) = uimenu(obj.h.ContextMenu(index),...
-                        'Label','Show Traces',...
-                        'Checked',uix.utility.tf2onoff(obj.bShowTraces(index)),...
-                        'Separator','on',...
-                        'Tag','ShowTraces',...
-                        'Callback',@(h,e)onAxesContextMenu(obj,h,e,index));
-                     obj.h.ContextMenuQuantiles(index) = uimenu(obj.h.ContextMenu(index),...
-                        'Label','Show Upper/Lower Quantiles',...
-                        'Checked',uix.utility.tf2onoff(obj.bShowQuantiles(index)),...
-                        'Tag','ShowQuantiles',...
-                        'Callback',@(h,e)onAxesContextMenu(obj,h,e,index));
-                    obj.h.ContextMenuMean(index) = uimenu(obj.h.ContextMenu(index),...
-                        'Label','Show Mean (Weighted)',...
-                        'Checked',uix.utility.tf2onoff(obj.bShowMean(index)),...
-                        'Tag','ShowMean',...
-                        'Callback',@(h,e)onAxesContextMenu(obj,h,e,index));
-                    obj.h.ContextMenuMedian(index) =uimenu(obj.h.ContextMenu(index),...
-                        'Label','Show Median (Weighted)',...
-                        'Checked',uix.utility.tf2onoff(obj.bShowMedian(index)),...
-                        'Tag','ShowMedian',...
-                        'Callback',@(h,e)onAxesContextMenu(obj,h,e,index));
-                    obj.h.ContextMenuSD(index) =uimenu(obj.h.ContextMenu(index),...
-                        'Label','Show Standard Deviation (Weighted)',...
-                        'Checked',uix.utility.tf2onoff(obj.bShowSD(index)),...
-                        'Tag','ShowSD',...
-                        'Callback',@(h,e)onAxesContextMenu(obj,h,e,index));   
-               end
-               %RHS: The settings panel
-               obj.h.PlotSettingsLayout = uigridlayout(obj.h.VisualizationLayout);
-               obj.h.PlotSettingsLayout.ColumnWidth = {'1x'};
-               obj.h.PlotSettingsLayout.RowHeight = {ButtonSize,'1x',ButtonSize};
-               obj.h.PlotSettingsLayout.Layout.Row = 1;
-               obj.h.PlotSettingsLayout.Layout.Column = 2;
-               obj.h.PlotSettingsLayout.Padding = [0,0,0,0];
-               
-               %1. The plot dropdown
-               obj.h.PlotConfigPopUpLayout = uigridlayout(obj.h.PlotSettingsLayout);
-               obj.h.PlotConfigPopUpLayout.Layout.Row = 1;
-               obj.h.PlotConfigPopUpLayout.Layout.Column = 1;
-               obj.h.PlotConfigPopUpLayout.RowHeight = {'1x'};
-               obj.h.PlotConfigPopUpLayout.ColumnWidth = {80,'1x'};
-               obj.h.PlotConfigPopUpLayout.Padding = [0,0,0,0];
-               
-               %Drop down label
-               obj.h.PlotConfigPopUpLabel = uilabel(obj.h.PlotConfigPopUpLayout);
-               obj.h.PlotConfigPopUpLabel.Layout.Row = 1;
-               obj.h.PlotConfigPopUpLabel.Layout.Column = 1;
-               obj.h.PlotConfigPopUpLabel.Text = 'Plot Layout';
-               obj.h.PlotConfigPopUpLabel.HorizontalAlignment = 'center';
-               obj.h.PlotConfigPopUpLabel.FontWeight = 'bold';
-               
-               %Drop down menu
-               obj.h.PlotConfigPopUp = uidropdown(obj.h.PlotConfigPopUpLayout);
-               obj.h.PlotConfigPopUp.Items = obj.PlotLayoutOptions;
-               obj.h.PlotConfigPopUp.ValueChangedFcn = @app.onPlotConfigChange;
-               obj.h.PlotConfigPopUp.Tag = 'PlotConfigPopup';
-               obj.h.PlotConfigPopUp.Layout.Row = 1;
-               obj.h.PlotConfigPopUp.Layout.Column = 2;
-               
-               %2. The panel to display information
-               obj.h.PlotSettingsPanel = uipanel(obj.h.PlotSettingsLayout);
-               obj.h.PlotSettingsPanel.Layout.Row = 2;
-               obj.h.PlotSettingsPanel.Layout.Column = 1;
-               
-               %3. The remove invalid button
-               obj.h.RemoveInvalidVisualization = uigridlayout(obj.h.PlotSettingsLayout);
-               obj.h.RemoveInvalidVisualization.Layout.Row = 3;
-               obj.h.RemoveInvalidVisualization.Layout.Column = 1;
-               obj.h.RemoveInvalidVisualization.RowHeight = {ButtonSize,'1x'};
-               obj.h.RemoveInvalidVisualization.ColumnWidth = {'1x',100,'1x'};
-               obj.h.RemoveInvalidVisualization.Padding = [0,0,0,0];
-               
-               obj.h.RemoveInvalidVisualizationButton = uibutton(obj.h.RemoveInvalidVisualization,'push');
-               obj.h.RemoveInvalidVisualizationButton.Text = 'Remove Invalid';
-               obj.h.RemoveInvalidVisualizationButton.Tag = 'RemoveInvalid';
-               obj.h.RemoveInvalidVisualizationButton.Layout.Row = 1;
-               obj.h.RemoveInvalidVisualizationButton.Layout.Column = 2;
-               obj.h.RemoveInvalidVisualizationButton.Tooltip = 'Remove Invalid Entries';
-               obj.h.RemoveInvalidVisualizationButton.ButtonPushedFcn = @obj.RemoveInvalidVisualizationButtonLayout;
-           end
-           
-           %Update selection
-           obj.h.CardPanel.Selection = obj.Selection;
-           
-           %Create the Buttons grid layout;
-           obj.h.ButtonsLayout = uigridlayout(obj.OuterGrid);
-           obj.h.ButtonsLayout.Layout.Row =1;
-           obj.h.ButtonsLayout.Layout.Column = 1;
-           obj.h.ButtonsLayout.Padding = [0,0,0,0];
-           obj.h.ButtonsLayout.ColumnSpacing = 0;
-           obj.h.ButtonsLayout.RowSpacing = 0;
-           obj.h.ButtonsLayout.RowHeight = {'1x'};
-           obj.h.ButtonsLayout.ColumnWidth = {ButtonSize,ButtonSize,ButtonSize,ButtonSize,ButtonSize,ButtonSize,ButtonSize,ButtonSize,ButtonSize,ButtonSize,'1x'};
+           obj.ButtonsLayout = uigridlayout(obj.OuterGrid);
+           obj.ButtonsLayout.Layout.Row =1;
+           obj.ButtonsLayout.Layout.Column = 1;
+           obj.ButtonsLayout.Padding = obj.ButtonPadding;
+           obj.ButtonsLayout.ColumnSpacing = obj.ButtonWidthSpacing;
+           obj.ButtonsLayout.RowSpacing = obj.ButtonHeightSpacing;
+           obj.ButtonsLayout.RowHeight = {'1x'};
+           obj.ButtonsLayout.ColumnWidth = {obj.ButtonWidth,obj.ButtonWidth,...
+           obj.ButtonWidth,obj.ButtonWidth,obj.ButtonWidth,...
+           obj.ButtonWidth,obj.ButtonWidth,obj.ButtonWidth,...
+           obj.ButtonWidth,obj.ButtonWidth,'1x'};
            
            %Summary Button
-           obj.h.SummaryButton = uibutton(obj.h.ButtonsLayout,'push');
-           obj.h.SummaryButton.Layout.Row = 1;
-           obj.h.SummaryButton.Layout.Column = 1;
-           obj.h.SummaryButton.Icon = uix.utility.findIcon('report_24.png');
-           obj.h.SummaryButton.Tooltip = 'View summary';
-           obj.h.SummaryButton.ButtonPushedFcn = @(h,e)obj.onNavigation('Summary');
-           obj.h.SummaryButton.Text = '';
+           obj.SummaryButton = uibutton(obj.ButtonsLayout,'push');
+           obj.SummaryButton.Layout.Row = 1;
+           obj.SummaryButton.Layout.Column = 1;
+           obj.SummaryButton.Icon = '+QSPViewerNew\+Resources\report_24.png';
+           obj.SummaryButton.Tooltip = 'View summary';
+           obj.SummaryButton.ButtonPushedFcn = @(h,e)obj.onNavigation('Summary');
+           obj.SummaryButton.Text = '';
            
            %Edit Button
-           obj.h.EditButton = uibutton(obj.h.ButtonsLayout,'push');
-           obj.h.EditButton.Layout.Row = 1;
-           obj.h.EditButton.Layout.Column = 2;
-           obj.h.EditButton.Icon = uix.utility.findIcon('edit_24.png');
-           obj.h.EditButton.Tooltip = 'Edit the selected item';
-           obj.h.EditButton.ButtonPushedFcn = @(h,e)obj.onNavigation('Edit');
-           obj.h.EditButton.Text = '';
-           
-           %Run Button
-           obj.h.RunButton = uibutton(obj.h.ButtonsLayout,'push');
-           obj.h.RunButton.Layout.Row = 1;
-           obj.h.RunButton.Layout.Column = 3;
-           obj.h.RunButton.Icon = uix.utility.findIcon('play_24.png');
-           obj.h.RunButton.Tooltip = 'Run the selected item';
-           obj.h.RunButton.ButtonPushedFcn = @(h,e)obj.onNavigation('Run');
-           obj.h.RunButton.Text = '';
-           
-           %Visualize Button
-           obj.h.VisualizeButton = uibutton(obj.h.ButtonsLayout,'push');
-           obj.h.VisualizeButton.Layout.Row = 1;
-           obj.h.VisualizeButton.Layout.Column = 5;
-           obj.h.VisualizeButton.Icon = uix.utility.findIcon('visualize_24.png');
-           obj.h.VisualizeButton.Tooltip = 'Visualize the selected item';
-           obj.h.VisualizeButton.ButtonPushedFcn = @(h,e)obj.onNavigation('Visualize');
-           obj.h.VisualizeButton.Text = '';
-           
-           %PlotSettings Button
-           obj.h.PlotSettingsButton = uibutton(obj.h.ButtonsLayout,'push');
-           obj.h.PlotSettingsButton.Layout.Row = 1;
-           obj.h.PlotSettingsButton.Layout.Column = 6;
-           obj.h.PlotSettingsButton.Icon =  uix.utility.findIcon('settings_24.png');
-           obj.h.PlotSettingsButton.Tooltip = 'Customize plot settings for the selected item';
-           obj.h.PlotSettingsButton.ButtonPushedFcn = @(h,e)obj.onNavigation('CustomizeSettings');
-           obj.h.PlotSettingsButton.Text = '';
-           
-           %Zoom in Button ZoomIn
-           obj.h.ZoomInButton = uibutton(obj.h.ButtonsLayout,'state');
-           obj.h.ZoomInButton.Layout.Row = 1;
-           obj.h.ZoomInButton.Layout.Column = 7;
-           obj.h.ZoomInButton.Icon = '+QSPViewerNew\+Resources\zoomin.png';
-           obj.h.ZoomInButton.Tooltip = 'Zoom In';
-           obj.h.ZoomInButton.ValueChangedFcn = @(h,e)obj.onNavigation('ZoomIn');
-           obj.h.ZoomInButton.Text = '';
-           
-           %Zoom out Button
-           obj.h.ZoomOutButton = uibutton(obj.h.ButtonsLayout,'state');
-           obj.h.ZoomOutButton.Layout.Row = 1;
-           obj.h.ZoomOutButton.Layout.Column = 8; 
-           obj.h.ZoomOutButton.Icon = '+QSPViewerNew\+Resources\zoomout.png';
-           obj.h.ZoomOutButton.Tooltip = 'Zoom Out';
-           obj.h.ZoomOutButton.ValueChangedFcn = @(h,e)obj.onNavigation('ZoomOut');
-           obj.h.ZoomOutButton.Text = '';
-           
-           %Pan Button
-           obj.h.PanButton = uibutton(obj.h.ButtonsLayout,'state');
-           obj.h.PanButton.Layout.Row = 1;
-           obj.h.PanButton.Layout.Column = 9;
-           obj.h.PanButton.Icon = '+QSPViewerNew\+Resources\pan.png';
-           obj.h.PanButton.Tooltip = 'Pan';
-           obj.h.PanButton.ValueChangedFcn = @(h,e)obj.onNavigation('Pan');
-           obj.h.PanButton.Text = '';
-           
-           %Data Cursor Button
-           obj.h.DatacursorButton = uibutton(obj.h.ButtonsLayout,'state');
-           obj.h.DatacursorButton.Layout.Row = 1;
-           obj.h.DatacursorButton.Layout.Column = 10;
-           obj.h.DatacursorButton.Icon = '+QSPViewerNew\+Resources\datatip.png';
-           obj.h.DatacursorButton.Tooltip = 'Explore';
-           obj.h.DatacursorButton.ValueChangedFcn = @(h,e)obj.onNavigation('Datacursor');
-           obj.h.DatacursorButton.Text = '';
-        end
-        
-    end
-    
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+           obj.EditButton = uibutton(obj.ButtonsLayout,'push');
+           obj.EditButton.Layout.Row = 1;
+           obj.EditButton.Layout.Column = 2;
+           obj.EditButton.Icon = '+QSPViewerNew\+Resources\edit_24.png';
+           obj.EditButton.Tooltip = 'Edit the selected item';
+           obj.EditButton.ButtonPushedFcn = @(h,e)obj.onNavigation('Edit');
+           obj.EditButton.Text = '';
+       end
+   end
+
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Callbacks
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    methods
-        
-        function onEditName(obj,h,e)
-            % Update the name
-            if ~isempty(obj.TempData)
-                obj.TempData.Name = get(h,'String');
-            end
-            
-            % Update the view
-            obj.updateNameDescription();
-        end   
-        
-        function onEditDescription(obj,h,e) 
-            % Update the description
-            if ~isempty(obj.TempData)
-                obj.TempData.Description = get(h,'String');
-            end
-            % Update the view
-            obj.updateNameDescription();
-        end
-        
-        function onEditButtonPress(obj,h,e);
-            %Get the tag of the button pressed
-            ThisTag = get(h,'Tag');
-            
-            %Choose the button
-            switch ThisTag
-                case 'RemoveInvalid'
-                    disp('TODO: Remove Invalid')
-                case 'Save'
-                    disp('TODO: Save panel')
-                case 'Cancel'
-                    disp('TODO: Cancel')
-            end    
-        end
-        
-        function onRemoveInvalidVisualization(obj,h,e);
-            disp("TODO: Remoev invalid Visualization");
-        end
-        
-        function onNavigation(obj,viewSelected)
-            switch viewSelected
-                case 'Summary'
-                    disp('TODO:Summary, this is a temporary solution)')
-                case 'Edit'
-                    disp('TODO:Edit, this is a temporary solution)')
-                case 'Run'
-                    disp('TODO:Run, this is a temporary solution)')
-                case 'Visualize'
-                    disp('TODO:Run, this is a temporary solution')
-                case 'CustomizeSettings'
-                    disp('You Selected CustomizeSettings')
-                case 'ZoomIn'
-                    disp('Zoom')
-                case 'ZoomOut'
-                    disp('Zoomout')
-                case 'Pan'
-                    disp('pan')
-                case 'Datacursor'
-                    disp('datacursor')
-            end    
-        end
-        
-    end
-    
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    % Helper Functions
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     methods(Access = private)
         
-        function [StatusOK, Message] = checkDuplicateNames(obj, StatusOK, Message)
-            %TODO
+        function onNavigation(obj,keyword)
+            obj.Focus = keyword;
+            obj.refocus;
         end
         
-        function refresh(obj)
-            %TODO
+        function onRemoveInvalid(obj)
+            obj.checkForInvalid;
         end
         
-        function updateToggleButtons(obj)
-            %TODO
+        function onSave(obj)
+            obj.saveBackEndInformation();
+            obj.Focus = 'Summary';
+            obj.refocus();
         end
         
-        function update(obj)
-            %TODO
+        function onCancel(obj)
+            %Prompt the user to makse sure they want to cancel;
+            Options = {'Save','Don''t Save','Cancel'};
+            selection = uiconfirm(obj.ParentApp.UIFigure,...
+            'Changes Have not been saved. How would you like to continue?',...
+               'Continue?','Options',Options,'DefaultOption',3);
+           
+           %Determine next steps based on their response
+            switch selection
+                case 'Save'   
+                    
+                    %Save as normal
+                    obj.onSave();
+                case 'Don''t Save'
+                    
+                    %Delete any temporaryCopies
+                    obj.deleteTemporary();
+                    %Just return to the main screen.
+                    obj.Focus = 'Summary';
+                    obj.refocus;
+                case 'Cancel'
+                    
+                    %Do nothing
+            end
         end
         
-        function Value = getAxesOptions(obj)
-            %TODO
+        function onEdit(obj,fieldName,value)
+            switch fieldName
+                case 'Name'
+                    obj.NotifyOfChangeInName(value);
+                case 'Description'
+                    obj.NotifyOfChangeInDescription(value);
+            end
         end
         
     end
     
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    % Static methods
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    methods
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % Methods for updating UI components
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    methods(Access = private)
         
-        function fixAxesInFigure(hFigure,hAxes)
-            %TODO
+        function refocus(obj)
+            %Determine which panel should be in focus
+            switch obj.Focus
+                
+                %If the window should be the summary
+                case 'Summary'
+                    if strcmp(obj.SummaryPanel.Visible,'off')
+                        %If the Summary window is not already shown.
+                        obj.CurrentPane.Visible = 'off';
+                        obj.CurrentPane = obj.SummaryPanel;
+                        obj.draw();
+                        obj.CurrentPane.Visible = 'on';
+                        
+                        %Turn the buttons on 
+                        obj.ParentApp.enableInteraction();
+                        obj.SummaryButton.Enable = 'on';
+                        %TODO obj.VisualizationButton.Enable = 'off';
+                    end
+                case 'Edit'
+                    if strcmp(obj.EditPanel.Visible,'off')
+                        %If the Edit window is not already shown
+                        obj.CurrentPane.Visible = 'off';
+                        obj.CurrentPane = obj.EditPanel;
+                        obj.draw();
+                        obj.CurrentPane.Visible = 'on';
+                        
+                        %Disable all external buttons and other views
+                        obj.ParentApp.disableInteraction();
+                        obj.SummaryButton.Enable = 'off';
+                        %TODO  obj.VisualizationButton.Enable = 'off';
+                    end
+            end 
+        end
+           
+    end
+    
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % Protected Methods for changing the display based on external
+    % information
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    methods(Access = protected)
+        
+        function updateNameBox(obj,value)
+            validateattributes(value,'char',{});
+            obj.NameEditBox.Value = value;
         end
         
-        function [hThisLegend,hThisLegendChildren] = redrawLegend(hThisAxes,LegendItems,ThesePlotSettings)
-            %TODO
+        function updateDescriptionBox(obj,value)
+            validateattributes(value,'char',{});
+            obj.DescriptionEditBox.Value = value;
+        end
+        
+        function updateSummary(obj,value)
+            validateattributes(value,'cell',{'ncols',2});
+            obj.SummaryContent.Information = value;
+        end
+        
+        function hidePane(obj)
+            %hide this pane
+            obj.OuterGrid.Visible = 'off';
+        end
+        
+        function showPane(obj)
+            %show this pane. Whenever a pane is shown, start with the
+            %summary
+            obj.draw();
+            obj.Focus = 'Summary';
+            obj.refocus;
+            obj.OuterGrid.Visible = 'on';
+        end
+        
+        function notifyOfChange(obj,newBackEndObject,oldName,newName)
+            obj.ParentApp.changeInBackEnd(newBackEndObject);
         end
         
     end
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % get/set methods
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    methods(Access = public)
+       
+        function value = getUIFigure(obj)
+            value = obj.ParentApp.UIFigure;
+        end
+        
+        function value = getEditGrid(obj)
+            value = obj.EditLayout;
+        end
+    end
+    
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % Methods to be defined by subclasses
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    methods(Abstract)
+        NotifyOfChangeInName(obj,value);
+        NotifyOfChangeInDescription(obj,value);
+        saveBackEndInformation(obj);
+        checkForInvalid(obj);
+        draw(obj);
+        deleteTemporary(obj);
+        hideThisPane(obj);
+        showThisPane(obj);
+    end
+    
     
 end
+
 
 
