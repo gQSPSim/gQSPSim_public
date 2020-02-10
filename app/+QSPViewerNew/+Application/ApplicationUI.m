@@ -80,7 +80,7 @@ classdef ApplicationUI < matlab.apps.AppBase
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %Properties for handling sessions
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    properties  
+    properties(Access = private)
         Sessions = QSP.Session.empty(0,1)
         AppName
         Title
@@ -118,7 +118,7 @@ classdef ApplicationUI < matlab.apps.AppBase
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % UI handle properties
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    properties (Access = public)
+    properties (Access = private)
         %These components are created when the application is created
         UIFigure                 matlab.ui.Figure
         FileMenu                 matlab.ui.container.Menu
@@ -202,6 +202,7 @@ classdef ApplicationUI < matlab.apps.AppBase
         end
         
     end
+    
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %Methods to initilize application UI components
@@ -431,6 +432,178 @@ classdef ApplicationUI < matlab.apps.AppBase
             
         end
         
+        function createTree(app, Parent, AllData)
+            % Nodes that take children have the type of child as a string in the UserData
+            % property. Nodes that are children and are movable have [] in UserData.
+            % Get short name to call this function recursively
+            thisFcn = @(Parent,Data) createTree(app, Parent, Data);
+
+            % Loop on objects
+            for idx = 1:numel(AllData)
+
+                % Get current object
+                Data = AllData(idx);
+
+                % What type of object is this?
+                Type = class(Data);
+
+                % Switch on object type for the icon
+                switch Type
+
+                    case 'QSP.Session'
+
+                        % Session node
+                        hSession = app.i_addNode(Parent, Data, ...
+                            'Session', 'folder_24.png',...
+                             app.TreeMenu.Branch.Session, [], 'Session');
+                        Data.TreeNode = hSession; %Store node in the object for cross-ref
+
+                        % Settings node and children
+                        hSettings = app.i_addNode(hSession, Data.Settings, ...
+                            'Building blocks', 'settings_24.png',...
+                            [], 'Settings', 'Building blocks for the session');
+                        Data.Settings.TreeNode = hSettings; %Store node in the object for cross-ref
+
+                        hTasks = app.i_addNode(hSettings, Data.Settings, ...
+                            'Tasks', 'flask2.png',...
+                            app.TreeMenu.Branch.Task, 'Task', 'Tasks');
+                        thisFcn(hTasks, Data.Settings.Task);
+
+                        hParameters = app.i_addNode(hSettings, Data.Settings, ...
+                            'Parameters', 'param_edit_24.png',...
+                            app.TreeMenu.Branch.Parameters, 'Parameters', 'Parameters');
+                        thisFcn(hParameters, Data.Settings.Parameters);
+
+                        hOptimData = app.i_addNode(hSettings, Data.Settings, ...
+                            'Datasets', 'datatable_24.png',...
+                            app.TreeMenu.Branch.OptimizationData, 'OptimizationData', 'Datasets');
+                        thisFcn(hOptimData, Data.Settings.OptimizationData);
+
+
+                        hVPopDatas = app.i_addNode(hSettings, Data.Settings, ...
+                            'Acceptance Criteria', 'acceptance_criteria.png',...
+                            app.TreeMenu.Branch.VirtualPopulationData, 'VirtualPopulationData', 'Acceptance Criteria');
+                        thisFcn(hVPopDatas, Data.Settings.VirtualPopulationData);
+
+                        hVPopGenDatas = app.i_addNode(hSettings, Data.Settings, ...
+                            'Target Statistics', 'target_stats.png',...
+                            app.TreeMenu.Branch.VirtualPopulationGenerationData, 'VirtualPopulationGenerationData', 'Target Statistics');
+                        thisFcn(hVPopGenDatas, Data.Settings.VirtualPopulationGenerationData);
+
+
+                        hVPops = app.i_addNode(hSettings, Data.Settings, ...
+                            'Virtual Subject(s)', 'stickman3.png',...
+                             app.TreeMenu.Branch.VirtualPopulation, 'VirtualPopulation', 'Virtual Subject(s)');
+                        thisFcn(hVPops, Data.Settings.VirtualPopulation);
+
+                        % Functionalities node and children
+                        hFunctionalities = app.i_addNode(hSession, Data, ...
+                            'Functionalities', 'settings_24.png',...
+                            [], 'Functionalities', 'Functionalities for the session');
+
+                        hSimulations = app.i_addNode(hFunctionalities, Data, ...
+                            'Simulations', 'simbio_24.png',...
+                            app.TreeMenu.Branch.Simulation, 'Simulation', 'Simulation');
+                        thisFcn(hSimulations, Data.Simulation);
+
+                        hOptims = app.i_addNode(hFunctionalities, Data, ...
+                            'Optimizations', 'optim_24.png',...
+                            app.TreeMenu.Branch.Optimization, 'Optimization', 'Optimization');
+                        thisFcn(hOptims, Data.Optimization);
+
+                        hCohortGen = app.i_addNode(hFunctionalities, Data, ...
+                            'Virtual Cohort Generations', 'stickman-3.png',...   
+                           app.TreeMenu.Branch.CohortGeneration, 'CohortGeneration', 'Cohort Generation');
+                        thisFcn(hCohortGen, Data.CohortGeneration);
+
+                        hVPopGens = app.i_addNode(hFunctionalities, Data, ...
+                            'Virtual Population Generations', 'stickman-3-color.png',...
+                            app.TreeMenu.Branch.VirtualPopulationGeneration, 'VirtualPopulationGeneration', 'Virtual Population Generation');
+                        thisFcn(hVPopGens, Data.VirtualPopulationGeneration);
+
+                        hDeleteds = app.i_addNode(hSession, Data, ...
+                            'Deleted Items', 'trash_24.png',...
+                            app.TreeMenu.Branch.Deleted, 'Deleted', 'Deleted Items');
+                        thisFcn(hDeleteds, Data.Deleted);
+
+                        % Expand Nodes
+                        hSession.expand();
+                        hSettings.expand();
+
+                    case 'QSP.OptimizationData'
+
+                        hNode = app.i_addNode(Parent, Data, Data.Name, 'datatable_24.png',...
+                            app.TreeMenu.Leaf.OptimizationData, [], '');
+                        Data.TreeNode = hNode; %Store node in the object for cross-ref
+
+                    case 'QSP.Parameters'
+
+                        hNode = app.i_addNode(Parent, Data, Data.Name, 'param_edit_24.png',...
+                            app.TreeMenu.Leaf.Parameters, [], '');
+                        Data.TreeNode = hNode; %Store node in the object for cross-ref
+
+                    case 'QSP.Task'
+
+                        hNode = app.i_addNode(Parent, Data, Data.Name, 'flask2.png',...
+                            app.TreeMenu.Leaf.Task, [], '');
+                        Data.TreeNode = hNode; %Store node in the object for cross-ref
+
+                    case 'QSP.VirtualPopulation'
+
+                        hNode = app.i_addNode(Parent, Data, Data.Name, 'stickman3.png',...
+                            app.TreeMenu.Leaf.VirtualPopulation, [], '');
+                        Data.TreeNode = hNode; %Store node in the object for cross-ref
+
+
+                    case 'QSP.VirtualPopulationData'
+
+                        hNode = app.i_addNode(Parent, Data, Data.Name, 'acceptance_criteria.png',...
+                            app.TreeMenu.Leaf.VirtualPopulationData, [], '');
+                        Data.TreeNode = hNode; %Store node in the object for cross-ref
+
+                    case 'QSP.Simulation'
+
+                        hNode = app.i_addNode(Parent, Data, Data.Name, 'simbio_24.png',...
+                            app.TreeMenu.Leaf.Simulation, [], '');
+                        Data.TreeNode = hNode; %Store node in the object for cross-ref
+
+                    case 'QSP.Optimization'
+
+                        hNode = app.i_addNode(Parent, Data, Data.Name, 'optim_24.png',...
+                            app.TreeMenu.Leaf.Optimization, [], '');
+                        Data.TreeNode = hNode; %Store node in the object for cross-ref
+
+                    case 'QSP.CohortGeneration'
+
+                        hNode = app.i_addNode(Parent, Data, Data.Name, 'stickman-3.png',...
+                            app.TreeMenu.Leaf.CohortGeneration, [], '');
+                        Data.TreeNode = hNode; %Store node in the object for cross-ref            
+
+                    case 'QSP.VirtualPopulationGeneration'
+
+                        hNode = app.i_addNode(Parent, Data, Data.Name, 'stickman-3-color.png',...
+                            app.TreeMenu.Leaf.VirtualPopulationGeneration, [], '');
+                        Data.TreeNode = hNode; %Store node in the object for cross-ref
+
+                    case 'QSP.VirtualPopulationGenerationData'
+                        hNode = app.i_addNode(Parent, Data, Data.Name, 'target_stats.png',...
+                            app.TreeMenu.Leaf.VirtualPopulationGeneration, [], '');
+                        Data.TreeNode = hNode; %Store node in the object for cross-ref
+
+                    otherwise
+
+                        % Skip this node
+                        warning('QSPViewer:App:createTree:UnhandledType',...
+                            'Unhandled object type for tree: %s. Skipping.', Type);
+                        continue
+
+                end %switch
+                if isa(Parent,'matlab.ui.container.TreeNode') && strcmp(Parent.Text,'Deleted Items')
+                    hNode.UIContextMenu = app.TreeMenu.Leaf.Deleted;
+                end
+            end %for
+       end %function
+       
     end
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -627,7 +800,7 @@ classdef ApplicationUI < matlab.apps.AppBase
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Methods for interacting with the active sessions
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    methods (Hidden = true)
+    methods (Access = private)
         
         function createUntitledSession(app)
             % Add a new session called 'untitled_x'
@@ -819,181 +992,9 @@ classdef ApplicationUI < matlab.apps.AppBase
     end
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    % Methods for drawing UI components.
+    % Public Methods for notifying the app of changes
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     methods (Access = public)
-        
-       function createTree(app, Parent, AllData)
-            % Nodes that take children have the type of child as a string in the UserData
-            % property. Nodes that are children and are movable have [] in UserData.
-            % Get short name to call this function recursively
-            thisFcn = @(Parent,Data) createTree(app, Parent, Data);
-
-            % Loop on objects
-            for idx = 1:numel(AllData)
-
-                % Get current object
-                Data = AllData(idx);
-
-                % What type of object is this?
-                Type = class(Data);
-
-                % Switch on object type for the icon
-                switch Type
-
-                    case 'QSP.Session'
-
-                        % Session node
-                        hSession = app.i_addNode(Parent, Data, ...
-                            'Session', 'folder_24.png',...
-                             app.TreeMenu.Branch.Session, [], 'Session');
-                        Data.TreeNode = hSession; %Store node in the object for cross-ref
-
-                        % Settings node and children
-                        hSettings = app.i_addNode(hSession, Data.Settings, ...
-                            'Building blocks', 'settings_24.png',...
-                            [], 'Settings', 'Building blocks for the session');
-                        Data.Settings.TreeNode = hSettings; %Store node in the object for cross-ref
-
-                        hTasks = app.i_addNode(hSettings, Data.Settings, ...
-                            'Tasks', 'flask2.png',...
-                            app.TreeMenu.Branch.Task, 'Task', 'Tasks');
-                        thisFcn(hTasks, Data.Settings.Task);
-
-                        hParameters = app.i_addNode(hSettings, Data.Settings, ...
-                            'Parameters', 'param_edit_24.png',...
-                            app.TreeMenu.Branch.Parameters, 'Parameters', 'Parameters');
-                        thisFcn(hParameters, Data.Settings.Parameters);
-
-                        hOptimData = app.i_addNode(hSettings, Data.Settings, ...
-                            'Datasets', 'datatable_24.png',...
-                            app.TreeMenu.Branch.OptimizationData, 'OptimizationData', 'Datasets');
-                        thisFcn(hOptimData, Data.Settings.OptimizationData);
-
-
-                        hVPopDatas = app.i_addNode(hSettings, Data.Settings, ...
-                            'Acceptance Criteria', 'acceptance_criteria.png',...
-                            app.TreeMenu.Branch.VirtualPopulationData, 'VirtualPopulationData', 'Acceptance Criteria');
-                        thisFcn(hVPopDatas, Data.Settings.VirtualPopulationData);
-
-                        hVPopGenDatas = app.i_addNode(hSettings, Data.Settings, ...
-                            'Target Statistics', 'target_stats.png',...
-                            app.TreeMenu.Branch.VirtualPopulationGenerationData, 'VirtualPopulationGenerationData', 'Target Statistics');
-                        thisFcn(hVPopGenDatas, Data.Settings.VirtualPopulationGenerationData);
-
-
-                        hVPops = app.i_addNode(hSettings, Data.Settings, ...
-                            'Virtual Subject(s)', 'stickman3.png',...
-                             app.TreeMenu.Branch.VirtualPopulation, 'VirtualPopulation', 'Virtual Subject(s)');
-                        thisFcn(hVPops, Data.Settings.VirtualPopulation);
-
-                        % Functionalities node and children
-                        hFunctionalities = app.i_addNode(hSession, Data, ...
-                            'Functionalities', 'settings_24.png',...
-                            [], 'Functionalities', 'Functionalities for the session');
-
-                        hSimulations = app.i_addNode(hFunctionalities, Data, ...
-                            'Simulations', 'simbio_24.png',...
-                            app.TreeMenu.Branch.Simulation, 'Simulation', 'Simulation');
-                        thisFcn(hSimulations, Data.Simulation);
-
-                        hOptims = app.i_addNode(hFunctionalities, Data, ...
-                            'Optimizations', 'optim_24.png',...
-                            app.TreeMenu.Branch.Optimization, 'Optimization', 'Optimization');
-                        thisFcn(hOptims, Data.Optimization);
-
-                        hCohortGen = app.i_addNode(hFunctionalities, Data, ...
-                            'Virtual Cohort Generations', 'stickman-3.png',...   
-                           app.TreeMenu.Branch.CohortGeneration, 'CohortGeneration', 'Cohort Generation');
-                        thisFcn(hCohortGen, Data.CohortGeneration);
-
-                        hVPopGens = app.i_addNode(hFunctionalities, Data, ...
-                            'Virtual Population Generations', 'stickman-3-color.png',...
-                            app.TreeMenu.Branch.VirtualPopulationGeneration, 'VirtualPopulationGeneration', 'Virtual Population Generation');
-                        thisFcn(hVPopGens, Data.VirtualPopulationGeneration);
-
-                        hDeleteds = app.i_addNode(hSession, Data, ...
-                            'Deleted Items', 'trash_24.png',...
-                            app.TreeMenu.Branch.Deleted, 'Deleted', 'Deleted Items');
-                        thisFcn(hDeleteds, Data.Deleted);
-
-                        % Expand Nodes
-                        hSession.expand();
-                        hSettings.expand();
-
-                    case 'QSP.OptimizationData'
-
-                        hNode = app.i_addNode(Parent, Data, Data.Name, 'datatable_24.png',...
-                            app.TreeMenu.Leaf.OptimizationData, [], '');
-                        Data.TreeNode = hNode; %Store node in the object for cross-ref
-
-                    case 'QSP.Parameters'
-
-                        hNode = app.i_addNode(Parent, Data, Data.Name, 'param_edit_24.png',...
-                            app.TreeMenu.Leaf.Parameters, [], '');
-                        Data.TreeNode = hNode; %Store node in the object for cross-ref
-
-                    case 'QSP.Task'
-
-                        hNode = app.i_addNode(Parent, Data, Data.Name, 'flask2.png',...
-                            app.TreeMenu.Leaf.Task, [], '');
-                        Data.TreeNode = hNode; %Store node in the object for cross-ref
-
-                    case 'QSP.VirtualPopulation'
-
-                        hNode = app.i_addNode(Parent, Data, Data.Name, 'stickman3.png',...
-                            app.TreeMenu.Leaf.VirtualPopulation, [], '');
-                        Data.TreeNode = hNode; %Store node in the object for cross-ref
-
-
-                    case 'QSP.VirtualPopulationData'
-
-                        hNode = app.i_addNode(Parent, Data, Data.Name, 'acceptance_criteria.png',...
-                            app.TreeMenu.Leaf.VirtualPopulationData, [], '');
-                        Data.TreeNode = hNode; %Store node in the object for cross-ref
-
-                    case 'QSP.Simulation'
-
-                        hNode = app.i_addNode(Parent, Data, Data.Name, 'simbio_24.png',...
-                            app.TreeMenu.Leaf.Simulation, [], '');
-                        Data.TreeNode = hNode; %Store node in the object for cross-ref
-
-                    case 'QSP.Optimization'
-
-                        hNode = app.i_addNode(Parent, Data, Data.Name, 'optim_24.png',...
-                            app.TreeMenu.Leaf.Optimization, [], '');
-                        Data.TreeNode = hNode; %Store node in the object for cross-ref
-
-                    case 'QSP.CohortGeneration'
-
-                        hNode = app.i_addNode(Parent, Data, Data.Name, 'stickman-3.png',...
-                            app.TreeMenu.Leaf.CohortGeneration, [], '');
-                        Data.TreeNode = hNode; %Store node in the object for cross-ref            
-
-                    case 'QSP.VirtualPopulationGeneration'
-
-                        hNode = app.i_addNode(Parent, Data, Data.Name, 'stickman-3-color.png',...
-                            app.TreeMenu.Leaf.VirtualPopulationGeneration, [], '');
-                        Data.TreeNode = hNode; %Store node in the object for cross-ref
-
-                    case 'QSP.VirtualPopulationGenerationData'
-                        hNode = app.i_addNode(Parent, Data, Data.Name, 'target_stats.png',...
-                            app.TreeMenu.Leaf.VirtualPopulationGeneration, [], '');
-                        Data.TreeNode = hNode; %Store node in the object for cross-ref
-
-                    otherwise
-
-                        % Skip this node
-                        warning('QSPViewer:App:createTree:UnhandledType',...
-                            'Unhandled object type for tree: %s. Skipping.', Type);
-                        continue
-
-                end %switch
-                if isa(Parent,'matlab.ui.container.TreeNode') && strcmp(Parent.Text,'Deleted Items')
-                    hNode.UIContextMenu = app.TreeMenu.Leaf.Deleted;
-                end
-            end %for
-       end %function
        
        function disableInteraction(app)
            app.TreeRoot.Enable = 'off';
@@ -1021,7 +1022,7 @@ classdef ApplicationUI < matlab.apps.AppBase
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %methods for toggling interactivity and updating the view
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    methods (Access = protected)
+    methods (Access = private)
         
         function redraw(app)
             %redraw redraws the titles of the sessions
