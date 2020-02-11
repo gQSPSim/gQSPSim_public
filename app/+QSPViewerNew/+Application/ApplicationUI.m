@@ -83,7 +83,7 @@ classdef ApplicationUI < matlab.apps.AppBase
         GridLayout               matlab.ui.container.GridLayout
         SessionExplorerPanel     matlab.ui.container.Panel
         TreeRoot                 matlab.ui.container.Tree
-        TreeMenu
+        TreeMenu                 
         OpenRecentMenuArray 
     end
     
