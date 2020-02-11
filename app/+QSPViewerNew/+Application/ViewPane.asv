@@ -30,7 +30,7 @@ classdef ViewPane < handle
         OuterGrid           matlab.ui.container.GridLayout
         SummaryPanel        matlab.ui.container.Panel
         SummaryGrid         matlab.ui.container.GridLayout
-        SummaryContent      QSPViewerNew.Widgets.Summary
+        SummaryContent      
         EditPanel           matlab.ui.container.Panel
         EditLayout          matlab.ui.container.GridLayout
         FileSelectLayout    matlab.ui.container.GridLayout
@@ -94,7 +94,6 @@ classdef ViewPane < handle
     % Constructor and destructor
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     methods 
-        
         function obj = ViewPane(varargin)
             if nargin == 5 && isa(varargin{1},'matlab.ui.container.GridLayout')
                 obj.Parent = varargin{1};
@@ -139,7 +138,6 @@ classdef ViewPane < handle
     % Methods for UI components initilization
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     methods (Access = private)
-        
        function create(obj)
            %Setup Outer Panel         
            obj.OuterGrid = uigridlayout(obj.Parent);
@@ -302,7 +300,6 @@ classdef ViewPane < handle
            obj.EditButton.ButtonPushedFcn = @(h,e)obj.onNavigation('Edit');
            obj.EditButton.Text = '';
        end
-       
    end
 
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -443,7 +440,9 @@ classdef ViewPane < handle
         end
         
     end
-
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % get/set methods
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     methods(Access = public)
        
         function value = getUIFigure(obj)
@@ -455,6 +454,9 @@ classdef ViewPane < handle
         end
     end
     
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % Methods to be defined by subclasses
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     methods(Abstract)
         NotifyOfChangeInName(obj,value);
         NotifyOfChangeInDescription(obj,value);
@@ -465,7 +467,8 @@ classdef ViewPane < handle
         hideThisPane(obj);
         showThisPane(obj);
     end
-       
+    
+    
 end
 
 

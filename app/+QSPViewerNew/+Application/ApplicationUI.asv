@@ -99,6 +99,9 @@ classdef ApplicationUI < matlab.apps.AppBase
             % Register the app with App Designer
             app.IsConstructed = true;
             
+            % Refresh the entire view
+            app.refresh();
+            app.redraw();
             
             %Save the type of the  for use in preferences
             app.Type = class(app);
@@ -114,9 +117,6 @@ classdef ApplicationUI < matlab.apps.AppBase
             
             %Draw the recent files to the menu
             app.redrawRecentFiles();
-            
-            % Refresh the entire view
-            app.refresh();
             
             if nargout == 0
                 clear app
@@ -538,8 +538,6 @@ classdef ApplicationUI < matlab.apps.AppBase
             if app.AllowMultipleSessions || app.promptToSave()
                 app.createUntitledSession();
             end
-            
-            app.refresh();
         end
         
         function onOpen(app,~,~)
@@ -567,8 +565,6 @@ classdef ApplicationUI < matlab.apps.AppBase
                         app.loadSessionFromPath(fullFilePath);
                     end
             end
-            
-            app.refresh();
         end
         
         function onClose(app,~,~)
@@ -631,6 +627,7 @@ classdef ApplicationUI < matlab.apps.AppBase
                  %TODO We need to update the visualization plots
 
                  %Now that we have the correct session, we can work with the
+                 app.redraw();
                  app.refresh();
             end
         end    
@@ -746,6 +743,7 @@ classdef ApplicationUI < matlab.apps.AppBase
             app.SelectedSession.removeUDF();
             app.SelectedSessionIdx = idxNew;
             
+            app.refresh(); %Call refresh of the main app
         end
         
         function createNewSession(app,Session)
@@ -825,6 +823,8 @@ classdef ApplicationUI < matlab.apps.AppBase
                         app.SelectedSessionIdx = idxNew;
                         app.addRecentSessionPath(fullFilePath);
 
+                        %Refresh the view
+                        app.refresh();
                     end
                 end
             end
@@ -926,9 +926,7 @@ classdef ApplicationUI < matlab.apps.AppBase
            
            %2. It must update the tree to reflect all the new values from
            %the session
-           app.updateTreeData(app.TreeRoot.Children(app.SelectedSessionIdx),newSession,'Session')
-           
-           app.refresh();
+           app.updateTree(app.TreeRoot.Children(app.SelectedSessionIdx),newSession,'Session')
         end
        
     end
@@ -943,7 +941,7 @@ classdef ApplicationUI < matlab.apps.AppBase
         end
         
         function refresh(app)
-            %This method refreshes the view of the screen
+            %This method refreshs the view of the screen
             if app.IsConstructed
                 %Update the names displayed in the tree
                 app.updateTreeNames();
@@ -989,18 +987,18 @@ classdef ApplicationUI < matlab.apps.AppBase
             %Determine if the Node is deleted and update this menu
             if isscalar(SelNode) && isequal(SelNode.UserData,[])
                 if strcmp(SelNode.Parent.UserData,'Deleted')
-                    IsNodeRestorableTF = true;
-                    IsNodeRemovableTF = false;
+                    IsNodeRestorable = true;
+                    IsNodeRemovable = false;
                 else
-                    IsNodeRestorableTF = false;
-                    IsNodeRemovableTF = true;
+                    IsNodeRestorable = false;
+                    IsNodeRemovable = true;
                 end
             else
-                IsNodeRestorableTF = false;
-                IsNodeRemovableTF = false;
+                IsNodeRestorable = false;
+                IsNodeRemovable = false;
             end
-            set(app.DeleteSelectedItemMenu,'Enable',app.tf2onoff(IsNodeRemovableTF));
-            set(app.RestoreSelectedItemMenu,'Enable',app.tf2onoff(IsNodeRestorableTF));
+            set(app.DeleteSelectedItemMenu,'Enable',app.tf2onoff(IsNodeRemovable));
+            set(app.RestoreSelectedItemMenu,'Enable',app.tf2onoff(IsNodeRestorable));
             
             %Determine if a new item can be added
             IsOneSessionSelectedTF = isscalar(sIdx);
@@ -1019,14 +1017,14 @@ classdef ApplicationUI < matlab.apps.AppBase
         function updateAppTitle(app)
             % Update title bar
             
-            SelectionNotEmptyTF = ~isempty(app.SessionNames) && ~isempty(app.SelectedSessionIdx);
-            SelectionIsDirtyTF = SelectionNotEmptyTF && any(app.IsDirty(app.SelectedSessionIdx));
-            if SelectionNotEmptyTF
+            SelectionNotEmpty = ~isempty(app.SessionNames) && ~isempty(app.SelectedSessionIdx);
+            SelectionIsDirty = SelectionNotEmpty && any(app.IsDirty(app.SelectedSessionIdx));
+            if SelectionNotEmpty
                 CurrentFile = app.SessionNames{app.SelectedSessionIdx};
             else
                 CurrentFile = '';
             end
-            if SelectionIsDirtyTF
+            if SelectionIsDirty
                 StarStr = ' *';
             else
                 StarStr = '';
@@ -1038,19 +1036,19 @@ classdef ApplicationUI < matlab.apps.AppBase
         
         function updatePane(app)
             %Find the currently selected Node
-            NodeSelected = app.TreeRoot.SelectedNodes; %Nodes       
+            NodeSelected = app.
             %Determine if the Node will launch a Pane
-            LaunchPaneTF = ~isempty(NodeSelected) && isempty(NodeSelected.UserData);
-
+            LaunchPane = ~isempty(NodeSelected) && isempty(NodeSelected.UserData);
+            
             %If we shouldnt launch a pane and there is currently a pane,
             %close it
-            if ~LaunchPaneTF && ~isempty(app.ActivePane)
+            if ~LaunchPane && ~isempty(app.ActivePane)
                 app.ActivePane.hideThisPane();
                 app.ActivePane = [];
-            elseif LaunchPaneTF        
+            elseif LaunchPane        
                 %Determine if the pane type has already been loaded
                 PaneType = app.GetPaneClassFromQSPClass(class(NodeSelected.NodeData));
-                idxPane = app.PaneTypes(strcmp(app.PaneTypes,PaneType));
+                idxPane = find(strcmp(PaneType,app.PaneTypes),1);
                 if isempty(idxPane)
                     %Launch a new Panewith the data provided
                     app.launchNewPane(NodeSelected.NodeData);
@@ -1067,7 +1065,6 @@ classdef ApplicationUI < matlab.apps.AppBase
             
             %This switch determines the correct type of Pane and creates it
             %The default is that it is not shown
-            %TODO: Address this switch statment to refactor
             switch class(NodeData)
                 case 'QSP.Session'
                     app.ActivePane = QSPViewerNew.Application.SessionPane(classInputs);
@@ -1145,9 +1142,9 @@ classdef ApplicationUI < matlab.apps.AppBase
                 case 'Session'
                     %If a session, we must check settings,functionalties,
                     %and deleted item
-                    app.updateTreeData(Tree.Children(1),NewData.Settings,'BuildingBlocks')
-                    app.updateTreeData(Tree.Children(2),NewData,'Functionalities')
-                    app.updateTreeData(Tree.Children(3),NewData.Deleted,'Deleted')
+                    app.updateTree(Tree.Children(1),NewData.Settings,'BuildingBlocks')
+                    app.updateTree(Tree.Children(2),NewData,'Functionalities')
+                    app.updateTree(Tree.Children(3),NewData.Deleted,'Deleted')
                     
                     %If we are updating the session, we need to update the
                     %name
@@ -1155,31 +1152,31 @@ classdef ApplicationUI < matlab.apps.AppBase
                     
                 case 'Building Blocks'
                     %Iterate through the 5 Subcategories
-                    app.updateTreeData(Tree.Children(1),NewData,'TaskGroup')
-                    app.updateTreeData(Tree.Children(2),NewData,'ParameterGroup')
-                    app.updateTreeData(Tree.Children(3),NewData,'OptimizationDataGroup')
-                    app.updateTreeData(Tree.Children(4),NewData,'VirtualPopulationDataGroup')
-                    app.updateTreeData(Tree.Children(5),NewData,'VirtualPopulationGenerationDataGroup')
+                    app.updateTree(Tree.Children(1),NewData,'TaskGroup')
+                    app.updateTree(Tree.Children(2),NewData,'ParameterGroup')
+                    app.updateTree(Tree.Children(3),NewData,'OptimizationDataGroup')
+                    app.updateTree(Tree.Children(4),NewData,'VirtualPopulationDataGroup')
+                    app.updateTree(Tree.Children(5),NewData,'VirtualPopulationGenerationDataGroup')
                     
                 case 'TaskGroup'
                     for idx = 1:numel(NewData.Task)
-                        app.updateTreeData(Tree.Children(idx),NewData.Task(idx),'Task')
+                        app.updateTree(Tree.Children(idx),NewData.Task(idx),'Task')
                     end
                 case 'ParameterGroup'
                     for idx = 1:numel(NewData.Parameters)
-                        app.updateTreeData(Tree.Children(idx),NewData.Parameters(idx),'Parameters')
+                        app.updateTree(Tree.Children(idx),NewData.Parameters(idx),'Parameters')
                     end
                 case 'OptimizationDataGroup'
                     for idx = 1:numel(NewData.OptimizationData)
-                        app.updateTreeData(Tree.Children(idx),NewData.OptimizationData(idx),'OptimizationData')
+                        app.updateTree(Tree.Children(idx),NewData.OptimizationData(idx),'OptimizationData')
                     end
                 case 'VirtualPopulationDataGroup'
                      for idx = 1:numel(NewData.VirtualPopulationData)
-                        app.updateTreeData(Tree.Children(idx),NewData.VirtualPopulationData(idx),'VirtualPopulationData')
+                        app.updateTree(Tree.Children(idx),NewData.VirtualPopulationData(idx),'VirtualPopulationData')
                     end
                 case 'VirtualPopulationGenerationDataGroup'
                      for idx = 1:numel(NewData.VirtualPopulationGenerationData)
-                        app.updateTreeData(Tree.Children(idx),NewData.VirtualPopulationGenerationData(idx),'VirtualPopulationGenerationData')
+                        app.updateTree(Tree.Children(idx),NewData.VirtualPopulationGenerationData(idx),'VirtualPopulationGenerationData')
                      end
                      
                 %The following rewuire the session to be updated as well. 
@@ -1345,6 +1342,7 @@ classdef ApplicationUI < matlab.apps.AppBase
                     {'scalar','positive','integer','<=',app.NumSessions}) %TODO and Discuss
                 app.SelectedSessionIdx = value;
             end
+            app.refresh()
         end
         
         function set.SessionPaths(app,value)
@@ -1353,6 +1351,7 @@ classdef ApplicationUI < matlab.apps.AppBase
             else
                 app.SessionPaths = value;
             end
+            app.refresh()
         end
         
         function value = get.SelectedSession(app)
@@ -1382,10 +1381,12 @@ classdef ApplicationUI < matlab.apps.AppBase
         
         function setCurrentSessionDirty(app)
             app.IsDirty(app.SelectedSessionIdx) = true;
+            app.refresh();
         end
         
         function setCurrentSessionClean(app)
             app.IsDirty(app.SelectedSessionIdx) = true;
+            app.refresh();
         end
         
         function value = get.UIFigure(app)
