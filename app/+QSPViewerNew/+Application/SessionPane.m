@@ -178,7 +178,7 @@ classdef SessionPane < QSPViewerNew.Application.ViewPane
         
         function createListenersAndCallbacks(obj)
             %If we have access to the value, we can create a callback.
-            %Otherwise, we can listen the the widget and take not when it
+            %Otherwise, we can listen the the widget and react when it
             %changes
             
             %Listeners
@@ -293,8 +293,7 @@ classdef SessionPane < QSPViewerNew.Application.ViewPane
             
             %Validate the temporary data
             FlagRemoveInvalid = false;
-            [StatusOK,Message] = obj.TemporarySession.validate(FlagRemoveInvalid);
-            [StatusOK,Message] = checkDuplicateNames(obj,StatusOK,Message);             
+            [StatusOK,Message] = obj.TemporarySession.validate(FlagRemoveInvalid);          
             
             if StatusOK
                 obj.TemporarySession.updateLastSavedTime();
@@ -369,10 +368,6 @@ classdef SessionPane < QSPViewerNew.Application.ViewPane
             % Remove the invalid entries
             validate(obj.TemporarySession,FlagRemoveInvalid);
             obj.draw()
-        end
-        
-        function [StatusOK,Message] = checkDuplicateNames(obj,StatusOK,Message)
-            
         end
         
     end
