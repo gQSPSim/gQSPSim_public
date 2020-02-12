@@ -30,7 +30,7 @@ classdef ViewPane < handle
         OuterGrid           matlab.ui.container.GridLayout
         SummaryPanel        matlab.ui.container.Panel
         SummaryGrid         matlab.ui.container.GridLayout
-        SummaryContent      
+        SummaryContent      QSPViewerNew.Widgets.Summary
         EditPanel           matlab.ui.container.Panel
         EditLayout          matlab.ui.container.GridLayout
         FileSelectLayout    matlab.ui.container.GridLayout
@@ -56,25 +56,28 @@ classdef ViewPane < handle
         ButtonPadding = [0,0,0,0];
         ButtonWidthSpacing = 0; 
         ButtonHeightSpacing = 0; 
-        WidgetPadding = [5,5,5,5];
-        WidgetWidthSpacing = 0; 
-        WidgetHeightSpacing = 0; 
+        WidgetPadding = [0,0,0,0];
+        WidgetWidthSpacing = 5; 
+        WidgetHeightSpacing = 5; 
         PanelPadding = [0,0,0,0];
-        PanelWidthSpacing = 0; 
-        PanelHeightSpacing = 0; 
+        PanelWidthSpacing = 5; 
+        PanelHeightSpacing = 5; 
+        SubPanelPadding = [5,5,5,5];
+        SubPanelWidthSpacing = 5; 
+        SubPanelHeightSpacing = 5; 
         OuterGridPadding = [0,0,0,0];
         OuterGridColumnSpacing = 0;
         OuterGridRowSpacing = 0;
         ButtonWidth = 30;
         ButtonHeight = 30;
-        WidgetHeight = 40;
+        WidgetHeight = 30;
         TextBoxHeight = 30;
         HeaderColor = [.25,.60,.72];
         FontSize = 15;
         Font = 'default';
         HeaderHeight = 20;
         RowSpacing = 0;
-        LabelLength = 100;
+        LabelLength = 200;
         NameProportion = '3x';
         DescriptionProportion = '5x';
         RemoveInvalidButtonWidth = 100;
@@ -82,13 +85,16 @@ classdef ViewPane < handle
         CancelButtonWidth = 100;
         EditLabelText = ' Edit';
         SummaryLabelText = ' Summary'
-        PanelBackgroundColor = [.997,.97,.97];
+        PanelBackgroundColor = [.97,.97,.97];
+        SubPanelColor = [.97,.97,.97];
+        SmallLabel = 80;
     end
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Constructor and destructor
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     methods 
+        
         function obj = ViewPane(varargin)
             if nargin == 5 && isa(varargin{1},'matlab.ui.container.GridLayout')
                 obj.Parent = varargin{1};
@@ -133,6 +139,7 @@ classdef ViewPane < handle
     % Methods for UI components initilization
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     methods (Access = private)
+        
        function create(obj)
            %Setup Outer Panel         
            obj.OuterGrid = uigridlayout(obj.Parent);
@@ -295,6 +302,7 @@ classdef ViewPane < handle
            obj.EditButton.ButtonPushedFcn = @(h,e)obj.onNavigation('Edit');
            obj.EditButton.Text = '';
        end
+       
    end
 
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -435,9 +443,7 @@ classdef ViewPane < handle
         end
         
     end
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    % get/set methods
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
     methods(Access = public)
        
         function value = getUIFigure(obj)
@@ -449,9 +455,6 @@ classdef ViewPane < handle
         end
     end
     
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    % Methods to be defined by subclasses
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     methods(Abstract)
         NotifyOfChangeInName(obj,value);
         NotifyOfChangeInDescription(obj,value);
@@ -462,8 +465,7 @@ classdef ViewPane < handle
         hideThisPane(obj);
         showThisPane(obj);
     end
-    
-    
+       
 end
 
 

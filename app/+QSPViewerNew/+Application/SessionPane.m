@@ -34,11 +34,13 @@ classdef SessionPane < QSPViewerNew.Application.ViewPane
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Constructor and destructor
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    methods        
+    methods      
+        
         function obj = SessionPane(varargin)
             obj = obj@QSPViewerNew.Application.ViewPane(varargin{:}{:},false);
             obj.create();
-        end             
+        end      
+        
     end
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -92,14 +94,6 @@ classdef SessionPane < QSPViewerNew.Application.ViewPane
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     methods(Access = private)
         
-        function markDirty(obj)
-            obj.IsDirty = true;
-        end
-        
-        function markClean(obj)
-            obj.IsDirty = false;
-        end
-        
         function [Status,Message] = checkDuplicateNames(obj,StatusOk,Message)
             %TODO Check for duplicate Names()
             Status = true;
@@ -107,9 +101,6 @@ classdef SessionPane < QSPViewerNew.Application.ViewPane
         
     end
     
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    % Methods for external use 
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%   
     methods(Access = public) 
         
         function showThisPane(obj)
@@ -123,24 +114,21 @@ classdef SessionPane < QSPViewerNew.Application.ViewPane
         function attachNewSession(obj,NewSession)
             obj.Session = NewSession;
             obj.TemporarySession = copy(obj.Session);
-            obj.markClean();
+            obj.IsDirty = false;
         end
         
     end
        
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    % Methods that must be instantiated as per superclass
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     methods(Access = public)
         
         function NotifyOfChangeInName(obj,value)
             obj.TemporarySession.Name = value;
-            obj.markDirty;
+            obj.IsDirty = false;
         end
         
         function NotifyOfChangeInDescription(obj,value)
             obj.TemporarySession.Description= value;
-            obj.markDirty;
+            obj.IsDirty = false;
         end
 
         function saveBackEndInformation(obj)
@@ -164,15 +152,10 @@ classdef SessionPane < QSPViewerNew.Application.ViewPane
                 %session pointer to the new object created
                 obj.notifyOfChange(obj.Session,previousName,newName);
                 
-                obj.markClean;
+                obj.IsDirty = true;
             else
                 uialert(obj.getUIFigure,sprintf('Cannot save changes. Please review invalid entries:\n\n%s',Message),'Cannot Save','modal');
             end
-        end
-
-        function checkForInvalid(obj)
-            disp("TODO: Checking for invalid")
-            disp(obj.Session.Name)
         end
         
         function deleteTemporary(obj)
@@ -185,6 +168,13 @@ classdef SessionPane < QSPViewerNew.Application.ViewPane
             obj.updateNameBox(obj.TemporarySession.Name);
             obj.updateSummary(obj.TemporarySession.getSummary());
         end
+        
+        function checkForInvalid(obj)
+            %This method should check each box to verify it has valid
+            %inputs before the temporarySession can be saved 
+            disp("TODO: Checking for invalid")
+        end
+        
     end
 end
 

@@ -23,7 +23,7 @@ classdef FolderSelector < handle
         FullPath;
     end
 
-    properties (SetAccess = protected, GetAccess = protected)
+    properties (Access = protected)
         ButtonHandle
         EditTextHandle
         InternalGrid
@@ -33,8 +33,12 @@ classdef FolderSelector < handle
         Column
     end
     
+    events
+        StateChanged
+    end
+    
     properties(Constant = true)
-        DescriptionSize = 100;
+        DescriptionSize = 200;
         ButtonSize = 30;
     end
     
@@ -72,6 +76,9 @@ classdef FolderSelector < handle
             obj.InternalGrid.RowHeight = {obj.ButtonSize};
             obj.InternalGrid.Padding = [0,0,0,0];
             obj.InternalGrid.ColumnSpacing = 0;
+            obj.InternalGrid.Layout.Row = obj.Row;
+            obj.InternalGrid.Layout.Column = obj.Column;
+            
             
             % Create Button
             obj.ButtonHandle = uibutton(obj.InternalGrid, 'push');
@@ -102,8 +109,9 @@ classdef FolderSelector < handle
             else 
                 obj.EditTextHandle.FontColor = 'r';
             end
-            
             obj.EditTextHandle.Value = obj.RelativePath;
+            
+            notify(obj,'StateChange')
         end
     end
     
@@ -154,15 +162,16 @@ classdef FolderSelector < handle
         function value = get.IsValid(obj)
             value = exist(obj.FullPath,'dir'); 
         end
-    end
-    
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    % Static
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    methods
         
-        function yeet(in)
+        function set.RootDirectory(obj,newDir)
+            if isfolder(newDir)
+                obj.RootDirectory = newDir;
+                obj.update();
+            else
+                warning("Valid Directory Not Provided")
+            end
         end
+        
     end
 end
 

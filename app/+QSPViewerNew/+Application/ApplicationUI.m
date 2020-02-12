@@ -54,7 +54,7 @@ classdef ApplicationUI < matlab.apps.AppBase
         PaneTypes
     end
     
-    properties (Access = public)
+    properties (Access = private)
         UIFigure                 matlab.ui.Figure
         FileMenu                 matlab.ui.container.Menu
         NewCtrlNMenu             matlab.ui.container.Menu
@@ -99,9 +99,6 @@ classdef ApplicationUI < matlab.apps.AppBase
             % Register the app with App Designer
             app.IsConstructed = true;
             
-            % Refresh the entire view
-            app.refresh();
-            app.redraw();
             
             %Save the type of the  for use in preferences
             app.Type = class(app);
@@ -117,6 +114,9 @@ classdef ApplicationUI < matlab.apps.AppBase
             
             %Draw the recent files to the menu
             app.redrawRecentFiles();
+            
+            % Refresh the entire view
+            app.refresh();
             
             if nargout == 0
                 clear app
@@ -353,400 +353,8 @@ classdef ApplicationUI < matlab.apps.AppBase
             % Show the figure after all components are created
             app.UIFigure.Visible = 'on';
         end
-    end
-    
-    % %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %%
-    %Callbacks for menu items and context menus
-    % %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %%
-    methods (Access = private)
         
-        function onNew(app,~,~)
-            %We are using multiple sessions so 
-            if app.AllowMultipleSessions || app.promptToSave()
-                app.createUntitledSession();
-            end
-        end
-        
-        function onOpen(app,~,~)
-            %Here we will determine the file path of the folder to call.
-            [FileName,PathName] = uigetfile(app.FileSpec,'Open File', app.LastFolder,'MultiSelect','on');
-
-            %Determine what type of output was provided
-            outputType = class(FileName);
-            
-            %Determine if the output was invalid
-            
-            switch outputType
-                case 'double'
-                    %The user canceled. Do Nothing
-                    return
-                case 'char'
-                    %The user selected a single path
-                    app.LastFolder = PathName;
-                    fullFilePath = fullfile(PathName,FileName);
-                    app.loadSessionFromPath(fullFilePath);
-                case 'cell'
-                    %The user selected multiple files
-                    app.LastFolder = PathName;
-                    for fileIndex = 1:length(FileName)
-                        fullFilePath = fullfile(PathName,FileName{fileIndex});
-                        app.loadSessionFromPath(fullFilePath);
-                    end
-            end
-        end
-        
-        function onClose(app,~,~)
-            disp("TODO: Close Selected");
-        end
-        
-        function onSave(app,~,~)
-            disp("TODO: Save Selected")
-        end
-        
-        function onSaveAs(app,~,~)
-            disp("TODO: Save As Selected")
-        end
-        
-        function onDeleteSelectedItem(app,~,~)
-            disp("TODO: Delete Selected");
-        end
-        
-        function onRestoreSelectedItem(app,~,~)
-            disp("TODO: Restore Selected");
-        end
-        
-        function onExit(app,~,~)
-            disp("TODO: Selected");
-        end
-        
-        function onAbout(app,~,~)
-            disp("TODO: About Selected")
-        end
-        
-        function onTreeSelectionChanged(app,handle,event)
-            %First we determine the session that is selected
-            
-            %We can select mutliple nodes at once. Therefore we need to consider if SelectedNodes is a vector
-            SelectedNodes = event.SelectedNodes;
-            Root = handle;
-
-            if length(SelectedNodes)>1
-                %We do not handle the case of multi select
-                return
-            end
-
-            SelNode = SelectedNodes;
-            ThisSessionNode = SelectedNodes;
-
-            %Find which session is the parent of the current one
-             while ~isempty(ThisSessionNode) && ThisSessionNode.Parent~=Root
-                ThisSessionNode = ThisSessionNode.Parent;                
-             end
-
-            %Update which session is currently selected
-             if isempty(ThisSessionNode)
-                app.SelectedSessionIdx = [];
-             else
-                % update path to include drop the UDF for previous session
-                % and include the UDF for current session
-                app.SelectedSession.removeUDF();
-                app.SelectedSessionIdx = find(ThisSessionNode == app.SessionNode);
-                app.SelectedSession.addUDF();
-             end
-             
-             
-             %TODO We need to update the visualization plots
-             
-             %Now that we have the correct session, we can work with the
-             app.redraw();
-             app.refresh();
-                      
-        end    
-         
-        function onAddItem(app,ItemType)
-            if ischar(ItemType)
-                ThisObj = QSP.(ItemType)();
-            elseif isobject(ItemType)
-                ThisObj = ItemType;
-                ItemType = strrep(class(ThisObj),'QSP.','');
-            else
-               error('Invalid ItemType'); 
-            end
-            
-            % special case since vpop data has been renamed to acceptance
-            % criteria
-            
-            if strcmp(ItemType, 'VirtualPopulationData')
-                ItemName = 'Acceptance Criteria';
-            elseif strcmp(ItemType, 'VirtualPopulationGenerationData')
-                ItemName = 'Target Statistics';
-            elseif strcmp(ItemType, 'VirtualPopulation')
-                ItemName = 'Virtual Subjects';
-            elseif strcmp(ItemType, 'OptimizationData')
-                ItemName = 'Dataset';
-            else
-                ItemName = ItemType;
-            end
-            
-            % Get the session
-            ThisSession = app.SelectedSession;
-            
-            
-            % Where does the item go?
-            if isprop(ThisSession,ItemType)
-                ParentObj = ThisSession;
-            else
-                ParentObj = ThisSession.Settings;
-            end
-            
-            % What tree branch does this go under?
-            ChildNodes = ParentObj.TreeNode.Children;
-            ChildTypes = {ChildNodes.UserData};
-            if any(strcmpi(ItemType,{'Simulation','Optimization','CohortGeneration','VirtualPopulationGeneration'}))
-                ThisChildNode = ChildNodes(strcmpi(ChildTypes,'Functionalities'));
-                ChildNodes = ThisChildNode.Children;
-                ChildTypes = {ChildNodes.UserData};
-            end
-            
-            ParentNode = ChildNodes(strcmp(ChildTypes,ItemType));
-            
-            % Create the new item
-            NewName = ThisObj.Name;
-            if isempty(NewName)
-                NewName = ['New ' ItemName];
-            end
-            
-            DisallowedNames = {ParentObj.(ItemType).Name};
-            NewName = matlab.lang.makeUniqueStrings(NewName, DisallowedNames);
-            ThisObj.Name = NewName;
-            if isprop(ThisObj,'Settings')
-                ThisObj.Settings = ThisSession.Settings;
-            end
-            if isprop(ThisObj,'Session')
-                ThisObj.Session = ThisSession;
-            end
-            
-            % Place the item and add the tree node
-            if isscalar(ParentNode)
-                ParentObj.(ItemType)(end+1) = ThisObj;
-                app.createTree(ParentNode, ThisObj);
-                ParentNode.expand();
-            else
-                error('Invalid tree parent');
-            end
-            
-            % Mark the current session dirty
-            app.markDirty();
-            
-            % Update the display
-            app.refresh();
-        end
-        
-        function onDuplicateItem(app,h,e)
-            disp("TODO: Duplicate This item")
-        end
-        
-    end
-    
-    % %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %%
-    % Methods for interacting with the active sessions
-    % %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %%
-    methods (Hidden = true)
-        
-        function createUntitledSession(app)
-            % Add a new session called 'untitled_x'
-            % Clear existing sessions if needed
-            if ~app.AllowMultipleSessions
-                app.SessionPaths = cell.empty(0,1);
-                %Save? 
-            end
-            
-            % Call subclass method to create storage for the new session
-            app.createNewSession();
-            
-            % Create the new session and select it
-            NewName = matlab.lang.makeUniqueStrings('untitled',app.SessionNames);
-            idxNew = app.NumSessions +1;
-            app.SessionPaths{idxNew} = NewName;
-            app.IsDirty(idxNew) = false;
-
-            % remove UDF from selected session
-            app.SelectedSession.removeUDF();
-            app.SelectedSessionIdx = idxNew;
-            
-            app.redraw();
-            app.refresh(); %Call refresh of the main app
-        end
-        
-        function createNewSession(app,Session)
-            % Was a session provided? If not, make a new one
-            if nargin < 2
-                Session = QSP.Session();
-            end
-            
-            % Add the session to the tree
-            Root = app.TreeRoot;
-            app.createTree(Root, Session);
-
-
-            % % Update the app state
-            
-            % Which session is this?
-            newIdx = app.NumSessions + 1;
-            
-            % Add the session to the app
-            app.Sessions(newIdx) = Session;
-
-            % Start timer
-            initializeTimer(Session);
-        end
-        
-        function loadSessionFromPath(app, fullFilePath)  
-            % Loads a session file from disk found at fullFilePath.
-            
-            sessionStatus = app.verifyValidSessionFilePath(fullFilePath);
-            StatusOk = true;
-            if ~sessionStatus
-                return;
-            end
-
-            %Try to load the session
-            try
-               loadedSession = load(fullFilePath, 'Session');
-            catch err
-                StatusOk = false;
-                Message = sprintf('The file %s could not be loaded:\n%s', fullFilePath, err.message);
-            end
-
-            %Verify that the Session file has the correct atrributes
-            try
-                validateattributes(loadedSession.Session, {'QSP.Session'}, {'scalar'});
-            catch err
-                 StatusOk =false;
-                 Message = sprintf(['The file %s did not contain a valid '...
-                    'Session object:\n%s'], fullFilePath, err.message);
-            end
-
-            %Check if the file is supposed to be removed
-            if StatusOk && loadedSession.Session.toRemove
-               StatusOk = false;
-               Message = sprintf(['The file %s did not contain a valid '...
-                    'Session object:\n%s'], fullFilePath, err.message);
-            end
-
-            %If any of the above failed, we exit and disply why
-            if StatusOk == false
-                uialert(app.UIFigure, Message, 'Invalid File')
-                return
-            end
-
-            %We have verified the session path, now verify the root
-            %directory
-            [status,newFilePath] = app.getValidSessionRootDirectory(loadedSession.Session.RootDirectory);
-
-            %If the status is false, we cannot find a valid root. Abandon
-            %call
-            if ~status
-                return
-            end
-
-            %Copy the sessionobject, then add it the application
-            Session = copy(loadedSession.Session);
-            loadedSession.Session.RootDirectory = newFilePath;
-            app.createNewSession(Session);
-            
-            %Edit the app properties to reflect a new loaded session was
-            %added
-            idxNew = app.NumSessions + 1;
-            app.SessionPaths{idxNew} = fullFilePath;
-            app.IsDirty(idxNew) = false;
-            app.SelectedSessionIdx = idxNew;
-            app.addRecentSessionPath(fullFilePath);
-
-            %Refresh the view
-            app.redraw();
-            app.refresh();
-        end
-        
-        function status = verifyValidSessionFilePath(app, fullFilePath)
-            % This status function checks whether the filepath provided is valid
-            %If not, it will try to find a valid session path
-            %If the user cannot find a valid session path, the output is
-            %false
-            status = true;
-           
-           if ~exist(fullFilePath,'file')
-                Message = sprintf('The specified file does not exist: \n%s',fullFilePath);
-                uialert(app.UIFigure,Message,'Invalid File');
-                status =false;
-            end
-            
-            %Check that the file isnt already loaded
-            if ismember(fullFilePath, app.SessionPaths)
-                Message = sprintf('The specified file is already open: \n%s',fullFilePath);
-                uialert(app.UIFigure,Message,'Invalid File');
-                status = false;
-            end
-        end
-       
-        function [status,newFilePath] = getValidSessionRootDirectory(app,filePath)
-            %Check if a directory exists. If not, find a valid one.
-            existence = exist(filePath,'dir');
-            
-            %Check if the directory exists
-            if existence
-                
-                %If the directory exists, we set the output values
-                status =true;
-                newFilePath = filePath;
-            else
-                questionResult = uiconfirm(app.UIFigure,'Session root directory is invalid. Select a new root directory?',...
-                    'Select root directory','Options', {'Yes','Cancel'}, 'Icon', 'question');
-
-                %If they they would like to add a new root directory
-                if strcmp(questionResult,'Yes')
-                    rootDir = uigetdir('Select valid session root directory');
-
-                    %If the new root directory is valid
-                    if rootDir ~= 0
-                         status =true;
-                         newFilePath = rootDir;
-                    else 
-                        status =false;
-                        newFilePath = '';
-                        uialert(app.UIFigure,'The newly selected root directory was not valid','Invalid Directory');
-                    end
-                else
-                    %They chose not to select a new file. 
-                    status = false;
-                    newFilePath = '';
-                end
-            end     
-        end
-        
-        function addRecentSessionPath(app,newPath)
-            %Check if the new location is already listed
-            isInRecent  = ismember(app.RecentSessionPaths,newPath);
-            app.RecentSessionPaths(isInRecent) = [];
-            
-            %Add the File to the top of the list
-            app.RecentSessionPaths = vertcat(newPath,app.RecentSessionPaths);
-            
-            %Crop the 9 most recent entries;
-            app.RecentSessionPaths(9:end) = [];
-            
-            %redraw this context menu
-            app.redrawRecentFiles()
-        end
-        
-    end
-    
-    % %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %%
-    % Methods for drawing UI components.
-    % %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %%
-    methods (Access = public)
-        
-       function createTree(app, Parent, AllData)
+        function createTree(app, Parent, AllData)
             % Nodes that take children have the type of child as a string in the UserData
             % property. Nodes that are children and are movable have [] in UserData.
             % Get short name to call this function recursively
@@ -917,6 +525,388 @@ classdef ApplicationUI < matlab.apps.AppBase
                 end
             end %for
        end %function
+        
+    end
+    
+    % %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %%
+    %Callbacks for menu items and context menus
+    % %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %%
+    methods (Access = private)
+        
+        function onNew(app,~,~)
+            %We are using multiple sessions so 
+            if app.AllowMultipleSessions || app.promptToSave()
+                app.createUntitledSession();
+            end
+            
+            app.refresh();
+        end
+        
+        function onOpen(app,~,~)
+            %Here we will determine the file path of the folder to call.
+            [FileName,PathName] = uigetfile(app.FileSpec,'Open File', app.LastFolder,'MultiSelect','on');
+
+            %Determine what type of output was provided
+            outputType = class(FileName);
+            
+            %Determine if the output was invalid
+            
+            switch outputType
+                case 'double'
+                    %The user canceled. Do Nothing
+                case 'char'
+                    %The user selected a single path
+                    app.LastFolder = PathName;
+                    fullFilePath = fullfile(PathName,FileName);
+                    app.loadSessionFromPath(fullFilePath);
+                case 'cell'
+                    %The user selected multiple files
+                    app.LastFolder = PathName;
+                    for fileIndex = 1:length(FileName)
+                        fullFilePath = fullfile(PathName,FileName{fileIndex});
+                        app.loadSessionFromPath(fullFilePath);
+                    end
+            end
+            
+            app.refresh();
+        end
+        
+        function onClose(app,~,~)
+            disp("TODO: Close Selected");
+        end
+        
+        function onSave(app,~,~)
+            disp("TODO: Save Selected")
+        end
+        
+        function onSaveAs(app,~,~)
+            disp("TODO: Save As Selected")
+        end
+        
+        function onDeleteSelectedItem(app,~,~)
+            disp("TODO: Delete Selected");
+        end
+        
+        function onRestoreSelectedItem(app,~,~)
+            disp("TODO: Restore Selected");
+        end
+        
+        function onExit(app,~,~)
+            disp("TODO: Selected");
+        end
+        
+        function onAbout(app,~,~)
+            disp("TODO: About Selected")
+        end
+        
+        function onTreeSelectionChanged(app,handle,event)
+            %First we determine the session that is selected
+            
+            %We can select mutliple nodes at once. Therefore we need to consider if SelectedNodes is a vector
+            SelectedNodes = event.SelectedNodes;
+            Root = handle;
+
+            %We only make changes if a single node is selected
+            if length(SelectedNodes)==1
+                SelNode = SelectedNodes;
+                ThisSessionNode = SelectedNodes;
+
+                %Find which session is the parent of the current one
+                 while ~isempty(ThisSessionNode) && ThisSessionNode.Parent~=Root
+                    ThisSessionNode = ThisSessionNode.Parent;                
+                 end
+
+                %Update which session is currently selected
+                 if isempty(ThisSessionNode)
+                    app.SelectedSessionIdx = [];
+                 else
+                    % update path to include drop the UDF for previous session
+                    % and include the UDF for current session
+                    app.SelectedSession.removeUDF();
+                    app.SelectedSessionIdx = find(ThisSessionNode == app.SessionNode);
+                    app.SelectedSession.addUDF();
+                 end
+
+
+                 %TODO We need to update the visualization plots
+
+                 %Now that we have the correct session, we can work with the
+                 app.refresh();
+            end
+        end    
+         
+        function onAddItem(app,ItemType)
+            if ischar(ItemType)
+                ThisObj = QSP.(ItemType)();
+            elseif isobject(ItemType)
+                ThisObj = ItemType;
+                ItemType = strrep(class(ThisObj),'QSP.','');
+            else
+               error('Invalid ItemType'); 
+            end
+            
+            % special case since vpop data has been renamed to acceptance
+            % criteria
+            
+            if strcmp(ItemType, 'VirtualPopulationData')
+                ItemName = 'Acceptance Criteria';
+            elseif strcmp(ItemType, 'VirtualPopulationGenerationData')
+                ItemName = 'Target Statistics';
+            elseif strcmp(ItemType, 'VirtualPopulation')
+                ItemName = 'Virtual Subjects';
+            elseif strcmp(ItemType, 'OptimizationData')
+                ItemName = 'Dataset';
+            else
+                ItemName = ItemType;
+            end
+            
+            % Get the session
+            ThisSession = app.SelectedSession;
+            
+            
+            % Where does the item go?
+            if isprop(ThisSession,ItemType)
+                ParentObj = ThisSession;
+            else
+                ParentObj = ThisSession.Settings;
+            end
+            
+            % What tree branch does this go under?
+            ChildNodes = ParentObj.TreeNode.Children;
+            ChildTypes = {ChildNodes.UserData};
+            if any(strcmpi(ItemType,{'Simulation','Optimization','CohortGeneration','VirtualPopulationGeneration'}))
+                ThisChildNode = ChildNodes(strcmpi(ChildTypes,'Functionalities'));
+                ChildNodes = ThisChildNode.Children;
+                ChildTypes = {ChildNodes.UserData};
+            end
+            
+            ParentNode = ChildNodes(strcmp(ChildTypes,ItemType));
+            
+            % Create the new item
+            NewName = ThisObj.Name;
+            if isempty(NewName)
+                NewName = ['New ' ItemName];
+            end
+            
+            DisallowedNames = {ParentObj.(ItemType).Name};
+            NewName = matlab.lang.makeUniqueStrings(NewName, DisallowedNames);
+            ThisObj.Name = NewName;
+            if isprop(ThisObj,'Settings')
+                ThisObj.Settings = ThisSession.Settings;
+            end
+            if isprop(ThisObj,'Session')
+                ThisObj.Session = ThisSession;
+            end
+            
+            % Place the item and add the tree node
+            if isscalar(ParentNode)
+                ParentObj.(ItemType)(end+1) = ThisObj;
+                app.createTree(ParentNode, ThisObj);
+                ParentNode.expand();
+            else
+                error('Invalid tree parent');
+            end
+            
+            % Mark the current session dirty
+            app.markDirty();
+            
+            % Update the display
+            app.refresh();
+        end
+        
+        function onDuplicateItem(app,h,e)
+            disp("TODO: Duplicate This item")
+        end
+        
+    end
+    
+    % %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %%
+    % Methods for interacting with the active sessions
+    % %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %%
+    methods (Access = private)
+        
+        function createUntitledSession(app)
+            % Add a new session called 'untitled_x'
+            % Clear existing sessions if needed
+            if ~app.AllowMultipleSessions
+                app.SessionPaths = cell.empty(0,1);
+                %Save? 
+            end
+            
+            % Call subclass method to create storage for the new session
+            app.createNewSession();
+            
+            % Create the new session and select it
+            NewName = matlab.lang.makeUniqueStrings('untitled',app.SessionNames);
+            idxNew = app.NumSessions +1;
+            app.SessionPaths{idxNew} = NewName;
+            app.IsDirty(idxNew) = false;
+
+            % remove UDF from selected session
+            app.SelectedSession.removeUDF();
+            app.SelectedSessionIdx = idxNew;
+            
+        end
+        
+        function createNewSession(app,Session)
+            % Was a session provided? If not, make a new one
+            if nargin < 2
+                Session = QSP.Session();
+            end
+            
+            % Add the session to the tree
+            Root = app.TreeRoot;
+            app.createTree(Root, Session);
+
+
+            % % Update the app state
+            
+            % Which session is this?
+            newIdx = app.NumSessions + 1;
+            
+            % Add the session to the app
+            app.Sessions(newIdx) = Session;
+
+            % Start timer
+            initializeTimer(Session);
+        end
+        
+        function loadSessionFromPath(app, fullFilePath)  
+            % Loads a session file from disk found at fullFilePath.
+            
+            sessionStatus = app.verifyValidSessionFilePath(fullFilePath);
+            StatusOk = true;
+            if sessionStatus
+                %Try to load the session
+                try
+                   loadedSession = load(fullFilePath, 'Session');
+                catch err
+                    StatusOk = false;
+                    Message = sprintf('The file %s could not be loaded:\n%s', fullFilePath, err.message);
+                end
+
+                %Verify that the Session file has the correct atrributes
+                try
+                    validateattributes(loadedSession.Session, {'QSP.Session'}, {'scalar'});
+                catch err
+                     StatusOk =false;
+                     Message = sprintf(['The file %s did not contain a valid '...
+                        'Session object:\n%s'], fullFilePath, err.message);
+                end
+
+                %Check if the file is supposed to be removed
+                if StatusOk && loadedSession.Session.toRemove
+                   StatusOk = false;
+                   Message = sprintf(['The file %s did not contain a valid '...
+                        'Session object:\n%s'], fullFilePath, err.message);
+                end
+
+                %If any of the above failed, we exit and disply why
+                if StatusOk == false
+                    uialert(app.UIFigure, Message, 'Invalid File')
+                else
+                    %We have verified the session path, now verify the root
+                    %directory
+                    [status,newFilePath] = app.getValidSessionRootDirectory(loadedSession.Session.RootDirectory);
+
+                    %If the status is false, we cannot find a valid root. Abandon
+                    %call
+                    if status
+                        %Copy the sessionobject, then add it the application
+                        Session = copy(loadedSession.Session);
+                        loadedSession.Session.RootDirectory = newFilePath;
+                        app.createNewSession(Session);
+
+                        %Edit the app properties to reflect a new loaded session was
+                        %added
+                        idxNew = app.NumSessions + 1;
+                        app.SessionPaths{idxNew} = fullFilePath;
+                        app.IsDirty(idxNew) = false;
+                        app.SelectedSessionIdx = idxNew;
+                        app.addRecentSessionPath(fullFilePath);
+
+                    end
+                end
+            end
+        end
+        
+        function status = verifyValidSessionFilePath(app, fullFilePath)
+            % This status function checks whether the filepath provided is valid
+            %If not, it will try to find a valid session path
+            %If the user cannot find a valid session path, the output is
+            %false
+            status = true;
+           
+           if ~exist(fullFilePath,'file')
+                Message = sprintf('The specified file does not exist: \n%s',fullFilePath);
+                uialert(app.UIFigure,Message,'Invalid File');
+                status =false;
+            end
+            
+            %Check that the file isnt already loaded
+            if ismember(fullFilePath, app.SessionPaths)
+                Message = sprintf('The specified file is already open: \n%s',fullFilePath);
+                uialert(app.UIFigure,Message,'Invalid File');
+                status = false;
+            end
+        end
+       
+        function [status,newFilePath] = getValidSessionRootDirectory(app,filePath)
+            %Check if a directory exists. If not, find a valid one.
+            existence = exist(filePath,'dir');
+            
+            %Check if the directory exists
+            if existence
+                
+                %If the directory exists, we set the output values
+                status =true;
+                newFilePath = filePath;
+            else
+                questionResult = uiconfirm(app.UIFigure,'Session root directory is invalid. Select a new root directory?',...
+                    'Select root directory','Options', {'Yes','Cancel'}, 'Icon', 'question');
+
+                %If they they would like to add a new root directory
+                if strcmp(questionResult,'Yes')
+                    rootDir = uigetdir('Select valid session root directory');
+
+                    %If the new root directory is valid
+                    if rootDir ~= 0
+                         status =true;
+                         newFilePath = rootDir;
+                    else 
+                        status =false;
+                        newFilePath = '';
+                        uialert(app.UIFigure,'The newly selected root directory was not valid','Invalid Directory');
+                    end
+                else
+                    %They chose not to select a new file. 
+                    status = false;
+                    newFilePath = '';
+                end
+            end     
+        end
+        
+        function addRecentSessionPath(app,newPath)
+            %Check if the new location is already listed
+            isInRecent  = ismember(app.RecentSessionPaths,newPath);
+            app.RecentSessionPaths(isInRecent) = [];
+            
+            %Add the File to the top of the list
+            app.RecentSessionPaths = vertcat(newPath,app.RecentSessionPaths);
+            
+            %Crop the 9 most recent entries;
+            app.RecentSessionPaths(9:end) = [];
+            
+            %redraw this context menu
+            app.redrawRecentFiles()
+        end
+        
+    end
+    
+    % %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %%
+    % Methods for drawing UI components.
+    % %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %%
+    methods (Access = public)
        
        function disableInteraction(app)
            app.TreeRoot.Enable = 'off';
@@ -936,7 +926,9 @@ classdef ApplicationUI < matlab.apps.AppBase
            
            %2. It must update the tree to reflect all the new values from
            %the session
-           app.updateTree(app.TreeRoot.Children(app.SelectedSessionIdx),newSession,'Session')
+           app.updateTreeData(app.TreeRoot.Children(app.SelectedSessionIdx),newSession,'Session')
+           
+           app.refresh();
         end
        
     end
@@ -944,103 +936,27 @@ classdef ApplicationUI < matlab.apps.AppBase
     % %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %
     %methods for toggling interactivity and updating the view
     % %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %
-    methods (Access = protected)
-        
-        function redraw(app)
-            %redraw redraws the titles of the sessions
-            % Get some criteria on selection and whether it's dirty
-            SelectionNotEmpty = ~isempty(app.SessionNames) && ~isempty(app.SelectedSessionIdx);
-            SelectionIsDirty = SelectionNotEmpty && any(app.IsDirty(app.SelectedSessionIdx));
-            
-            % Update title bar
-            if SelectionNotEmpty
-                CurrentFile = app.SessionNames{app.SelectedSessionIdx};
-            else
-                CurrentFile = '';
-            end
-            if SelectionIsDirty
-                StarStr = ' *';
-            else
-                StarStr = '';
-            end
-            app.Title = sprintf('%s - %s%s', app.AppName, CurrentFile, StarStr);
-            
-            % Enable File->Save only if selection is dirty
-            set(app.SaveCtrlSMenu,'Enable',app.tf2onoff(SelectionIsDirty))
-            
-            % Enable File->SaveAs and File->Close only if selection is made
-            set([app.SaveAsMenu, app.CloseMenu],...
-                'Enable',app.tf2onoff(SelectionNotEmpty)); 
-        end
+    methods (Access = private)
         
         function markDirty(app)
             %TODO: markDirty
         end
         
         function refresh(app)
-            %refresh changes the actual UI components
-           if ~app.IsConstructed
-              return
-           end
-            
-           % What is selected?
-            SelNode = app.TreeRoot.SelectedNodes; %Nodes
-            sIdx = app.SelectedSessionIdx; %index
-            
-            IsOneSessionSelected = isscalar(sIdx);
-            IsSelectedSessionDirty = isequal(app.IsDirty(app.SelectedSessionIdx), true);
+            %This method refreshes the view of the screen
+            if app.IsConstructed
+                %Update the names displayed in the tree
+                app.updateTreeNames();
 
+                %Update the file menu
+                app.updateFileMenu();
 
-            if isscalar(SelNode) && isequal(SelNode.UserData,[])
-                if strcmp(SelNode.Parent.UserData,'Deleted')
-                    IsNodeRestorable = true;
-                    IsNodeRemovable = false;
-                else
-                    IsNodeRestorable = false;
-                    IsNodeRemovable = true;
-                end
-            else
-                IsNodeRestorable = false;
-                IsNodeRemovable = false;
+                %Update the title of the application
+                app.updateAppTitle();
+
+                %Update the current shown frame
+                app.updatePane();
             end
-            
-            set(app.AddNewItemMenu,'Enable',app.tf2onoff(IsOneSessionSelected));
-            set(app.DeleteSelectedItemMenu,'Enable',app.tf2onoff(IsNodeRemovable));
-            set(app.RestoreSelectedItemMenu,'Enable',app.tf2onoff(IsNodeRestorable));
-
-            % Enable/disable Save on tree context menu for session branch
-            % Only do this if the session is dirty
-            set(app.SaveCtrlSMenu,'Enable',app.tf2onoff(IsSelectedSessionDirty))
-            
-            % Update each session node in the tree
-            for idx=1:app.NumSessions
-    
-                % Get the session name for this node
-                ThisRawName = app.SessionNames{idx};
-                ThisName = ThisRawName;
-
-                % Add dirty flag if needed
-                if app.IsDirty(idx)
-                    ThisName = strcat(ThisName, ' *');
-                end
-                
-                %Update the Node
-                app.SessionNode(idx).Text = ThisName;
-                
-                %Assign the new name
-                setSessionName(app.Sessions(idx),ThisRawName);
-            end
-            
-            % Update the name on the tree
-            checkScaler = isscalar(SelNode) && isscalar(SelNode.NodeData);
-            checkType =~isempty(SelNode) && isprop(SelNode.NodeData,'Name') && ~strcmp(SelNode.NodeData.Name, SelNode.Text) && ...
-            ~strcmpi(class(SelNode.NodeData),'QSP.Session'); %We dont want to update the name for a session
-            
-            if checkScaler && checkType
-                SelNode.Name = SelNode.Value.Name;
-            end
-            
-            app.updatePane(SelNode);
         end
         
         function redrawRecentFiles(app)
@@ -1063,29 +979,85 @@ classdef ApplicationUI < matlab.apps.AppBase
             end 
         end
         
-        function updatePane(app,NodeSelected)
-            %Determine if the Node will launch a Pane
-            LaunchPane = ~isempty(NodeSelected) && isempty(NodeSelected.UserData);
+        function updateFileMenu(app)
+            %This will update the file menu interactivity based on the current state of the application 
             
+            %Find the current Node
+            SelNode = app.TreeRoot.SelectedNodes; %Nodes
+            sIdx = app.SelectedSessionIdx; %index          
+            
+            %Determine if the Node is deleted and update this menu
+            if isscalar(SelNode) && isequal(SelNode.UserData,[])
+                if strcmp(SelNode.Parent.UserData,'Deleted')
+                    IsNodeRestorableTF = true;
+                    IsNodeRemovableTF = false;
+                else
+                    IsNodeRestorableTF = false;
+                    IsNodeRemovableTF = true;
+                end
+            else
+                IsNodeRestorableTF = false;
+                IsNodeRemovableTF = false;
+            end
+            set(app.DeleteSelectedItemMenu,'Enable',app.tf2onoff(IsNodeRemovableTF));
+            set(app.RestoreSelectedItemMenu,'Enable',app.tf2onoff(IsNodeRestorableTF));
+            
+            %Determine if a new item can be added
+            IsOneSessionSelectedTF = isscalar(sIdx);
+            set(app.AddNewItemMenu,'Enable',app.tf2onoff(IsOneSessionSelectedTF));
+              
+            %Determine if the file is new and should be saved as or saved
+            SelectionNotEmpty = ~isempty(app.SessionNames) && ~isempty(app.SelectedSessionIdx);
+            SelectionIsDirty = SelectionNotEmpty && any(app.IsDirty(app.SelectedSessionIdx));
+            set(app.SaveCtrlSMenu,'Enable',app.tf2onoff(SelectionIsDirty));
+            set([app.SaveAsMenu, app.CloseMenu],...
+                'Enable',app.tf2onoff(SelectionNotEmpty)); 
+            
+            
+        end
+        
+        function updateAppTitle(app)
+            % Update title bar
+            
+            SelectionNotEmptyTF = ~isempty(app.SessionNames) && ~isempty(app.SelectedSessionIdx);
+            SelectionIsDirtyTF = SelectionNotEmptyTF && any(app.IsDirty(app.SelectedSessionIdx));
+            if SelectionNotEmptyTF
+                CurrentFile = app.SessionNames{app.SelectedSessionIdx};
+            else
+                CurrentFile = '';
+            end
+            if SelectionIsDirtyTF
+                StarStr = ' *';
+            else
+                StarStr = '';
+            end
+            app.Title = sprintf('%s - %s%s', app.AppName, CurrentFile, StarStr);
+            app.UIFigure.Name = app.Title;
+            
+        end
+        
+        function updatePane(app)
+            %Find the currently selected Node
+            NodeSelected = app.TreeRoot.SelectedNodes; %Nodes       
+            %Determine if the Node will launch a Pane
+            LaunchPaneTF = ~isempty(NodeSelected) && isempty(NodeSelected.UserData);
+
             %If we shouldnt launch a pane and there is currently a pane,
             %close it
-            if ~LaunchPane && ~isempty(app.ActivePane)
+            if ~LaunchPaneTF && ~isempty(app.ActivePane)
                 app.ActivePane.hideThisPane();
                 app.ActivePane = [];
-                return
-            elseif ~LaunchPane
-                return
-            end
-               
-            %Determine if the pane type has already been loaded
-            PaneType = app.GetPaneClassFromQSPClass(class(NodeSelected.NodeData));
-            idxPane = find(strcmp(PaneType,app.PaneTypes),1);
-            if isempty(idxPane)
-                %Launch a new Panewith the data provided
-                app.launchNewPane(NodeSelected.NodeData);
-            else
-                %Launch a pane that already exists with the new data
-                app.launchOldPane(NodeSelected.NodeData);
+            elseif LaunchPaneTF        
+                %Determine if the pane type has already been loaded
+                PaneType = app.GetPaneClassFromQSPClass(class(NodeSelected.NodeData));
+                idxPane = app.PaneTypes(strcmp(app.PaneTypes,PaneType));
+                if isempty(idxPane)
+                    %Launch a new Panewith the data provided
+                    app.launchNewPane(NodeSelected.NodeData);
+                else
+                    %Launch a pane that already exists with the new data
+                    app.launchOldPane(NodeSelected.NodeData);
+                end
             end
         end
         
@@ -1095,6 +1067,7 @@ classdef ApplicationUI < matlab.apps.AppBase
             
             %This switch determines the correct type of Pane and creates it
             %The default is that it is not shown
+            %TODO: Address this switch statment to refactor
             switch class(NodeData)
                 case 'QSP.Session'
                     app.ActivePane = QSPViewerNew.Application.SessionPane(classInputs);
@@ -1161,7 +1134,7 @@ classdef ApplicationUI < matlab.apps.AppBase
             
         end
         
-        function updateTree(app,Tree,NewData,type)
+        function updateTreeData(app,Tree,NewData,type)
             %1. Update the Node information
             Tree.NodeData = NewData;
             
@@ -1172,9 +1145,9 @@ classdef ApplicationUI < matlab.apps.AppBase
                 case 'Session'
                     %If a session, we must check settings,functionalties,
                     %and deleted item
-                    app.updateTree(Tree.Children(1),NewData.Settings,'BuildingBlocks')
-                    app.updateTree(Tree.Children(2),NewData,'Functionalities')
-                    app.updateTree(Tree.Children(3),NewData.Deleted,'Deleted')
+                    app.updateTreeData(Tree.Children(1),NewData.Settings,'BuildingBlocks')
+                    app.updateTreeData(Tree.Children(2),NewData,'Functionalities')
+                    app.updateTreeData(Tree.Children(3),NewData.Deleted,'Deleted')
                     
                     %If we are updating the session, we need to update the
                     %name
@@ -1182,31 +1155,31 @@ classdef ApplicationUI < matlab.apps.AppBase
                     
                 case 'Building Blocks'
                     %Iterate through the 5 Subcategories
-                    app.updateTree(Tree.Children(1),NewData,'TaskGroup')
-                    app.updateTree(Tree.Children(2),NewData,'ParameterGroup')
-                    app.updateTree(Tree.Children(3),NewData,'OptimizationDataGroup')
-                    app.updateTree(Tree.Children(4),NewData,'VirtualPopulationDataGroup')
-                    app.updateTree(Tree.Children(5),NewData,'VirtualPopulationGenerationDataGroup')
+                    app.updateTreeData(Tree.Children(1),NewData,'TaskGroup')
+                    app.updateTreeData(Tree.Children(2),NewData,'ParameterGroup')
+                    app.updateTreeData(Tree.Children(3),NewData,'OptimizationDataGroup')
+                    app.updateTreeData(Tree.Children(4),NewData,'VirtualPopulationDataGroup')
+                    app.updateTreeData(Tree.Children(5),NewData,'VirtualPopulationGenerationDataGroup')
                     
                 case 'TaskGroup'
                     for idx = 1:numel(NewData.Task)
-                        app.updateTree(Tree.Children(idx),NewData.Task(idx),'Task')
+                        app.updateTreeData(Tree.Children(idx),NewData.Task(idx),'Task')
                     end
                 case 'ParameterGroup'
                     for idx = 1:numel(NewData.Parameters)
-                        app.updateTree(Tree.Children(idx),NewData.Parameters(idx),'Parameters')
+                        app.updateTreeData(Tree.Children(idx),NewData.Parameters(idx),'Parameters')
                     end
                 case 'OptimizationDataGroup'
                     for idx = 1:numel(NewData.OptimizationData)
-                        app.updateTree(Tree.Children(idx),NewData.OptimizationData(idx),'OptimizationData')
+                        app.updateTreeData(Tree.Children(idx),NewData.OptimizationData(idx),'OptimizationData')
                     end
                 case 'VirtualPopulationDataGroup'
                      for idx = 1:numel(NewData.VirtualPopulationData)
-                        app.updateTree(Tree.Children(idx),NewData.VirtualPopulationData(idx),'VirtualPopulationData')
+                        app.updateTreeData(Tree.Children(idx),NewData.VirtualPopulationData(idx),'VirtualPopulationData')
                     end
                 case 'VirtualPopulationGenerationDataGroup'
                      for idx = 1:numel(NewData.VirtualPopulationGenerationData)
-                        app.updateTree(Tree.Children(idx),NewData.VirtualPopulationGenerationData(idx),'VirtualPopulationGenerationData')
+                        app.updateTreeData(Tree.Children(idx),NewData.VirtualPopulationGenerationData(idx),'VirtualPopulationGenerationData')
                      end
                      
                 %The following rewuire the session to be updated as well. 
@@ -1220,6 +1193,37 @@ classdef ApplicationUI < matlab.apps.AppBase
                 case 'VirtualPopulationGeneration'
                     Tree.NodeData.Session = app.Sessions(app.SelectedSessionIdx);
             end 
+        end
+        
+        function updateTreeNames(app)
+            % Update the title of each session to reflect if its dirty
+            for idx=1:app.NumSessions
+
+                % Get the session name for this node
+                ThisRawName = app.SessionNames{idx};
+                ThisName = ThisRawName;
+
+                % Add dirty flag if needed
+                if app.IsDirty(idx)
+                    ThisName = strcat(ThisName, ' *');
+                end
+
+                %Update the Node
+                app.SessionNode(idx).Text = ThisName;
+
+                %Assign the new name
+                setSessionName(app.Sessions(idx),ThisRawName);
+            end
+            
+            %Update the selected node's name in the tree based on the
+            %name,unless it is a session
+            SelNode = app.TreeRoot.SelectedNodes;
+            checkScalerTF = isscalar(SelNode) && isscalar(SelNode.NodeData);
+            checkTypeTF =~isempty(SelNode) && isprop(SelNode.NodeData,'Name') && ~strcmp(SelNode.NodeData.Name, SelNode.Text) && ...
+            ~strcmpi(class(SelNode.NodeData),'QSP.Session'); %We dont want to update the name for a session
+            if checkScalerTF && checkTypeTF
+                SelNode.Name = SelNode.Value.Name;
+            end
         end
        
     end
@@ -1341,7 +1345,6 @@ classdef ApplicationUI < matlab.apps.AppBase
                     {'scalar','positive','integer','<=',app.NumSessions}) %TODO and Discuss
                 app.SelectedSessionIdx = value;
             end
-            app.redraw()
         end
         
         function set.SessionPaths(app,value)
@@ -1350,7 +1353,6 @@ classdef ApplicationUI < matlab.apps.AppBase
             else
                 app.SessionPaths = value;
             end
-            app.redraw()
         end
         
         function value = get.SelectedSession(app)
@@ -1380,16 +1382,16 @@ classdef ApplicationUI < matlab.apps.AppBase
         
         function setCurrentSessionDirty(app)
             app.IsDirty(app.SelectedSessionIdx) = true;
-            app.redraw();
-            app.refresh();
         end
         
-        function setCurrentSessionCleam(app)
+        function setCurrentSessionClean(app)
             app.IsDirty(app.SelectedSessionIdx) = true;
-            app.redraw();
-            app.refresh();
         end
-            
+        
+        function value = get.UIFigure(app)
+            value = app.UIFigure;
+        end
+        
     end
     
 end
