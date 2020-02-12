@@ -316,7 +316,7 @@ classdef ViewPane < handle
         end
         
         function onRemoveInvalid(obj)
-            obj.checkForInvalid;
+            obj.checkForInvalid();
         end
         
         function onSave(obj)
@@ -327,15 +327,19 @@ classdef ViewPane < handle
         
         function onCancel(obj)
             %Prompt the user to makse sure they want to cancel;
-            Options = {'Save','Don''t Save','Cancel'};
-            selection = uiconfirm(obj.ParentApp.UIFigure,...
-            'Changes Have not been saved. How would you like to continue?',...
-               'Continue?','Options',Options,'DefaultOption',3);
+            if obj.checkDirty()
+                Options = {'Save','Don''t Save','Cancel'};
+                selection = uiconfirm(obj.getUIFigure,...
+                'Changes Have not been saved. How would you like to continue?',...
+                   'Continue?','Options',Options,'DefaultOption',3);
+            else
+                selection = 'Don''t Save';
+            end
            
            %Determine next steps based on their response
             switch selection
                 case 'Save'   
-                    
+                   
                     %Save as normal
                     obj.onSave();
                 case 'Don''t Save'
@@ -438,7 +442,7 @@ classdef ViewPane < handle
             obj.OuterGrid.Visible = 'on';
         end
         
-        function notifyOfChange(obj,newBackEndObject,oldName,newName)
+        function notifyOfChange(obj,newBackEndObject)
             obj.ParentApp.changeInBackEnd(newBackEndObject);
         end
         
@@ -447,7 +451,7 @@ classdef ViewPane < handle
     methods(Access = public)
        
         function value = getUIFigure(obj)
-            value = obj.ParentApp.UIFigure;
+            value = obj.ParentApp.getUIFigure();
         end
         
         function value = getEditGrid(obj)
@@ -464,6 +468,7 @@ classdef ViewPane < handle
         deleteTemporary(obj);
         hideThisPane(obj);
         showThisPane(obj);
+        checkDirty(obj);
     end
        
 end

@@ -568,7 +568,6 @@ classdef ApplicationUI < matlab.apps.AppBase
                     end
             end
             
-            app.refresh();
         end
         
         function onClose(app,~,~)
@@ -828,6 +827,7 @@ classdef ApplicationUI < matlab.apps.AppBase
                     end
                 end
             end
+            app.refresh();
         end
         
         function status = verifyValidSessionFilePath(app, fullFilePath)
@@ -1047,7 +1047,7 @@ classdef ApplicationUI < matlab.apps.AppBase
             if ~LaunchPaneTF && ~isempty(app.ActivePane)
                 app.ActivePane.hideThisPane();
                 app.ActivePane = [];
-            elseif LaunchPaneTF        
+            elseif LaunchPaneTF  
                 %Determine if the pane type has already been loaded
                 PaneType = app.GetPaneClassFromQSPClass(class(NodeSelected.NodeData));
                 idxPane = app.PaneTypes(strcmp(app.PaneTypes,PaneType));
@@ -1065,12 +1065,19 @@ classdef ApplicationUI < matlab.apps.AppBase
             %Inputs that the pane API should require in the constructor
             classInputs = {app.GridLayout,1,2,app};
             
+            %Need to hide old pane
+            if ~isempty(app.ActivePane)
+                app.ActivePane.hideThisPane();
+                app.ActivePane = [];
+            end
+            
             %This switch determines the correct type of Pane and creates it
             %The default is that it is not shown
             %TODO: Address this switch statment to refactor
             switch class(NodeData)
                 case 'QSP.Session'
                     app.ActivePane = QSPViewerNew.Application.SessionPane(classInputs);
+                    app.ActivePane.attachNewSession(NodeData);
                 case 'QSP.OptimizationData'
                     %app.ActivePane = QSPViewerNew.Application.OptimizationDataPane(app.GridLayout);
                     disp("TODO: Create a QSPViewerNew.Application.OptimizationDataPane class to launch");
@@ -1078,8 +1085,8 @@ classdef ApplicationUI < matlab.apps.AppBase
                     %app.ActivePane = QSPViewerNew.Application.ParametersPane(app.GridLayout);
                     disp("TODO: Create a QSPViewerNew.Application.OptimizationDataPane class to launch");
                 case 'QSP.Task'
-                    %app.ActivePane = QSPViewerNew.Application.TaskPane(app.GridLayout);
-                    disp("TODO: Create a QSPViewerNew.Application.ParametersPane class to launch");
+                    app.ActivePane = QSPViewerNew.Application.TaskPane(classInputs);
+                    app.ActivePane.attachNewTask(NodeData);
                 case 'QSP.VirtualPopulation'
                     %app.ActivePane = QSPViewerNew.Application.VirtualPopulationPane(app.GridLayout);
                     disp("TODO: Create a QSPViewerNew.Application.VirtualPopulationPane class to launch");
@@ -1105,7 +1112,6 @@ classdef ApplicationUI < matlab.apps.AppBase
             if ~isempty(app.ActivePane)
                 %Now take the pane and display it.
                 app.Panes = horzcat(app.ActivePane);
-                app.ActivePane.attachNewSession(NodeData);
                 app.ActivePane.showThisPane();
             end
         end
@@ -1388,7 +1394,7 @@ classdef ApplicationUI < matlab.apps.AppBase
             app.IsDirty(app.SelectedSessionIdx) = true;
         end
         
-        function value = get.UIFigure(app)
+        function value = getUIFigure(app)
             value = app.UIFigure;
         end
         
