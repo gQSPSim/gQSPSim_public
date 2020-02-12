@@ -134,7 +134,8 @@ classdef Model < QSP.abstract.BaseProps
                     AllModels = [];
                 end     
                 if ~isempty(AllModels) && isstruct(AllModels)
-                    AllModels = cell2mat(struct2cell(AllModels));
+                    models = struct2cell(AllModels);
+                    AllModels = [models{:}];                    
                     m1 = sbioselect(AllModels,'type','sbiomodel');
                     if ~isempty(m1)
                         ModelNames = get(m1,'Name');
@@ -182,7 +183,8 @@ classdef Model < QSP.abstract.BaseProps
             end
             
             if StatusOk
-                AllModels = cell2mat(struct2cell(AllModels));
+                models = struct2cell(AllModels);
+                AllModels = [models{:}];                
                 m1 = sbioselect(AllModels,'type','sbiomodel');
                 
                 if isempty(m1)
