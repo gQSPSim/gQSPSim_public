@@ -31,7 +31,7 @@ classdef Summary < handle
             %This requires a parent that is a grid layout and information
             %For the box
             if nargin ~= 4
-                error("Requires a parent  and information as Input");
+                error("Requires a parent and information as Input");
             end
             %Call create to instantiate the graphics
             parent =  varargin{1};
@@ -78,7 +78,7 @@ classdef Summary < handle
         end
         
         function htmlcodestring = get.HtmlCode(obj)
-            htmlcodestring = cell2htmltext(obj.Information);
+            htmlcodestring = obj.cell2htmltext(obj.Information);
         end
         
     end
@@ -86,12 +86,28 @@ classdef Summary < handle
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Static
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    methods
+    methods(Static)
         
         function htmlString = cell2htmltext(cellArr)
            %Check input
            validateattributes(cellArr,{'cell'},{'size',[NaN 2]})
            [rows,~] = size(cellArr);
+           
+           %Filter input to ensure that all the inputs are chars
+           for idx = 1:rows
+               if isnumeric(cellArr{idx,1})
+                   cellArr{idx,1} = num2str(cellArr{idx,1});
+               elseif isempty(cellArr{idx,1})
+                   cellArr{idx,1} = '';
+               end
+               
+               if isnumeric(cellArr{idx,2})
+                   cellArr{idx,1} = num2str(cellArr{idx,2});
+               elseif isempty(cellArr{idx,2})
+                   cellArr{idx,2} = '';
+               end
+               
+           end
            
            %Templates for the output string
            docStart = '<!DOCTYPE html><html><body>';
@@ -126,30 +142,31 @@ classdef Summary < handle
            htmlString = blanks(cumulativeLength);
            idxcount = 1;
            
-           htmlString(idxcount:idxcount+length(docStart)) = docStart;
+           htmlString(idxcount:idxcount+length(docStart)-1) = docStart;
            idxcount = idxcount+length(docStart);
            
            %Iterate through all rows of the cell array
            for idx =1:rows
                %startline html code
-               htmlString(idxcount:idxcount+stalen) = lineStart;
+               htmlString(idxcount:idxcount+stalen-1) = lineStart;
                idxcount = idxcount + stalen;
                
                %Bold Text
-               htmlString(idxcount:idxcount+ length(cellArr{idx,1})) = cellArr{idx,1};
+               htmlString(idxcount:idxcount+ length(cellArr{idx,1})-1) = cellArr{idx,1};
                idxcount = idxcount + length(cellArr{idx,1});
                
                %Middle html code
-               htmlString(idxcount:idxcount+endlen) = lineMiddle;
-               idxcount = idxcount + stalen;
+               htmlString(idxcount:idxcount+midlen-1) = lineMiddle;
+               idxcount = idxcount + midlen;
                
                %Normal Text
-               htmlString(idxcount:idxcount+ length(cellArr{idx,2})) = cellArr{idx,2};
+               htmlString(idxcount:idxcount+ length(cellArr{idx,2})-1) = cellArr{idx,2};
                idxcount = idxcount + length(cellArr{idx,2});
                
                %Endline html code
-               htmlString(idxcount:idxcount+endlen) = lineEnd;
+               htmlString(idxcount:idxcount+endlen-1) = lineEnd;
                idxcount = idxcount + endlen;
+               
            end  
            
            %Assign the end of the string

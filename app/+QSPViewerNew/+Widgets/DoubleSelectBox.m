@@ -11,28 +11,37 @@ classdef DoubleSelectBox < handle
     %   Author: Max Tracy
     %   Revision: 1
     %   Date: 01/15/20
+    properties(Access = private)
+        Parent
+        Row
+        Column
+        Title
+        SelectedRight
+        SelectedLeft
+    end
     
-    properties (Access = public)
-       Title
-       PanelMain
-       GridMain
-       GridMiddle
-       GridBottom
-       ListBoxLeft
-       ListBoxRight
-       MoveItemRightButton
-       MoveItemUpButton
-       MoveItemDownButton
-       RemoveItemButton
-       Parent
-       SelectedRight
-       SelectedLeft
+    properties (Access = private)
+       PanelMain            matlab.ui.container.Panel
+       GridMain             matlab.ui.container.GridLayout
+       GridMiddle           matlab.ui.container.GridLayout
+       GridBottom           matlab.ui.container.GridLayout
+       ListBoxLeft          matlab.ui.control.ListBox
+       ListBoxRight         matlab.ui.control.ListBox
+       MoveItemRightButton  matlab.ui.control.Button
+       MoveItemUpButton     matlab.ui.control.Button
+       MoveItemDownButton   matlab.ui.control.Button
+       RemoveItemButton     matlab.ui.control.Button
     end
     
     properties (Dependent)
         RightList
         LeftList
     end
+    
+    events
+        stateChanged
+    end
+    
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Creation
@@ -41,106 +50,15 @@ classdef DoubleSelectBox < handle
         
         function  obj = DoubleSelectBox(varargin)
             %Revamp to work with grid layout
-            if nargin ~= 2
-                error("You need to give inputs");
+            if nargin ~= 4
+                error("You need to provide a parent grid, row, column, and title");
             else
                 %Temporary input order
-                parent =varargin{1};
-                title =varargin{2};
-                ButtonSize = 30;
-                pad = 2;
-
-
-                %Set the title
-                obj.Title = title;
-                obj.Parent = parent;
-                
-                %EnterEmptyLists
-                obj.setRightListBox({});
-                obj.setLeftListBox({});
-
-                %Create the uipanel
-                obj.PanelMain = uipanel('Parent',parent);
-                obj.PanelMain.Title = obj.Title;
-                obj.PanelMain.TitlePosition = 'centertop';
-                
-                obj.GridMain = uigridlayout(obj.PanelMain );
-                obj.GridMain.ColumnWidth = {'1x',ButtonSize,'1x'};
-                obj.GridMain.RowHeight = {'1x',ButtonSize};
-                obj.GridMain.Padding = [pad,pad,pad,pad];
-                obj.GridMain.ColumnSpacing = pad;
-                obj.GridMain.RowSpacing = pad;
-                
-                %Add the left list box
-                obj.ListBoxLeft = uilistbox(obj.GridMain);
-                obj.ListBoxLeft.Layout.Row =1;
-                obj.ListBoxLeft.Layout.Column =1;
-                obj.ListBoxLeft.ValueChangedFcn = @obj.leftListBoxValueChanged;
-
-                %Add the right list box
-                obj.ListBoxRight = uilistbox(obj.GridMain);
-                obj.ListBoxRight.Layout.Row =1;
-                obj.ListBoxRight.Layout.Column =3;
-                obj.ListBoxRight.ValueChangedFcn = @obj.rightListBoxValueChanged;
-                
-                %EnterEmptyLists
-                obj.setRightListBox({});
-                obj.setLeftListBox({});
-                
-                %Add the middle grid
-                obj.GridMiddle = uigridlayout(obj.GridMain);
-                obj.GridMiddle.ColumnWidth = {'1x'};
-                obj.GridMiddle.RowHeight = {'1x',ButtonSize,'1x'};
-                obj.GridMiddle.Layout.Row = 1;
-                obj.GridMiddle.Layout.Column = 2;
-                obj.GridMiddle.Padding = [pad,pad,pad,pad];
-                obj.GridMiddle.ColumnSpacing = pad;
-                obj.GridMiddle.RowSpacing = pad;
-
-                %Add the move over button
-                obj.MoveItemRightButton = uibutton(obj.GridMiddle,'push');
-                obj.MoveItemRightButton.Layout.Row = 2;
-                obj.MoveItemRightButton.Layout.Column = 1;
-                obj.MoveItemRightButton.Icon = uix.utility.findIcon('arrow_right_24.png');
-                obj.MoveItemRightButton.Text = '';
-                obj.MoveItemRightButton.ButtonPushedFcn = @obj.moveItemToRight;
-                
-                %Add the bottom grid
-                obj.GridBottom = uigridlayout(obj.GridMain);
-                obj.GridBottom.ColumnWidth = {ButtonSize,ButtonSize,ButtonSize,'1x'};
-                obj.GridBottom.RowHeight = {'1x'};
-                obj.GridBottom.Layout.Row = 2;
-                obj.GridBottom.Layout.Column = 3;
-                obj.GridBottom.Padding = [pad,pad,pad,pad];
-                obj.GridBottom.ColumnSpacing = pad;
-                obj.GridBottom.RowSpacing = pad;
-                
-               
-                %Add the move item up button
-                obj.MoveItemUpButton = uibutton(obj.GridBottom,'push');
-                obj.MoveItemUpButton.Layout.Row = 1;
-                obj.MoveItemUpButton.Layout.Column = 1;
-                obj.MoveItemUpButton.Icon = uix.utility.findIcon('arrow_up_24.png');
-                obj.MoveItemUpButton.Text = '';
-                obj.MoveItemUpButton.ButtonPushedFcn = @obj.moveItemUp;
-                
-                 %Add the move item down button
-                obj.MoveItemDownButton = uibutton(obj.GridBottom,'push');
-                obj.MoveItemDownButton.Layout.Row = 1;
-                obj.MoveItemDownButton.Layout.Column = 2;
-                obj.MoveItemDownButton.Icon = uix.utility.findIcon('arrow_down_24.png');
-                obj.MoveItemDownButton.Text = '';
-                obj.MoveItemDownButton.ButtonPushedFcn = @obj.moveItemDown;
-                
-                %Add the delete button
-                obj.RemoveItemButton = uibutton(obj.GridBottom,'push');
-                obj.RemoveItemButton.Layout.Row = 1;
-                obj.RemoveItemButton.Layout.Column = 3;
-                obj.RemoveItemButton.Icon = uix.utility.findIcon('delete_24.png');
-                obj.RemoveItemButton.Text = '';
-                obj.RemoveItemButton.ButtonPushedFcn = @obj.removeItem;
-               
-                obj.setButtonsInteractivity()
+                obj.Parent = varargin{1};
+                obj.Row = varargin{2};
+                obj.Column = varargin{3};
+                obj.Title =  varargin{4};
+                obj.create();
             end
         end
         
@@ -151,16 +69,108 @@ classdef DoubleSelectBox < handle
         function setLeftListBox(obj,listOfNames)
             obj.ListBoxLeft.Items = listOfNames;
         end
+    end
+    methods (Access = private)
+        
+        function create(obj)
+            ButtonSize = 30;
+            pad = 2;
 
-        function setButtonsInteractivity(obj)
-            %If the left box is empty, you cant move anything
-            obj.setDownButtonInteractvity();
-            obj.setUpButtonInteractvity();
-            obj.setRightButtonInteractvity();
-            obj.setRemoveButtonInteractvity();
+            %Create the uipanel
+            obj.PanelMain = uipanel('Parent',obj.Parent);
+            obj.PanelMain.Title = obj.Title;
+            obj.PanelMain.TitlePosition = 'centertop';
+            obj.PanelMain.Layout.Row = obj.Row;
+            obj.PanelMain.Layout.Column = obj.Column;
+
+            obj.GridMain = uigridlayout(obj.PanelMain);
+            obj.GridMain.ColumnWidth = {'1x',ButtonSize,'1x'};
+            obj.GridMain.RowHeight = {'1x',ButtonSize};
+            obj.GridMain.Padding = [pad,pad,pad,pad];
+            obj.GridMain.ColumnSpacing = pad;
+            obj.GridMain.RowSpacing = pad;
+
+            %Add the left list box
+            obj.ListBoxLeft = uilistbox(obj.GridMain);
+            obj.ListBoxLeft.Layout.Row =1;
+            obj.ListBoxLeft.Layout.Column =1;
+            obj.ListBoxLeft.ValueChangedFcn = @obj.leftListBoxValueChanged;
+
+            %Add the right list box
+            obj.ListBoxRight = uilistbox(obj.GridMain);
+            obj.ListBoxRight.Layout.Row =1;
+            obj.ListBoxRight.Layout.Column =3;
+            obj.ListBoxRight.ValueChangedFcn = @obj.rightListBoxValueChanged;
+
+            %EnterEmptyLists
+            obj.setRightListBox({});
+            obj.setLeftListBox({});
+
+            %Add the middle grid
+            obj.GridMiddle = uigridlayout(obj.GridMain);
+            obj.GridMiddle.ColumnWidth = {'1x'};
+            obj.GridMiddle.RowHeight = {'1x',ButtonSize,'1x'};
+            obj.GridMiddle.Layout.Row = 1;
+            obj.GridMiddle.Layout.Column = 2;
+            obj.GridMiddle.Padding = [pad,pad,pad,pad];
+            obj.GridMiddle.ColumnSpacing = pad;
+            obj.GridMiddle.RowSpacing = pad;
+
+            %Add the move over button
+            obj.MoveItemRightButton = uibutton(obj.GridMiddle,'push');
+            obj.MoveItemRightButton.Layout.Row = 2;
+            obj.MoveItemRightButton.Layout.Column = 1;
+            obj.MoveItemRightButton.Icon = uix.utility.findIcon('arrow_right_24.png');
+            obj.MoveItemRightButton.Text = '';
+            obj.MoveItemRightButton.ButtonPushedFcn = @obj.moveItemToRight;
+
+            %Add the bottom grid
+            obj.GridBottom = uigridlayout(obj.GridMain);
+            obj.GridBottom.ColumnWidth = {ButtonSize,ButtonSize,ButtonSize,'1x'};
+            obj.GridBottom.RowHeight = {'1x'};
+            obj.GridBottom.Layout.Row = 2;
+            obj.GridBottom.Layout.Column = 3;
+            obj.GridBottom.Padding = [pad,pad,pad,pad];
+            obj.GridBottom.ColumnSpacing = pad;
+            obj.GridBottom.RowSpacing = pad;
+
+
+            %Add the move item up button
+            obj.MoveItemUpButton = uibutton(obj.GridBottom,'push');
+            obj.MoveItemUpButton.Layout.Row = 1;
+            obj.MoveItemUpButton.Layout.Column = 1;
+            obj.MoveItemUpButton.Icon = uix.utility.findIcon('arrow_up_24.png');
+            obj.MoveItemUpButton.Text = '';
+            obj.MoveItemUpButton.ButtonPushedFcn = @obj.moveItemUp;
+
+             %Add the move item down button
+            obj.MoveItemDownButton = uibutton(obj.GridBottom,'push');
+            obj.MoveItemDownButton.Layout.Row = 1;
+            obj.MoveItemDownButton.Layout.Column = 2;
+            obj.MoveItemDownButton.Icon = uix.utility.findIcon('arrow_down_24.png');
+            obj.MoveItemDownButton.Text = '';
+            obj.MoveItemDownButton.ButtonPushedFcn = @obj.moveItemDown;
+
+            %Add the delete button
+            obj.RemoveItemButton = uibutton(obj.GridBottom,'push');
+            obj.RemoveItemButton.Layout.Row = 1;
+            obj.RemoveItemButton.Layout.Column = 3;
+            obj.RemoveItemButton.Icon = uix.utility.findIcon('delete_24.png');
+            obj.RemoveItemButton.Text = '';
+            obj.RemoveItemButton.ButtonPushedFcn = @obj.removeItem;
+
+            obj.setButtonsInteractivity()
         end
         
-        function setRightButtonInteractvity(obj)
+        function setButtonsInteractivity(obj)
+            %If the left box is empty, you cant move anything
+            obj.setDownButtonInteractivity();
+            obj.setUpButtonInteractivity();
+            obj.setRightButtonInteractivity();
+            obj.setRemoveButtonInteractivity();
+        end
+        
+        function setRightButtonInteractivity(obj)
            if isempty(obj.ListBoxLeft.Items) || isempty(obj.SelectedLeft)
                obj.MoveItemRightButton.Enable = 'off';
                obj.MoveItemRightButton.BackgroundColor = [.7,.7,.7];
@@ -170,7 +180,7 @@ classdef DoubleSelectBox < handle
            end
         end
         
-        function setUpButtonInteractvity(obj)
+        function setUpButtonInteractivity(obj)
            if isempty(obj.ListBoxRight.Items) || isempty(obj.SelectedRight)
                obj.MoveItemUpButton.Enable = 'off';
                obj.MoveItemUpButton.BackgroundColor = [.7,.7,.7];
@@ -183,7 +193,7 @@ classdef DoubleSelectBox < handle
            end
         end
         
-        function setDownButtonInteractvity(obj)
+        function setDownButtonInteractivity(obj)
            if isempty(obj.ListBoxRight.Items) || isempty(obj.SelectedRight)
                obj.MoveItemDownButton.Enable = 'off';
                obj.MoveItemDownButton.BackgroundColor = [.7,.7,.7];
@@ -197,7 +207,7 @@ classdef DoubleSelectBox < handle
            end
         end
         
-        function setRemoveButtonInteractvity(obj)
+        function setRemoveButtonInteractivity(obj)
            if isempty(obj.ListBoxRight.Items) || isempty(obj.SelectedRight)
                obj.RemoveItemButton.Enable = 'off';
                obj.RemoveItemButton.BackgroundColor = [.7,.7,.7];
@@ -213,22 +223,25 @@ classdef DoubleSelectBox < handle
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Callbacks
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    methods (Access = public)
+    methods (Access = private)
 
         function leftListBoxValueChanged(obj,~,eventData)
             obj.SelectedLeft = eventData.Value;
-            obj.setButtonsInteractivity();     
+            obj.setButtonsInteractivity();
+            obj.Notifiy('StateChanged')
         end
         
         function rightListBoxValueChanged(obj,~,eventData)
             obj.SelectedRight = eventData.Value;
             obj.setButtonsInteractivity(); 
+            obj.Notifiy('StateChanged')
         end
          
         function moveItemToRight(obj,~,~)
             %eventData should be of type ButtonPushedData
             obj.ListBoxRight.Items{end+1} = obj.SelectedLeft;
             obj.setButtonsInteractivity();
+            obj.Notifiy('StateChanged')
         end
         
         function moveItemUp(obj,~,~)
@@ -237,6 +250,7 @@ classdef DoubleSelectBox < handle
             obj.ListBoxRight.Items{temporaryIndex-1} = obj.SelectedRight;
             obj.SelectedRight = obj.ListBoxRight.Items{temporaryIndex};
             obj.setButtonsInteractivity();
+            obj.Notifiy('StateChanged')
         end
         
         function moveItemDown(obj,~,~)
@@ -245,6 +259,7 @@ classdef DoubleSelectBox < handle
             obj.ListBoxRight.Items{temporaryIndex+1} = obj.SelectedRight;
             obj.SelectedRight = obj.ListBoxRight.Items{temporaryIndex};
             obj.setButtonsInteractivity();
+            obj.Notifiy('StateChanged')
         end
         
         function removeItem(obj,~,~)
@@ -255,6 +270,7 @@ classdef DoubleSelectBox < handle
                 obj.SelectedRight = obj.ListBoxRight.Items{1};
             end
             obj.setButtonsInteractivity();
+            obj.Notifiy('StateChanged')
         end
         
     end
