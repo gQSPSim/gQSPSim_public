@@ -39,7 +39,7 @@ classdef DoubleSelectBox < handle
     end
     
     events
-        stateChanged
+        StateChanged
     end
     
     
@@ -228,20 +228,18 @@ classdef DoubleSelectBox < handle
         function leftListBoxValueChanged(obj,~,eventData)
             obj.SelectedLeft = eventData.Value;
             obj.setButtonsInteractivity();
-            obj.Notifiy('StateChanged')
         end
         
         function rightListBoxValueChanged(obj,~,eventData)
             obj.SelectedRight = eventData.Value;
             obj.setButtonsInteractivity(); 
-            obj.Notifiy('StateChanged')
         end
          
         function moveItemToRight(obj,~,~)
             %eventData should be of type ButtonPushedData
             obj.ListBoxRight.Items{end+1} = obj.SelectedLeft;
             obj.setButtonsInteractivity();
-            obj.Notifiy('StateChanged')
+            obj.notify('StateChanged')
         end
         
         function moveItemUp(obj,~,~)
@@ -250,7 +248,7 @@ classdef DoubleSelectBox < handle
             obj.ListBoxRight.Items{temporaryIndex-1} = obj.SelectedRight;
             obj.SelectedRight = obj.ListBoxRight.Items{temporaryIndex};
             obj.setButtonsInteractivity();
-            obj.Notifiy('StateChanged')
+            obj.notify('StateChanged')
         end
         
         function moveItemDown(obj,~,~)
@@ -259,7 +257,7 @@ classdef DoubleSelectBox < handle
             obj.ListBoxRight.Items{temporaryIndex+1} = obj.SelectedRight;
             obj.SelectedRight = obj.ListBoxRight.Items{temporaryIndex};
             obj.setButtonsInteractivity();
-            obj.Notifiy('StateChanged')
+            obj.notify('StateChanged')
         end
         
         function removeItem(obj,~,~)
@@ -270,7 +268,7 @@ classdef DoubleSelectBox < handle
                 obj.SelectedRight = obj.ListBoxRight.Items{1};
             end
             obj.setButtonsInteractivity();
-            obj.Notifiy('StateChanged')
+            obj.notify('StateChanged')
         end
         
     end
@@ -280,11 +278,11 @@ classdef DoubleSelectBox < handle
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     methods 
         
-        function value = get.RightList(obj)
+        function value = getRightList(obj)
             value = obj.ListBoxRight.Items;
         end
         
-        function value = get.LeftList(obj)
+        function value = getLeftList(obj)
             value = obj.ListBoxLeft.Items;
         end
         
