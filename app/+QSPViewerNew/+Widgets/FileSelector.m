@@ -124,19 +124,20 @@ classdef FileSelector < handle
         function onButtonPress(obj,~,~)
             
             %Determine if there is a file path to start at
-            if exist(obj.FullPath,'file')
-                filter = fullfile(obj.FullPath,obj.FileExtension);
-                [~,path] = uigetfile(filter,'Select a File' );
-            elseif exist(obj.RootDirectory,'file')
+            if exist(obj.RootDirectory,'file')
                 filter = fullfile(obj.RootDirectory,obj.FileExtension);
-                [~,path] = uigetfile(filter,'Select a File' );
+                [file,path] = uigetfile(filter,'Select a File' );
+            elseif exist(obj.FullPath,'file')
+                filter = fullfile(obj.FullPath,obj.FileExtension);
+                [file,path] = uigetfile(filter,'Select a File' );
             else
                 filter = fullfile('',obj.FileExtension);
-                [~,path] = uigetfile(filter,'Select a folder' );
+                [file,path] = uigetfile(filter,'Select a File' );
             end
             
             if path ~=0
-                obj.RelativePath = obj.findRelativePath(path,obj.RootDirectory);
+                full = fullfile(path,file);
+                obj.RelativePath = obj.findRelativePath(full,obj.RootDirectory);
             end
             
             obj.update();
