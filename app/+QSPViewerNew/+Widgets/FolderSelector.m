@@ -16,6 +16,9 @@ classdef FolderSelector < handle
         RelativePath ='';
         LastValidPath = '';
         RootDirectory ='';
+        Parent 
+        Row 
+        Column
     end
     
     properties (Dependent)
@@ -23,14 +26,11 @@ classdef FolderSelector < handle
         FullPath;
     end
 
-    properties (Access = protected)
-        ButtonHandle
-        EditTextHandle
-        InternalGrid
-        Label
-        Parent
-        Row
-        Column
+    properties (Access = private)
+        ButtonHandle        matlab.ui.control.Button
+        EditTextHandle      matlab.ui.control.EditField
+        InternalGrid        matlab.ui.container.GridLayout
+        Label               matlab.ui.control.Label
     end
     
     events
@@ -111,7 +111,7 @@ classdef FolderSelector < handle
             end
             obj.EditTextHandle.Value = obj.RelativePath;
             
-            notify(obj,'StateChange')
+            notify(obj,'StateChanged')
         end
     end
     
