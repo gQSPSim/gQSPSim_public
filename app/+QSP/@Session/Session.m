@@ -244,6 +244,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
                     stop(obj.timerObj);
                 end
                 delete(obj.timerObj);
+                obj.timerObj = [];
             end
         end %function
         

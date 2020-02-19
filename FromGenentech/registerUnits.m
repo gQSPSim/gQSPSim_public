@@ -1,4 +1,6 @@
 function registerUnits
+    % Register units with SimBiology
+
     newUnits = [
         "fold",       "dimensionless";
         "normalized", "dimensionless";
