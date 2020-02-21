@@ -138,12 +138,7 @@ H.medianLine=plot(x,ymed,lineProps{:},'linewidth',medianlinewidth,'parent',paren
 % Here we have the option of choosing alpha or a de-saturated
 % solid colour for the patch surface.
 
-try
-    col=get(H.meanLine,'color');
-catch err
-    warning(err.message)
-end
-
+col=get(H.medianLine,'color');
 edgeColor=col+(1-col)*0.55;
 patchSaturation=0.15; % How de-saturated or transparent to make patch
 if transparent
