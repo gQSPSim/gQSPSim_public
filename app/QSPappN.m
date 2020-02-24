@@ -1,6 +1,6 @@
 function varargout = QSPappN()
 
-    if verLessThan('matlab','9.8') % If version < R2018a (9.4) or >= R2018b (9.5)
+    if verLessThan('matlab','9.8') 
       ThisVer = ver('matlab');
       warning('QSPAppN is not supported on %s. Use QSPapp instead.', ThisVer.Release);
     end    
