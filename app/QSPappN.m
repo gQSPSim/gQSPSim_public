@@ -1,5 +1,10 @@
 function varargout = QSPappN()
-    
+
+    if verLessThan('matlab','9.8') % If version < R2018a (9.4) or >= R2018b (9.5)
+      ThisVer = ver('matlab');
+      warning('QSPAppN is not supported on %s. Use QSPapp instead.', ThisVer.Release);
+    end    
+
     warning('off','uix:ViewPaneManager:NoView')
     warning('off','MATLAB:table:ModifiedAndSavedVarnames');
     warning('off','MATLAB:Axes:NegativeDataInLogAxis')
