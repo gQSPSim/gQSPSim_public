@@ -280,7 +280,7 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
           
     end
     
-    %% Methods    
+    %  Methods    
     methods
         
         function [StatusOK, Message, vpopObj, resultsArray] = run(obj)
