@@ -8,11 +8,20 @@ classdef tgQSPSim < matlab.unittest.TestCase
     end
     
     methods(Test)
-        function tPCSK9(testCase)
-            t = gQSPSimTester;
-            [a, e] = t.Session.Simulation(1).run;
+        function tSimulations(testCase)
+            tester = gQSPSimTester; % make this a testParameter TODO            
+            %for i = 1:numel(tester.Session.Simulation)
+            for i = 1:0
+                [a, e] = tester.Session.Simulation(i).run;
+                testCase.verifyTrue(a);
+                %testCase.verifyEmpty(e);
+            end            
+        end
+        
+        function tOptimizations(testCase)
+            tester = gQSPSimTester; % make this a testParameter TODO
+            [a, e] = tester.Session.Optimization(1).run;
             testCase.verifyTrue(a);
-            testCase.verifyEmpty(e);
         end
     end
     
