@@ -1,14 +1,14 @@
 stages:
     - test
 
-localtests linux:
-    stage: test
-    tags: 
-        - linux
-    script: 
-        - ./gQSPSimTesterScript.sh BR2020ad
-    retry:
-        max: 2
+# localtests linux:
+#     stage: test
+#     tags: 
+#         - linux
+#     script: 
+#         - ./gQSPSimTesterScript.sh BR2020ad
+#     retry:
+#         max: 2
 
 localtests maci64:
     stage: test
