@@ -10,11 +10,11 @@ localtests linux:
     retry:
         max: 2
 
-# localtests maci64:
-#     stage: test
-#     tags: 
-#         - maci64
-#     script: 
-#         - mw -using /ContinuousIntegration/install/Bbioinfo/ matlab -logfile bioinfoLocalTests.log -batch "bioinfoLocalTests"
-#     retry:
-#         max: 2
+localtests maci64:
+    stage: test
+    tags: 
+        - maci64
+    script: 
+        - gQSPSimTesterScript.sh BR2018bd
+    retry:
+        max: 2
