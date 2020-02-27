@@ -6,7 +6,7 @@ localtests linux:
     tags: 
         - linux
     script: 
-        - gQSPSimTesterScript.sh BR2020ad
+        - ./gQSPSimTesterScript.sh BR2020ad
     retry:
         max: 2
 
@@ -15,6 +15,6 @@ localtests maci64:
     tags: 
         - maci64
     script: 
-        - gQSPSimTesterScript.sh BR2018bd
+        - ./gQSPSimTesterScript.sh BR2018bd
     retry:
         max: 2
