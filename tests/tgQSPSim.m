@@ -10,8 +10,7 @@ classdef tgQSPSim < matlab.unittest.TestCase
     methods(Test)
         function tSimulations(testCase)
             tester = gQSPSimTester; % make this a testParameter TODO            
-            %for i = 1:numel(tester.Session.Simulation)
-            for i = 1:1
+            for i = 1:1 %numel(tester.Session.Simulation)            
                 [a, e] = tester.Session.Simulation(i).run;
                 testCase.verifyTrue(a);
                 %testCase.verifyEmpty(e);

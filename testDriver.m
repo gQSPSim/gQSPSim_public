@@ -1,3 +1,9 @@
 % Script to drive running of gQSPSim tests.
 addpath(genpath(pwd));
-runtests("tests");
+result = runtests("tests");
+
+if batchStartupOptionUsed
+    if result.Failed
+        exit(3)
+    end
+end
