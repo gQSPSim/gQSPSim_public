@@ -258,7 +258,6 @@ classdef SessionPane < QSPViewerNew.Application.ViewPane
     methods(Access = public) 
         
         function showThisPane(obj)
-            obj.draw();
             obj.showPane();
         end
         

@@ -64,12 +64,15 @@ classdef DoubleSelectBox < handle
         
         function setRightListBox(obj,listOfNames)
             obj.ListBoxRight.Items = listOfNames;
+            obj.resetIndex();
         end
         
         function setLeftListBox(obj,listOfNames)
             obj.ListBoxLeft.Items = listOfNames;
+            obj.resetIndex();
         end
     end
+    
     methods (Access = private)
         
         function create(obj)
@@ -184,7 +187,7 @@ classdef DoubleSelectBox < handle
            if isempty(obj.ListBoxRight.Items) || isempty(obj.SelectedRight)
                obj.MoveItemUpButton.Enable = 'off';
                obj.MoveItemUpButton.BackgroundColor = [.7,.7,.7];
-           elseif find(ismember(obj.ListBoxRight.Items,obj.SelectedRight))==1
+           elseif obj.SelectedRight==1
                obj.MoveItemUpButton.Enable = 'off';
                obj.MoveItemUpButton.BackgroundColor = [.7,.7,.7];
            else
@@ -198,8 +201,8 @@ classdef DoubleSelectBox < handle
                obj.MoveItemDownButton.Enable = 'off';
                obj.MoveItemDownButton.BackgroundColor = [.7,.7,.7];
                %Find the index of the right cursor
-           elseif find(ismember(obj.ListBoxRight.Items,obj.SelectedRight))==length(obj.ListBoxRight.Items)
-               obj.MoveItemDownButton.Enable = 'of';
+           elseif obj.SelectedRight==length(obj.ListBoxRight.Items)
+               obj.MoveItemDownButton.Enable = 'off';
                obj.MoveItemDownButton.BackgroundColor = [.7,.7,.7];
            else
                obj.MoveItemDownButton.Enable = 'on';
@@ -218,6 +221,10 @@ classdef DoubleSelectBox < handle
            end
         end
         
+        function resetIndex(obj)
+            obj.ListBoxLeft.ItemsData = 1:length(obj.ListBoxLeft.Items);
+            obj.ListBoxRight.ItemsData = 1:length(obj.ListBoxRight.Items);
+        end
     end
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -237,36 +244,46 @@ classdef DoubleSelectBox < handle
          
         function moveItemToRight(obj,~,~)
             %eventData should be of type ButtonPushedData
-            obj.ListBoxRight.Items{end+1} = obj.SelectedLeft;
+            obj.ListBoxRight.Items = horzcat(obj.ListBoxRight.Items,obj.ListBoxLeft.Items{obj.SelectedLeft});
             obj.setButtonsInteractivity();
+            obj.resetIndex();
             obj.notify('StateChanged')
         end
         
         function moveItemUp(obj,~,~)
-            temporaryIndex = find(ismember(obj.ListBoxRight.Items,obj.SelectedRight));
-            obj.ListBoxRight.Items{temporaryIndex} = obj.ListBoxRight.Items{temporaryIndex-1};
-            obj.ListBoxRight.Items{temporaryIndex-1} = obj.SelectedRight;
-            obj.SelectedRight = obj.ListBoxRight.Items{temporaryIndex};
+            temporaryValue = obj.ListBoxRight.Items{obj.SelectedRight};
+            obj.ListBoxRight.Items{obj.SelectedRight} = obj.ListBoxRight.Items{obj.SelectedRight-1}; 
+            obj.ListBoxRight.Items{obj.SelectedRight-1} = temporaryValue;
+            obj.resetIndex();
+            obj.SelectedRight = obj.SelectedRight-1;
+            obj.ListBoxRight.Value = obj.SelectedRight;
             obj.setButtonsInteractivity();
             obj.notify('StateChanged')
         end
         
         function moveItemDown(obj,~,~)
-            temporaryIndex = find(ismember(obj.ListBoxRight.Items,obj.SelectedRight));
-            obj.ListBoxRight.Items{temporaryIndex} = obj.ListBoxRight.Items{temporaryIndex+1};
-            obj.ListBoxRight.Items{temporaryIndex+1} = obj.SelectedRight;
-            obj.SelectedRight = obj.ListBoxRight.Items{temporaryIndex};
+            temporaryValue = obj.ListBoxRight.Items{obj.SelectedRight};
+            obj.ListBoxRight.Items{obj.SelectedRight} = obj.ListBoxRight.Items{obj.SelectedRight+1}; 
+            obj.ListBoxRight.Items{obj.SelectedRight+1} = temporaryValue;
+            obj.resetIndex();
+            obj.SelectedRight = obj.SelectedRight+1;
+            obj.ListBoxRight.Value = obj.SelectedRight;
             obj.setButtonsInteractivity();
             obj.notify('StateChanged')
         end
         
         function removeItem(obj,~,~)
-            obj.ListBoxRight.Items(ismember(obj.ListBoxRight.Items,obj.SelectedRight)) = [];
+            obj.ListBoxRight.Value = {};
+            obj.ListBoxRight.Items(obj.SelectedRight) = [];
             if isempty(obj.ListBoxRight.Items)
-                obj.SelectedRight = '';
-            else 
-                obj.SelectedRight = obj.ListBoxRight.Items{1};
+                obj.SelectedRight = {};    
+            elseif length(obj.ListBoxRight.Items)==1 || obj.SelectedRight==1
+                obj.SelectedRight = 1;
+            else
+                obj.SelectedRight=obj.SelectedRight-1;
             end
+            obj.resetIndex();
+            obj.ListBoxRight.Value = obj.SelectedRight;
             obj.setButtonsInteractivity();
             obj.notify('StateChanged')
         end

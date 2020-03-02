@@ -277,7 +277,6 @@ classdef TaskPane < QSPViewerNew.Application.ViewPane
             if ~strcmpi(NewValue,QSP.makeInvalid('-'))
                 obj.modelChange(NewValue);
                 obj.IsDirty = true;
-                obj.draw();
             end
         end
         
@@ -346,6 +345,10 @@ classdef TaskPane < QSPViewerNew.Application.ViewPane
         end
         
         function draw(obj)
+            obj.updateDescriptionBox(obj.TemporaryTask.Description);
+            obj.updateNameBox(obj.TemporaryTask.Name);
+            obj.updateSummary(obj.TemporaryTask.getSummary());
+            
             if exist(obj.TemporaryTask.FilePath,'file')==2
                 obj.modelChange(obj.TemporaryTask.ModelName)
                 obj.ProjectFileSelector.setRelativePath(obj.TemporaryTask.RelativeFilePath);
@@ -402,9 +405,6 @@ classdef TaskPane < QSPViewerNew.Application.ViewPane
         
         function updateModelInfoUI(obj)
             %Draw the superclass Widgets values
-            obj.updateDescriptionBox(obj.Task.Description);
-            obj.updateNameBox(obj.Task.Name);
-            obj.updateSummary(obj.Task.getSummary());
             
             %%For each Box, we must import the left and right list
             obj.VariantstoActivateDoubleBox.setLeftListBox(obj.TemporaryTask.VariantNames);

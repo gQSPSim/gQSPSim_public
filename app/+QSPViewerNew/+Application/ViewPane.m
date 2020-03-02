@@ -436,7 +436,6 @@ classdef ViewPane < handle
         function showPane(obj)
             %show this pane. Whenever a pane is shown, start with the
             %summary
-            obj.draw();
             obj.Focus = 'Summary';
             obj.refocus;
             obj.OuterGrid.Visible = 'on';
