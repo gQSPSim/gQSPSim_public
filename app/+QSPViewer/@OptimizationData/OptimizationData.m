@@ -5,7 +5,7 @@ classdef OptimizationData < uix.abstract.CardViewPane
     %
 
     
-    %   Copyright 2014-2016 The MathWorks, Inc.
+    %   Copyright 2019 The MathWorks, Inc.
     %
     % Auth/Revision:
     %   MathWorks Consulting
@@ -63,6 +63,8 @@ classdef OptimizationData < uix.abstract.CardViewPane
             
             % Update the relative file path
             vObj.TempData.RelativeFilePath = DataFilePath;
+            vObj.TempData.clearData();
+            
             
             if exist(vObj.TempData.FilePath,'file')==2
                 
@@ -98,6 +100,37 @@ classdef OptimizationData < uix.abstract.CardViewPane
             
         end %function
         
+        function onFileNewPress(vObj,h,e)
+            % copy the template into the root directory and open it
+            rootdir = vObj.Data.Session.RootDirectory;
+            proceed = questdlg(sprintf('This will create a new OptimizationData file in %s. Proceed?', rootdir), 'Confirm new file creation', 'Yes');
+            if strcmp(proceed,'Yes')
+                try
+                    appRoot = fullfile(fileparts(mfilename('fullpath')), '..', '..', '..', 'templates');
+                    
+                    rootFiles = dir(fullfile(rootdir, '*.xlsx'));                    
+                    rootFiles = cellfun(@(f) strrep(f, '.xlsx', ''), {rootFiles.name}, 'UniformOutput', false);
+
+                    newFile = [matlab.lang.makeUniqueStrings('OptimizationData', rootFiles), '.xlsx'];
+                    copyfile( fullfile(appRoot, 'DataSet_Template.xlsx'), fullfile(rootdir, newFile) )
+                    
+                    if ispc
+                        winopen(fullfile(rootdir,newFile))
+                    else
+                        system(sprintf('open "%s"', fullfile(rootdir,newFile)) )
+                    end
+                catch err
+                    errordlg(sprintf('Error encountered creating new file: %s', err.message) )
+                    return
+                end
+                
+                vObj.TempData.RelativeFilePath = newFile ;
+                
+                update(vObj);
+                
+            end
+            
+        end
     end
         
     

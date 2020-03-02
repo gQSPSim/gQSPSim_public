@@ -18,7 +18,7 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
     %
     %
     
-    % Copyright 2016 The MathWorks, Inc.
+    % Copyright 2019 The MathWorks, Inc.
     %
     % Auth/Revision:
     %   MathWorks Consulting
@@ -36,12 +36,15 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         
         Item = QSP.TaskVirtualPopulation.empty(0,1)
         
-        PlotSpeciesTable = cell(0,3)
-        PlotItemTable = cell(0,4)
-        PlotDataTable = cell(0,2)
-        PlotGroupTable = cell(0,3)
+        PlotSpeciesTable = cell(0,4)
+        PlotItemTable = cell(0,6)
+        PlotDataTable = cell(0,4)
+        PlotGroupTable = cell(0,4)
         
         SelectedPlotLayout = '1x1'
+        
+        PlotSettings = repmat(struct(),1,12)
+
     end
     
     properties (SetAccess = 'private')
@@ -72,7 +75,28 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             %    aObj = QSP.Simulation();
             
             % Populate public properties from P-V input pairs
-            obj.assignPVPairs(varargin{:});
+            obj.assignPVPairs(varargin{:});       
+            
+            % For compatibility
+            if size(obj.PlotSpeciesTable,2) == 3
+                obj.PlotSpeciesTable(:,4) = obj.PlotSpeciesTable(:,3);
+            end
+            if size(obj.PlotItemTable,2) == 4
+                TaskNames = obj.PlotItemTable(:,3);
+                VPopNames = obj.PlotItemTable(:,4);
+                obj.PlotItemTable(:,5) = cellfun(@(x,y)sprintf('%s - %s',x,y),TaskNames,VPopNames,'UniformOutput',false);
+            end
+            if size(obj.PlotDataTable,2) == 3
+                obj.PlotDataTable(:,4) = obj.PlotDataTable(:,3);
+            end
+            if size(obj.PlotGroupTable,2) == 3
+                obj.PlotGroupTable(:,4) = obj.PlotGroupTable(:,3);
+            end
+            
+            % assign plot settings names
+            for index = 1:length(obj.PlotSettings)
+                obj.PlotSettings(index).Title = sprintf('Plot %d', index);
+            end
             
         end %function obj = Simulation(varargin)
         
@@ -86,7 +110,7 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             if ~isempty(obj.Item)
                 SimulationItems = {};
                 % Check what items are stale or invalid
-                [StaleFlag,ValidFlag,InvalidMessages] = getStaleItemIndices(obj);                
+                [StaleFlag,ValidFlag,InvalidMessages,StaleReasons] = getStaleItemIndices(obj);                
                 
                 for index = 1:numel(obj.Item)
                     ThisResultFilePath = obj.Item(index).MATFileName;
@@ -98,7 +122,7 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                     ThisItem = sprintf('%s - %s (%s)',obj.Item(index).TaskName,obj.Item(index).VPopName,ThisResultFilePath);
                     if StaleFlag(index)
                         % Item may be out of date
-                            ThisItem = sprintf('***WARNING*** %s\n%s',ThisItem,'***Item may be out of date***');
+                            ThisItem = sprintf('***WARNING*** %s\n%s',ThisItem, sprintf('***Item may be out of date %s***', StaleReasons{index}));
                     elseif ~ValidFlag(index)
                         % Display invalid
                         ThisItem = sprintf('***ERROR*** %s\n***%s***',ThisItem,InvalidMessages{index});
@@ -118,7 +142,7 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             % Populate summary
             Summary = {...
                 'Name',obj.Name;
-                'Last Saved',obj.LastSavedTime;
+                'Last Saved',obj.LastSavedTimeStr;
                 'Description',obj.Description;
                 'Results Path',obj.SimResultsFolderName;
                 'Dataset',obj.DatasetName;       
@@ -132,6 +156,10 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             
             StatusOK = true;
             Message = sprintf('Simulation: %s\n%s\n',obj.Name,repmat('-',1,75));
+            
+            if  obj.Session.UseParallel && ~isempty(getCurrentTask())
+                return
+            end
             
             % Validate task-vpop pair is valid (TODO: AG: check that params in vpop exist in the file)
             if ~isempty(obj.Settings)
@@ -215,6 +243,27 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 Message = sprintf('%s\n* Invalid simulation name.', Message);
                 StatusOK=false;
             end
+            
+            % Check if the same Task / Group / Vpop is assigned more than
+            % once
+            
+            allItems = cell2table([{obj.Item.TaskName}', {obj.Item.VPopName}', {obj.Item.Group}']);
+            [~,ia] = unique(allItems);
+            
+            if length(ia) < size(allItems,1) % duplicates
+                dups = setdiff(1:size(allItems,1), ia);
+
+                for k=1:length(dups); dups_{k} = num2str(dups(k)); end
+                if length(dups)>1
+                    Message = sprintf('Items %s are duplicates. Please remove before continuing.', ...
+                        strjoin(dups_, ',') );
+                else
+                    Message = sprintf('Item %s is a duplicate. Please remove before continuing.', ...
+                        dups_{1});
+                end
+                StatusOK = false;
+            end
+            
     
         end %function
         
@@ -239,10 +288,22 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             
             % Invoke helper
             if StatusOK
+                
+                % For autosave with tag
+                if obj.Session.AutoSaveBeforeRun
+                    autoSaveFile(obj.Session,'Tag','preRunSimulation');
+                end
+                
                 % Run helper
-                [ThisStatusOK,Message,ResultFileNames] = simulationRunHelper(obj);
-                StatusOK = ThisStatusOK;
-                if ~ThisStatusOK
+                [ThisStatusOK,thisMessage,ResultFileNames,Cancelled] = simulationRunHelper(obj);
+                if ~ThisStatusOK && ~Cancelled
+%                     error('run: %s',Message);
+                    StatusOK = false;
+                    Message = sprintf('%s\n\n%s', Message, thisMessage);
+                    return
+                end
+                
+                if Cancelled
                     return
                 end
                 
@@ -267,10 +328,11 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             obj.SpeciesLineStyles{Index} = NewLineStyle;
         end %function
         
-        function [StaleFlag,ValidFlag,InvalidMessages] = getStaleItemIndices(obj)
+        function [StaleFlag,ValidFlag,InvalidMessages,StaleReason] = getStaleItemIndices(obj)
             
             StaleFlag = false(1,numel(obj.Item));
             ValidFlag = true(1,numel(obj.Item));
+            StaleReason = cell(1,numel(obj.Item));
             InvalidMessages = cell(1,numel(obj.Item));
             
             for index = 1:numel(obj.Item)
@@ -284,10 +346,10 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                     % Compare times
                     
                     % Simulation object (this)
-                    SimLastSavedTime = datenum(obj.LastSavedTime);
+                    SimLastSavedTime = obj.LastSavedTime;
                     
                     % Task object (item)
-                    TaskLastSavedTime = datenum(ThisTask.LastSavedTime);
+                    TaskLastSavedTime = ThisTask.LastSavedTime;
                     
                     % SimBiology Project file from Task
                     FileInfo = dir(ThisTask.FilePath);                    
@@ -295,7 +357,7 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                     
                     % VPop object (item) and file
                     if ~isempty(ThisVPop) % Guard for NullVPop
-                        VPopLastSavedTime = datenum(ThisVPop.LastSavedTime);
+                        VPopLastSavedTime = ThisVPop.LastSavedTime;
                         FileInfo = dir(ThisVPop.FilePath);
                         VPopFileLastSavedTime = FileInfo.datenum;
                     end
@@ -315,14 +377,25 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                     end
                     
                     % Check
-                    if SimLastSavedTime < TaskLastSavedTime || ...
-                            SimLastSavedTime < TaskProjectLastSavedTime || ...
-                            (~isempty(ThisVPop) && SimLastSavedTime < VPopLastSavedTime) || ... % Guard for NullVPop
-                            (~isempty(ThisVPop) && SimLastSavedTime < VPopFileLastSavedTime) || ... % Guard for NullVPop
-                            (~isempty(ResultLastSavedTime) && ResultLastSavedTime < SimLastSavedTime)
-                        % Item may be out of date
-                        StaleFlag(index) = true;
-                    end                    
+                    if ~isempty(ResultLastSavedTime)
+                        STALE_REASON = '';
+                        if ResultLastSavedTime < TaskLastSavedTime  % task has changed
+                            STALE_REASON = '(Task has changed)';
+                        elseif ~isempty(ThisVPop) && ResultLastSavedTime < VPopFileLastSavedTime % Vpop has changed
+                            STALE_REASON = '(Vpop has changed)';
+                        elseif ResultLastSavedTime < SimLastSavedTime % simulation has changed
+                            STALE_REASON = '(Simulation has changed)';
+                        elseif ResultLastSavedTime < TaskProjectLastSavedTime % sbproj has changed
+                            STALE_REASON = '(Sbproj has changed)';
+                        end
+                        
+                        if ~isempty(STALE_REASON)
+                            % Item may be out of date
+                            StaleFlag(index) = true;
+                            StaleReason{index} = STALE_REASON;
+                        end                    
+                    end
+                    
                 elseif isempty(ThisTask) || isempty(ThisVPop)
                     % Display invalid
                     ValidFlag(index) = false;      
@@ -368,7 +441,7 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         end
         
         function set.PlotItemTable(obj,Value)
-            validateattributes(Value,{'cell'},{'size',[nan 4]});
+            validateattributes(Value,{'cell'},{'size',[nan 6]});
             obj.PlotItemTable = Value;
         end
         
@@ -378,10 +451,14 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         end
         
         function set.PlotGroupTable(obj,Value)
-            validateattributes(Value,{'cell'},{'size',[nan 3]});
+            validateattributes(Value,{'cell'},{'size',[nan 4]});
             obj.PlotGroupTable = Value;
         end
         
+        function set.PlotSettings(obj,Value)
+            validateattributes(Value,{'struct'},{});
+            obj.PlotSettings = Value;
+        end
     end %methods
     
 end %classdef

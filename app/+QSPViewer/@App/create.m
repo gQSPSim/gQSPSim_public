@@ -4,7 +4,7 @@ function create(obj)
 % Abstract: This method creates all parts of the main obj display
 %
 
-% Copyright 2016 The MathWorks, Inc.
+% Copyright 2019 The MathWorks, Inc.
 %
 % Auth/Revision:
 %   MathWorks Consulting
@@ -16,13 +16,15 @@ function create(obj)
 %% Create QSP Menus
 
 ItemTypes = {
-    'Settings: Optimization Data',      'OptimizationData'
-    'Settings: Parameters',             'Parameters'
-    'Settings: Task',                   'Task'
-    'Settings: Virtual Population',     'VirtualPopulation'
-    'Settings: Acceptance Criteria',    'VirtualPopulationData'
+    'Dataset',                          'OptimizationData'
+    'Parameter',                        'Parameters'
+    'Task',                             'Task'
+    'Virtual Subject(s)',               'VirtualPopulation'    
+    'Acceptance Criteria',              'VirtualPopulationData'
+    'Target Statistics',                'VirtualPopulationGenerationData'
     'Simulation',                       'Simulation'
     'Optimization',                     'Optimization'
+    'Cohort Generation',                'CohortGeneration'
     'Virtual Population Generation',    'VirtualPopulationGeneration'
     };
 
@@ -54,6 +56,17 @@ obj.h.QSPMenu.Restore = uimenu(...
     'Label', 'Restore Selected Item',...
     'Callback', @(h,e)onRestoreItem(obj));
 
+% Help menu
+obj.h.HelpMenu = uimenu(...
+    'Parent', obj.Figure, ...
+    'Label', 'Help');
+
+obj.h.HelpMenu(1) = uimenu(...
+    'Parent', obj.h.HelpMenu, ...
+    'Label', 'About', ...
+    'Callback', @(h,e) onHelpAbout(obj));
+
+
 %% Tree context menus
 
 % For Session
@@ -71,6 +84,8 @@ uimenu(...
     'Parent', obj.h.TreeMenu.Branch.Session,...
     'Label', 'SaveAs',...
     'Callback', @(h,e)onSaveAs(obj));
+
+
 
 % For most branches/leaves
 for idx=1:size(ItemTypes,1)
@@ -140,7 +155,10 @@ obj.h.SessionTree = uix.widget.Tree(...
     'Parent',obj.h.LeftPanel,...
     'FontSize',8,...
     'RootVisible','off',...
-    'SelectionChangeFcn',@(h,e)onSelectionChanged(obj,h,e));
+    'SelectionChangeFcn',@(h,e)onSelectionChanged(obj,h,e),...
+    'DndEnabled','on',...
+    'NodeDroppedCallback', @(h,e) onNodeDrop(obj,h,e),...
+    'SelectionType', 'discontiguous');
 
 % Adjust sizes
 obj.h.LeftVLayout.Heights = [-1 25];

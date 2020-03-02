@@ -862,7 +862,10 @@ classdef Tree < matlab.mixin.SetGet
                 % Get the target node
                 Loc = e.getLocation();
                 treePath = tObj.jTree.getPathForLocation(...
-                    Loc.getX + tObj.jScrollPane.getHorizontalScrollBar().getValue(), Loc.getY + tObj.jScrollPane.getVerticalScrollBar().getValue());
+                    Loc.getX, Loc.getY);
+                % NOTE: scrollbar adjustment may not be necessary
+%                     Loc.getX + tObj.jScrollPane.getHorizontalScrollBar().getValue(), Loc.getY + tObj.jScrollPane.getVerticalScrollBar().getValue());
+                    
                 if isempty(treePath)
                     % If no target node, the target is the background of
                     % the tree. Assume the root is the intended target.
@@ -888,6 +891,7 @@ classdef Tree < matlab.mixin.SetGet
                     'Source',SourceNode,...
                     'Target',TargetNode,...
                     'DropAction',DropAction);
+               
                 % Check if the source/target are valid
                 % Check the node is not dropped onto itself
                 % Check a node may not be dropped onto a descendant

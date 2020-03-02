@@ -52,11 +52,13 @@ classdef MultiPlatformTable < uix.abstract.Widget & uix.mixin.HasLabel
             set(obj.hLabel,'Parent', obj.UIContainer);
             
             % Set according to OS
-            if ispc
-                obj.UseJTable = true;
-            else
-                obj.UseJTable = false;
-            end
+%             if ispc
+%                 obj.UseJTable = true;
+%             else
+%                 obj.UseJTable = false;
+%             end
+
+            obj.UseJTable = false;
             
             % Create the table
             if obj.UseJTable
@@ -108,7 +110,7 @@ classdef MultiPlatformTable < uix.abstract.Widget & uix.mixin.HasLabel
             if obj.UseJTable
                 validateattributes(rowIdx,{'numeric'},{'scalar'});
                 validateattributes(colIdx,{'numeric'},{'scalar'});
-                validateattributes(Color,{'numeric'},{'size',[1 3]});
+%                 validateattributes(Color,{'numeric'},{'size',[1 3]});
                 DataSize = size(obj.Data);
                 if rowIdx >= 1 && rowIdx <= DataSize(1) && colIdx >= 1 && colIdx <= DataSize(2)                
                     obj.HTable.setCellColor(rowIdx,colIdx,Color);
@@ -299,7 +301,11 @@ classdef MultiPlatformTable < uix.abstract.Widget & uix.mixin.HasLabel
         
         function onCellEdit(obj,~,evt)
             
-            uix.utility.callCallback(obj.CellEditCallback,obj,evt);
+            if obj.UseJTable
+                onTableModelChanged(obj,[],eventData);
+            else
+                uix.utility.callCallback(obj.CellEditCallback,obj,evt);
+            end
             
             % Redraw the component
             obj.redraw();
@@ -308,7 +314,11 @@ classdef MultiPlatformTable < uix.abstract.Widget & uix.mixin.HasLabel
                 
         function onCellSelection(obj,~,evt)
             
-            uix.utility.callCallback(obj.CellSelectionCallback,obj,evt);
+            if obj.UseJTable
+                onSelectionChanged(obj,[],eventData);
+            else
+                uix.utility.callCallback(obj.CellSelectionCallback,obj,evt);
+            end
             
             % Redraw the component
             obj.redraw();
@@ -438,11 +448,15 @@ classdef MultiPlatformTable < uix.abstract.Widget & uix.mixin.HasLabel
         
         % Data
         function value = get.Data(obj)
+            
+            hEdit = obj.CellEditCallback ;
+            obj.CellEditCallback = @(h,e) [];
             if obj.IsConstructed
                 value = get(obj.HTable,'Data');
             else
                 value = {};
             end
+            obj.CellEditCallback = hEdit;
         end
         function set.Data(obj,value)
             if obj.IsConstructed

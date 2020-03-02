@@ -7,7 +7,7 @@ function updateVisualizationView(vObj)
 %           updateVisualizationView(vObj)
 %
 % Inputs:
-%           vObj - The MyPackageViewer.Empty vObject
+%           vObj - QSPViewer.Optimization vObject
 %
 % Outputs:
 %           none
@@ -18,7 +18,7 @@ function updateVisualizationView(vObj)
 % Notes: none
 %
 
-% Copyright 2014-2015 The MathWorks, Inc.
+% Copyright 2019 The MathWorks, Inc.
 %
 % Auth/Revision:
 %   MathWorks Consulting
@@ -110,10 +110,11 @@ if ~isempty(vObj.Data)
             GroupIDNames(InvalidIndices) = [];
         end
         
-        vObj.Data.PlotItemTable = cell(numel(TaskNames),4);
+        vObj.Data.PlotItemTable = cell(numel(TaskNames),5);
         vObj.Data.PlotItemTable(:,1) = {false};
         vObj.Data.PlotItemTable(:,3) = TaskNames;
         vObj.Data.PlotItemTable(:,4) = GroupIDNames;
+        vObj.Data.PlotItemTable(:,5) = TaskNames;
         
         % Update the item colors
         ItemColors = getItemColors(vObj.Data.Session,numel(TaskNames));
@@ -122,13 +123,18 @@ if ~isempty(vObj.Data)
         vObj.PlotItemAsInvalidTable = vObj.Data.PlotItemTable;
         vObj.PlotItemInvalidRowIndices = [];
     else
-        NewPlotTable = cell(numel(TaskNames),4);
+        NewPlotTable = cell(numel(TaskNames),5);
         NewPlotTable(:,1) = {false};
         NewPlotTable(:,3) = TaskNames;
         NewPlotTable(:,4) = GroupIDNames;
+        NewPlotTable(:,5) = TaskNames;
         
         NewColors = getItemColors(vObj.Data.Session,numel(TaskNames));
         NewPlotTable(:,2) = num2cell(NewColors,2);   
+        
+        if size(vObj.Data.PlotItemTable,2) == 4
+            vObj.Data.PlotItemTable(:,5) = vObj.Data.PlotItemTable(:,3);
+        end
         
         % Update Table
         KeyColumn = [3 4];
@@ -139,26 +145,38 @@ if ~isempty(vObj.Data)
     TableData = vObj.PlotItemAsInvalidTable;
     TableData(:,2) = uix.utility.getHTMLColor(vObj.Data.PlotItemTable(:,2));
     % Items table
+
+    hSelect = vObj.h.PlotItemsTable.CellSelectionCallback;
+    hEdit = vObj.h.PlotItemsTable.CellEditCallback;
+    vObj.h.PlotItemsTable.CellSelectionCallback = [];
+    vObj.h.PlotItemsTable.CellEditCallback = [];
     set(vObj.h.PlotItemsTable,...
         'Data',TableData,...
-        'ColumnName',{'Include','Color','Task','Group'},...
-        'ColumnFormat',{'boolean','char','char','char'},...
-        'ColumnEditable',[true,false,false,false]...
+        'ColumnName',{'Include','Color','Task','Group','Display'},...
+        'ColumnFormat',{'boolean','char','char','char','char'},...
+        'ColumnEditable',[true,false,false,false,true]...
         );
+    vObj.h.PlotItemsTable.CellSelectionCallback = hSelect;
+    vObj.h.PlotItemsTable.CellEditCallback = hEdit;
+    
     % Set cell color
     for index = 1:size(TableData,1)
         ThisColor = vObj.Data.PlotItemTable{index,2};
         if ~isempty(ThisColor)
-            vObj.h.PlotItemsTable.setCellColor(index,2,ThisColor);
+            if isnumeric(ThisColor)
+                vObj.h.PlotItemsTable.setCellColor(index,2,ThisColor);
+            else
+                warning('Error: invalid color')
+            end
         end
     end
 else
     % Items table
     set(vObj.h.PlotItemsTable,...
-        'Data',cell(0,4),...
-        'ColumnName',{'Include','Color','Task','Group'},...
-        'ColumnFormat',{'boolean','char','char','char'},...
-        'ColumnEditable',[true,false,false,false]...
+        'Data',cell(0,5),...
+        'ColumnName',{'Include','Color','Task','Group','Display'},...
+        'ColumnFormat',{'boolean','char','char','char','char'},...
+        'ColumnEditable',[true,false,false,false,true]...
         );
 end
 
@@ -194,7 +212,7 @@ if ~isempty(vObj.Data)
         end
         
         % If empty, populate, but first update line styles
-        vObj.Data.PlotSpeciesTable = cell(numel(SpeciesNames),4);
+        vObj.Data.PlotSpeciesTable = cell(numel(SpeciesNames),5);
         
         vObj.Data.PlotSpeciesTable(:,1) = {' '};
         if ~isempty(vObj.Data.SpeciesLineStyles(:))
@@ -205,21 +223,26 @@ if ~isempty(vObj.Data)
             
         vObj.Data.PlotSpeciesTable(:,3) = SpeciesNames;
         vObj.Data.PlotSpeciesTable(:,4) = DataNames;
+        vObj.Data.PlotSpeciesTable(:,5) = SpeciesNames;
         
         vObj.PlotSpeciesAsInvalidTable = vObj.Data.PlotSpeciesTable;
         vObj.PlotSpeciesInvalidRowIndices = [];
     else
-        NewPlotTable = cell(numel(SpeciesNames),4);
+        NewPlotTable = cell(numel(SpeciesNames),5);
         NewPlotTable(:,1) = {' '};
         NewPlotTable(:,2) = {'-'}; % vObj.Data.SpeciesLineStyles(:); % TODO: !!
         NewPlotTable(:,3) = SpeciesNames;
         NewPlotTable(:,4) = DataNames;
+        NewPlotTable(:,5) = SpeciesNames;
         
         % Adjust size if from an old saved session
         if size(vObj.Data.PlotSpeciesTable,2) == 3
+            vObj.Data.PlotSpeciesTable(:,5) = vObj.Data.PlotSpeciesTable(:,3);
             vObj.Data.PlotSpeciesTable(:,4) = vObj.Data.PlotSpeciesTable(:,3);
             vObj.Data.PlotSpeciesTable(:,3) = vObj.Data.PlotSpeciesTable(:,2);
             vObj.Data.PlotSpeciesTable(:,2) = {'-'};  % TODO: !!
+        elseif size(vObj.Data.PlotSpeciesTable,2) == 4
+            vObj.Data.PlotSpeciesTable(:,5) = vObj.Data.PlotSpeciesTable(:,3);
         end
         
         % Update Table
@@ -232,16 +255,16 @@ if ~isempty(vObj.Data)
      % Species table
     set(vObj.h.PlotSpeciesTable,...
         'Data',vObj.PlotSpeciesAsInvalidTable,...
-        'ColumnName',{'Plot','Style','Species','Data'},...
-        'ColumnFormat',{AxesOptions,vObj.Data.Settings.LineStyleMap,'char','char'},...
-        'ColumnEditable',[true,true,false,false]...
+        'ColumnName',{'Plot','Style','Species','Data','Display'},...
+        'ColumnFormat',{AxesOptions,vObj.Data.Settings.LineStyleMap,'char','char','char'},...
+        'ColumnEditable',[true,true,false,false,true]...
         );    
 else
     set(vObj.h.PlotSpeciesTable,...
-        'Data',cell(0,4),...
-        'ColumnName',{'Plot','Style','Species','Data'},...
-        'ColumnFormat',{AxesOptions,'char','char','char'},...
-        'ColumnEditable',[true,true,false,false]...
+        'Data',cell(0,5),...
+        'ColumnName',{'Plot','Style','Species','Data','Display'},...
+        'ColumnFormat',{AxesOptions,'char','char','char','char'},...
+        'ColumnEditable',[true,true,false,false,true]...
         );
 end
 
@@ -281,7 +304,7 @@ if ~isempty(vObj.Data)
     
     if any(MatchIdx)
         pObj = vObj.Data.Settings.Parameters(MatchIdx);    
-        pObj_derivs = AllVPopNames(~cellfun(@isempty, regexp(AllVPopNames, vObj.Data.RefParamName)));
+        pObj_derivs = AllVPopNames(~cellfun(@isempty, strfind(AllVPopNames, vObj.Data.RefParamName )));
         PlotParametersSourceOptions = vertcat('N/A',{pObj.Name},reshape(pObj_derivs,[],1), VPopNames(:));
     else
         PlotParametersSourceOptions = vertcat('N/A',VPopNames(:));
@@ -300,7 +323,7 @@ if ~isempty(vObj.Data)
         {vObj.Data.PlotProfile.Description}');
     
     % Loop over and italicize non-matches
-    [IsSourceMatch,IsRowEmpty,ThisProfileData] = i_importParametersSourceHelper(vObj);    
+    [IsSourceMatch,IsRowEmpty,ThisProfileData] = importParametersSourceHelper(vObj);    
     for rowIdx = 1:size(Summary,1)
         % Mark invalid if source parameters cannot be loaded
         if IsRowEmpty(rowIdx) && vObj.h.PlotHistoryTable.UseJTable
@@ -319,8 +342,10 @@ if ~isempty(vObj.Data)
         end
     end
 
-    ThisCallback = get(vObj.h.PlotHistoryTable,'CellSelectionCallback');
+    ThisSelectionCallback = get(vObj.h.PlotHistoryTable,'CellSelectionCallback');
+    ThisEditCallback = get(vObj.h.PlotHistoryTable,'CellEditCallback');
     set(vObj.h.PlotHistoryTable,'CellSelectionCallback',''); % Disable    
+    set(vObj.h.PlotHistoryTable,'CellEditCallback',''); % Disable    
     set(vObj.h.PlotHistoryTable,...
         'Data',Summary,...
         'ColumnName',{'Run','Show','Source','Description'},...
@@ -330,7 +355,9 @@ if ~isempty(vObj.Data)
     if ~isempty(Summary)
         set(vObj.h.PlotHistoryTable,'SelectedRows',vObj.Data.SelectedProfileRow);
     end
-    set(vObj.h.PlotHistoryTable,'CellSelectionCallback',ThisCallback); % Restore
+    set(vObj.h.PlotHistoryTable,...
+        'CellSelectionCallback',ThisSelectionCallback,...
+        'CellEditCallback',ThisEditCallback); % Restore
 
 else
     set(vObj.h.PlotHistoryTable,...
@@ -356,130 +383,26 @@ end
 if ~isempty(ThisProfile)
 %     set(vObj.h.PlotParametersSourcePopup,'Enable','on');
     set(vObj.h.SaveAsVPopButton,'Enable','on');
+    set(vObj.h.SaveAsParametersButton,'Enable','on');
+    
     set(vObj.h.PlotParametersTable,'Enable','on');
 else
 %     set(vObj.h.PlotParametersSourcePopup,'Enable','off');
     set(vObj.h.SaveAsVPopButton,'Enable','off');
+    set(vObj.h.SaveAsParametersButton,'Enable','off');
+    
     set(vObj.h.PlotParametersTable,'Enable','off');
 end
 
+
+
 % Parameters Table
-if ~isempty(ThisProfileData) && size(ThisProfileData,2)==3
-    
-    % Mark the rows that are edited (column 2 does not equal column 3)
-    if ispc
-        italCols = 1:size(ThisProfileData,2);
-    else
-        italCols = 1;
-    end
-    
-    for rowIdx = 1:size(ThisProfileData,1)
-        tmp1 = ThisProfileData{rowIdx,2};
-        tmp2 = ThisProfileData{rowIdx,3};
-        if ischar(tmp1), tmp1=str2num(tmp1); end
-        if ischar(tmp2), tmp2=str2num(tmp2); end
-        
-        if ~isequal(tmp1, tmp2)
-            for colIdx = italCols
-                ThisProfileData{rowIdx,colIdx} = QSP.makeItalicized(ThisProfileData{rowIdx,colIdx});
-            end
-        end
-    end
-    
-    set(vObj.h.PlotParametersTable,...
-        'Data',ThisProfileData,...
-        'ColumnName',{'Parameter','Value','Source Value'},...
-        'ColumnFormat',{'char','float','float'},...
-        'ColumnEditable',[false,true,false], ...
-        'LabelString', sprintf('Parameters (Run = %d)', vObj.Data.SelectedProfileRow));
-else
-    set(vObj.h.PlotParametersTable,...
-        'Data',cell(0,3),...
-        'ColumnName',{'Parameter','Value','Source Value'},...
-        'ColumnFormat',{'char','float','float'},...
-        'ColumnEditable',[false,true,false], ...
-        'LabelString', sprintf('Parameters'));
-end
+updateVisualizationParametersTable(vObj,ThisProfileData);
 
 
+%% Update selected profile
 
-%% Update plot
-
-updateVisualizationPlot(vObj);
+updateVisualizationSelectedProfile(vObj);
 
 
 %--------------------------------------------------------------------------
-function [IsSourceMatch,IsRowEmpty,SelectedProfileData] = i_importParametersSourceHelper(vObj)
-
-UniqueSourceNames = unique({vObj.Data.PlotProfile.Source});
-UniqueSourceData = cell(1,numel(UniqueSourceNames));
-
-% First import just the unique sources
-for index = 1:numel(UniqueSourceNames)
-    % Get values
-    [StatusOk,~,SourceData] = importParametersSource(vObj.Data,UniqueSourceNames{index});
-    if StatusOk
-        [~,order] = sort(upper(SourceData(:,1)));
-        UniqueSourceData{index} = SourceData(order,:);
-    else
-        UniqueSourceData{index} = cell(0,2);
-    end
-end
-
-% Exclude species from the parameters table
-% idxSpecies = vObj.Data.
-
-
-% Return which profile rows are different and return the selected profile
-% row's data
-nProfiles = numel(vObj.Data.PlotProfile);
-IsSourceMatch = true(1,nProfiles);
-IsRowEmpty = false(1,nProfiles);
-for index = 1:nProfiles
-    ThisProfile = vObj.Data.PlotProfile(index);
-    ThisProfileValues = ThisProfile.Values; % Already sorted
-    uIdx = ismember(UniqueSourceNames,ThisProfile.Source);
-    
-    if ~isequal(ThisProfileValues,UniqueSourceData{uIdx})
-        IsSourceMatch(index) = false;
-    end
-    if isempty(UniqueSourceData{uIdx})
-        IsRowEmpty(index) = true;
-    end
-end
-
-if ~isempty(vObj.Data.SelectedProfileRow)
-    try
-        SelectedProfile = vObj.Data.PlotProfile(vObj.Data.SelectedProfileRow);
-    catch thisError
-        warning(thisError.message);
-        SelectedProfileData = [];
-        return
-    end
-        
-        
-    uIdx = ismember(UniqueSourceNames,SelectedProfile.Source);
-    
-    % Store - names, user's values, source values
-%     SelectedProfileData = cell(size(UniqueSourceData{uIdx},1),3);
-%     SelectedProfileData(1:size(SelectedProfile.Values,1),1:2) = Values;
-    
-    SelectedProfileData = SelectedProfile.Values;
-    if ~isempty(UniqueSourceData{uIdx})
-        % get matching values in the source
-        [hMatch,MatchIdx] = ismember(SelectedProfileData(:,1), UniqueSourceData{uIdx}(:,1));
-%         SelectedProfileData = SelectedProfileData(hMatch,:);
-        SelectedProfileData(hMatch,3) = UniqueSourceData{uIdx}(MatchIdx(hMatch),end);
-        [~,index] = sort(upper(SelectedProfileData(:,1)));
-        SelectedProfileData = SelectedProfileData(index,:);
-
-%         for idx = 1:size(SelectedProfileData,1)
-%             MatchIdx = ismember(UniqueSourceData{uIdx}(:,1),SelectedProfileData{idx,1});
-%             if any(MatchIdx)                
-%                 SelectedProfileData{idx,3} = UniqueSourceData{uIdx}{MatchIdx,end};
-%             end
-%         end
-    end
-else
-    SelectedProfileData = cell(0,3);
-end

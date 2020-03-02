@@ -4,7 +4,7 @@ function createNewSession(obj,Session)
 % Abstract: This method is executed when the user creates a new session
 %
 
-% Copyright 2016 The MathWorks, Inc.
+% Copyright 2019 The MathWorks, Inc.
 %
 % Auth/Revision:
 %   MathWorks Consulting
@@ -29,3 +29,6 @@ newIdx = obj.NumSessions + 1;
 
 % Add the session to the app
 obj.Session(newIdx,1) = Session;
+
+% Start timer
+initializeTimer(Session);

@@ -27,6 +27,10 @@ for index = 1:numel(obj.Task)
     end
 end
 
+if nargout==3
+    varargout{1} = false;
+end
+
 
 %% Virtual Population
 

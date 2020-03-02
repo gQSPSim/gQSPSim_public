@@ -1,22 +1,6 @@
 function refreshSpeciesDataTable(vObj)
 
 
-%% Update ObjectiveFunctions
-
-if ~isempty(vObj.TempData)
-    if exist(vObj.TempData.Session.FunctionsDirectory,'dir')
-        FileList = dir(vObj.TempData.Session.FunctionsDirectory);
-        IsDir = [FileList.isdir];
-        Names = {FileList(~IsDir).name};
-        vObj.ObjectiveFunctions = vertcat('defaultObj',Names(:));
-    else
-        vObj.ObjectiveFunctions = {'defaultObj'};
-    end
-else
-    vObj.ObjectiveFunctions = {'defaultObj'};
-end
-
-
 %% Refresh Table
 
 if ~isempty(vObj.TempData)

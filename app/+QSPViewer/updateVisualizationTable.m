@@ -21,6 +21,9 @@ for index = 1:size(OutTable,1)
         % Take the first match
         MatchRow = MatchRow(1);
         % Update the NewPlotTable
+        if size(OutTable,2) < size(InTable,2)
+            OutTable(:,(end+1):(end+(size(InTable,2)-size(OutTable,2)))) = {''};
+        end
         OutTable(index,:) = InTable(MatchRow,:);
     end
 end

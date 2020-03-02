@@ -7,7 +7,7 @@ function plotData(vObj)
 %           plotData(vObj)
 %
 % Inputs:
-%           vObj - The MyPackageViewer.Empty vObject
+%           vObj - QSPViewer.VirtualPopulationGeneration vObject
 %
 % Outputs:
 %           none
@@ -18,7 +18,7 @@ function plotData(vObj)
 % Notes: none
 %
 
-% Copyright 2014-2015 The MathWorks, Inc.
+% Copyright 2019 The MathWorks, Inc.
 %
 % Auth/Revision:
 %   MathWorks Consulting
@@ -28,7 +28,8 @@ function plotData(vObj)
 
 %                 try
 % Plot
-plotVirtualPopulationGeneration(vObj.Data,vObj.h.MainAxes);
+[vObj.h.SpeciesGroup,vObj.h.DatasetGroup,vObj.h.AxesLegend,vObj.h.AxesLegendChildren] = ...
+    plotVirtualPopulationGeneration(vObj.Data,vObj.h.MainAxes);
 %                 catch ME
 %                     hDlg = errordlg(sprintf('Cannot plot. %s',ME.message),'Invalid','modal');
 %                     uiwait(hDlg);

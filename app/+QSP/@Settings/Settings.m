@@ -27,7 +27,7 @@ classdef Settings < matlab.mixin.SetGet & uix.mixin.AssignPVPairs & uix.mixin.Ha
     %    
     %
     
-    % Copyright 2016 The MathWorks, Inc.
+    % Copyright 2019 The MathWorks, Inc.
     %
     % Auth/Revision:
     %   MathWorks Consulting
@@ -43,6 +43,12 @@ classdef Settings < matlab.mixin.SetGet & uix.mixin.AssignPVPairs & uix.mixin.Ha
         Parameters = QSP.Parameters.empty(1,0)
         OptimizationData = QSP.OptimizationData.empty(1,0)
         VirtualPopulationData = QSP.VirtualPopulationData.empty(1,0)
+        VirtualPopulationGenerationData = QSP.VirtualPopulationGenerationData.empty(1,0)
+    end
+    
+    %% Properties (Transient)
+    properties (Transient=true)
+        Model = QSP.Model.empty(1,0)
     end
     
     %% Properties
@@ -69,7 +75,7 @@ classdef Settings < matlab.mixin.SetGet & uix.mixin.AssignPVPairs & uix.mixin.Ha
             'hexagram',...
             };
     end
-
+   
     %% Constructor
     methods
         function obj = Settings(varargin)
@@ -99,6 +105,20 @@ classdef Settings < matlab.mixin.SetGet & uix.mixin.AssignPVPairs & uix.mixin.Ha
     
     %% Methods
     methods
+        
+        function obj = getParametersWithName(obj, Name)
+            
+            matchIdx = strcmp(Name, {obj.Parameters.Name});
+            obj = obj.Parameters(matchIdx);
+            
+        end
+        
+       function obj = getVpopWithName(obj, Name)
+            
+            matchIdx = strcmp(Name, {obj.VirtualPopulation.Name});
+            obj = obj.VirtualPopulation(matchIdx);
+            
+        end     
         
         function vObj = getValidSelectedVPops(obj,ItemNames)
             % Get selected VPops that are valid

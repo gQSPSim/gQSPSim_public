@@ -16,7 +16,7 @@ Cancelled = false;
 
 %% update path to include everything in subdirectories of the root folder
 myPath = path;
-addpath(genpath(obj.Session.RootDirectory));
+%addpath(genpath(obj.Session.RootDirectory));
 
 
 %% parse inputs and initialize
@@ -44,11 +44,15 @@ hWbar1 = uix.utility.CustomWaitbar(0,Title1,'',false);
 nBuildItems = options.nBuildItems;
 nRunItems = options.nRunItems;
 
+validRunItems = true(1,nRunItems);
+
 if ~isempty(options.ItemModels)
     % Item Models were already built and just need to be resimulated
     ItemModels = options.ItemModels;
 else
     % Configure models for each (task, vpop) pair (i.e. for each simulation item)
+    ItemModels = struct('Vpop', [], 'Task', [], 'Group', '', 'Names', {}, 'Values', [], 'nPatients', []);
+    
     for ii = 1:nBuildItems
         % update waitbar
         uix.utility.CustomWaitbar(ii/nBuildItems,hWbar1,sprintf('Configuring model for task %d of %d...',ii,nBuildItems));
@@ -61,11 +65,13 @@ else
         taskObj = obj.Settings.Task(strcmp(taskName,options.allTaskNames));
         [ThisStatusOK,ThisMessage] = validate(taskObj,false);        
         if isempty(taskObj)
+            validRunItems(ii) = false;
             continue
         elseif ~ThisStatusOK
             StatusOK = false;
             ThisMessage = sprintf('Error loading task "%s". Skipping [%s]...', taskName,ThisMessage);
             Message = sprintf('%s\n%s\n',Message,ThisMessage);
+            validRunItems(ii) = false;            
     %         continuesim
         end
 
@@ -73,10 +79,12 @@ else
         vpopObj = [];    
         if ~isempty(vpopName) && ~strcmp(vpopName,QSP.Simulation.NullVPop)
             vpopObj = obj.Settings.VirtualPopulation(strcmp(vpopName,options.allVpopNames));
-            if isempty(vpopObj)
-                ThisStatusOK = false;
-                ThisMessage = sprintf('Invalid vpop "%s". VPop does not exist.',vpopName);
-            else
+%             if isempty(vpopObj)
+%                 StatusOK = false;
+%                 Message = sprintf('Invalid vpop "%s". VPop does not exist.',vpopName);
+%                 continue
+%             else
+            if ~isempty(vpopObj)
                 [ThisStatusOK,ThisMessage] = validate(vpopObj,false);
             end
             if ~ThisStatusOK
@@ -91,17 +99,19 @@ else
         groupObj = obj.Item(ii).Group;
 
         % Load the Vpop and parse contents 
-       [ThisItemModel, VpopWeights, ThisStatusOK, ThisMessage] = constructVpopItem(taskObj, vpopObj, groupObj, options, Message);
-       if ii == 1
-           ItemModels = ThisItemModel;
-       else
-           ItemModels(ii) = ThisItemModel;
-       end
+       [ThisItemModel, ThisStatusOK, ThisMessage] = constructVpopItem(taskObj, vpopObj, groupObj, options, Message);
        if ~ThisStatusOK
            StatusOK = false;
            Message = sprintf('%s\n%s\n',Message,ThisMessage);
            break
        end
+       
+       if ii == 1
+           ItemModels = ThisItemModel;
+       else
+           ItemModels(ii) = ThisItemModel;
+       end
+
 
     end % for ii...
 end
@@ -129,21 +139,42 @@ if ~isempty(ItemModels)
     
 
     % update simulation time stamp
-    updateLastSavedTime(obj);
+    runItems = find(validRunItems); % only those for which no error was produced during model compilation/configuration
+    if ~isempty(runItems)
+        updateLastSavedTime(obj);        
+    end
+    
+    task_indices = [];
+    if obj.Session.UseParallel
+        ParallelCluster = obj.Session.ParallelCluster;
+        c = parcluster(ParallelCluster);    
 
-    for ii = 1:nRunItems
+        UDF_files = dir(fullfile(taskObj.Session.UserDefinedFunctionsDirectory,'**','*.m'));
+        UDF_files = arrayfun(@(x) fullfile(x.folder,x.name), UDF_files, 'UniformOutput', false);
+
+        RootPath = { fullfile(fileparts(fileparts(mfilename('fullpath'))),'app'); fullfile(fileparts(fileparts(mfilename('fullpath'))),'FromGenentech'); ...
+            fullfile(fileparts(fileparts(mfilename('fullpath'))),'utilities')};
+
+        job = createJob(c, 'AttachedFiles', [UDF_files; RootPath]);
+    else
+        job = [];
+    end
+    
+    taskIndex=1;
+    taskIDs = {};
+    for ii = runItems
         ItemModel = ItemModels(options.runIndices(ii));
         if ~StatusOK % interrupted
             break
         end
         % update waitbar
-        if isempty(hWbar2)
+%         if isempty(hWbar2)
             set(hWbar2, 'Name', sprintf('Simulating task %d of %d',ii,nRunItems))
             uix.utility.CustomWaitbar(0,hWbar2,'');
-        end
+%         end
         options.WaitBar = hWbar2;
 
-        % simulate virtual patients
+        % start simulations for virtual patients
         for jj=1:length(options.Pin)
             thisOptions = options;
             thisOptions.Pin = options.Pin{jj};
@@ -153,18 +184,77 @@ if ~isempty(ItemModels)
                 thisOptions.paramNames = {};
             end
             
-            [Results, nFailedSims, ThisStatusOK, ThisMessage, Cancelled] = simulateVPatients(ItemModel, thisOptions, Message);
-            if ~ThisStatusOK
+            thisOptions.usePar = obj.Session.UseParallel;
+            thisOptions.ParallelCluster = obj.Session.ParallelCluster;
+            thisOptions.UDF = obj.Session.UserDefinedFunctionsDirectory;
+            
+            [thisResults, this_nFailedSims, ThisStatusOK, ThisMessage, Cancelled, taskID] = simulateVPatients(ItemModel, thisOptions, Message, job);
+            nFailedSims{ii,jj} = this_nFailedSims;
+            Results_array{ii,jj} = thisResults;
+            StatusOK_array{ii,jj} = ThisStatusOK;
+            Messages{ii,jj} = ThisMessage;
+            if ~isempty(taskID)
+                taskIDs{taskIndex} = taskID;
+            end
+            
+            taskIndex = taskIndex + 1;
+                                   
+            task_indices = [task_indices; ii, jj];  
+            
+            
+        end
+    end
+    
+    % run job if set up for cluster computing
+    
+    taskIndex = 1;
+    if ~isempty(taskIDs)
+        set(hWbar2, 'Name', 'Please wait')        
+        uix.utility.CustomWaitbar(0,hWbar2,sprintf('Submitted job with %d tasks to cluster %s.\nWaiting for completion.', nRunItems, ParallelCluster));        
+        submit(job)
+        wait(job)
+        data = fetchOutputs(job);
+%         delete(hWbar2);
+        
+        % unpack results
+        
+        for ii = runItems        
+            for jj=1:length(options.Pin)
+                Results_array{ii,jj} = data{taskIndex, 1};
+                nFailedSims{ii,jj} = data{taskIndex, 2};
+                StatusOK_array{ii,jj} = data{taskIndex, 3};                
+                Messages{ii,jj} = data{taskIndex, 4};           
+                ErrObj{ii,jj} = data{taskIndex,5};
+                taskIndex = taskIndex + 1;
+            end
+        end
+    
+    end
+    
+    % gather results
+    taskIndex = 1;
+    if isvalid(hWbar2)
+        set(hWbar2, 'Name', 'Processing results')
+    end
+    for ii = runItems        
+        ItemModel = ItemModels(options.runIndices(ii));
+        if isvalid(hWbar2)
+            uix.utility.CustomWaitbar(ii/length(runItems),hWbar2,'');
+        end
+        for jj=1:length(options.Pin)
+
+            if ~StatusOK_array{ii,jj}
                 StatusOK = false;
-                Message = sprintf('%s\n%s\n',Message,ThisMessage);
+                Message = sprintf('%s\n%s\n',Message,Messages{ii,jj});                
                 continue
             end
-
+            
             %%% Save results of each simulation in different files %%%%%%%%%%%%%%%%%%%%
             SaveFlag = isempty(options.Pin{1}); % don't save if PIn is provided
 
             % keep the VpopWeights for this group
-            Results.VpopWeights = VpopWeights;
+            Results = Results_array{ii,jj};
+            Results.VpopWeights = ItemModel.VpopWeights;
 
             % add results to output cell
             output{jj,ii} = Results;
@@ -180,7 +270,16 @@ if ~isempty(ItemModels)
 
             if SaveFlag
                 % Update ResultFileNames
-                ResultFileNames{ii} = ['Results - Sim = ' options.simName ', Task = ' obj.Item(options.runIndices(ii)).TaskName ' - Vpop = ' obj.Item(options.runIndices(ii)).VPopName ' - Date = ' datestr(now,'dd-mmm-yyyy_HH-MM-SS') '.mat'];
+                if ~isempty(obj.Item(options.runIndices(ii)).Group)
+                    grpStr = obj.Item(options.runIndices(ii)).Group;
+                else
+                    grpStr = '';
+                end
+                ResultFileNames{ii} = ['Results - Sim = ' options.simName ...
+                    ', Task = ' obj.Item(options.runIndices(ii)).TaskName ...
+                    ' - Vpop = ' obj.Item(options.runIndices(ii)).VPopName ...
+                    ' - Group = ' grpStr ...
+                    ' - Date = ' datestr(now,'dd-mmm-yyyy_HH-MM-SS') '.mat'];
 
                 try
                     if isempty(VpopWeights)
@@ -190,6 +289,15 @@ if ~isempty(ItemModels)
                     end
                 catch error
                     ThisMessage = 'Error encountered saving file. Check that the save file name is valid.';
+                    
+                    if ispc
+                        fName = regexp(error.message, '(C:\\.*\.mat)', 'match');
+                        if length(fName{1}) > 260
+                            ThisMessage = sprintf('%s\n* Windows cannot save filepaths longer than 260 characters. See %s for more details.\n', ...
+                               ThisMessage, 'https://www.howtogeek.com/266621/how-to-make-windows-10-accept-file-paths-over-260-characters/' );
+                        end
+                    end
+%             
                     Message = sprintf('%s\n%s\n\n%s\n',Message,ThisMessage,error.message);        
                     StatusOK = false;
                     % close waitbar
@@ -200,10 +308,10 @@ if ~isempty(ItemModels)
                     return
                 end
                 % right now it's one line of Message per Simulation Item
-                if nFailedSims == ItemModel.nPatients
+                if nFailedSims{ii,jj} == ItemModel.nPatients
                     ThisMessage = 'No simulations were successful. (Check that dependencies are valid.)';
                 else
-                    ThisMessage = [num2str(ItemModel.nPatients-nFailedSims) ' simulations were successful out of ' num2str(ItemModel.nPatients) '.'];
+                    ThisMessage = [num2str(ItemModel.nPatients-nFailedSims{ii,jj}) ' simulations were successful out of ' num2str(ItemModel.nPatients) '.'];
                 end
                 Message = sprintf('%s\n%s\n',Message,ThisMessage);        
             elseif isfield(options,'Pin') && isempty(options.Pin)
@@ -212,12 +320,13 @@ if ~isempty(ItemModels)
                 Message = sprintf('%s\n%s\n',Message,ThisMessage);
             end
             
+            taskIndex = taskIndex + 1;
             
         end % for jj
 
     end % for ii = ...
 
-    
+
     
 end
 
@@ -334,13 +443,14 @@ if isempty(Pin)
             tmpObj = obj.Settings.VirtualPopulation(strcmp(vpopName,options.allVpopNames));
             if isempty(tmpObj) 
                 StatusOK = false;
-                error('The virtual population named %s is invalid.', vpopName) % TODO: Replace with ThisMessage/Message?
+                ThisMessage = sprintf('The virtual population named %s is invalid.', vpopName); % TODO: Replace with ThisMessage/Message?
+                Message = sprintf('%s\n%s\n',Message,ThisMessage);
                 break
             elseif isempty(tmpObj.FilePath)
                 StatusOK = false;
-%                 ThisMessage = sprintf('The virtual population named %s is incomplete.',vpopName);
-%                 Message = sprintf('%s\n%s\n',Message,ThisMessage);
-                error('The virtual population named %s is incomplete.', vpopName) % TODO: Replace with ThisMessage/Message?
+                ThisMessage = sprintf('The virtual population named %s is incomplete.',vpopName);
+                Message = sprintf('%s\n%s\n',Message,ThisMessage);
+%                 error('The virtual population named %s is incomplete.', vpopName) % TODO: Replace with ThisMessage/Message?
                 break
             end % if
         else
@@ -355,7 +465,7 @@ end % if
 
 end
 
-function [ItemModel, VpopWeights, StatusOK, Message] = constructVpopItem(taskObj, vpopObj, groupObj, options, Message)
+function [ItemModel, StatusOK, Message] = constructVpopItem(taskObj, vpopObj, groupObj, options, Message)
     % they are 1) all full and Pin is empty or 2) all full and Pin is not
     % empty or 3) all empty and Pin is not empty
     % case 1) only need to export model with parameters in the Vpop
@@ -372,14 +482,24 @@ function [ItemModel, VpopWeights, StatusOK, Message] = constructVpopItem(taskObj
     
     if ~isempty(vpopObj) % AG: TODO: added ~isempty(vpopObj) for function-call from plotOptimization. Need to verify with Genentech
         
-        if ~ispc
-            tmp = readtable(vpopObj.FilePath);
-            vpopTable = table2array(tmp);
-            params = tmp.Properties.VariableNames;
-        else
-            [vpopTable,params] = xlsread(vpopObj.FilePath);
+%         if ~ispc
+%             tmp = readtable(vpopObj.FilePath);
+%             vpopTable = table2array(tmp);
+%             params = tmp.Properties.VariableNames;
+%         else
+%             [vpopTable,params,raw] = xlsread(vpopObj.FilePath);
+%             params = raw(1,:);
+%             vpopTable = cell2mat(raw(2:end,:));
+%         end
+        
+        [params, vpopTable, StatusOK, Message] = xlread(vpopObj.FilePath);
+        vpopTable = cell2mat(vpopTable);
+        if ~StatusOK
+            return
         end
-        params = params(1,:);
+        
+        
+%         params = params(1,:);
 %         T = readtable(vpopObj.FilePath);
 %         vpopTable = table2cell(T);         
 %         params = T.Properties.VariableNames;    
@@ -390,6 +510,12 @@ function [ItemModel, VpopWeights, StatusOK, Message] = constructVpopItem(taskObj
         if hasGroupCol && ~isempty(groupObj)
             groupVec = vpopTable(:,groupCol);
             vpopTable = vpopTable(str2num(groupObj)==groupVec,:); % filter
+            if isempty(vpopTable)
+                % no members of this group in the vpop file
+                StatusOK =  false;
+                Message = sprintf('Vpop file does not any entries with group = %d\n', str2num(groupObj));
+                return
+            end
         end
 
         % check whether the last column is PWeight
@@ -401,11 +527,13 @@ function [ItemModel, VpopWeights, StatusOK, Message] = constructVpopItem(taskObj
         % check if there are parameters which are not contained in the
         % model
         
-        if ~isempty(setdiff( params, [taskObj.SpeciesNames; taskObj.ParameterNames; {'PWeight','Group'}']))
+        if ~isempty(setdiff( params, [taskObj.SpeciesNames; taskObj.ParameterNames; {'PWeight','Group','ID'}']))
             StatusOK = false;
-            Message = sprintf('%s%s: Invalid parameters contained in the vpop file. Please check for consistency with the selected task model.\n', ...
+            Message = sprintf(['%s%s: Invalid parameters contained in the vpop file. Valid column names includes "PWeight", "Group", "ID",'...
+                    'and names of parameters/species in the model.\n\nPlease check for consistency with the selected task model.\n'], ...
                 Message, taskObj.Name);
-            return
+%             return
+
         end
         
         nPatients = size(vpopTable,1);
@@ -420,107 +548,14 @@ function [ItemModel, VpopWeights, StatusOK, Message] = constructVpopItem(taskObj
     ItemModel.Names = Names;
     ItemModel.Values = Values;    
     ItemModel.nPatients = nPatients;    
+    ItemModel.VpopWeights = VpopWeights;
     
     StatusOK = true;
     
 end
 
-function [Results, nFailedSims, StatusOK, Message, Cancelled] = simulateVPatients(ItemModel, options, Message)  
-    Cancelled = false;
-    nFailedSims = 0;
-    taskObj = ItemModel.Task;
-    
-    % clear the results of the previous simulation
-    Results = [];
-    StatusOK = true;
-    
-    ParamValues_in = options.Pin;
-    
-    if isempty(taskObj) % could not load the task
-        StatusOK = false;
-        Message = sprintf('%s\n\n%s', 'Failed to run simulation', Message);
-        
-        return
-    end
-
-    % store the output times in Results
-    if ~isempty(taskObj.OutputTimes)
-        taskTimes = taskObj.OutputTimes;
-    else
-        taskTimes = taskObj.DefaultOutputTimes;
-    end        
-    Results.Time = union(taskTimes, options.extraOutputTimes);
-
-    % preallocate a 'Data' field in Results structure
-    Results.Data = [];
-
-    % species names
-    Results.SpeciesNames = [];
-    if ~isempty(taskObj.ActiveSpeciesNames)
-        Results.SpeciesNames = taskObj.ActiveSpeciesNames;
-    else
-        Results.SpeciesNames = taskObj.SpeciesNames;
-    end    
-    
-    if isfield(ItemModel,'nPatients')
-        for jj = 1:ItemModel.nPatients
-
-            % check for user-input parameter values
-            if ~isempty(ParamValues_in)
-                Names = options.paramNames;
-                Values = ParamValues_in;
-            else
-                Names = ItemModel.Names;
-                Values = ItemModel.Values;
-            end
-
-
-            try 
-                if isempty(Values)
-                    theseValues = [];
-                else
-                    theseValues = Values(jj,:);
-                end
-                [simData,simOK]  = taskObj.simulate(...
-                        'Names', Names, ...
-                        'Values', theseValues, ...
-                        'OutputTimes', Results.Time);
-                if ~simOK
-                    ME = MException('simulationRunHelper:simulateVPatients', 'Simulation failed');
-                    throw(ME)
-                end
-                % extract active species data, if specified
-                if ~isempty(taskObj.ActiveSpeciesNames)
-                    [~,activeSpec_j] = selectbyname(simData,taskObj.ActiveSpeciesNames);
-                else
-                    [~,activeSpec_j] = selectbyname(simData,taskObj.SpeciesNames);
-                end
-
-            % Add results of the simulation to Results.Data
-            Results.Data = [Results.Data,activeSpec_j];
-            catch err% simulation
-                % If the simulation fails, store NaNs
-                warning(err.identifier, 'simulationRunHelper: %s', err.message)
-                % pad Results.Data with appropriate number of NaNs
-                if ~isempty(taskObj.ActiveSpeciesNames)
-                    Results.Data = [Results.Data,NaN*ones(length(Results.Time),length(taskObj.ActiveSpeciesNames))];
-                else
-                    Results.Data = [Results.Data,NaN*ones(length(Results.Time),length(taskObj.SpeciesNames))];
-                end
-
-                nFailedSims = nFailedSims + 1;
-
-            end % try
-            
-            % update wait bar
-            if ~isempty(options.WaitBar)
-                StatusOK = uix.utility.CustomWaitbar(jj/ItemModel.nPatients, options.WaitBar, sprintf('Simulating vpatient %d/%d', jj, ItemModel.nPatients));
-            end
-            if ~StatusOK
-                Cancelled=true;
-                break
-            end
-        end % for jj = ...
-    end % if
+function [Results, nFailedSims, StatusOK, Message, Cancelled, taskID] = simulateVPatients(ItemModel, options, Message, job)  
+       
+    [Results, nFailedSims, StatusOK, Message, Cancelled, taskID] = simulateVPatients_(ItemModel, options, Message, job);
     
 end

@@ -224,7 +224,11 @@ classdef AxesMouseHandler < handle
         function onAxesFigureChanged(obj)
             
             % Use first axes
-            hFigure = obj.AxesFigureObserver(1).Figure;
+            if ~isempty(obj.AxesFigureObserver)
+                hFigure = obj.AxesFigureObserver(1).Figure;
+            else
+                hFigure = [];
+            end
             
             if obj.EnableMouseHandler && ~isempty(hFigure)
                 obj.MousePressListener = event.listener( hFigure, ...

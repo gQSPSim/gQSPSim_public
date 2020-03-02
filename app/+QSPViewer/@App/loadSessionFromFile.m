@@ -5,7 +5,7 @@ function StatusOk = loadSessionFromFile(obj,FilePath)
 % session from a file
 %
 
-% Copyright 2016 The MathWorks, Inc.
+% Copyright 2019 The MathWorks, Inc.
 %
 % Auth/Revision:
 %   MathWorks Consulting
@@ -35,7 +35,16 @@ end
 % Validate the file
 try
     validateattributes(s.Session,{'QSP.Session'},{'scalar'})
-    Session = s.Session;
+
+    % check the session root
+    if ~exist(s.Session.RootDirectory, 'dir') && strcmp(questdlg('Session root directory is invalid. Select a new root directory?', 'Select root directory', 'Yes'),'Yes')        
+        rootDir = uigetdir(s.Session.RootDirectory, 'Select valid session root directory');
+        if rootDir ~= 0
+            s.Session.RootDirectory = rootDir;
+        end
+    end
+    
+    Session = copy(s.Session);
 catch err
     StatusOk = false;
     Message = sprintf(['The file %s did not contain a valid '...
@@ -43,10 +52,13 @@ catch err
 end
 
 if StatusOk
+
+
     
     % Add the session to the app
     obj.createNewSession(Session);
-    
+
+
 else
     hDlg = errordlg(Message,'Open File','modal'); uiwait(hDlg);
 end

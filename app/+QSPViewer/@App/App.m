@@ -141,7 +141,7 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
     % Examples:
     %  obj = QSPViewer.App()
     
-    %   Copyright 2016 The MathWorks, Inc.
+    %   Copyright 2019 The MathWorks, Inc.
     %
     % Auth/Revision:
     %   MathWorks Consulting
@@ -154,7 +154,7 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
     %% Properties
     
     properties (SetAccess=private)
-        Session = QSP.Session.empty(0,1) %Top level session sessions
+        Session = QSP.Session.empty(0,1) %Top level session sessions        
     end
     
     properties (SetAccess=private, Dependent=true)
@@ -165,6 +165,10 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
     properties( Access = private )
         NavigationChangedListener = event.listener.empty(0,1)
         MarkDirtyListener = event.listener.empty(0,1)
+    end
+    
+    properties(Constant)
+        Version = 'v1.0'
     end
         
     %% Methods in separate files with custom permissions
@@ -194,7 +198,7 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
         function obj = App(varargin)
             
             % Set some superclass properties for the app
-            obj.AppName = 'QSP App';
+            obj.AppName = ['gQSPsim ' obj.Version];
             obj.AllowMultipleSessions = true;
             obj.FileSpec = {'*.qsp.mat','MATLAB QSP MAT File'};
             
@@ -215,7 +219,12 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
             obj.refresh();
             
             % Now, make the figure visible
-            set(obj.Figure,'Visible','on')
+            set(obj.Figure,'Visible','on')       
+            
+            % check version
+%             QSPViewer.App.checkForUpdates() % TODO reenable when repo is
+%             public
+            
             
         end %function
         
@@ -266,6 +275,18 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
                             % Update the display
                             obj.refresh();
                         end
+                    case 'Updated QSP.Parameters'
+                        if isfield(e,'Data')
+                            % Add the new parameters to the session
+                            NewParameters = e.Data;
+                            for idx = 1:numel(NewParameters)
+                                onAddItem(obj,NewParameters(idx))
+                            end
+                            
+                            % Update the display
+                            obj.refresh();
+                        end
+                       
                         
                 end %switch e.InteractionType
             end
@@ -282,6 +303,14 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
             Root = h.Root;
             SelNode = e.Nodes;
             ThisSessionNode = SelNode;
+            
+            if length(SelNode)>1
+                % no updates if doing multiselect
+                % Update pointer
+                set(obj.Figure,'pointer','arrow');
+                drawnow;
+                return
+            end
             while ~isempty(ThisSessionNode) && ThisSessionNode.Parent~=Root
                 ThisSessionNode = ThisSessionNode.Parent;                
             end
@@ -290,7 +319,18 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
             if isempty(ThisSessionNode)
                 obj.SelectedSessionIdx = [];
             else
+                % update path to include drop the UDF for previous session
+                % and include the UDF for current session
+                obj.SelectedSession.removeUDF();
+                
                 obj.SelectedSessionIdx = find(ThisSessionNode == obj.SessionNode);
+                obj.SelectedSession.addUDF();
+
+            end
+            
+            % Disable mouse handler before refresh
+            if ~isempty(obj.ActivePane) && strcmpi(class(obj.ActivePane),'QSPViewer.Optimization')
+                obj.ActivePane.EnableMouseHandler = false;
             end
             
             % Update the display
@@ -304,7 +344,7 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
                 if any(ismember(obj.ActivePane.Selection,[1 3]))
                     % Call updateVisualizationView to disable Visualization button if invalid items                    
                     switch class(thisObj)
-                        case {'QSP.Simulation','QSP.Optimization','QSP.VirtualPopulationGeneration'}
+                        case {'QSP.Simulation','QSP.Optimization','QSP.VirtualPopulationGeneration','QSP.CohortGeneration'}
                             if obj.ActivePane.Selection == 3
                                 plotData(obj.ActivePane);
                             end
@@ -313,12 +353,35 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
                 end                
             end
             
+            % Enable mouse handler - Only for visualization view
+            if ~isempty(obj.ActivePane) && strcmpi(class(obj.ActivePane),'QSPViewer.Optimization')
+                if obj.ActivePane.Selection == 3
+                    obj.ActivePane.EnableMouseHandler = true;
+                else
+                    obj.ActivePane.EnableMouseHandler = false;
+                end
+            end
+            
             % Update pointer
             set(obj.Figure,'pointer','arrow');
             drawnow;
             
         end %function
                 
+        function onHelpAbout(obj,h,e)
+           msgbox({'gQSPsim version 1.0', ...
+               '', ...
+               'http://www.github.com/feigelman/gQSPsim', ...
+               '', ...
+               'Authors:', ...
+               '', ...
+               'Justin Feigelman (feigelman.justin@gene.com)', ...
+               'Iraj Hosseini (hosseini.iraj@gene.com)', ...
+               'Anita Gajjala (agajjala@mathworks.com)'}, ...
+               'About')
+               
+        end
+        
         function onNavigationChanged(obj,h,e)
             
             if ~isempty(e) && isprop(e,'Name')
@@ -331,6 +394,13 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
                     thisObj = [];
                 end
                             
+                % Updated SelectedSession if needed
+                if ~isempty(e.Source.Data) && strcmpi(class(e.Source.Data),'QSP.Session')                    
+                    obj.SelectedSession = e.Source.Data;
+                    
+                    updateTree(obj,obj.h.SessionTree.Root);
+                end
+                
                 switch e.Name
                     case 'Summary'
                         % Need to disable Visualization button if invalid
@@ -339,26 +409,39 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
                                 'QSP.Simulation',...
                                 'QSP.Optimization',...
                                 'QSP.VirtualPopulationGeneration',...
+                                'QSP.CohortGeneration'...
                                 }))                        
                             updateVisualizationView(obj.ActivePane);
                         end
                         obj.h.SessionTree.Enable = true;
                         obj.h.FileMenu.Menu.Enable = 'on';
                         obj.h.QSPMenu.Menu.Enable = 'on';
+                        % Disable mouse handler
+                        if ~isempty(obj.ActivePane) && strcmpi(class(obj.ActivePane),'QSPViewer.Optimization') 
+                            obj.ActivePane.EnableMouseHandler = false;
+                        end
                     case 'Edit'
                         obj.h.SessionTree.Enable = false;
                         obj.h.FileMenu.Menu.Enable = 'off';
                         obj.h.QSPMenu.Menu.Enable = 'off';
+                        % Disable mouse handler
+                        if ~isempty(obj.ActivePane) && strcmpi(class(obj.ActivePane),'QSPViewer.Optimization') 
+                            obj.ActivePane.EnableMouseHandler = false;
+                        end
                     case 'Visualize'  
                         % Check the type
                         % If either Simulation, Optimization, or Virtual Population Generation, re-plot                        
                         switch class(thisObj)
-                            case {'QSP.Simulation','QSP.Optimization','QSP.VirtualPopulationGeneration'}                              
+                            case {'QSP.Simulation','QSP.Optimization','QSP.VirtualPopulationGeneration','QSP.CohortGeneration'}                              
                                 plotData(obj.ActivePane);
                         end
                         obj.h.SessionTree.Enable = true;
                         obj.h.FileMenu.Menu.Enable = 'on';
                         obj.h.QSPMenu.Menu.Enable = 'on';
+                        % Enable mouse handler
+                        if ~isempty(obj.ActivePane) && strcmpi(class(obj.ActivePane),'QSPViewer.Optimization') 
+                            obj.ActivePane.EnableMouseHandler = true;
+                        end
                 end
             end
             
@@ -380,7 +463,13 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
             % special case since vpop data has been renamed to acceptance
             % criteria
             if strcmp(ItemType, 'VirtualPopulationData')
-                ItemName = 'AcceptanceCriteria';
+                ItemName = 'Acceptance Criteria';
+            elseif strcmp(ItemType, 'VirtualPopulationGenerationData')
+                ItemName = 'Target Statistics';
+            elseif strcmp(ItemType, 'VirtualPopulation')
+                ItemName = 'Virtual Subjects';
+            elseif strcmp(ItemType, 'OptimizationData')
+                ItemName = 'Dataset';
             else
                 ItemName = ItemType;
             end
@@ -398,6 +487,11 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
             % What tree branch does this go under?
             ChildNodes = ParentObj.TreeNode.Children;
             ChildTypes = {ChildNodes.UserData};
+            if any(strcmpi(ItemType,{'Simulation','Optimization','CohortGeneration','VirtualPopulationGeneration'}))
+                ThisChildNode = ChildNodes(strcmpi(ChildTypes,'Functionalities'));
+                ChildNodes = ThisChildNode.Children;
+                ChildTypes = {ChildNodes.UserData};
+            end
             ParentNode = ChildNodes(strcmp(ChildTypes,ItemType));
             
             % Create the new item
@@ -443,8 +537,10 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
             ItemType = ParentNode.UserData;
             
             % What are the data object and its parent?
-            ThisObj = SelNode.Value;
             ParentObj = ParentNode.Value;
+
+            for nodeIdx = 1:length(SelNode)
+                ThisObj = SelNode(nodeIdx).Value;
             
             % Copy the object
 %             NewObj = ThisObj.copy();
@@ -452,22 +548,25 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
             % Parent the object
 %             ParentObj.(ItemType)(end+1) = NewObj;
 %             
-            % Create the duplicate item
-            DisallowedNames = {ParentObj.(ItemType).Name};
-            NewName = matlab.lang.makeUniqueStrings(ThisObj.Name, DisallowedNames);
-            ThisObj = ThisObj.copy();
-            ThisObj.Name = NewName;
-            ThisObj.clearData();
-            
-            % Place the item and add the tree node
-            if isscalar(ParentNode)
-                ParentObj.(ItemType)(end+1) = ThisObj;
-                obj.createTree(ParentNode, ThisObj);
-                ParentNode.expand();
-            else
-                error('Invalid tree parent');
+                % Create the duplicate item
+                DisallowedNames = {ParentObj.(ItemType).Name};
+                NewName = matlab.lang.makeUniqueStrings(ThisObj.Name, DisallowedNames);
+                ThisObj = ThisObj.copy();
+                ThisObj.Name = NewName;
+                ThisObj.clearData();
+
+                % Place the item and add the tree node
+                if isscalar(ParentNode)
+                    ParentObj.(ItemType)(end+1) = ThisObj;
+                    obj.createTree(ParentNode, ThisObj);
+                    ParentNode.expand();
+                else
+                    error('Invalid tree parent');
+                end
+                
+                % set the duplicate as the selected node
+                obj.h.SessionTree.SelectedNodes = ParentNode.Children(end);
             end
-            
             % Mark the current session dirty
             obj.markDirty();
                         
@@ -489,36 +588,38 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
             % What type of item?
             ItemType = ParentNode.UserData;
             
-            % What are the data object and its parent?
-            ThisObj = SelNode.Value;
-            ParentObj = ParentNode.Value;
-            
             % Where is the Deleted Items node?
             hSessionNode = ThisSession.TreeNode;
             hChildNodes = hSessionNode.Children;
             ChildTypes = {hChildNodes.UserData};
             hDeletedNode = hChildNodes(strcmp(ChildTypes,'Deleted'));
             
-            % Move the object from its parent to deleted
-            ThisSession.Deleted(end+1) = ThisObj;
-            ParentObj.(ItemType)( ParentObj.(ItemType)==ThisObj ) = [];
-            
-            % Update the tree
+            nSelected = length(SelNode);
+            for nodeIdx = 1:nSelected
+                % What are the data object and its parent?
+                ThisObj = SelNode(nodeIdx).Value;
+                ParentObj = ParentNode.Value;            
+                % Move the object from its parent to deleted
+                ThisSession.Deleted(end+1) = ThisObj;
+                ParentObj.(ItemType)( ParentObj.(ItemType)==ThisObj ) = [];
+                SelNode(nodeIdx).Parent = hDeletedNode;
+                SelNode(nodeIdx).Tree.SelectedNodes = SelNode;
+                % Change context menu
+                SelNode(nodeIdx).UIContextMenu = obj.h.TreeMenu.Leaf.Deleted;
+            end
+%             
+%             % Update the tree
+%             updateTree(obj,obj.h.SessionTree.Root);
             
             % if deleted objective was the active object, reset the active
             % pane
 %             if obj.ActivePane.Data == ThisObj
 %                 obj.ActivePane.Data = [];
 %             end
-            
+
             obj.ActivePane.Selection = 1; % switch to summary view
 
-            SelNode.Parent = hDeletedNode;
-            SelNode.Tree.SelectedNodes = SelNode;
             hDeletedNode.expand();
-            
-            % Change context menu
-            SelNode.UIContextMenu = obj.h.TreeMenu.Leaf.Deleted;
             
             % Mark the current session dirty
             obj.markDirty();
@@ -534,66 +635,74 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
             % Get the session
             ThisSession = obj.SelectedSession;
             
-            % What node is selected? What is its parent?
-            SelNode = obj.h.SessionTree.SelectedNodes;
+            % What node is selected? What is its parent?            
+            SelNodes = obj.h.SessionTree.SelectedNodes;
+
+            for nodeIdx = 1:length(SelNodes)
+                SelNode = SelNodes(nodeIdx);
+                % What is the data object?
+                ThisObj = SelNode.Value;
+
+                % What type of item?
+                ItemType = strrep(class(ThisObj), 'QSP.', '');
+
+                % Where does the item go?
+                if isprop(ThisSession,ItemType)
+                    ParentObj = ThisSession;
+                else
+                    ParentObj = ThisSession.Settings;
+                end
+                
+                % What tree branch does this go under?
+                ChildNodes = ParentObj.TreeNode.Children;
+                ChildTypes = {ChildNodes.UserData};
+                if any(strcmpi(ItemType,{'Simulation','Optimization','CohortGeneration','VirtualPopulationGeneration'}))
+                    ThisChildNode = ChildNodes(strcmpi(ChildTypes,'Functionalities'));
+                    ChildNodes = ThisChildNode.Children;
+                    ChildTypes = {ChildNodes.UserData};
+                end
+                ParentNode = ChildNodes(strcmp(ChildTypes,ItemType));
+                
+                % check for duplicate names
+                if any(strcmp( SelNode.Value.Name, {ParentObj.(ItemType).Name} ))
+                    hDlg = errordlg('Cannot restore deleted item because its name is identical to an existing item.','Restore','modal');
+                    uiwait(hDlg);
+                    return
+                end
+
+                % Move the object from deleted to the new parent 
+                ParentObj.(ItemType)(end+1) = ThisObj;
+                MatchIdx = false(size(ThisSession.Deleted));
+                for idx = 1:numel(ThisSession.Deleted)
+                    MatchIdx(idx) = ThisSession.Deleted(idx)==ThisObj;
+                end
+                ThisSession.Deleted( MatchIdx ) = [];
+
+                 % Update the name to include the timestamp
+                TimeStamp = datestr(now,'dd-mmm-yyyy_HH-MM-SS');
+
+                % Strip out date
+                SplitName = regexp(ThisObj.Name,'\(\d\d-\D\D\D-\d\d\d\d_\d\d-\d\d-\d\d\)','split');
+                if ~isempty(SplitName) && iscell(SplitName)
+                    SplitName = SplitName{1}; % Take first
+                end
+                ThisObj.Name = strtrim(SplitName);
+
+                ThisObj.Name = sprintf('%s (%s)',ThisObj.Name,TimeStamp);
+
+                % Update the tree
+                SelNode.Parent = ParentNode;
+                SelNode.Tree.SelectedNodes = SelNode;
+                ParentNode.expand();
+
+                % Change context menu
+                SelNode.UIContextMenu = obj.h.TreeMenu.Leaf.(ItemType);
             
-            % What is the data object?
-            ThisObj = SelNode.Value;
-            
-            % What type of item?
-            ItemType = strrep(class(ThisObj), 'QSP.', '');
-            
-            % Where does the item go?
-            if isprop(ThisSession,ItemType)
-                ParentObj = ThisSession;
-            else
-                ParentObj = ThisSession.Settings;
+                % Update the display
+                obj.refresh();
             end
-            
-            % What tree branch does this go under?
-            hChildNodes = ParentObj.TreeNode.Children;
-            ChildTypes = {hChildNodes.UserData};
-            hParentNode = hChildNodes(strcmp(ChildTypes,ItemType));
-            
-            % check for duplicate names
-            if any(strcmp( SelNode.Value.Name, {ParentObj.(ItemType).Name} ))
-                errordlg('Cannot restore deleted item because its name is identical to an existing item.')
-                return
-            end
-            
-            % Move the object from deleted to the new parent 
-            ParentObj.(ItemType)(end+1) = ThisObj;
-            MatchIdx = false(size(ThisSession.Deleted));
-            for idx = 1:numel(ThisSession.Deleted)
-                MatchIdx(idx) = ThisSession.Deleted(idx)==ThisObj;
-            end
-            ThisSession.Deleted( MatchIdx ) = [];
-            
-             % Update the name to include the timestamp
-            TimeStamp = datestr(now,'dd-mmm-yyyy_HH-MM-SS');
-            
-            % Strip out date
-            SplitName = regexp(ThisObj.Name,'\(\d\d-\D\D\D-\d\d\d\d_\d\d-\d\d-\d\d\)','split');
-            if ~isempty(SplitName) && iscell(SplitName)
-                SplitName = SplitName{1}; % Take first
-            end
-            ThisObj.Name = strtrim(SplitName);
-            
-            ThisObj.Name = sprintf('%s (%s)',ThisObj.Name,TimeStamp);
-            
-            % Update the tree
-            SelNode.Parent = hParentNode;
-            SelNode.Tree.SelectedNodes = SelNode;
-            hParentNode.expand();
-            
-            % Change context menu
-            SelNode.UIContextMenu = obj.h.TreeMenu.Leaf.(ItemType);
-            
             % Mark the current session dirty
             obj.markDirty();
-                        
-            % Update the display
-            obj.refresh();
             
         end %function
         
@@ -644,9 +753,178 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
             
         end %function
 
-        
+        function onNodeDrop(obj,h,e)
+
+            if length(unique(arrayfun(@(x) class(x.Value), e.Source, 'UniformOutput', false))) > 1
+                % different types selected
+                return
+            end
+            val1 = e.Source(1).Value;
+            
+            if isa(val1,'QSP.Settings') || isa(val1,'QSP.Session') 
+                return
+            end
+            
+            SourceNode = e.Source;
+            TargetNode = e.Target;
+            if ~isa(val1, class(e.Target.Value))
+                return
+            end
+           
+            switch e.DropAction
+                case 'move'
+                    
+                     % Get the session
+                    ThisSession = obj.SelectedSession;
+
+                    % What node is selected? What is its parent?
+                    SelNode = obj.h.SessionTree.SelectedNodes;
+
+                    % What is the data object?
+                    ThisObj = SelNode.Value;
+
+                    % What type of item?
+                    ItemType = strrep(class(ThisObj), 'QSP.', '');
+            
+                    % all data objects of this type
+                    if ismember(ItemType, {'Task', 'VirtualPopulation', 'Parameters', 'OptimizationData', 'VirtualPopulationData', ...
+                            'VirtualPopulationGenerationData'})
+                        nodeType = 'setting';
+                    else
+                        nodeType = 'item';
+                    end
+                    
+                    if strcmp(nodeType,'setting')
+                        ch = ThisSession.Settings.(ItemType);
+                    else
+                        ch = ThisSession.(ItemType);
+                    end
+
+
+                    % indices of source nodes
+                    [~,ix2] = ismember([SourceNode.Value],ch);
+                    [ix2,rank]=sort(ix2);
+                    SourceNode=SourceNode(rank);
+                    
+
+                    % indices of non-source nodes
+                    ixDiff = setdiff(1:length(ch),ix2);
+                    ch2 = ch(ixDiff); % objects without source nodes
+                    
+                    % index of target in remaining nodes 
+                    ix = find(ch2==TargetNode.Value);
+                    % rearrange data objects
+                    ch2 = [ch2(1:ix-1), [SourceNode.Value], ch2(ix:end)];
+                    
+                    % update data objects
+                    if strcmp(nodeType,'setting')
+                        ThisSession.Settings.(ItemType) = ch2;
+                    else
+                        ThisSession.(ItemType) = ch2;
+                    end
+                    
+                    % update tree
+                    for k=length(SourceNode):-1:1
+                        TargetNode.Tree.removeNode(SourceNode(k));
+                    end
+                    for k=length(SourceNode):-1:1
+                        TargetNode.Tree.insertNode(SourceNode(k),TargetNode.Parent,max(1,ix));                        
+                    end
+%                     TargetNode.Tree.reload(TargetNode.Parent);
+                    
+                    % Mark the current session dirty
+                    obj.markDirty();
+
+                    % Update the display
+                    obj.refresh();
+                    
+                otherwise
+                    % Do nothing
+            end
+
+
+        end
     end %methods
     
+    
+    %% Methods
+    methods
+        
+        function updateTree(obj,hTree,varargin)
+            
+            if nargin > 2
+                RootLevel = false;
+                ThisSession = varargin{1}; % Used everywhere except for initial call/top-level (QSP.Session)
+            else
+                RootLevel = true;
+                ThisSession = QSP.Session.empty(0,1);
+            end
+            
+            % TODO: Handle deleted
+            if ~isempty(hTree.Children)
+                Ch = hTree.Children;
+                for idx = 1:numel(Ch)
+                    % Check Parent to see if it's under the Deleted node...
+                    if strcmpi(Ch(idx).Parent.UserData,'Deleted')
+                        Ch(idx).Value = ThisSession.Deleted(idx);
+                        if isprop(Ch(idx).Value,'Session')
+                            Ch(idx).Value.Session = ThisSession;
+                        end
+                    else
+                        % Otherwise, it is under the appropriate section
+                        switch class(Ch(idx).Value)
+                            case 'QSP.Session'
+                                % NOTE: This assumes tree children are ordered in same order as
+                                % session's children!
+                                if RootLevel % First time only (Session-level in tree), then use obj.Session(idx) directly
+                                    ThisSession = obj.Session(idx);
+                                end
+                                Ch(idx).Value = ThisSession;
+                                
+                            case 'QSP.Settings'
+                                Ch(idx).Value = ThisSession.Settings;
+                                
+                            case 'QSP.OptimizationData'
+                                Ch(idx).Value = ThisSession.Settings.OptimizationData(idx);
+                                
+                            case 'QSP.Parameters'
+                                Ch(idx).Value = ThisSession.Settings.Parameters(idx);
+                                
+                            case 'QSP.Task'
+                                Ch(idx).Value = ThisSession.Settings.Task(idx);
+                                
+                            case 'QSP.VirtualPopulation'
+                                Ch(idx).Value = ThisSession.Settings.VirtualPopulation(idx);
+                                
+                            case 'QSP.VirtualPopulationData'
+                                Ch(idx).Value = ThisSession.Settings.VirtualPopulationData(idx);
+                                
+                            case 'QSP.Simulation'                                
+                                Ch(idx).Value = ThisSession.Simulation(idx);
+                                Ch(idx).Value.Session = ThisSession;
+                                
+                            case 'QSP.Optimization'
+                                Ch(idx).Value = ThisSession.Optimization(idx);
+                                Ch(idx).Value.Session = ThisSession;
+                                
+                            case 'QSP.CohortGeneration'
+                                Ch(idx).Value = ThisSession.CohortGeneration(idx);
+                                Ch(idx).Value.Session = ThisSession;
+                                
+                            case 'QSP.VirtualPopulationGeneration'
+                                Ch(idx).Value = ThisSession.VirtualPopulationGeneration(idx);
+                                Ch(idx).Value.Session = ThisSession;
+                        end %switch
+                    end %if
+                    
+                    % Recurse
+                    updateTree(obj,Ch(idx),ThisSession);
+                    
+                end %for                
+            end
+        end %function
+        
+    end %methods    
     
     
     %% Get/Set methods
@@ -655,6 +933,11 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
         function value = get.SelectedSession(obj)
             % Grab the session object for the selected session
             value = obj.Session(obj.SelectedSessionIdx);
+        end
+        
+        function set.SelectedSession(obj,value)
+            % Grab the session object for the selected session
+            obj.Session(obj.SelectedSessionIdx) = value;
         end
         
         function value = get.SessionNode(obj)
@@ -667,4 +950,23 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
         
     end %methods
     
+    methods (Static)
+        function checkForUpdates()
+
+            w = weboptions('CertificateFile','');
+            webData = webread('https://api.github.com/repos/feigelman/gQSPsim/tags', w); % TODO: correct repo!
+
+            if ~isempty(webData) && isstruct(webData) && isfield(webData,'name')
+                webVersion = webData(1).name;
+                if ~strcmp(webVersion, QSPViewer.App.Version)            
+                    doUpdate = questdlg('A newer version of gQSPsim is available. Please visit the gQSPsim repository http:\\www.github.com\feigelman\gQSPsim\ for the latest version.', ...                
+                        'Newer version available', ...
+                        'Get latest version', 'Cancel', 'Get latest version');
+                    if strcmp(doUpdate,  'Get latest version')
+                        web('https://www.github.com/feigelman/gQSPsim','-browser');
+                    end
+                end
+            end
+        end
+    end
 end %classdef

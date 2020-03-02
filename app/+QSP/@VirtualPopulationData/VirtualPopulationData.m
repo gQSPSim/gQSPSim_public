@@ -18,7 +18,7 @@ classdef VirtualPopulationData < QSP.abstract.BaseProps & uix.mixin.HasTreeRefer
     %
     %
     
-    % Copyright 2016 The MathWorks, Inc.
+    % Copyright 2019 The MathWorks, Inc.
     %
     % Auth/Revision:
     %   MathWorks Consulting
@@ -60,9 +60,9 @@ classdef VirtualPopulationData < QSP.abstract.BaseProps & uix.mixin.HasTreeRefer
             % Populate summary
             Summary = {...
                 'Name',obj.Name;
-                'Last Saved',obj.LastSavedTime;
+                'Last Saved',obj.LastSavedTimeStr;
                 'Description',obj.Description;       
-                'File name',obj.RelativeFilePath;                         
+                'File Name',obj.RelativeFilePath;                         
                 };
         end
         
@@ -70,6 +70,9 @@ classdef VirtualPopulationData < QSP.abstract.BaseProps & uix.mixin.HasTreeRefer
             
             StatusOK = true;
             Message = sprintf('Acceptance Criteria: %s\n%s\n',obj.Name,repmat('-',1,75));
+            if  obj.Session.UseParallel && ~isempty(getCurrentTask())
+                return
+            end
             
             if isdir(obj.FilePath) || ~exist(obj.FilePath,'file')
                 StatusOK = false;
@@ -80,9 +83,9 @@ classdef VirtualPopulationData < QSP.abstract.BaseProps & uix.mixin.HasTreeRefer
                 if ~ThisStatusOk
                     Message = sprintf('%s\n* Error loading data "%s". %s\n',Message,obj.FilePath,ThisMessage);
                     StatusOK = false;
-                elseif ~all(ismember(Header,{'Group','Time','Data','LB','UB','Include'}))
+                elseif ~all(ismember({'GROUP','TIME','DATA','LB','UB'}, upper(Header)))
                     % Validate headers
-                    Message = sprintf('%s\n* Acceptance criteria file contains incorrect headers. "%s". %s\n',Message,obj.FilePath,ThisMessage);
+                    Message = sprintf('%s\n* Acceptance criteria file contains incorrect headers. It must contain the columns Group, Time, Data, LB, and UB.\n\n %s\n',ThisMessage);
                     StatusOK = false;
                 end
                 

@@ -1,13 +1,13 @@
 function update(vObj)
-% redraw - Updates all parts of the viewer display
+% update - Updates all parts of the viewer display
 % -------------------------------------------------------------------------
 % Abstract: This function updates all parts of the viewer display
 %
 % Syntax:
-%           redraw(vObj)
+%           update(vObj)
 %
 % Inputs:
-%           vObj - The MyPackageViewer.Empty vObject
+%           vObj - QSPViewer.Optimization vObject
 %
 % Outputs:
 %           none
@@ -18,7 +18,7 @@ function update(vObj)
 % Notes: none
 %
 
-% Copyright 2014-2015 The MathWorks, Inc.
+% Copyright 2019 The MathWorks, Inc.
 %
 % Auth/Revision:
 %   MathWorks Consulting
@@ -54,12 +54,16 @@ end
 
 %% Update Edit View
 
-updateEditView(vObj);
+if vObj.Selection == 2
+    updateEditView(vObj);
+end
 
 
 %% Update Visualization View
 
-updateVisualizationView(vObj);
+if vObj.Selection == 3
+    updateVisualizationView(vObj);
+end
 
 % Throw away cached ItemModels
 if ~isempty(vObj.Data)

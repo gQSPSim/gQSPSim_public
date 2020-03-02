@@ -378,6 +378,11 @@ classdef Table < matlab.mixin.SetGet
             %   colIndex: column of cell to set.
             %   color: either a string with the color or an RGB triplet
             
+                        % Turn off callbacks
+            if isvalid(obj)
+                obj.CBEnabled = false;
+            end
+            
             if nargin<4
                 error('Table:setCellColor:BadArgs', ...
                     'Must be called with row,column and color')
@@ -388,7 +393,9 @@ classdef Table < matlab.mixin.SetGet
                     'Indices must be in [1:%d,1:%d]', ...
                     size(obj.Data,1),size(obj.Data,2))
             end
-            if ~isa(color,'char') && ~isnumeric(color)
+%             if ~isa(color,'char') && ~isnumeric(color)
+            if ~isnumeric(color)
+
                 error('Table:setCellColor:BadArgs', ...
                     'color argument must be a string or an RGB triplet')
             end
@@ -397,6 +404,11 @@ classdef Table < matlab.mixin.SetGet
             
             % Redraw to reflect the color change
             obj.redraw();
+            
+            % Turn on callbacks
+            if isvalid(obj)
+                obj.CBEnabled = true;
+            end
             
         end %setCellColor
         
@@ -1085,6 +1097,9 @@ classdef Table < matlab.mixin.SetGet
         
         % Data
         function value = get.Data(obj)
+            
+            CBenabled = obj.CBEnabled;
+            obj.CBEnabled = false;
             JTableModel = obj.JTableModel;
             NumRow = JTableModel.getRowCount();
             NumCol = JTableModel.getColumnCount();
@@ -1098,6 +1113,7 @@ classdef Table < matlab.mixin.SetGet
                     end
                 end
             end
+            obj.CBEnabled = CBenabled;
         end % get.Data
         
         function set.Data(obj, value)
@@ -1748,7 +1764,7 @@ classdef Table < matlab.mixin.SetGet
             % This method may be triggered multiple times from a selection.
             % Don't process notifications until the time when changes are
             % complete.            
-            if callbacksEnabled(obj) && ~eventData.getValueIsAdjusting()
+            if callbacksEnabled(obj) && ~eventData.getValueIsAdjusting() % NOTE: Reverse logic of getValueIsAdjusting to trigger Selection then Edit callbacks
                 
                 if obj.Debug, disp('onSelectionChanged - entered'); end
                 

@@ -5,7 +5,7 @@ classdef VirtualPopulation < uix.abstract.CardViewPane
     %
 
     
-    %   Copyright 2014-2016 The MathWorks, Inc.
+    %   Copyright 2019 The MathWorks, Inc.
     %
     % Auth/Revision:
     %   MathWorks Consulting
@@ -14,7 +14,7 @@ classdef VirtualPopulation < uix.abstract.CardViewPane
     %   $Date: 2016-09-02 13:08:51 -0400 (Fri, 02 Sep 2016) $
     % ---------------------------------------------------------------------
    
-        
+       
     %% Methods in separate files with custom permissions
     methods (Access=protected)
         create(obj);        
@@ -66,7 +66,7 @@ classdef VirtualPopulation < uix.abstract.CardViewPane
             
             if exist(vObj.TempData.FilePath,'file')==2
                 
-                [StatusOK,Message] = importData(vObj.TempData, vObj.TempData.FilePath);
+                [StatusOK,Message,Header,Data] = importData(vObj.TempData, vObj.TempData.FilePath);
                 if ~StatusOK
                     hDlg = errordlg(Message,'Error on Import','modal');
                     uiwait(hDlg);

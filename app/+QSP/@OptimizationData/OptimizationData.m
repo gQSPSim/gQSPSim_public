@@ -18,7 +18,7 @@ classdef OptimizationData < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
     %
     %
     
-    % Copyright 2016 The MathWorks, Inc.
+    % Copyright 2019 The MathWorks, Inc.
     %
     % Auth/Revision:
     %   MathWorks Consulting
@@ -30,6 +30,13 @@ classdef OptimizationData < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
     %% Public Properties
     properties
         DatasetType = 'wide'
+%         Headers = {};
+%         Data = [];
+    end
+    
+    properties (Access=private)
+        Data
+        Header        
     end
     
     %% Constructor
@@ -66,9 +73,9 @@ classdef OptimizationData < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             % Populate summary
             Summary = {...
                 'Name',obj.Name;
-                'Last Saved',obj.LastSavedTime;
+                'Last Saved',obj.LastSavedTimeStr;
                 'Description',obj.Description;
-                'File name',obj.RelativeFilePath;                
+                'File Name',obj.RelativeFilePath;                
                 'Dataset Type',obj.DatasetType;
                 };
         end
@@ -77,6 +84,10 @@ classdef OptimizationData < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             
             StatusOK = true;
             Message = sprintf('Optimization Data: %s\n%s\n',obj.Name,repmat('-',1,75));
+            if  obj.Session.UseParallel && ~isempty(getCurrentTask())
+                return
+            end
+            
             OptimHeader = {};
             
             if isdir(obj.FilePath) || ~exist(obj.FilePath,'file')
@@ -85,21 +96,61 @@ classdef OptimizationData < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             else
                 DestFormat = 'wide';
                 % Import data
-                [ThisStatusOk,ThisMessage,OptimHeader] = importData(obj,obj.FilePath,DestFormat);
+                [ThisStatusOk,ThisMessage,OptimHeader,OptimData] = importData(obj,obj.FilePath,DestFormat);
                 if ~ThisStatusOk
                     Message = sprintf('%s\n* Error loading data "%s". %s\n',Message,obj.FilePath,ThisMessage);
+                    StatusOK = false;
                 end
+                
+                ixSpecies = strcmpi(OptimHeader, 'Species');
+                try
+                    data = cell2mat(OptimData(:,~ixSpecies));
+                catch
+                    Message = sprintf('%s\n* Optimization data contains invalid non-numeric data\n', Message);
+                    StatusOK = false;
+                end
+                
+                if ~all(ismember( {'GROUP','ID','TIME'}, upper(OptimHeader)))
+                    Message = sprintf('%s\n* Optimization data must contain columns for Group, ID, and Time\n', Message);
+                    StatusOK = false;
+                end
+                
+%                 if ~all(isnumeric(OptimData(:,~ixSpecies)))
+%                     Message = sprintf('%s\n* Optimization data contains invalid non-numeric data\n', Message);
+%                     StatusOK = false;
+%                 end
+                
             end
             
         end
         
         function clearData(obj)
+            obj.Data = {};
+            obj.Header = {};
         end
     end
     
     %% Methods
     methods
         function [StatusOk,Message,Header,Data] = importData(obj,DataFilePath,varargin)            
+            
+            FileInfo = dir(DataFilePath);
+            if ischar(obj.LastSavedTime)
+                lastSavedTime = datenum(obj.LastSavedTime);
+            else
+                lastSavedTime = obj.LastSavedTime;
+            end
+            
+            if ~isempty(lastSavedTime) && ~isempty(FileInfo) && ...
+                    lastSavedTime > FileInfo.datenum && ...
+                    ~isempty(obj.Data) && ~isempty(obj.Header)
+                Header = obj.Header;
+                Data = obj.Data;
+                Message = '';
+                StatusOk = true;
+                return
+            end
+                
             
             % Get destination format
             if nargin > 2 && islogical(varargin{1})
@@ -123,8 +174,13 @@ classdef OptimizationData < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             
             if ~isempty(Table)
                 Header = Table.Properties.VariableNames;
-                Data = table2cell(Table);
                 
+                excludeCol = strcmpi(Header,'Exclude');
+                if any(excludeCol)
+                    Table = Table(~strcmpi('Yes',Table{:,excludeCol}),~excludeCol);
+                end
+                
+                Data = table2cell(Table);
                 % Convert between formats if needed
                 if strcmpi(obj.DatasetType,'wide') && strcmpi(DestDatasetType,'tall')
                     % Wide -> Tall
@@ -153,7 +209,11 @@ classdef OptimizationData < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 Data = {};
             end
             obj.FilePath = DataFilePath;
-            
+            if StatusOk
+                obj.LastSavedTime = now;
+                obj.Data = Data;
+                obj.Header = Header;
+            end
         end %function
         
     end
@@ -166,6 +226,30 @@ classdef OptimizationData < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             obj.DatasetType = Value;
         end
         
+%         function Headers = get.Headers(obj)
+%             % check if the optimization data have changed since the last
+%             % time
+%             FileInfo = dir(obj.FilePath);
+%             if isempty(obj.Headers) || datenum(obj.LastSavedTime) < datenum(FileInfo.date)
+%                 % out of date -- reimport
+%                 [~,~,obj.Headers,obj.Data] = importData(obj,obj.FilePath);
+%             end
+%             Headers = obj.Headers;
+%             obj.LastSavedTime = now;
+%         end
+%         
+%         function Data = get.Data(obj)
+%             % check if the optimization data have changed since the last
+%             % time
+%             FileInfo = dir(obj.FilePath);
+%             if isempty(obj.Data) || datenum(obj.LastSavedTime) < datenum(FileInfo.date)
+%                 % out of date -- reimport
+%                 [~,~,obj.Headers,obj.Data] = importData(obj,obj.FilePath);
+%             end
+%             Data = obj.Data;
+%             obj.LastSavedTime = now;
+%         end
+%             
     end %methods
     
 end %classdef

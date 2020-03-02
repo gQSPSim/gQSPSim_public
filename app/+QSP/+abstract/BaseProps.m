@@ -1,4 +1,4 @@
-classdef (Abstract) BaseProps < matlab.mixin.SetGet & matlab.mixin.Heterogeneous & uix.mixin.AssignPVPairs
+classdef (Abstract) BaseProps < matlab.mixin.SetGet & matlab.mixin.Heterogeneous & uix.mixin.AssignPVPairs & QSP.abstract.BasicBaseProps
     % BaseProps  A base class for the base properties for the backend
     % ---------------------------------------------------------------------
     % This is an abstract base class and cannot be instantiated.
@@ -27,7 +27,7 @@ classdef (Abstract) BaseProps < matlab.mixin.SetGet & matlab.mixin.Heterogeneous
     %   getSummary, validate
     %
     
-    %   Copyright 2008-2016 The MathWorks, Inc.
+    %   Copyright 2008-2019 The MathWorks, Inc.
     %
     % Auth/Revision:
     %   MathWorks Consulting
@@ -40,9 +40,15 @@ classdef (Abstract) BaseProps < matlab.mixin.SetGet & matlab.mixin.Heterogeneous
     %% Properties
     properties
         Session = QSP.Session.empty(1,0)
-        Name = ''    % Name
+%         Name = ''    % Name
         RelativeFilePath = '' % Path to file
-        Description = '' % Description
+%         Description = '' % Description
+        
+        bShowTraces = []
+        bShowQuantiles = []
+        bShowMean = []
+        bShowMedian = []
+        bShowSD = []
     end
     
     %% Dependent properties
@@ -51,11 +57,13 @@ classdef (Abstract) BaseProps < matlab.mixin.SetGet & matlab.mixin.Heterogeneous
     end
     properties (Dependent=true)
         FilePath
+%         LastSavedTimeStr
     end
     
     %% Protected Properties
     properties (SetAccess=protected)
-        LastSavedTime = '' % Time at which the view was last saved
+%         LastSavedTime = [] % Time at which the view was last saved        
+%         LastValidatedTime = ''
     end
     
     %% Public methods
@@ -68,16 +76,6 @@ classdef (Abstract) BaseProps < matlab.mixin.SetGet & matlab.mixin.Heterogeneous
         end % constructor       
                 
     end % Public methods
-    
-    %% Abstract methods
-    methods( Abstract = true, Access = 'public' )
-        
-        Summary = getSummary(obj) % Cell array of strings (nx2) containing summary of obj; First column contains group name and second column contains value as string
-        
-        [StatusOK, Message] = validate(obj,FlagRemoveInvalid) % Validate current properties
-        
-        clearData(obj) % remove all data after copying
-    end % abstract methods
     
     %% Protected methods
     methods (Access=protected)
@@ -93,11 +91,11 @@ classdef (Abstract) BaseProps < matlab.mixin.SetGet & matlab.mixin.Heterogeneous
     %% Methods
     methods
         
-        function updateLastSavedTime(obj)
-            
-            obj.LastSavedTime = datestr(now);
-            
-        end %function
+%         function updateLastSavedTime(obj)
+%             
+%             obj.LastSavedTime = now;
+%             
+%         end %function
         
         function newObj = copy(obj,varargin)
             
@@ -162,8 +160,10 @@ classdef (Abstract) BaseProps < matlab.mixin.SetGet & matlab.mixin.Heterogeneous
                         %RAJ - again this okpList is a bit slow. Would be better to
                         %persist the needed info for each utilized class somewhere.
                         defaultValue = okpList(isThisProp).DefaultValue;
-                    else
+                    elseif ~isempty(obj) && isvalid(obj)
                         defaultValue = obj(1).(thisProp);
+                    else
+                        defaultValue = [];
                     end
                 elseif ~any(strcmp(noSetProps, thisProp)) && ~any(isprop(obj,thisProp))
                     % Try adding dynamic properties
@@ -244,7 +244,11 @@ classdef (Abstract) BaseProps < matlab.mixin.SetGet & matlab.mixin.Heterogeneous
                         % the value of thisProp in each obj instance might be array of
                         % different sizes.
                         for idx = 1:numel(obj)
-                            pValue = obj(idx).(thisProp);
+                            if isvalid(obj)
+                                pValue = obj(idx).(thisProp);
+                            else
+                                pValue=[];
+                            end
                             if isempty(pValue)
                                 if isempty(defaultValue)
                                     pValue = defaultValue;
@@ -254,6 +258,8 @@ classdef (Abstract) BaseProps < matlab.mixin.SetGet & matlab.mixin.Heterogeneous
                             elseif ischar(defaultValue) && ~iscell(pValue) % && iscell(pValue)
                                 pValue = char(pValue);                            
                             end
+                        
+                            
                             copyProperty(newObj(idx),thisProp,pValue);                            
                         end
                         
@@ -264,66 +270,40 @@ classdef (Abstract) BaseProps < matlab.mixin.SetGet & matlab.mixin.Heterogeneous
             end %for pIdx = 1:numel(sProps)
         end %function
         
-        function Value = isPublicPropsEqual(obj,secondObj)
-            % Initialize
-            Value = true;
-            % TODO: Enhance to look at nested objects (Sim, Optim, VPopGen)
-            
-            if ~isequal(class(obj),class(secondObj))
-                Value = false;
-            else
-                mc = metaclass(obj);
-                pList = mc.PropertyList;
-                isPublicProp = ...
-                    strcmp({pList.SetAccess}, 'public') ...
-                    & strcmp({pList.GetAccess}, 'public');
-                isOkProp = isPublicProp & ...
-                    ~([pList.Constant] | [pList.Dependent] | [pList.NonCopyable] | [pList.Transient]);
-                
-                % Filter props to compare
-                pList = pList(isOkProp);
-                
-                % Iterate through pList
-                for index = 1:numel(pList)
-                    if ~isprop(secondObj,(pList(index).Name))
-                        Value = false;
-                        break;
-                    else
-                        if ~isequal(obj.(pList(index).Name),secondObj.(pList(index).Name))
-                            Value = false;
-                            break;
-                        end
-                        
-                    end
-                end
-            end
-            
-        end %function
-        
     end % methods
     
     %% Get/Set methods
     methods
         
-        function set.Name(obj,value)
-            validateattributes(value,{'char'},{})
-            obj.Name = value;
-        end
+%         function set.Name(obj,value)
+%             validateattributes(value,{'char'},{})
+%             obj.Name = value;
+%         end
         
         function set.RelativeFilePath(obj,value)
             validateattributes(value,{'char'},{})
             obj.RelativeFilePath = value;
         end
         
-        function set.Description(obj,value)
-            validateattributes(value,{'char'},{})
-            obj.Description = value;
-        end
+%         function set.Description(obj,value)
+%             validateattributes(value,{'char'},{})
+%             obj.Description = value;
+%         end
         
-        function set.LastSavedTime(obj,value)
-            validateattributes(value,{'char'},{})
-            obj.LastSavedTime = value;
-        end
+%         function set.LastSavedTime(obj,value)    
+%             if ischar(value)
+%                 if isempty(value)
+%                     value = [];
+%                 else
+%                     value = datenum(value);
+%                 end
+%             end
+%             obj.LastSavedTime = value;
+%         end
+%         
+%         function value = get.LastSavedTimeStr(obj)
+%             value = datestr(obj.LastSavedTime);
+%         end
         
         function value = get.SessionRoot(obj)
             if isscalar(obj.Session)
@@ -334,13 +314,14 @@ classdef (Abstract) BaseProps < matlab.mixin.SetGet & matlab.mixin.Heterogeneous
         end
         
         function value = get.FilePath(obj)
-            value = fullfile(obj.SessionRoot, obj.RelativeFilePath);
+            tmp = strrep(obj.RelativeFilePath, '\','/');
+            value = fullfile(obj.SessionRoot, tmp);
         end
         function set.FilePath(obj,value)
             validateattributes(value,{'char'},{})
             obj.RelativeFilePath = uix.utility.getRelativeFilePath(value, obj.SessionRoot, false);
         end
-                
+        
     end
     
 end % classdef

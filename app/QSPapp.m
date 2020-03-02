@@ -1,9 +1,16 @@
-function app = QSPapp()
+function varargout = QSPapp()
+
+if verLessThan('matlab','9.4') || ~verLessThan('matlab','9.5') % If version < R2018a (9.4) or >= R2018b (9.5)
+    ThisVer = ver('matlab');
+    warning('gQSPSim has been tested in MATLAB R2018a (9.4). This MATLAB release %s may not be supported for gQSPSim',ThisVer.Release);
+end
 
 EchoOutput = true;
 
 warning('off','uix:ViewPaneManager:NoView')
 warning('off','MATLAB:table:ModifiedAndSavedVarnames');
+warning('off','MATLAB:Axes:NegativeDataInLogAxis')
+warning('off','MATLAB:HandleGraphics:ObsoletedProperty:JavaFrame')
 
 if ~isdeployed
     
@@ -44,7 +51,11 @@ end %if ~isdeployed
 
 
 % Get the root directory, based on the path of this file
-RootPath = fileparts(mfilename('fullpath'));
+filename = mfilename('fullpath');
+filename = regexprep(filename, 'gQSPsim/app/(\.\./app)+', 'gQSPsim/app');
+filename = strrep(filename , '/../app', '');
+
+RootPath = fileparts(filename);
 
 
 %% Set up the paths to add to the MATLAB path
@@ -55,9 +66,9 @@ RootPath = fileparts(mfilename('fullpath'));
 % include children (true) or just itself (false)
 
 rootDirs={...
-    fullfile(RootPath,'../app'),true;... %root folder with children
-    fullfile(RootPath,'../utilities'),true;... %root folder with children
-    fullfile(RootPath,'../FromGenentech'),true;... %root folder with children
+    fullfile(RootPath,'..','app'),true;... %root folder with children
+    fullfile(RootPath,'..','utilities'),true;... %root folder with children
+    fullfile(RootPath,'..','FromGenentech'),true;... %root folder with children
     
     };
 
@@ -150,9 +161,12 @@ if EchoOutput
 end
 
 % run the units script
-units
+registerUnits;
 
-% Instantiate the application
-app = QSPViewer.App();
+if nargout == 1
+    varargout{1} = QSPViewer.App();
+else
+    QSPViewer.App();
+end
 
 end

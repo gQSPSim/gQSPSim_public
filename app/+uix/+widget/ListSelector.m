@@ -488,8 +488,11 @@ classdef ListSelector < uix.abstract.Widget & uix.mixin.HasCallback
         
         % AllItems
         function set.AllItems(obj,value)
+            
             if ~isequal(obj.AllItems, value)
-                validateattributes(value,{'cell'},{'column'})
+                if ~isempty(value)
+                    validateattributes(value,{'cell'},{'column'})
+                end
                 OldItems = obj.AllItems;
                 obj.AllItems = value;
                 obj.updateSelectionForNewItems(value,OldItems);

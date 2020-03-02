@@ -5,7 +5,7 @@ classdef Simulation < uix.abstract.CardViewPane
     %
 
     
-    %   Copyright 2014-2016 The MathWorks, Inc.
+    %   Copyright 2019 The MathWorks, Inc.
     %
     % Auth/Revision:
     %   MathWorks Consulting
@@ -85,11 +85,43 @@ classdef Simulation < uix.abstract.CardViewPane
             obj.Data.SelectedPlotLayout = obj.PlotLayoutOptions{Value};
             
             onPlotConfigChange@uix.abstract.CardViewPane(obj,h,e);
-        end
-    end
+        end %function
+        
+        function resize(obj)
+            
+            Buffer = 40;
+            MinimumWidth = 50;
+            
+            tableObj = [obj.h.ItemsTable,obj.h.PlotSpeciesTable,obj.h.PlotItemsTable,obj.h.PlotDatasetTable,obj.h.PlotGroupTable];
+            
+            for index = 1:numel(tableObj)
+                Pos = get(tableObj(index),'Position');
+                if Pos(3) >= MinimumWidth
+                    
+                    nColumns = numel(tableObj(index).ColumnName);
+                    ColumnWidth = (Pos(3)-Buffer)/nColumns;
+                    ColumnWidth = repmat(ColumnWidth,1,nColumns);
+                    if isa(tableObj(index).HTable,'matlab.ui.control.Table')
+                        tableObj(index).HTable.ColumnWidth = num2cell(ColumnWidth);
+                    else
+                        tableObj(index).HTable.ColumnWidth = ColumnWidth;
+                    end
+                    
+                end
+            end %for
+        end %function
+        
+    end %methods
+   
     
     %% Callbacks
     methods
+        
+        function onResize(obj,h,e)
+            
+            resize(obj);
+            
+        end %function
         
         function onFolderSelection(vObj,h,evt) %#ok<*INUSD>
             
@@ -175,16 +207,16 @@ classdef Simulation < uix.abstract.CardViewPane
                     HasChanged = true;                    
                 end
                 vObj.TempData.Item(RowIdx).TaskName = NewData{RowIdx,ColIdx};
-            elseif ColIdx == 2 % Group
+            elseif ColIdx == 3 % Group
                 if ~isequal(vObj.TempData.Item(RowIdx).VPopName,NewData{RowIdx,ColIdx})
                     HasChanged = true;                    
                 end
                 vObj.TempData.Item(RowIdx).Group = NewData{RowIdx,ColIdx};                
-            elseif ColIdx == 3
+            elseif ColIdx == 2 % Vpop
                 if ~isequal(vObj.TempData.Item(RowIdx).VPopName,NewData{RowIdx,ColIdx})
                     HasChanged = true;                    
                 end
-                vObj.TempData.Item(RowIdx).VPopName = NewData{RowIdx,ColIdx};
+                vObj.TempData.Item(RowIdx).VPopName = NewData{RowIdx,ColIdx};                
             end
             % Clear the MAT file name
             if HasChanged
@@ -224,8 +256,14 @@ classdef Simulation < uix.abstract.CardViewPane
             
             h.SelectedRows = RowIdx;
             
+            NewAxIdx = str2double(ThisData{RowIdx,1});
+            if isnan(NewAxIdx)
+                NewAxIdx = [];
+            end
+                
+            
             if ~isequal(vObj.Data.PlotSpeciesTable,[ThisData(:,1) ThisData(:,2) ThisData(:,3)]) || ...
-                    ColIdx == 2
+                    ColIdx == 1 || ColIdx == 2 || ColIdx == 4
                 
                 if ~isempty(RowIdx) && ColIdx == 2
                     NewLineStyle = ThisData{RowIdx,2};
@@ -233,14 +271,86 @@ classdef Simulation < uix.abstract.CardViewPane
                 end
                 
                 vObj.Data.PlotSpeciesTable(RowIdx,ColIdx) = ThisData(RowIdx,ColIdx);
+
+                if ColIdx == 2
+%                     % Style - Note this will change the line styles even
+%                     for the patch boundaries
+%                     for sIdx = 1:size(vObj.Data.PlotSpeciesTable,1)
+%                         axIdx = str2double(vObj.Data.PlotSpeciesTable{sIdx,1});
+%                         if ~isnan(axIdx)
+%                             Ch = get(vObj.h.SpeciesGroup{sIdx,axIdx},'Children');
+%                             HasLineStyle = isprop(Ch,'LineStyle');
+%                             set(Ch(HasLineStyle),'LineStyle',vObj.Data.PlotSpeciesTable{sIdx,2});
+%                         end
+%                     end   
+                    
+                    AxIndices = NewAxIdx;
+                    if isempty(AxIndices)
+                        AxIndices = 1:numel(vObj.h.MainAxes);
+                    end
+                    % Redraw legend
+                    [UpdatedAxesLegend,UpdatedAxesLegendChildren] = updatePlots(...
+                        vObj.Data,vObj.h.MainAxes,vObj.h.SpeciesGroup,vObj.h.DatasetGroup,...
+                        'AxIndices',AxIndices);
+                    vObj.h.AxesLegend(AxIndices) = UpdatedAxesLegend(AxIndices);
+                    vObj.h.AxesLegendChildren(AxIndices) = UpdatedAxesLegendChildren(AxIndices);
+                    
+                elseif ColIdx == 4
+                    % Display Name
+                    AxIndices = NewAxIdx;
+                    if isempty(AxIndices)
+                        AxIndices = 1:numel(vObj.h.MainAxes);
+                    end
+                    % Redraw legend
+                    [UpdatedAxesLegend,UpdatedAxesLegendChildren] = updatePlots(...
+                        vObj.Data,vObj.h.MainAxes,vObj.h.SpeciesGroup,vObj.h.DatasetGroup,...
+                        'AxIndices',AxIndices);
+                    vObj.h.AxesLegend(AxIndices) = UpdatedAxesLegend(AxIndices);
+                    vObj.h.AxesLegendChildren(AxIndices) = UpdatedAxesLegendChildren(AxIndices);
+                    
+                elseif ColIdx == 1
+                    % Plot axes
+                    sIdx = RowIdx;
+                    OldAxIdx = find(~cellfun(@isempty,vObj.h.SpeciesGroup(sIdx,:)),1,'first');
+                    
+                    % If originally not plotted
+                    if isempty(OldAxIdx) && ~isempty(NewAxIdx)
+                        vObj.h.SpeciesGroup{sIdx,NewAxIdx} = vObj.h.SpeciesGroup{sIdx,1};
+                        % Parent
+                        vObj.h.SpeciesGroup{sIdx,NewAxIdx}.Parent = vObj.h.MainAxes(NewAxIdx);
+                    elseif ~isempty(OldAxIdx) && isempty(NewAxIdx)
+                        vObj.h.SpeciesGroup{sIdx,1} = vObj.h.SpeciesGroup{sIdx,OldAxIdx};
+                        % Un-parent
+                        vObj.h.SpeciesGroup{sIdx,1}.Parent = matlab.graphics.GraphicsPlaceholder.empty();
+                        if OldAxIdx ~= 1
+                            vObj.h.SpeciesGroup{sIdx,OldAxIdx} = [];
+                        end
+                    elseif ~isempty(OldAxIdx) && ~isempty(NewAxIdx)
+                        vObj.h.SpeciesGroup{sIdx,NewAxIdx} = vObj.h.SpeciesGroup{sIdx,OldAxIdx};
+                        % Re-parent
+                        vObj.h.SpeciesGroup{sIdx,NewAxIdx}.Parent = vObj.h.MainAxes(NewAxIdx);                        
+                        if OldAxIdx ~= NewAxIdx
+                            vObj.h.SpeciesGroup{sIdx,OldAxIdx} = [];
+                        end
+                    end
+                    
+                    % Update lines (line widths, marker sizes)
+                    updateLines(vObj);
+                    
+                    AxIndices = [OldAxIdx,NewAxIdx];
+                    AxIndices(isnan(AxIndices)) = [];
+                    
+                    % Redraw legend
+                    [UpdatedAxesLegend,UpdatedAxesLegendChildren] = updatePlots(...
+                        vObj.Data,vObj.h.MainAxes,vObj.h.SpeciesGroup,vObj.h.DatasetGroup,...
+                        'AxIndices',AxIndices);
+                    vObj.h.AxesLegend(AxIndices) = UpdatedAxesLegend(AxIndices);
+                    vObj.h.AxesLegendChildren(AxIndices) = UpdatedAxesLegendChildren(AxIndices);
+
+                end %if ColIdx
                 
-                % Plot
-                plotData(vObj);
-                
-                % Update the view
-                updateVisualizationView(vObj);
-                
-            end
+                notify(vObj, 'MarkDirty')
+            end %if ~isequal
             
         end %function
         
@@ -254,9 +364,11 @@ classdef Simulation < uix.abstract.CardViewPane
             RowIdx = Indices(1,1);
             
             h.SelectedRows = RowIdx;
-            
-            % Update the view
-            updateVisualizationView(vObj);
+             
+            % This line is causing issues with edit and selection callbacks
+            % with uitables
+%             % Update the view
+%             updateVisualizationView(vObj);
         end %function  
         
         function onItemsTablePlot(vObj,h,e)
@@ -281,19 +393,25 @@ classdef Simulation < uix.abstract.CardViewPane
             
             vObj.Data.PlotItemTable(RowIdx,ColIdx) = ThisData(RowIdx,ColIdx);
             
-            % Plot
-            plotData(vObj);
-            
-            % Update the view
-            updateVisualizationView(vObj);
+            if ColIdx == 6
+                % Display name                
+                [vObj.h.AxesLegend,vObj.h.AxesLegendChildren] = updatePlots(vObj.Data,vObj.h.MainAxes,vObj.h.SpeciesGroup,vObj.h.DatasetGroup);
+                
+            elseif ColIdx == 1
+                % Include
+                
+                % Don't overwrite the output
+                updatePlots(vObj.Data,vObj.h.MainAxes,vObj.h.SpeciesGroup,vObj.h.DatasetGroup,...
+                    'RedrawLegend',false);
+            end
             
             % Enable column 1
             set(h,'ColumnEditable',OrigColumnEditable);
-            
+            notify(vObj, 'MarkDirty')
+
         end %function
         
         function onDataTablePlot(vObj,h,e)
-            
             ThisData = get(h,'Data');
             Indices = e.Indices;
             if isempty(Indices)
@@ -303,16 +421,89 @@ classdef Simulation < uix.abstract.CardViewPane
             RowIdx = Indices(1,1);
             ColIdx = Indices(1,2);
             
+            NewAxIdx = str2double(ThisData{RowIdx,1});
+            if isnan(NewAxIdx)
+                NewAxIdx = [];
+            end
+            
             h.SelectedRows = RowIdx;
             
             vObj.Data.PlotDataTable(RowIdx,ColIdx) = ThisData(RowIdx,ColIdx);
             
-            % Plot
-            plotData(vObj);
-            
-            % Update the view
-            updateVisualizationView(vObj);
-            
+            if ColIdx == 4
+                % Display name
+                AxIndices = NewAxIdx;
+                if isempty(AxIndices)
+                    AxIndices = 1:numel(vObj.h.MainAxes);
+                end
+                % Redraw legend
+                [UpdatedAxesLegend,UpdatedAxesLegendChildren] = updatePlots(...
+                    vObj.Data,vObj.h.MainAxes,vObj.h.SpeciesGroup,vObj.h.DatasetGroup,...
+                    'AxIndices',AxIndices);
+                vObj.h.AxesLegend(AxIndices) = UpdatedAxesLegend(AxIndices);
+                vObj.h.AxesLegendChildren(AxIndices) = UpdatedAxesLegendChildren(AxIndices);
+
+            elseif ColIdx == 2
+                % Style
+                for dIdx = 1:size(vObj.Data.PlotDataTable,1)
+                    axIdx = str2double(vObj.Data.PlotDataTable{dIdx,1});
+                    if ~isnan(axIdx)
+                        Ch = get(vObj.h.DatasetGroup{dIdx,axIdx},'Children');
+                        HasMarker = isprop(Ch,'Marker');
+                        set(Ch(HasMarker),'Marker',vObj.Data.PlotDataTable{dIdx,2});
+                    end
+                end
+                
+                AxIndices = NewAxIdx;
+                if isempty(AxIndices)
+                    AxIndices = 1:numel(vObj.h.MainAxes);
+                end
+                % Redraw legend
+                [UpdatedAxesLegend,UpdatedAxesLegendChildren] = updatePlots(...
+                    vObj.Data,vObj.h.MainAxes,vObj.h.SpeciesGroup,vObj.h.DatasetGroup,...
+                    'AxIndices',AxIndices);
+                vObj.h.AxesLegend(AxIndices) = UpdatedAxesLegend(AxIndices);
+                vObj.h.AxesLegendChildren(AxIndices) = UpdatedAxesLegendChildren(AxIndices);
+                    
+            elseif ColIdx == 1
+                
+                dIdx = RowIdx;
+                OldAxIdx = find(~cellfun(@isempty,vObj.h.DatasetGroup(dIdx,:)),1,'first');
+                
+                % If originally not plotted
+                if isempty(OldAxIdx) && ~isempty(NewAxIdx)
+                    vObj.h.DatasetGroup{dIdx,NewAxIdx} = vObj.h.DatasetGroup{dIdx,1};
+                    % Parent
+                    vObj.h.DatasetGroup{dIdx,NewAxIdx}.Parent = vObj.h.MainAxes(NewAxIdx);
+                elseif ~isempty(OldAxIdx) && isempty(NewAxIdx)
+                    vObj.h.DatasetGroup{dIdx,1} = vObj.h.DatasetGroup{dIdx,OldAxIdx};
+                    % Un-parent
+                    vObj.h.DatasetGroup{dIdx,1}.Parent = matlab.graphics.GraphicsPlaceholder.empty();
+                    if OldAxIdx ~= 1
+                        vObj.h.DatasetGroup{dIdx,OldAxIdx} = [];
+                    end
+                elseif ~isempty(OldAxIdx) && ~isempty(NewAxIdx)
+                    vObj.h.DatasetGroup{dIdx,NewAxIdx} = vObj.h.DatasetGroup{dIdx,OldAxIdx};
+                    % Re-parent
+                    vObj.h.DatasetGroup{dIdx,NewAxIdx}.Parent = vObj.h.MainAxes(NewAxIdx);
+                    if OldAxIdx ~= NewAxIdx
+                        vObj.h.DatasetGroup{dIdx,OldAxIdx} = [];
+                    end
+                end
+                
+                AxIndices = [OldAxIdx,NewAxIdx];
+                AxIndices(isnan(AxIndices)) = [];
+                
+                % Redraw legend
+                [UpdatedAxesLegend,UpdatedAxesLegendChildren] = updatePlots(...
+                    vObj.Data,vObj.h.MainAxes,vObj.h.SpeciesGroup,vObj.h.DatasetGroup,...
+                    'AxIndices',AxIndices);
+                vObj.h.AxesLegend(AxIndices) = UpdatedAxesLegend(AxIndices);
+                vObj.h.AxesLegendChildren(AxIndices) = UpdatedAxesLegendChildren(AxIndices);
+
+            end
+            notify(vObj, 'MarkDirty')
+
         end %function
         
         function onGroupTableSelectionPlot(vObj,h,e)
@@ -326,8 +517,10 @@ classdef Simulation < uix.abstract.CardViewPane
             
             h.SelectedRows = RowIdx;
             
-            % Update the view
-            updateVisualizationView(vObj);
+            % This line is causing issues with edit and selection callbacks
+            % with uitables
+%             % Update the view
+%             updateVisualizationView(vObj);
         end %function        
         
         function onGroupTablePlot(vObj,h,e)
@@ -345,11 +538,20 @@ classdef Simulation < uix.abstract.CardViewPane
             
             vObj.Data.PlotGroupTable(RowIdx,ColIdx) = ThisData(RowIdx,ColIdx);
             
-            % Plot
-            plotData(vObj);
+            if ColIdx == 4
+                % Display name                
+                [vObj.h.AxesLegend,vObj.h.AxesLegendChildren] = updatePlots(vObj.Data,vObj.h.MainAxes,vObj.h.SpeciesGroup,vObj.h.DatasetGroup);
+                
+            elseif ColIdx == 1
+                % Include
+                
+                % Don't overwrite the output
+                updatePlots(vObj.Data,vObj.h.MainAxes,vObj.h.SpeciesGroup,vObj.h.DatasetGroup,...
+                    'RedrawLegend',false);
+                
+            end
+            notify(vObj, 'MarkDirty')
             
-            % Update the view
-            updateVisualizationView(vObj);
             
         end %function
         
@@ -364,8 +566,34 @@ classdef Simulation < uix.abstract.CardViewPane
                 if ~isequal(NewColor,0)
                     vObj.Data.PlotItemTable{SelectedRow,2} = NewColor;
                     
-                    % Plot
-                    plotData(vObj);
+                    itemIdx = SelectedRow;
+                    
+                    TheseGroups = [vObj.h.SpeciesGroup{:}];
+                    for index = 1:numel(TheseGroups)
+                        ThisGroup = TheseGroups(index);
+                        if ~isvalid(ThisGroup)
+                            warning('Encountered deleted handle')
+                            return
+                        end
+                        TheseChildren = get(ThisGroup,'Children');
+                        KeepIdx = ~strcmpi(get(TheseChildren,'Tag'),'DummyLine');
+                        TheseChildren = TheseChildren(KeepIdx);
+                        
+                        TheseUserData = get(TheseChildren,'UserData');
+                        if iscell(TheseUserData)
+                            TheseUserData = vertcat(TheseUserData{:});
+                        end
+                        % Set the color
+                        MatchIdx = ismember(TheseUserData(:,2),itemIdx);
+                        
+                        TheseItems = TheseChildren(MatchIdx);
+                        set(TheseItems(isprop(TheseItems,'Color')),'Color',NewColor);
+                        set(TheseItems(isprop(TheseItems,'FaceColor')),'FaceColor',NewColor);
+                        notify(vObj, 'MarkDirty')
+                        
+                    end
+                    
+                    [vObj.h.AxesLegend,vObj.h.AxesLegendChildren] = updatePlots(vObj.Data,vObj.h.MainAxes,vObj.h.SpeciesGroup,vObj.h.DatasetGroup);
                     
                     % Update the view
                     updateVisualizationView(vObj);
@@ -389,12 +617,33 @@ classdef Simulation < uix.abstract.CardViewPane
                 if ~isequal(NewColor,0)
                     vObj.Data.PlotGroupTable{SelectedRow,2} = NewColor;
                     
-                    % Plot
-                    plotData(vObj);
+                    itemIdx = SelectedRow;
+                    
+                    TheseGroups = [vObj.h.DatasetGroup{:}];
+                    for index = 1:numel(TheseGroups)
+                        ThisGroup = TheseGroups(index);
+                        TheseChildren = get(ThisGroup,'Children');
+                        KeepIdx = ~strcmpi(get(TheseChildren,'Tag'),'DummyLine');
+                        TheseChildren = TheseChildren(KeepIdx);
+                        
+                        TheseUserData = get(TheseChildren,'UserData');
+                        if iscell(TheseUserData)
+                            TheseUserData = vertcat(TheseUserData{:});
+                        end
+                        % Set the color
+                        MatchIdx = ismember(TheseUserData(:,2),itemIdx);
+                        
+                        TheseItems = TheseChildren(MatchIdx);
+                        set(TheseItems(isprop(TheseItems,'Color')),'Color',NewColor);
+                        set(TheseItems(isprop(TheseItems,'FaceColor')),'FaceColor',NewColor);
+                    end
+                    
+                    [vObj.h.AxesLegend,vObj.h.AxesLegendChildren] = updatePlots(vObj.Data,vObj.h.MainAxes,vObj.h.SpeciesGroup,vObj.h.DatasetGroup);
                     
                     % Update the view
                     updateVisualizationView(vObj);
-                    
+                    notify(vObj, 'MarkDirty')
+
                 end
             else
                 hDlg = errordlg('Please select a row first to set new color.','No row selected','modal');

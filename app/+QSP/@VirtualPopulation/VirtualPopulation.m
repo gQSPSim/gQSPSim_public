@@ -18,7 +18,7 @@ classdef VirtualPopulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
     %
     %
     
-    % Copyright 2016 The MathWorks, Inc.
+    % Copyright 2019 The MathWorks, Inc.
     %
     % Auth/Revision:
     %   MathWorks Consulting
@@ -30,14 +30,21 @@ classdef VirtualPopulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
     %% Protected Properties
     properties (Transient=true, GetAccess=public, SetAccess=protected)
         NumVirtualPatients = 0
+        NumValidPatients = 0
         NumParameters = 0
+        Groups = []
+
         PrevalenceWeightsStr = 'no'
     end
     
     properties
         validationDateNum = 0;
         LastStatus = false;
+
+        ShowTraces = false;
+        ShowSEBar = true;    
     end
+    
     
     %% Constructor
     methods
@@ -73,12 +80,13 @@ classdef VirtualPopulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             % Populate summary
             Summary = {...
                 'Name',obj.Name;
-                'Last Saved',obj.LastSavedTime;
+                'Last Saved',obj.LastSavedTimeStr;
                 'Description',obj.Description;
-                'File name',obj.RelativeFilePath;                
-                'No of virtual patients',obj.NumVirtualPatients;
-                'No of parameters/species',obj.NumParameters;
+                'File Name',obj.RelativeFilePath;                
+                'No of Virtual Subjects',obj.NumVirtualPatients;
+                'No of Parameters/species',obj.NumParameters;
                 'Prevalence Weights',obj.PrevalenceWeightsStr;
+                'Groups', obj.Groups;
                 };
         end
         
@@ -87,13 +95,17 @@ classdef VirtualPopulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             StatusOK = true;
             Message = sprintf('Virtual Population: %s\n%s\n',obj.Name,repmat('-',1,75));
             
+            if  obj.Session.UseParallel && ~isempty(getCurrentTask())
+                return
+            end
+            
             if isdir(obj.FilePath) || ~exist(obj.FilePath,'file')
                 StatusOK = false;
                 Message = sprintf('%s\n* Virtual Population file "%s" is invalid or does not exist',Message,obj.FilePath);
             else
                 
                 FileInfo = dir(obj.FilePath);
-                if FileInfo.datenum > obj.validationDateNum
+                if FileInfo.datenum > obj.validationDateNum || obj.NumVirtualPatients==0
                     % has been modified since the last validation                    
                     % Import data
                     tic
@@ -114,7 +126,7 @@ classdef VirtualPopulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             % NumVirtualPatients
             if obj.NumVirtualPatients == 0
                 StatusOK = false;
-                Message = sprintf('%s\n* Number of VirtualPatients in %s must not be 0',Message,obj.Name);
+                Message = sprintf('%s\n* Number of Virtual Subjects in %s must not be 0',Message,obj.Name);
             end
             
             % NumParameters
@@ -133,6 +145,7 @@ classdef VirtualPopulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         
         function clearData(obj)            
         end
+        
     end
     
     %% Protected Methods
@@ -153,51 +166,62 @@ classdef VirtualPopulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             
             % Load from file
             try
-                Raw = readtable(DataFilePath);
-                Raw = [Raw.Properties.VariableNames;table2cell(Raw)];
+                 [Header,Data,StatusOk,Message] = xlread(DataFilePath);
+                 Data = cell2mat(Data);                
             catch ME
-                Raw = {};
-                StatusOk = false;
-                Message = sprintf('Unable to read from Excel file:\n\n%s',ME.message);
+                 Raw = {};
+                 StatusOk = false;
+                 Message = sprintf('Unable to read from Excel file:\n\n%s',ME.message);
             end
             
+            if ~StatusOk
+                return
+            end
             % Compute number of VirtualPopulation
-            if size(Raw,1) > 1
+            if size(Data,1) > 0
                 
-                Header = Raw(1,:);
-                Data = Raw(2:end,:);
-                
-                MatchPW = find(strcmpi(Header,'PWWeight'));
+%                 Header = Raw(1,:);
+%                 Data = Raw(2:end,:);
+                PrevalenceWeights = zeros(0,1);
+                MatchPW = find(strcmpi(Header,'PWeight'));
                 if ~isempty(MatchPW)
                     MatchPW = MatchPW(1);
-                    PWWeights = Raw(2:end,MatchPW);
-                    if sum(obj.PrevalenceWeights) == 1
-                        PrevalenceWeights = PWWeights;
-                        obj.PrevalenceWeightsStr = 'yes';
-                    else
-                        warning(sprintf('Prevalence weights do not sum to 1. Ignorning prevalence weights for file %s',obj.Name)); %#ok<SPWRN>
-                        PrevalenceWeights = zeros(0,1);
-                        obj.PrevalenceWeightsStr = 'no';
-                    end
+                    PrevalenceWeights = Data(:,MatchPW);
+%                     if abs(sum(PWWeights) - 1) < 1e-5
+%                         PrevalenceWeights = PWWeights;
+%                         obj.PrevalenceWeightsStr = 'yes';
+%                     else
+%                         warning(sprintf('Prevalence weights do not sum to 1. Ignorning prevalence weights for file %s',obj.Name)); %#ok<SPWRN>
+%                         PrevalenceWeights = zeros(0,1);
+%                         obj.PrevalenceWeightsStr = 'no';
+%                     end
                 else
-                    PrevalenceWeights = zeros(0,1);
                     obj.PrevalenceWeightsStr = 'no';
                 end                
-                obj.NumVirtualPatients = size(Raw,1)-1; % 1 header line
-                obj.NumParameters = size(Raw,2)-numel(MatchPW);                
+                obj.NumVirtualPatients = size(Data,1); % 1 header line
+                obj.NumValidPatients = nnz(PrevalenceWeights);
+                obj.NumParameters = size(Data,2)-numel(MatchPW);         
+                groups = unique(Data(:,strcmpi(Header,'Group')));
+                if ~isempty(groups)
+                    obj.Groups = strjoin(arrayfun(@(x) num2str(x),groups,'UniformOutput',false),',');
+                else
+                    obj.Groups = 'N/A';
+                end
             else
                 Header = {};
                 Data = {};
                 PrevalenceWeights = zeros(0,1);
                 obj.PrevalenceWeightsStr = 'no';
                 obj.NumVirtualPatients = 0;
-                obj.NumParameters = 0;                
+                obj.NumParameters = 0;  
             end
             
             obj.FilePath = DataFilePath;           
             
-        end %function
+        end %function 
+       
         
     end
+   
     
 end %classdef

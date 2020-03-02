@@ -18,7 +18,7 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
     %
     %
     
-    % Copyright 2016 The MathWorks, Inc.
+    % Copyright 2019 The MathWorks, Inc.
     %
     % Auth/Revision:
     %   MathWorks Consulting
@@ -45,15 +45,18 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         SpeciesData = QSP.SpeciesData.empty(0,1)
         SpeciesIC = QSP.SpeciesData.empty(0,1) % Initial Conditions        
         
-        PlotSpeciesTable = cell(0,4)
-        PlotItemTable = cell(0,4)
+        PlotSpeciesTable = cell(0,5)
+        PlotItemTable = cell(0,5)
+        
+        FixRNGSeed = false
+        RNGSeed = 100
         
         PlotProfile = QSP.Profile.empty(0,1)
         SelectedProfileRow = []
         
         SelectedPlotLayout = '1x1'        
         
-
+        PlotSettings = repmat(struct(),1,12)
     end
     
     properties (SetAccess = 'private')
@@ -96,6 +99,21 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             % Populate public properties from P-V input pairs
             obj.assignPVPairs(varargin{:});
             
+            % For compatibility
+            if size(obj.PlotSpeciesTable,2) == 4
+                obj.PlotSpeciesTable(:,5) = obj.PlotSpeciesTable(:,3);
+            end
+            
+            % For compatibility
+            if size(obj.PlotItemTable,2) == 4
+                obj.PlotItemTable(:,5) = obj.PlotItemTable(:,3);
+            end
+            
+            % assign plot settings names
+            for index = 1:length(obj.PlotSettings)
+                obj.PlotSettings(index).Title = sprintf('Plot %d', index);
+            end            
+            
         end %function obj = Optimization(varargin)
         
     end %methods
@@ -111,16 +129,9 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 [StaleFlag,ValidFlag,InvalidMessages] = getStaleItemIndices(obj);
 
                 for index = 1:numel(obj.Item)
-                    ThisResultFilePath = '';
-                    if length(obj.ExcelResultFileName) >= numel(obj.Item) && ~isempty(obj.ExcelResultFileName{index})
-                        ThisResultFilePath = obj.ExcelResultFileName{index};
-                    end
-                    if isempty(ThisResultFilePath)
-                        ThisResultFilePath = 'Results: N/A';
-                    end
 
                     % Default
-                    ThisItem = sprintf('%s - %s (%s)',obj.Item(index).TaskName,obj.Item(index).GroupID,ThisResultFilePath);
+                    ThisItem = sprintf('%s - %s',obj.Item(index).TaskName,obj.Item(index).GroupID);
                     if StaleFlag(index)
                         % Item may be out of date
                         ThisItem = sprintf('***WARNING*** %s\n%s',ThisItem,'***Item may be out of date***');
@@ -171,27 +182,38 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 if numel(MatchInclude) == 1 && numel(MatchName) == 1
                     IsUsed = strcmpi(ParametersData(:,MatchInclude),'yes');
                     UsedParamNames = ParametersData(IsUsed,MatchName);
+                    UnusedParamNames = ParametersData(~IsUsed,MatchName);
+                    if isempty(UnusedParamNames)
+                        UnusedParamNames = 'N/A';
+                    end
+                    if isempty(UsedParamNames)
+                        UsedParamNames = 'N/A';
+                    end
                 else
                     UsedParamNames = {};
+                    UnusedParamNames = {};
                 end
             else
                 UsedParamNames = {};
+                UnusedParamNames = {};
+                
             end
             
             % Populate summary
             Summary = {...
                 'Name',obj.Name;
-                'Last Saved',obj.LastSavedTime;
+                'Last Saved',obj.LastSavedTimeStr;
                 'Description',obj.Description;
                 'Results Path',obj.OptimResultsFolderName;
-                'Optimization algorithm',obj.AlgorithmName;
+                'Optimization Algorithm',obj.AlgorithmName;
                 'Dataset',obj.DatasetName;
                 'Group Name',obj.GroupName;
                 'Items',OptimizationItems;
-                'Parameter file',obj.RefParamName;
-                'Parameters used for optimization',UsedParamNames;
-                'Species-data mapping',SpeciesDataItems;
-                'Species-initial conditions',SpeciesICItems;
+                'Parameter File',obj.RefParamName;
+                'Parameters Used for Optimization',UsedParamNames;
+                'Fixed Parameters', UnusedParamNames;
+                'Species-data Mapping',SpeciesDataItems;
+                'Species-initial Conditions',SpeciesICItems;
                 'Results',obj.ExcelResultFileName;
                 };
             
@@ -201,6 +223,9 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             
             StatusOK = true;
             Message = sprintf('Optimization: %s\n%s\n',obj.Name,repmat('-',1,75));
+            if  obj.Session.UseParallel && ~isempty(getCurrentTask())
+                return
+            end
             
             % Validate
             if ~isempty(obj.Settings)
@@ -334,8 +359,8 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 DataMappingIndex = ismember({obj.SpeciesData.DataName},OptimHeader(:)');
                  
                 % Check Objective Fcn
-                if exist(obj.Session.FunctionsDirectory,'dir')
-                    FileList = dir(obj.Session.FunctionsDirectory);
+                if exist(obj.Session.ObjectiveFunctionsDirectory,'dir')
+                    FileList = dir(obj.Session.ObjectiveFunctionsDirectory);
                     IsDir = [FileList.isdir];
                     ObjectiveFcns = {FileList(~IsDir).name};
                     ObjectiveFcns = vertcat({'defaultObj'},ObjectiveFcns(:));
@@ -436,6 +461,9 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                     StatusOK=false;
                 end
                 
+                % check that the vpop is valid
+                
+                
             end
             
         end %function
@@ -445,7 +473,9 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             obj.Results = [];
             obj.PlotProfile = QSP.Profile.empty(0,1);
             obj.SelectedProfileRow = [];
-            obj.LastSavedTime = '';
+            obj.LastSavedTime = [];
+            obj.ExcelResultFileName = '';
+            obj.VPopName = '';
         end
     end
     
@@ -505,15 +535,22 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                              PlotParametersData = cell(size(Data,1),2);
                             PlotParametersData(:,1) = Data(:,IsName);
                             PlotParametersData(:,2) = Data(:,IsP0_1);  
-                            PlotParametersData(cell2mat(cellfun(@isnan, PlotParametersData(:,2), 'UniformOutput', false)), 2) = {''};
+
+                            PlotParametersData(cell2mat(cellfun(@(x) isempty(x) | isnan(x), PlotParametersData(:,2), 'UniformOutput', false)), 2) = {''};
+                        else
+                            StatusOk = false;
+                            Message = sprintf('Parameter file must contain columns for "Name" and "P0_1", %s',Message);
+
                         end
                     elseif strcmpi(class(thisObj),'QSP.VirtualPopulation')
                         % Virtual Population Data
                         PlotParametersData = cell(numel(Header),2);
                         PlotParametersData(:,1) = Header(:);
                         if ~isempty(Data)
-                            PlotParametersData(:,2) = Data(1,:);                            
+                            PlotParametersData(:,2) = num2cell(Data(1,:));                            
                         end
+                        PlotParametersData(cell2mat(cellfun(@isnan, PlotParametersData(:,2), 'UniformOutput', false)), 2) = {''};
+
                     else
                         PlotParametersData = cell(0,2);
                     end
@@ -524,6 +561,36 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                         PlotParametersData(isStr,2) = cellfun(@str2num, PlotParametersData(isStr,2), 'UniformOutput', false);
                     end                                       
                     
+                    % include all parameters that are included in the tasks
+                    % for this optimization
+                    if ~isempty(obj.ItemModels)
+                        
+                        ItemModels = obj.ItemModels(~arrayfun(@(X) isempty(X.Task) || isempty(X.Vpop), obj.ItemModels));
+                        taskParams = arrayfun(@(k) ItemModels(k).Task.ParameterNames, 1:length(ItemModels), 'UniformOutput', false);
+                        taskSpecies = arrayfun(@(k) ItemModels(k).Task.SpeciesNames, 1:length(ItemModels), 'UniformOutput', false);
+                        
+                        allParams = table(unique(vertcat(taskParams{:})), 'VariableNames', {'Parameter'});
+                        allSpecies = table(unique(vertcat(taskSpecies{:})),  'VariableNames', {'Parameter'});
+                        
+                        paramsTable = cell2table(PlotParametersData, 'VariableNames', {'Parameter','Value'});
+
+                        if ~isempty(allSpecies)
+                            tableSpecies = innerjoin(allSpecies, paramsTable);
+                        else
+                            tableSpecies = paramsTable;
+                        end
+                        
+                        allParams = [allParams; tableSpecies.Parameter];
+                        
+%                         PlotParametersDataTable = outerjoin( allParams, paramsTable);
+%                         PlotParametersDataTable.Parameter = PlotParametersDataTable.Parameter_allParams;
+%                         PlotParametersDataTable(cell2mat(cellfun(@isempty, PlotParametersDataTable.Parameter, 'UniformOutput',false)), 'Parameter') = ...
+%                             PlotParametersDataTable(cell2mat(cellfun(@isempty, PlotParametersDataTable.Parameter, 'UniformOutput',false)), 'Parameter_paramsTable');
+%                         
+%                         PlotParametersData = table2cell(PlotParametersDataTable(:,{'Parameter','Value'}));
+                        PlotParametersData = table2cell(paramsTable);
+                        PlotParametersData(cell2mat(cellfun(@isnan, PlotParametersData(:,2), 'UniformOutput',false)), 2) = {''};
+                    end
                     % reorder alphabetically
                     [~,index] = sort(upper(PlotParametersData(:,1)));
                     PlotParametersData = PlotParametersData(index,:);
@@ -532,7 +599,7 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 else
                     Message = sprintf('Could not import from file. %s',Message);
                 end
-            else
+            elseif ~isempty(DataFilePath)
                 StatusOk = false;
                 Message = sprintf('Could not import from file. Validate source''s filepath.');
             end
@@ -545,15 +612,29 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             
             % Invoke helper
             if StatusOK
+                
+                % For autosave with tag
+                if obj.Session.AutoSaveBeforeRun
+                    autoSaveFile(obj.Session,'Tag','preRunOptimization');
+                end
+                
                 % If no initial conditions are specified, only one VPop is
                 % created. If IC are provided, the # of VPops is equivalent
                 % to the number of groups + 1
+                
+                % set RNG if specified
+                if obj.FixRNGSeed
+                    rng(obj.RNGSeed)
+                end
                 
                 % Run helper
                 [StatusOK,Message,ResultsFileNames,VPopNames] = optimizationRunHelper(obj);
                 % Update MATFileName in the simulation items
                 obj.ExcelResultFileName = ResultsFileNames;
                 obj.VPopName = VPopNames;
+                
+                % update last saved time for optimization
+                updateLastSavedTime(obj);
                 
                 if StatusOK
                     vpopObj = QSP.VirtualPopulation.empty(0,1);
@@ -706,25 +787,26 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                     % Compare times
                     
                     % Optimization object (this)
-                    OptimLastSavedTime = datenum(obj.LastSavedTime);
+                    OptimLastSavedTime = obj.LastSavedTime;
                     
                     % Task object (item)
-                    TaskLastSavedTime = datenum(ThisTask.LastSavedTime);
+                    TaskLastSavedTime = ThisTask.LastSavedTime;
                     
                     % SimBiology Project file from Task
                     FileInfo = dir(ThisTask.FilePath);
                     TaskProjectLastSavedTime = FileInfo.datenum;
                     
                     % OptimizationData object and file
-                    OptimizationDataLastSavedTime = datenum(dObj.LastSavedTime);
+                    OptimizationDataLastSavedTime = dObj.LastSavedTime;
                     FileInfo = dir(dObj.FilePath);
                     OptimizationDataFileLastSavedTime = FileInfo.datenum;
                     
                     % Parameter object and file
-                    ParametersLastSavedTime = datenum(pObj.LastSavedTime);
-                    FileInfo = dir(pObj.FilePath);
-                    ParametersFileLastSavedTime = FileInfo.datenum;                    
-                    
+                    if ~isempty(pObj)
+                        ParametersLastSavedTime = pObj.LastSavedTime;
+                        FileInfo = dir(pObj.FilePath);
+                        ParametersFileLastSavedTime = FileInfo.datenum;                    
+                    end
                     % Results file
                     if length(obj.ExcelResultFileName) < numel(obj.Item) ... % missing some items
                             || isempty(obj.ExcelResultFileName{index}) % no excel file available for this index
@@ -839,6 +921,11 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         function set.SelectedProfileRow(obj,Value)
             validateattributes(Value,{'numeric'},{});
             obj.SelectedProfileRow = Value;
+        end
+        
+        function set.PlotSettings(obj,Value)
+            validateattributes(Value,{'struct'},{});
+            obj.PlotSettings = Value;
         end
         
     end %methods
