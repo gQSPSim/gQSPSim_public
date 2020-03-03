@@ -53,10 +53,16 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         UseParallel = false
         ParallelCluster
         UseAutoSaveTimer = false
+        
+        AutoSaveGit = true
+        GitRepo = '.git'        
+        
+        experimentsDB = 'experiments.db3'
     end
     
     properties (Transient=true)        
         timerObj
+        dbid = []
     end
     
     properties % (NonCopyable=true) % Note: These properties need to be public for tree
@@ -86,6 +92,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         ObjectiveFunctionsDirectory
         UserDefinedFunctionsDirectory
         AutoSaveDirectory
+        GitFiles
     end
     
     %% Constructor and Destructor
@@ -407,6 +414,30 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
             end
         end %function
         
+        function addExperimentToDB(obj, type, Name, time, ResultFileNames)
+            commit = git(sprintf('-C "%s" rev-parse HEAD', obj.GitRepo));
+            cmd = sprintf('INSERT INTO Experiments VALUES ("%s", "%s", "%s", %f)', ...
+                type, Name, commit, time);
+%             if isempty(obj.dbid)
+                system(sprintf('touch "%s"', fullfile(obj.RootDirectory, obj.experimentsDB)) );
+                obj.dbid = mksqlite('open', fullfile(obj.RootDirectory, obj.experimentsDB), 'rw');
+%                 obj.dbid = mksqlite('open', 'experiments.db3', 'rw');
+                
+                mksqlite(obj.dbid, 'create table if not exists EXPERIMENTS (Type TEXT, Item TEXT, GitCommit TEXT, Time INTEGER);')
+                mksqlite(obj.dbid, 'create table if not exists RUNS (Experiment INTEGER, Files TEXT);')                
+%             end
+            
+            mksqlite( obj.dbid, cmd );
+                       
+            % add files
+            id=mksqlite(sprintf('select rowid from Experiments where Type="%s" and Item="%s" and GitCommit="%s" and Time=%f', ...
+                type, Name, commit, time));
+            values=cellfun(@(s) sprintf('(%d, "%s")', id.rowid, s), ResultFileNames, 'UniformOutput', false);
+            cmd = sprintf('INSERT INTO RUNS VALUES %s', strjoin(values, ','));
+            mksqlite(obj.dbid, cmd);
+            
+            
+        end
     end %methods    
     
     %% Get/Set Methods
@@ -533,7 +564,56 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
             obj.ColorMap2 = Value;
         end
         
+        function files = get.GitFiles(obj)
+            % model files
+            files = {};
+            objs = obj.Settings.Task;
+            allFiles = {};
+            for ixObj = 1:length(objs)
+                m = objs(ixObj).ModelObj;
+                if ~isempty(m)
+                   allFiles = [allFiles, strrep( m.RelativeFilePath, [obj.RootDirectory filesep], '')];
+                end
+            end
+            allFiles = unique(allFiles);
+            
+            files = allFiles;
+            
+            %% input files
+            
+            % virtual populations
+            files = [files, unique({obj.Settings.VirtualPopulation.RelativeFilePath})];
+            
+            % parameters
+            files = [files, unique({obj.Settings.Parameters.RelativeFilePath})];
+            
+            % data
+            files = [files, unique({obj.Settings.OptimizationData.RelativeFilePath})];
+            
+            % acceptance criteria
+            files = [files, unique({obj.Settings.VirtualPopulationData.RelativeFilePath})];
+            
+            % target statistics
+            files = [files, unique({obj.Settings.VirtualPopulationGenerationData.RelativeFilePath})];
+            
+            % Session
+            
+            
+        end
         
     end %methods
     
+    %% Utility Methods
+    methods
+        function sObj = getSimulationItem(obj, Name)
+            MatchIdx = strcmp(Name, {obj.Simulation.Name});
+            sObj = [];
+            if ~isempty(MatchIdx)
+                sObj = obj.Simulation(MatchIdx);
+            else
+                warning('Simulation %s not found in session', Name)
+            end
+
+        end
+    end
 end %classdef

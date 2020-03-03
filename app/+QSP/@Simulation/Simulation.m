@@ -294,12 +294,46 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                     autoSaveFile(obj.Session,'Tag','preRunSimulation');
                 end
                 
+                if obj.Session.AutoSaveGit
+                    gitFiles = obj.Session.GitFiles;
+                    
+                    for k=1:length(gitFiles)
+                        
+                        result = git(sprintf('-C "%s" --git-dir="%s" add "%s"', obj.Session.RootDirectory, ...
+                            obj.Session.GitRepo, gitFiles{k}));
+                        if ~isempty(result)
+                            warning(result)
+                        end
+                            
+                    end
+                    
+                    gitMessage = git(sprintf('-C "%s" diff', obj.Session.RootDirectory));
+                    if isempty(gitMessage)
+                        gitMessage = sprintf('Snapshot at %s', datestr(now));
+                    end
+
+                    result = git(sprintf('-C "%s" commit -m "%s"', obj.Session.RootDirectory, ...
+                        gitMessage));
+                    
+                    fprintf('[%s] Committed snapshot to git\n', datestr(now));
+                    
+                    % TODO version control qsp session as well
+                    
+%                     if ~isempty(result)
+%                         warning(result)
+%                     end   
+
+                
+
+                end
+                
                 % Run helper
                 [ThisStatusOK,thisMessage,ResultFileNames,Cancelled] = simulationRunHelper(obj);
                 if ~ThisStatusOK && ~Cancelled
 %                     error('run: %s',Message);
                     StatusOK = false;
                     Message = sprintf('%s\n\n%s', Message, thisMessage);
+                    
                     return
                 end
                 
@@ -312,6 +346,8 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                     obj.Item(index).MATFileName = ResultFileNames{index};
                 end
                 
+                % add entry to the database
+                obj.Session.addExperimentToDB( 'SIMULATION', obj.Name, now, ResultFileNames);
             end 
             
         end %function
