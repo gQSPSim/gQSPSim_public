@@ -15,6 +15,6 @@ localtests maci64:
     tags: 
         - maci64
     script: 
-        - ./gQSPSimTesterScript.sh BR2018bd
+        - ./gQSPSimTesterScript.sh BR2019bd
     retry:
         max: 2
