@@ -15,6 +15,6 @@ localtests maci64:
     tags: 
         - maci64
     script: 
-        - ./gQSPSimTesterScript.sh BR2019bd
+        - ./gQSPSimTesterScript.sh /Applications/MATLAB_R2018a
     retry:
-        max: 2
+        max: 1

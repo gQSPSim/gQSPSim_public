@@ -2,8 +2,8 @@
 addpath(genpath(pwd));
 result = runtests("tests");
 
-if batchStartupOptionUsed
-    if result.Failed
-        exit(3)
-    end
+if result.Failed
+    exit(3);
+else
+    exit(0);
 end
