@@ -47,6 +47,14 @@ classdef ViewPane < handle
         ButtonsLayout       matlab.ui.container.GridLayout
         SummaryLabel        matlab.ui.control.Label
         EditLabel           matlab.ui.control.Label
+        RunButton                   matlab.ui.control.Button
+        VisualizeButton             matlab.ui.control.Button
+        SettingsButton              matlab.ui.control.Button
+        ZoomInButton                matlab.ui.control.StateButton
+        ZoomOutButton               matlab.ui.control.StateButton
+        PanButton                   matlab.ui.control.StateButton
+        ExploreButton               matlab.ui.control.StateButton
+        VisualizationPanel        matlab.ui.container.Panel
     end
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -103,7 +111,7 @@ classdef ViewPane < handle
                 obj.ParentApp = varargin{4};
                 obj.HasVisualization = varargin{5};
             else
-                message = ['This constructor requires one of the following of inputs' ...
+                message = ['This constructor requires the following inputs' ...
                     newline '1.' ...
                     newline '-Graphical Parent: uigridlayout...' ...
                     newline '-GridRow: int' ...
@@ -301,6 +309,82 @@ classdef ViewPane < handle
            obj.EditButton.Tooltip = 'Edit the selected item';
            obj.EditButton.ButtonPushedFcn = @(h,e)obj.onNavigation('Edit');
            obj.EditButton.Text = '';
+           
+           if obj.HasVisualization
+               %Draw items specific to the visualization
+               ButtonGroupGrid = obj.getButtonGrid();
+               %DrawButtons on the top
+               %Run Button
+               obj.RunButton = uibutton(ButtonGroupGrid,'push');
+               obj.RunButton.Layout.Row = 1;
+               obj.RunButton.Layout.Column = 3;
+               obj.RunButton.Icon = '+QSPViewerNew\+Resources\play_24.png';
+               obj.RunButton.Tooltip = 'Run the selected item';
+               obj.RunButton.ButtonPushedFcn = @(h,e)obj.onNavigation('Run');
+               obj.RunButton.Text = '';
+
+               %Visualize Button
+               obj.VisualizeButton = uibutton(ButtonGroupGrid,'push');
+               obj.VisualizeButton.Layout.Row = 1;
+               obj.VisualizeButton.Layout.Column = 5;
+               obj.VisualizeButton.Icon = '+QSPViewerNew\+Resources\plot_24.png';
+               obj.VisualizeButton.Tooltip = 'Visualize the selected item';
+               obj.VisualizeButton.ButtonPushedFcn = @(h,e)obj.onNavigation('Visualize');
+               obj.VisualizeButton.Text = '';
+
+               % Settings Button
+               obj.SettingsButton = uibutton(ButtonGroupGrid,'push');
+               obj.SettingsButton.Layout.Row = 1;
+               obj.SettingsButton.Layout.Column = 6;
+               obj.SettingsButton.Icon = '+QSPViewerNew\+Resources\settings_24.png';
+               obj.SettingsButton.Tooltip = 'Customize plot settings the selected item';
+               obj.SettingsButton.ButtonPushedFcn = @(h,e)obj.onNavigation('Settings');
+               obj.SettingsButton.Text = '';
+
+               %ZoomIn
+               obj.ZoomInButton = uibutton(ButtonGroupGrid,'state');
+               obj.ZoomInButton.Layout.Row = 1;
+               obj.ZoomInButton.Layout.Column = 7;
+               obj.ZoomInButton.Icon = '+QSPViewerNew\+Resources\invalid_12.png';
+               obj.ZoomInButton.Tooltip = 'Zoom in';
+               obj.ZoomInButton.ValueChangedFcn = @(h,e)obj.onNavigation('ZoomIn');
+               obj.ZoomInButton.Text = '';
+
+               % Zoom out
+               obj.ZoomOutButton = uibutton(ButtonGroupGrid,'state');
+               obj.ZoomOutButton.Layout.Row = 1;
+               obj.ZoomOutButton.Layout.Column = 8;
+               obj.ZoomOutButton.Icon = '+QSPViewerNew\+Resources\invalid_12.png';
+               obj.ZoomOutButton.Tooltip = 'Zoom out';
+               obj.ZoomOutButton.ValueChangedFcn = @(h,e)obj.onNavigation('ZoomOut');
+               obj.ZoomOutButton.Text = '';
+
+               % Pan
+               obj.PanButton = uibutton(ButtonGroupGrid,'state');
+               obj.PanButton.Layout.Row = 1;
+               obj.PanButton.Layout.Column = 9;
+               obj.PanButton.Icon = '+QSPViewerNew\+Resources\invalid_12.png';
+               obj.PanButton.Tooltip = 'Pan';
+               obj.PanButton.ValueChangedFcn = @(h,e)obj.onNavigation('Pan');
+               obj.PanButton.Text = '';
+
+               % Explore
+               obj.ExploreButton = uibutton(ButtonGroupGrid,'state');
+               obj.ExploreButton.Layout.Row = 1;
+               obj.ExploreButton.Layout.Column = 10;
+               obj.ExploreButton.Icon = '+QSPViewerNew\+Resources\invalid_12.png';
+               obj.ExploreButton.Tooltip = 'Explore';
+               obj.ExploreButton.ValueChangedFcn = @(h,e)obj.onNavigation('Explore');
+               obj.ExploreButton.Text = '';
+               
+               %Create Visualization Panel
+               obj.VisualizationPanel = uipanel(obj.OuterGrid);
+               obj.VisualizationPanel.BackgroundColor = obj.PanelBackgroundColor;
+               obj.VisualizationPanel.Layout.Row = 2;
+               obj.VisualizationPanel.Layout.Column = 1;
+               obj.VisualizationPanel.Visible = 'off';
+           end
+           
        end
        
    end
@@ -387,7 +471,9 @@ classdef ViewPane < handle
                         %Turn the buttons on 
                         obj.ParentApp.enableInteraction();
                         obj.SummaryButton.Enable = 'on';
-                        %TODO obj.VisualizationButton.Enable = 'off';
+                        if obj.HasVisualization
+                             obj.toggleButtonsInteraction([1,1,1,1,1,1,1,1,1]);
+                        end
                     end
                 case 'Edit'
                     if strcmp(obj.EditPanel.Visible,'off')
@@ -400,11 +486,80 @@ classdef ViewPane < handle
                         %Disable all external buttons and other views
                         obj.ParentApp.disableInteraction();
                         obj.SummaryButton.Enable = 'off';
-                        %TODO  obj.VisualizationButton.Enable = 'off';
+                        obj.EditButton.Enable = 'off';
+                        if obj.HasVisualization
+                            obj.toggleButtonsInteraction([0,0,0,0,0,0,0,0,0]);
+                        end
+                    end
+                case 'Run'
+                    obj.runModel();
+                    obj.Focus = 'Summary';
+                    obj.refocus()
+                case 'Visualize'
+                    if strcmp(obj.VisualizationPanel.Visible,'off')
+                        %If the Visualize window is not already shown
+                        obj.CurrentPane.Visible = 'off';
+                        obj.CurrentPane = obj.VisualizationPanel;
+                        obj.draw();
+                        obj.CurrentPane.Visible = 'on';
+                        
+                        %Disable all external buttons and other views
+                        obj.ParentApp.disableInteraction();
+                        obj.toggleButtonsInteraction([1,1,1,1,1,1,1,1,1]);
+                    end
+                case 'Settings'
+                    disp("TODO :Launch Settings Window");
+                case 'ZoomIn'
+                    obj.toggleButtonsInteraction([1,1,1,1,1,1,1,1,1]);
+                    if obj.ZoomInButton.Value
+                        obj.toggleVisButtonsState([0,0,0,0]);
+                    else
+                        obj.toggleVisButtonsState([1,0,0,0]);
+                    end
+                case 'ZoomOut'
+                    obj.toggleButtonsInteraction([1,1,1,1,1,1,1,1,1]);
+                    if obj.ZoomOutButton.Value
+                        obj.toggleVisButtonsState([0,0,0,0]);
+                    else
+                        obj.toggleVisButtonsState([0,1,0,0]);
+                    end
+                    
+                case 'Pan'
+                    obj.toggleButtonsInteraction([1,1,1,1,1,1,1,1,1]);
+                    if obj.PanButton.Value
+                        obj.toggleVisButtonsState([0,0,0,0]);
+                    else
+                        obj.toggleVisButtonsState([0,0,1,0]);
+                    end
+                case 'Explore'
+                    obj.toggleButtonsInteraction([1,1,1,1,1,1,1,1,1]);
+                    if obj.ExploreButton.Value
+                        obj.toggleVisButtonsState([0,0,0,0]);
+                    else
+                        obj.toggleVisButtonsState([0,0,0,1]);
                     end
             end 
         end
            
+        function toggleButtonsInteraction(obj,ButtonVector)
+            obj.SummaryButton.Enable = ButtonVector(1);
+            obj.RunButton.Enable = ButtonVector(2);
+            obj.EditButton.Enable = ButtonVector(3);
+            obj.VisualizeButton.Enable = ButtonVector(4);
+            obj.SettingsButton.Enable = ButtonVector(5);
+            obj.ZoomInButton.Enable = ButtonVector(6);
+            obj.ZoomOutButton.Enable = ButtonVector(7)';
+            obj.PanButton.Enable = ButtonVector(8);
+            obj.ExploreButton.Enable = ButtonVector(9);
+            
+        end
+        
+        function toggleVisButtonsState(obj,ButtonVector)
+            obj.ZoomInButton.Value = ButtonVector(1);
+            obj.ZoomOutButton.Value = ButtonVector(2);
+            obj.PanButton.Value =  ButtonVector(3);
+            obj.ExploreButton.Value =  ButtonVector(4);
+        end
     end
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -456,6 +611,11 @@ classdef ViewPane < handle
         function value = getEditGrid(obj)
             value = obj.EditLayout;
         end
+        
+        function value = getButtonGrid(obj)
+            value = obj.ButtonsLayout;
+        end
+        
     end
     
     methods(Abstract)
