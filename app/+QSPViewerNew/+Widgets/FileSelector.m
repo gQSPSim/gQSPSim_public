@@ -1,8 +1,8 @@
-classdef FolderSelector < handle
-    % FolderSelector - A widget for selecting a filename
+classdef FileSelector < handle
+    % FileSelector - A widget for selecting a file
     %----------------------------------------------------------------------
     % Create a widget that allows you to specify a filename by editable
-    % text or by dialog.
+    % text or by interactive
     %-----------------------------------------------------------
     % Copyright 2020 The MathWorks, Inc.
     %
@@ -19,6 +19,7 @@ classdef FolderSelector < handle
         Parent 
         Row 
         Column
+        FileExtension
     end
     
     properties (Dependent)
@@ -47,10 +48,10 @@ classdef FolderSelector < handle
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     methods (Access = public)
         
-        function  obj = FolderSelector(varargin)
+        function  obj = FileSelector(varargin)
             %Check input
             if nargin ~= 4 && ~isa(varargin{1},'matlab.ui.container.GridLayout')
-                error("You need to provide the following: UIgirdlaout parent, row, column, and a label");
+                error("You need to provide the following: UIgirdlayout parent, row, column, and a label");
             end
             %Set the parent
             obj.Parent = varargin{1};
@@ -123,16 +124,20 @@ classdef FolderSelector < handle
         function onButtonPress(obj,~,~)
             
             %Determine if there is a file path to start at
-            if exist(obj.FullPath,'dir')
-                foldername = uigetdir(obj.FullPath,'Select a folder' );
-            elseif exist(obj.RootDirectory,'dir')
-                foldername = uigetdir(obj.RootDirectory,'Select a folder' );
+            if exist(obj.RootDirectory,'file')
+                filter = fullfile(obj.RootDirectory,obj.FileExtension);
+                [file,path] = uigetfile(filter,'Select a File' );
+            elseif exist(obj.FullPath,'file')
+                filter = fullfile(obj.FullPath,obj.FileExtension);
+                [file,path] = uigetfile(filter,'Select a File' );
             else
-                foldername = uigetdir('','Select a folder' );
+                filter = fullfile('',obj.FileExtension);
+                [file,path] = uigetfile(filter,'Select a File' );
             end
             
-            if foldername ~=0
-                obj.RelativePath = obj.findRelativePath(foldername,obj.RootDirectory);
+            if path ~=0
+                full = fullfile(path,file);
+                obj.RelativePath = obj.findRelativePath(full,obj.RootDirectory);
             end
             
             obj.update();
@@ -160,7 +165,16 @@ classdef FolderSelector < handle
         end
              
         function value = get.IsValid(obj)
-            value = exist(obj.FullPath,'dir'); 
+            %Check the the file path exists
+            value = exist(obj.FullPath,'file'); 
+            
+            %Check if the extension is correct
+            if value==2 
+                [~,~,ext] = fileparts(obj.FullPath);
+                value = strcmp(ext,obj.FileExtension);
+            else
+                value = false;
+            end
         end
         
         function setRootDirectory(obj,newDir)
@@ -170,6 +184,10 @@ classdef FolderSelector < handle
             else
                 warning("Valid Directory Not Provided")
             end
+        end
+        
+        function setFileExtension(obj,newExtension)
+            obj.FileExtension = newExtension;
         end
         
         function setRelativePath(obj,value)
@@ -198,4 +216,3 @@ classdef FolderSelector < handle
         
     end
 end
-

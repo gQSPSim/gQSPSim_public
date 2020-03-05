@@ -599,8 +599,9 @@ classdef ApplicationUI < matlab.apps.AppBase
         end
         
         function onTreeSelectionChanged(app,handle,event)
+            app.UIFigure.Pointer = 'watch';
+            drawnow();
             %First we determine the session that is selected
-            
             %We can select mutliple nodes at once. Therefore we need to consider if SelectedNodes is a vector
             SelectedNodes = event.SelectedNodes;
             Root = handle;
@@ -631,6 +632,7 @@ classdef ApplicationUI < matlab.apps.AppBase
 
                  %Now that we have the correct session, we can work with the
                  app.refresh();
+                 app.UIFigure.Pointer = 'arrow';
             end
         end    
          
@@ -956,6 +958,8 @@ classdef ApplicationUI < matlab.apps.AppBase
 
                 %Update the current shown frame
                 app.updatePane();
+                
+                drawnow();
             end
         end
         
@@ -1079,20 +1083,20 @@ classdef ApplicationUI < matlab.apps.AppBase
                     app.ActivePane = QSPViewerNew.Application.SessionPane(classInputs);
                     app.ActivePane.attachNewSession(NodeData);
                 case 'QSP.OptimizationData'
-                    %app.ActivePane = QSPViewerNew.Application.OptimizationDataPane(app.GridLayout);
-                    disp("TODO: Create a QSPViewerNew.Application.OptimizationDataPane class to launch");
+                    app.ActivePane = QSPViewerNew.Application.OptimizationDataPane(classInputs);
+                    app.ActivePane.attachNewOptimizationData(NodeData);
                 case 'QSP.Parameters'
-                    %app.ActivePane = QSPViewerNew.Application.ParametersPane(app.GridLayout);
-                    disp("TODO: Create a QSPViewerNew.Application.OptimizationDataPane class to launch");
+                    app.ActivePane = QSPViewerNew.Application.ParametersPane(classInputs);
+                    app.ActivePane.attachNewParameters(NodeData);
                 case 'QSP.Task'
                     app.ActivePane = QSPViewerNew.Application.TaskPane(classInputs);
                     app.ActivePane.attachNewTask(NodeData);
                 case 'QSP.VirtualPopulation'
-                    %app.ActivePane = QSPViewerNew.Application.VirtualPopulationPane(app.GridLayout);
-                    disp("TODO: Create a QSPViewerNew.Application.VirtualPopulationPane class to launch");
+                    app.ActivePane = QSPViewerNew.Application.VirtualPopulationPane(classInputs);
+                    app.ActivePane.attachNewVirtualPopulation(NodeData);
                 case 'QSP.VirtualPopulationData'
-                    %app.ActivePane = QSPViewerNew.Application.VirtualPopulationDataPane(app.GridLayout);
-                    disp("TODO: Create a QSPViewerNew.Application.VirtualPopulationDataPane class to launch");
+                    app.ActivePane = QSPViewerNew.Application.VirtualPopulationDataPane(classInputs);
+                    app.ActivePane.attachNewVirtPopData(NodeData);
                 case 'QSP.Simulation'
                     %app.ActivePane = QSPViewerNew.Application.SimulationPane(app.GridLayout);
                     disp("TODO: Create a QSPViewerNew.Application.SimulationPane class to launch");
@@ -1106,8 +1110,8 @@ classdef ApplicationUI < matlab.apps.AppBase
                     %app.ActivePane = QSPViewerNew.Application.VirtualPopulationGenerationPane(app.GridLayout);
                     disp("TODO: Create a QSPViewerNew.Application.VirtualPopulationGenerationPane class to launch");
                 case 'QSP.VirtualPopulationGenerationData'
-                    %app.ActivePane = QSPViewerNew.Application.VirtualPopulationGenerationDataPane(app.GridLayout);
-                    disp("TODO: Create a QSPViewerNew.Application.VirtualPopulationGenerationDataPane class to launch");
+                    app.ActivePane = QSPViewerNew.Application.VirtualPopulationGenerationDataPane(classInputs);
+                    app.ActivePane.attachNewVirtPopGenData(NodeData);
             end
             if ~isempty(app.ActivePane)
                 %Now take the pane and display it.
@@ -1125,19 +1129,29 @@ classdef ApplicationUI < matlab.apps.AppBase
                 %The pane shown is not correct, we need to change it.
                 app.ActivePane.hideThisPane();
                 app.ActivePane = app.Panes(idxPane);
-                app.ActivePane.attachNewSession(NodeData);
-                app.ActivePane.showThisPane();
             elseif isempty(app.ActivePane)
                 %There is no pane shown
                 app.ActivePane = app.Panes(idxPane);
-                app.ActivePane.attachNewSession(NodeData);
-                app.ActivePane.showThisPane();
-            else
-                %The pane is already launched, just need to update the data
-                app.ActivePane.attachNewSession(NodeData);
-                app.ActivePane.showThisPane();
             end
             
+            switch PaneType
+                case 'QSPViewerNew.Application.SessionPane'
+                    app.ActivePane.attachNewSession(NodeData);
+                case 'QSPViewerNew.Application.TaskPane'
+                    app.ActivePane.attachNewTask(NodeData);
+                case 'QSPViewerNew.Application.ParametersPane'
+                    app.ActivePane.attachNewParameters(NodeData);
+                case 'QSPViewerNew.Application.OptimizationDataPane'
+                    app.ActivePane.attachNewOptimizationData(NodeData);
+                case 'QSPViewerNew.Application.VirualPopulationDataPane'
+                    app.ActivePane.attachNewVirtPop(NodeData);
+                case 'QSPViewerNew.Application.VirualPopulationPane'
+                    app.ActivePane.attachNewVirtPopData(NodeData);
+                case'QSPViewerNew.Application.VirualPopulationGenerationDataPane'
+                    app.ActivePane.attachNewVirtPopGenData(NodeData);
+            end
+            
+            app.ActivePane.showThisPane();
         end
         
         function updateTreeData(app,Tree,NewData,type)
@@ -1186,11 +1200,8 @@ classdef ApplicationUI < matlab.apps.AppBase
                 case 'VirtualPopulationGenerationDataGroup'
                      for idx = 1:numel(NewData.VirtualPopulationGenerationData)
                         app.updateTreeData(Tree.Children(idx),NewData.VirtualPopulationGenerationData(idx),'VirtualPopulationGenerationData')
-                     end
-                     
-                %The following rewuire the session to be updated as well. 
-                %This is dictated by the model
-                case 'Simulation'                                
+                     end      
+                case 'Simulation'
                     Tree.NodeData.Session = app.Sessions(app.SelectedSessionIdx);
                 case 'Optimization'
                     Tree.NodeData.Session = app.Sessions(app.SelectedSessionIdx);
@@ -1228,7 +1239,7 @@ classdef ApplicationUI < matlab.apps.AppBase
             checkTypeTF =~isempty(SelNode) && isprop(SelNode.NodeData,'Name') && ~strcmp(SelNode.NodeData.Name, SelNode.Text) && ...
             ~strcmpi(class(SelNode.NodeData),'QSP.Session'); %We dont want to update the name for a session
             if checkScalerTF && checkTypeTF
-                SelNode.Name = SelNode.Value.Name;
+                SelNode.Text = SelNode.NodeData.Name;
             end
         end
        
@@ -1258,7 +1269,7 @@ classdef ApplicationUI < matlab.apps.AppBase
         hNode.ContextMenu = CMenu;
         end %function
        
-        function PaneClass = GetPaneClassFromQSPClass(QSPClass)
+       function PaneClass = GetPaneClassFromQSPClass(QSPClass)
             %This method takes a QSP class and returns what type of pane it
             %launches
             switch QSPClass

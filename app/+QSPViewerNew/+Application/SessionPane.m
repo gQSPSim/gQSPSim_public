@@ -258,7 +258,6 @@ classdef SessionPane < QSPViewerNew.Application.ViewPane
     methods(Access = public) 
         
         function showThisPane(obj)
-            obj.draw();
             obj.showPane();
         end
         
@@ -302,8 +301,7 @@ classdef SessionPane < QSPViewerNew.Application.ViewPane
                 
                 %This creates an entirely new copy of the Session except
                 %the name isnt copied
-                delete(obj.Session);
-                obj.Session = copy(obj.TemporarySession);
+                obj.Session = copy(obj.TemporarySession,obj.Session);
                 
                 %We now need to notify the application to update the
                 %session pointer to the new object created
