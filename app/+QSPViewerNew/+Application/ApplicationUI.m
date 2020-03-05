@@ -1098,8 +1098,8 @@ classdef ApplicationUI < matlab.apps.AppBase
                     app.ActivePane = QSPViewerNew.Application.VirtualPopulationDataPane(classInputs);
                     app.ActivePane.attachNewVirtPopData(NodeData);
                 case 'QSP.Simulation'
-                    %app.ActivePane = QSPViewerNew.Application.SimulationPane(app.GridLayout);
-                    disp("TODO: Create a QSPViewerNew.Application.SimulationPane class to launch");
+	                app.ActivePane = QSPViewerNew.Application.SimulationPane(classInputs);	
+                    app.ActivePane.attachNewSimulation(NodeData);
                 case 'QSP.Optimization'
                     %app.ActivePane = QSPViewerNew.Application.OptimizationPane(app.GridLayout);
                     disp("TODO: Create a QSPViewerNew.Application.OptimizationPane class to launch");
@@ -1147,8 +1147,10 @@ classdef ApplicationUI < matlab.apps.AppBase
                     app.ActivePane.attachNewVirtPop(NodeData);
                 case 'QSPViewerNew.Application.VirualPopulationPane'
                     app.ActivePane.attachNewVirtPopData(NodeData);
-                case'QSPViewerNew.Application.VirualPopulationGenerationDataPane'
+                case 'QSPViewerNew.Application.VirualPopulationGenerationDataPane'
                     app.ActivePane.attachNewVirtPopGenData(NodeData);
+                case 'QSPViewerNew.Application.SimulationPane'
+                    app.ActivePane.attachNewSimulation(NodeData);
             end
             
             app.ActivePane.showThisPane();
