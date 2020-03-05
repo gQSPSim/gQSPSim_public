@@ -100,6 +100,7 @@ classdef VirtualPopulationGenerationDataPane < QSPViewerNew.Application.ViewPane
         function attachNewVirtPopGenData(obj,NewVirtPopGenData)
             obj.VirtPopGenData = NewVirtPopGenData;
             obj.TemporaryVirtPopGenData = copy(obj.VirtPopGenData);
+            obj.draw();
         end
         
         function value = checkDirty(obj)

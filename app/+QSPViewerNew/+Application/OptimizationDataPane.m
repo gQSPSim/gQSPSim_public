@@ -136,6 +136,7 @@ classdef OptimizationDataPane < QSPViewerNew.Application.ViewPane
         function attachNewOptimizationData(obj,newOptimizationData)
             obj.OptimizationData = newOptimizationData;
             obj.TemporaryOptimizationData = copy(obj.OptimizationData);
+            obj.draw();
         end
         
         function value = checkDirty(obj)

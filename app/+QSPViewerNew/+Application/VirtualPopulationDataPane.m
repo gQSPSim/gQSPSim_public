@@ -99,6 +99,7 @@ classdef VirtualPopulationDataPane < QSPViewerNew.Application.ViewPane
         function attachNewVirtPopData(obj,NewVirtPopData)
             obj.VirtPopData = NewVirtPopData;
             obj.TemporaryVirtPopData = copy(obj.VirtPopData);
+            obj.draw();
         end
         
         function value = checkDirty(obj)

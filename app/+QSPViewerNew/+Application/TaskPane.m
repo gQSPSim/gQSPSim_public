@@ -295,6 +295,7 @@ classdef TaskPane < QSPViewerNew.Application.ViewPane
         function attachNewTask(obj,NewTask)
             obj.Task = NewTask;
             obj.TemporaryTask = copy(obj.Task);
+            obj.draw();
         end
         
         function value = checkDirty(obj)
@@ -352,7 +353,7 @@ classdef TaskPane < QSPViewerNew.Application.ViewPane
             if exist(obj.TemporaryTask.FilePath,'file')==2
                 obj.modelChange(obj.TemporaryTask.ModelName)
                 obj.ProjectFileSelector.setRelativePath(obj.TemporaryTask.RelativeFilePath);
-                obj.ModelDropDown.Items = {obj.TemporaryTask.getModelList()};
+                obj.ModelDropDown.Items = obj.TemporaryTask.getModelList();
             else
                 obj.invalidProject()
             end
