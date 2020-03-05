@@ -268,6 +268,7 @@ classdef SessionPane < QSPViewerNew.Application.ViewPane
         function attachNewSession(obj,NewSession)
             obj.Session = NewSession;
             obj.TemporarySession = copy(obj.Session);
+            obj.draw();
         end
         
         function value = checkDirty(obj)
