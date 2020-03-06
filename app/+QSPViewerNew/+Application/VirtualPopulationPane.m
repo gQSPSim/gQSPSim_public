@@ -120,11 +120,12 @@ classdef VirtualPopulationPane < QSPViewerNew.Application.ViewPane
             obj.IsDirty = true;
         end
         
-        function saveBackEndInformation(obj)
+        function [StatusOk] = saveBackEndInformation(obj)
             
             %Validate the temporary data
             FlagRemoveInvalid = false;
-            [StatusOK,Message] = obj.TemporaryVirtualPopulation.validate(FlagRemoveInvalid);          
+            [StatusOK,Message] = obj.TemporaryVirtualPopulation.validate(FlagRemoveInvalid); 
+            [StatusOK,Message] = obj.checkForDuplicateNames(StatusOK,Message);
             
             if StatusOK
                 obj.TemporaryVirtualPopulation.updateLastSavedTime();
@@ -163,6 +164,16 @@ classdef VirtualPopulationPane < QSPViewerNew.Application.ViewPane
             % Remove the invalid entries
             validate(obj.TemporaryVirtualPopulation,FlagRemoveInvalid);
             obj.draw()
+            obj.IsDirty = true;
+        end
+        
+        function [StatusOK,Message] = checkForDuplicateNames(obj,StatusOK,Message)
+            refObject = obj.VirtualPopulation.Session.Settings.VirtualPopulation;
+            ixDup = find(strcmp( obj.TemporaryVirtualPopulation.Name, {refObject.Name}));
+            if ~isempty(ixDup) && (refObject(ixDup) ~= obj.VirtualPopulation)
+                Message = sprintf('%s\nDuplicate names are not allowed.\n', Message);
+                StatusOK = false;
+            end
         end
         
     end

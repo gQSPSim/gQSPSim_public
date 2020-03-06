@@ -265,7 +265,7 @@ classdef TaskPane < QSPViewerNew.Application.ViewPane
                 obj.TemporaryTask.RelativeFilePath = NewData;
                 if exist(obj.TemporaryTask.FilePath,'file')==2
                     obj.modelChange(obj.TemporaryTask.ModelName);
-                    obj.ModelDropDown.Items = {obj.TemporaryTask.getModelList()};
+                    obj.ModelDropDown.Items = obj.TemporaryTask.getModelList();
                 else
                     obj.invalidProject();
                 end
@@ -293,6 +293,7 @@ classdef TaskPane < QSPViewerNew.Application.ViewPane
         end
         
         function attachNewTask(obj,NewTask)
+            obj.deleteTemporary();
             obj.Task = NewTask;
             obj.TemporaryTask = copy(obj.Task);
             obj.draw();
@@ -316,16 +317,15 @@ classdef TaskPane < QSPViewerNew.Application.ViewPane
             obj.IsDirty = true;
         end
         
-        function saveBackEndInformation(obj)
+        function [StatusOK] = saveBackEndInformation(obj)
             
             %Validate the temporary data
             FlagRemoveInvalid = false;
-            [StatusOK,Message] = obj.TemporaryTask.validate(FlagRemoveInvalid);          
+            [StatusOK,Message] = obj.TemporaryTask.validate(FlagRemoveInvalid);
+            [StatusOK,Message] = obj.checkForDuplicateNames(StatusOK,Message);          
             
             if StatusOK
                 obj.TemporaryTask.updateLastSavedTime();
-                previousName = obj.TemporaryTask.Name;
-                newName = obj.Task.Name;
                 
                 %This creates an entirely new copy of the Task except
                 %the name isnt copied
@@ -366,6 +366,16 @@ classdef TaskPane < QSPViewerNew.Application.ViewPane
             % Remove the invalid entries
             validate(obj.TemporaryTask,FlagRemoveInvalid);
             obj.draw()
+            obj.IsDirty = true;
+        end
+        
+        function [StatusOK,Message] = checkForDuplicateNames(obj,StatusOK,Message)
+            refObject = obj.Task.Session.Settings.Task;
+            ixDup = find(strcmp( obj.TemporaryTask.Name, {refObject.Name}));
+            if ~isempty(ixDup) && (refObject(ixDup) ~= obj.Task)
+                Message = sprintf('%s\nDuplicate names are not allowed.\n', Message);
+                StatusOK = false;
+            end
         end
         
     end

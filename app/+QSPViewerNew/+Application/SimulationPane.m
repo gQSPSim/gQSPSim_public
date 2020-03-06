@@ -46,7 +46,6 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
         SelectedRow =0;
     end
     
-    
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Listeners
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
@@ -226,25 +225,25 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
         
         function onRemoveSimItem(obj)
             DeleteIdx = obj.SelectedRow;
-            if DeleteIdx <= numel(obj.TemporarySession.Item)
-                 obj.TemporarySession.Item(DeleteIdx) = [];
+            if DeleteIdx <= numel(obj.TemporarySimulation.Item)
+                 obj.TemporarySimulation.Item(DeleteIdx) = [];
             end
-            obj.updateItemsTable(obj);
+            obj.updateSimulationTable();
             obj.IsDirty = true;
         end
         
         function onAddSimItem(obj)
-            if ~isempty(vObj.TaskPopupTableItems)
+            if ~isempty(obj.TaskPopupTableItems)
                     NewTaskVPop = QSP.TaskVirtualPopulation;
                     NewTaskVPop.TaskName = obj.TaskPopupTableItems{1};
                     NewTaskVPop.VPopName = obj.VPopPopupTableItems{1};
                     NewTaskVPop.Group = '';
-                    obj.TemporarySession.Item(end+1) = NewTaskVPop;
+                    obj.TemporarySimulation.Item(end+1) = NewTaskVPop;
                 else
                     hDlg = uialert(obj.getUIFigure(),'At least one task must be defined in order to add a simulation item.','Cannot Add');
                     uiwait(hDlg);
             end
-            obj.updateItemsTable(obj);
+            obj.updateSimulationTable();
             obj.IsDirty = true;
         end
         
@@ -338,6 +337,7 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
             obj.Simulation = NewSimulation;
             obj.TemporarySimulation = copy(obj.Simulation);
             obj.draw();
+            obj.IsDirty = false;
         end
         
         function value = checkDirty(obj)
@@ -365,11 +365,12 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
             obj.IsDirty = true;
         end
         
-        function saveBackEndInformation(obj)
+        function [StatusOK] = saveBackEndInformation(obj)
             
             %Validate the temporary data
             FlagRemoveInvalid = false;
-            [StatusOK,Message] = obj.TemporarySimulation.validate(FlagRemoveInvalid);          
+            [StatusOK,Message] = obj.TemporarySimulation.validate(FlagRemoveInvalid);
+            [StatusOK,Message] = obj.checkForDuplicateNames(StatusOK,Message);
             
             if StatusOK
                 obj.TemporarySimulation.updateLastSavedTime();
@@ -397,11 +398,13 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
             obj.updateNameBox(obj.TemporarySimulation.Name);
             obj.updateSummary(obj.TemporarySimulation.getSummary());
             
-            obj.ResultFolderSelector.setRootDirectory(obj.TemporarySimulation.Session.RootDirectory);
             obj.updateResultsDir();
+            obj.ResultFolderSelector.setRootDirectory(obj.TemporarySimulation.Session.RootDirectory);
+            
             obj.updateDataset();
             obj.updateGroupColumn();
             obj.updateSimulationTable();
+            obj.IsDirty = false;
         end
         
         function checkForInvalid(obj)
@@ -409,8 +412,17 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
             % Remove the invalid entries
             validate(obj.TemporarySimulation,FlagRemoveInvalid);
             obj.draw()
+            obj.IsDirty = true;
         end
         
+        function [StatusOK,Message] = checkForDuplicateNames(obj,StatusOK,Message)
+            refObject = obj.Simulation.Session.Simulation;
+            ixDup = find(strcmp( obj.TemporarySimulation.Name, {refObject.Name}));
+            if ~isempty(ixDup) && (refObject(ixDup) ~= obj.Simulation)
+                Message = sprintf('%s\nDuplicate names are not allowed.\n', Message);
+                StatusOK = false;
+            end
+        end
     end
     
     methods (Access = private)
