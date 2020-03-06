@@ -517,6 +517,8 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
             
         end %function
         
+
+        
         function updateSpeciesLineStyles(obj)
             ThisMap = obj.Settings.LineStyleMap;
             if ~isempty(ThisMap) && size(obj.PlotSpeciesTable,1) ~= numel(obj.SpeciesLineStyles)

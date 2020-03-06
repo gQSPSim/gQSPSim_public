@@ -730,57 +730,7 @@ if numel(obj.Item) == 0
     return
 end
 
-%% Load Acceptance Criteria
-Names = {obj.Settings.VirtualPopulationData.Name};
-MatchIdx = strcmpi(Names,obj.DatasetName);
-
-if any(MatchIdx)
-    vpopObj = obj.Settings.VirtualPopulationData(MatchIdx);
-    
-    [ThisStatusOk,ThisMessage,accCritHeader,accCritData] = importData(vpopObj,vpopObj.FilePath);
-    if ~ThisStatusOk
-        StatusOK = false;
-        Message = sprintf('%s\n%s\n',Message,ThisMessage);
-    end
-else
-    accCritHeader = {};
-    accCritData = {};
-end
-
-%% Prepare species-data Mappings
-Mappings = cell(length(obj.SpeciesData),2);
-for ii = 1:length(obj.SpeciesData)
-    Mappings{ii,1} = obj.SpeciesData(ii).SpeciesName;
-    Mappings{ii,2} = obj.SpeciesData(ii).DataName;
-end
-
-
-if ~isempty(accCritHeader) && ~isempty(accCritData)
-    
-    % filter out any acceptance criteria that are not included
-    includeIdx = accCritData(:,strcmp('Include',accCritHeader));
-    if ~isempty(includeIdx)
-        param_candidate = strcmpi(includeIdx,'yes');
-        accCritData = accCritData(param_candidate==1,:);
-    end
-    
-    spIdx = ismember( accCritData(:,3), Mappings(:,2));
-    % [Group, Species, Time, LB, UB]
-    Groups = cell2mat(accCritData(spIdx,strcmp('Group',accCritHeader)));
-    unqGroups = unique(Groups);
-    Time = cell2mat(accCritData(spIdx,strcmp('Time',accCritHeader)));
-    Species = accCritData(spIdx,strcmp('Data',accCritHeader));
-    LB_accCrit = cell2mat(accCritData(spIdx,strcmp('LB',accCritHeader)));
-    UB_accCrit = cell2mat(accCritData(spIdx,strcmp('UB',accCritHeader)));
-else
-    
-    StatusOK = false;
-    Message = 'The selected Acceptance Criteria file is empty.';
-    path(myPath);
-    return
-end
-
-
+[Mappings, accCritData, ICTable, groupVec] = setupCohortGen();
 
 %% Load Parameters
 Names = {obj.Settings.Parameters.Name};
@@ -859,38 +809,7 @@ else
     return
 end
 
-
-%% Deal with initial conditions file if it is specified and exists
-
-if ~isempty(obj.ICFileName) && ~strcmp(obj.ICFileName,'N/A') && exist(obj.ICFileName, 'file')
- % get names from the IC file
-    ICTable = importdata(obj.ICFileName);
-  % validate the column names
-    [hasGroupCol, groupCol] = ismember('Group', ICTable.colheaders);
-    if ~hasGroupCol
-        StatusOK = false;
-        ThisMessage = 'Initial conditions file does not contain Group column';
-        Message = sprintf('%s\n%s\n',Message,ThisMessage);
-        return
-    end
-    
-    % check that we are not specifying an initial condition for a species
-    % that is also being sampled
-    [~,ixConflictingParameters] = ismember( ICTable.colheaders, perturbParamNames);
-    if any(ixConflictingParameters)
-        StatusOK = false;
-        Message = sprintf(['%s\nInitial conditions file contains species that are sampled in the cohort generation.  '...
-            'To continue set Include=No for %s or remove them from the parameters file.\n'], ...
-            Message, strjoin(perturbParamNames(ixConflictingParameters(ixConflictingParameters>0)), ','));
-    end
-else 
-    ICTable = [];
-end
-
-
-
 %% For each task/group, load models and prepare for simulations
-
 nItems = length(obj.Item);
 
 obj.SimResults = {}; %cell(1,nItems);
@@ -919,15 +838,6 @@ nPat = 0;
 Vpop = zeros(obj.MaxNumSimulations,length(LB_params));
 isValid = zeros(obj.MaxNumSimulations,1);
 
-% set up the loop for different initial conditions
-if isempty(ICTable )
-    % no initial conditions specified
-    groupVec = 1:length(nItems);
-else
-    % initial conditions exist
-    groupVec = ICTable.data(:,groupCol);
-    ixSpecies = setdiff(1:numel(ICTable.colheaders), groupCol); % columns of species in IC table
-end
 
 %% loop over the candidates until enough are generated
 hWbar = uix.utility.CustomWaitbar(0,'Virtual cohort generation','Generating virtual cohort...',true);
@@ -988,183 +898,38 @@ while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients
     
     % generate a long vector of model outputs to compare to the acceptance
     % criteria
-    spec_outputs = [];
-    time_outputs = [];
-    LB_outputs = [];
-    UB_outputs = [];
-    taskName_outputs = [];
-    model_outputs = [];
-    LB_violation = [];
-    UB_violation = [];   
+
+        
+    [StatusOK, thisMessage, thisIsValid, nIC, thisViolation] = checkVPatientIsValid(Names0, Values0, accCritData, obj, ICTable, groupVec, Mappings); % TODO
+    if ~StatusOK
+        delete(hWbar)
+        Message = [Message, thisMessage];
+    end
     
-    % loop over unique groups in the acceptance criteria file
-    for grpIdx = 1:length(unqGroups) %nItems
-        currGrp = unqGroups(grpIdx);
-        
-        % get matching taskGroup item based on group ID        
-        itemIdx = strcmp({obj.Item.GroupID}, num2str(currGrp));
-        if ~any(itemIdx)
-            % this group is not part of this vpop generation
-            continue
-        end
-        
-        if nnz(itemIdx) > 1
-            StatusOK = false;
-            Message = sprintf('%s\nOnly one task may be assigned to any group. Check task group mappings.\n', Message);
-            delete(hWbar)
-            return
-        end
-        
-        % get task object for this item based on name
-        tskInd = strcmp(obj.Item(itemIdx).TaskName,{obj.Settings.Task.Name});
-        taskObj = obj.Settings.Task(tskInd);
-        
-        % indices of data points in acc. crit. matching this group
-        grpInds = find(Groups == currGrp);
-        
-        % get group information
-        Species_grp = Species(grpInds);
-        Time_grp = Time(grpInds);
-        LB_grp = LB_accCrit(grpInds);
-        UB_grp = UB_accCrit(grpInds);
-        
-        % change output times for the exported model
-        OutputTimes = sort(unique(Time_grp));
-        
-        % set the initial conditions to the value in the IC file if specified
-        if ~isempty(ICTable)
-            ICs = ICTable.data(groupVec==currGrp, ixSpecies );
-            IC_species = ICTable.colheaders(ixSpecies);
-            nIC = size(ICs,1);
-            if ~any(groupVec==currGrp)
-                StatusOK = false;
-                Message = sprintf('%sInitial conditions file specified contains groups for which no task has been assigned.\n', Message);
-                delete(hWbar)
-                return
-            end
-            
-        else
-            nIC = 1;
-            ICs = [];
-            IC_species = {};
-        end
-        
-        % loop over initial conditions for this group
-        for ixIC = 1:nIC
-            if ~isempty(IC_species)
-                Names = [Names0; IC_species'];  
-                Values = [Values0; ICs(ixIC,:)'];
-            else
-                Names = Names0;
-                Values = Values0;
-            end
+    Vpop(nSim,:) = Values0'; % store the parameter set
+    isValid(nSim) = thisIsValid;
+    
+    if thisIsValid
+        nPat = nPat+1; % if conditions are satisfied, tick up the number of virutal patients
+        param_candidate_old = param_candidate; % keep new candidate as starting point
+    end
+
+    waitStatus = uix.utility.CustomWaitbar(nPat/obj.MaxNumVirtualPatients,hWbar,sprintf('Succesfully generated %d/%d vpatients. (%d/%d Failed)',  ...
+        nPat, obj.MaxNumVirtualPatients, nSim-nPat, nSim ));
 
 
-            % simulate
-            try
-                simData  = taskObj.simulate(...
-                    'Names', Names, ...
-                    'Values', Values, ...
-                    'OutputTimes', OutputTimes);
-
-                % for each species in this grp acc crit, find the corresponding
-                % model output, grab relevant time points, compare
-                uniqueSpecies_grp = unique(Species_grp);
-                for spec = 1:length(uniqueSpecies_grp)
-                    % find the data species in the Species-Data mapping
-                    specInd = strcmp(uniqueSpecies_grp(spec),Mappings(:,2));
-                    
-                    if nnz(specInd) ~= 1
-                        StatusOK = false;
-                        Message = sprintf('%s\nOnly one species may be assigned to any given data set. Please check mappings for validity.\n', Message);
-                        delete(hWbar)
-                        return
-                    end
-
-                    % grab data for the corresponding model species from the simulation results
-                    [simT,simData_spec,specName] = selectbyname(simData,Mappings(specInd,1));
-
-                    try
-                        % transform the model outputs to match the data
-                        simData_spec = obj.SpeciesData(specInd).evaluate(simData_spec);
-                    catch ME
-                        StatusOK = false;
-                        ThisMessage = sprintf(['There is an error in one of the function expressions in the SpeciesData mapping.'...
-                            'Validate that all mappings have been specified for each unique species in dataset. %s'], ME.message);
-                        Message = sprintf('%s\n%s\n',Message,ThisMessage);
-                        path(myPath);
-                        return                    
-                    end % try
-
-                    % grab all acceptance criteria time points for this species in this group
-                    ix_grp_spec = strcmp(uniqueSpecies_grp(spec),Species_grp);
-                    Time_grp_spec = Time_grp(ix_grp_spec);
-                    LB_grp_spec = LB_grp(ix_grp_spec);
-                    UB_grp_spec = UB_grp(ix_grp_spec);
-
-                    % select simulation time points for which there are acceptance criteria
-                    [bSim,okInds] = ismember(simT,Time_grp_spec);
-                    simData_spec = simData_spec(bSim);
-                    LB_grp_spec = LB_grp_spec(okInds(bSim));
-                    UB_grp_spec = UB_grp_spec(okInds(bSim));
-                    Time_grp_spec = Time_grp_spec(okInds(bSim));
-
-                    % save model outputs
-                    model_outputs = [model_outputs;simData_spec];
-                    time_outputs = [time_outputs;Time_grp_spec];
-                    spec_outputs = [spec_outputs;repmat(specName,size(simData_spec))];
-                    taskName_outputs = [taskName_outputs;repmat({taskObj.Name},size(simData_spec))];
-
-                    LB_outputs = [LB_outputs; LB_grp_spec];
-                    UB_outputs = [UB_outputs; UB_grp_spec];
-
-                end % for spec
-            catch ME2
-                % if the simulation fails, replace model outputs with Inf so
-                % that the parameter set fails the acceptance criteria
-                model_outputs = [model_outputs;Inf*ones(length(grpInds),1)];
-                LB_outputs = [LB_outputs;NaN(length(grpInds),1)];            
-                UB_outputs = [UB_outputs;NaN(length(grpInds),1)];
-            end
-        end % for ixIC
-        
-    end % for grp
+    if ~waitStatus
+        bCancelled = true;
+        break
+    end
+    
+    
     if ~StatusOK % exit loop if something went wrong
         break
     end
-    % at this point, model_outputs should be the same length as the vectors
-    % LB_accCrit and UB_accCrit
     
-    % compare model outputs to acceptance criteria
-    if ~isempty(model_outputs) 
-        Vpop(nSim,:) = Values0'; % store the parameter set
-        isValid(nSim) = double(all(model_outputs>=LB_outputs) && all(model_outputs<=UB_outputs));
-        if isValid(nSim)
-            nPat = nPat+1; % if conditions are satisfied, tick up the number of virutal patients
-            param_candidate_old = param_candidate; % keep new candidate as starting point
-        end
-        
-        waitStatus = uix.utility.CustomWaitbar(nPat/obj.MaxNumVirtualPatients,hWbar,sprintf('Succesfully generated %d/%d vpatients. (%d/%d Failed)',  ...
-            nPat, obj.MaxNumVirtualPatients, nSim-nPat, nSim ));
-        
-        LB_violation = [LB_violation; find(model_outputs<LB_outputs)];
-        UB_violation = [UB_violation; find(model_outputs>UB_outputs)];
-        if ~waitStatus
-            bCancelled = true;
-            break
-        end
-    end      
-    LBTable = table(taskName_outputs(LB_violation), ...
-        spec_outputs(LB_violation), ...
-        num2cell(time_outputs(LB_violation)),...
-        repmat({'LB'},size(LB_violation)), ...
-        'VariableNames', {'Task','Species','Time','Type'});
-    UBTable = table(taskName_outputs(UB_violation), ...
-        spec_outputs(UB_violation), ...
-        num2cell(time_outputs(UB_violation)),...
-        repmat({'UB'},size(UB_violation)), ...
-        'VariableNames', {'Task','Species','Time','Type'});
-    ViolationTable = [ViolationTable; LBTable; UBTable];
+    
+    ViolationTable = [ViolationTable; thisViolation];
 end % while
 if ~isempty(hWbar) && ishandle(hWbar)
     delete(hWbar)
