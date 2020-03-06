@@ -47,14 +47,14 @@ classdef ViewPane < handle
         ButtonsLayout       matlab.ui.container.GridLayout
         SummaryLabel        matlab.ui.control.Label
         EditLabel           matlab.ui.control.Label
-        RunButton                   matlab.ui.control.Button
-        VisualizeButton             matlab.ui.control.Button
-        SettingsButton              matlab.ui.control.Button
-        ZoomInButton                matlab.ui.control.StateButton
-        ZoomOutButton               matlab.ui.control.StateButton
-        PanButton                   matlab.ui.control.StateButton
-        ExploreButton               matlab.ui.control.StateButton
-        VisualizationPanel        matlab.ui.container.Panel
+        RunButton           matlab.ui.control.Button
+        VisualizeButton     matlab.ui.control.Button
+        SettingsButton      matlab.ui.control.Button
+        ZoomInButton        matlab.ui.control.StateButton
+        ZoomOutButton       matlab.ui.control.StateButton
+        PanButton           matlab.ui.control.StateButton
+        ExploreButton       matlab.ui.control.StateButton
+        VisualizationPanel  matlab.ui.container.Panel
     end
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -404,9 +404,11 @@ classdef ViewPane < handle
         end
         
         function onSave(obj)
-            obj.saveBackEndInformation();
-            obj.Focus = 'Summary';
-            obj.refocus();
+            SuccesfulSave = obj.saveBackEndInformation();
+            if SuccesfulSave
+                obj.Focus = 'Summary';
+                obj.refocus();
+            end
         end
         
         function onCancel(obj)
@@ -426,6 +428,7 @@ classdef ViewPane < handle
                    
                     %Save as normal
                     obj.onSave();
+                    obj.deleteTemporary();
                 case 'Don''t Save'
                     
                     %Delete any temporaryCopies
@@ -471,8 +474,9 @@ classdef ViewPane < handle
                         %Turn the buttons on 
                         obj.ParentApp.enableInteraction();
                         obj.SummaryButton.Enable = 'on';
+                        obj.EditButton.Enable = 'on';
                         if obj.HasVisualization
-                             obj.toggleButtonsInteraction([1,1,1,1,1,1,1,1,1]);
+                             obj.toggleButtonsInteraction({'on','on','on','on','on','on','on','on','on'});
                         end
                     end
                 case 'Edit'
@@ -488,7 +492,7 @@ classdef ViewPane < handle
                         obj.SummaryButton.Enable = 'off';
                         obj.EditButton.Enable = 'off';
                         if obj.HasVisualization
-                            obj.toggleButtonsInteraction([0,0,0,0,0,0,0,0,0]);
+                            obj.toggleButtonsInteraction({'off','off','off','off','off','off','off','off','off'});
                         end
                     end
                 case 'Run'
@@ -505,52 +509,52 @@ classdef ViewPane < handle
                         
                         %Disable all external buttons and other views
                         obj.ParentApp.disableInteraction();
-                        obj.toggleButtonsInteraction([1,1,1,1,1,1,1,1,1]);
+                        obj.toggleButtonsInteraction({'on','on','on','on','on','on','on','on','on'});
                     end
                 case 'Settings'
                     disp("TODO :Launch Settings Window");
                 case 'ZoomIn'
-                    obj.toggleButtonsInteraction([1,1,1,1,1,1,1,1,1]);
+                    obj.toggleButtonsInteraction({'on','on','on','on','on','on','on','on','on'});
                     if obj.ZoomInButton.Value
-                        obj.toggleVisButtonsState([0,0,0,0]);
-                    else
                         obj.toggleVisButtonsState([1,0,0,0]);
+                    else
+                        obj.toggleVisButtonsState([0,0,0,0]);
                     end
                 case 'ZoomOut'
-                    obj.toggleButtonsInteraction([1,1,1,1,1,1,1,1,1]);
+                    obj.toggleButtonsInteraction({'on','on','on','on','on','on','on','on','on'});
                     if obj.ZoomOutButton.Value
-                        obj.toggleVisButtonsState([0,0,0,0]);
-                    else
                         obj.toggleVisButtonsState([0,1,0,0]);
+                    else
+                        obj.toggleVisButtonsState([0,0,0,0]);
                     end
                     
                 case 'Pan'
-                    obj.toggleButtonsInteraction([1,1,1,1,1,1,1,1,1]);
+                    obj.toggleButtonsInteraction({'on','on','on','on','on','on','on','on','on'});
                     if obj.PanButton.Value
-                        obj.toggleVisButtonsState([0,0,0,0]);
-                    else
                         obj.toggleVisButtonsState([0,0,1,0]);
+                    else
+                        obj.toggleVisButtonsState([0,0,0,0]);
                     end
                 case 'Explore'
-                    obj.toggleButtonsInteraction([1,1,1,1,1,1,1,1,1]);
+                    obj.toggleButtonsInteraction({'on','on','on','on','on','on','on','on','on'});
                     if obj.ExploreButton.Value
-                        obj.toggleVisButtonsState([0,0,0,0]);
-                    else
                         obj.toggleVisButtonsState([0,0,0,1]);
+                    else
+                        obj.toggleVisButtonsState([0,0,0,0]);
                     end
             end 
         end
            
         function toggleButtonsInteraction(obj,ButtonVector)
-            obj.SummaryButton.Enable = ButtonVector(1);
-            obj.RunButton.Enable = ButtonVector(2);
-            obj.EditButton.Enable = ButtonVector(3);
-            obj.VisualizeButton.Enable = ButtonVector(4);
-            obj.SettingsButton.Enable = ButtonVector(5);
-            obj.ZoomInButton.Enable = ButtonVector(6);
-            obj.ZoomOutButton.Enable = ButtonVector(7)';
-            obj.PanButton.Enable = ButtonVector(8);
-            obj.ExploreButton.Enable = ButtonVector(9);
+            obj.SummaryButton.Enable = ButtonVector{1};
+            obj.RunButton.Enable = ButtonVector{2};
+            obj.EditButton.Enable = ButtonVector{3};
+            obj.VisualizeButton.Enable = ButtonVector{4};
+            obj.SettingsButton.Enable = ButtonVector{5};
+            obj.ZoomInButton.Enable = ButtonVector{6};
+            obj.ZoomOutButton.Enable = ButtonVector{7};
+            obj.PanButton.Enable = ButtonVector{8};
+            obj.ExploreButton.Enable = ButtonVector{9};
             
         end
         
@@ -622,6 +626,7 @@ classdef ViewPane < handle
         NotifyOfChangeInName(obj,value);
         NotifyOfChangeInDescription(obj,value);
         saveBackEndInformation(obj);
+        checkForDuplicateNames(obj);
         checkForInvalid(obj);
         draw(obj);
         deleteTemporary(obj);

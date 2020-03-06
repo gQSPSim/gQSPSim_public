@@ -119,11 +119,12 @@ classdef ParametersPane < QSPViewerNew.Application.ViewPane
             obj.IsDirty = true;
         end
         
-        function saveBackEndInformation(obj)
+        function [StatusOK] = saveBackEndInformation(obj)
             
             %Validate the temporary data
-            FlagRemoveInvalid = false;
-            [StatusOK,Message] = obj.TemporaryParameters.validate(FlagRemoveInvalid);          
+            FlagRemoveInvalid = false; 
+            [StatusOK,Message] = obj.TemporaryParameters.validate(FlagRemoveInvalid);
+            [StatusOK,Message] = obj.checkForDuplicateNames(StatusOK,Message);
             
             if StatusOK
                 obj.TemporaryParameters.updateLastSavedTime();
@@ -164,7 +165,17 @@ classdef ParametersPane < QSPViewerNew.Application.ViewPane
             FlagRemoveInvalid = true;
             % Remove the invalid entries
             validate(obj.TemporaryParameters,FlagRemoveInvalid);
-            obj.draw()
+            obj.draw();
+            obj.IsDirty = true;
+        end
+        
+        function [StatusOK,Message] = checkForDuplicateNames(obj,StatusOK,Message)
+            refObject = obj.Parameters.Session.Settings.Parameters;
+            ixDup = find(strcmp( obj.TemporaryParameters.Name, {refObject.Name}));
+            if ~isempty(ixDup) && (refObject(ixDup) ~= obj.Parameters)
+                Message = sprintf('%s\nDuplicate names are not allowed.\n', Message);
+                StatusOK = false;
+            end
         end
         
     end
