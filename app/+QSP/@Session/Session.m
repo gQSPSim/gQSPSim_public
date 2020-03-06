@@ -613,7 +613,36 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
             else
                 warning('Simulation %s not found in session', Name)
             end
-
+        end
+        
+        function sObj = getVPopItem(obj, Name)
+            MatchIdx = strcmp(Name, {obj.Settings.VirtualPopulation.Name});
+            sObj = [];
+            if ~isempty(MatchIdx)
+                sObj = obj.Settings.VirtualPopulation(MatchIdx);
+            else
+                warning('Virtual subjects %s not found in session', Name)
+            end
+        end        
+        
+        function sObj = getACItem(obj, Name)
+            MatchIdx = strcmp(Name, {obj.Settings.VirtualPopulationData.Name});
+            sObj = [];
+            if ~isempty(MatchIdx)
+                sObj = obj.Settings.VirtualPopulationData(MatchIdx);
+            else
+                warning('Virtual subjects %s not found in session', Name)
+            end
+        end           
+        
+        function sObj = getCohortGenItem(obj, Name)
+            MatchIdx = strcmp(Name, {obj.CohortGeneration.Name});
+            sObj = [];
+            if ~isempty(MatchIdx)
+                sObj = obj.CohortGeneration(MatchIdx);
+            else
+                warning('Cohort generation %s not found in session', Name)
+            end            
         end
     end
 end %classdef
