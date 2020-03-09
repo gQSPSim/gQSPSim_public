@@ -815,7 +815,7 @@ classdef ApplicationUI < matlab.apps.AppBase
                     if status
                         %Copy the sessionobject, then add it the application
                         Session = copy(loadedSession.Session);
-                        loadedSession.Session.RootDirectory = newFilePath;
+                        Session.RootDirectory = newFilePath;
                         app.createNewSession(Session);
 
                         %Edit the app properties to reflect a new loaded session was

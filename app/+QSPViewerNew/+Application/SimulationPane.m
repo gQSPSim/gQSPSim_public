@@ -287,7 +287,7 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
                 if ~isequal(obj.TemporarySimulation.Item(RowIdx).TaskName,eventData.NewData)
                     HasChanged = true;                    
                 end
-                obj.TemporarySimulation.Item(RowIdx).TaskName = eventData.NewDataNewData;
+                obj.TemporarySimulation.Item(RowIdx).TaskName = eventData.NewData;
             elseif ColIdx == 3 % Group
                 if ~isequal(obj.TemporarySimulation.Item(RowIdx).VPopName,eventData.NewData)
                     HasChanged = true;                    
@@ -517,7 +517,7 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
                     obj.TaskPopupTableItems = {};
                 end
             else
-                obj.TaskPopupTableItems = {};
+                obj.TaskPopupTableItems = 'char';
             end
 
             %% Refresh VPopPopupTableItems
@@ -529,7 +529,7 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
                     obj.VPopPopupTableItems = {obj.TemporarySimulation.NullVPop};
                 end
             else
-                obj.VPopPopupTableItems = {};
+                obj.VPopPopupTableItems = 'char';
             end
             
             
@@ -570,12 +570,29 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
             %First, reset the data
             obj.SimItemsTable.Data = Data;
             
-            %Then, reset the pop up options
-            obj.SimItemsTable.ColumnFormat = {obj.TaskPopupTableItems,obj.VPopPopupTableItems,'char','char'};
+            %Then, reset the pop up options.
+            %New uitable API cannot handle empty lists for table dropdowns.
+            %Instead, we need to set the format to char.
+            [columnFormat,editableTF] = obj.replaceEmptyDropdowns();
+            obj.SimItemsTable.ColumnFormat = columnFormat;
+            obj.SimItemsTable.ColumnEditable = editableTF;
         end
         
-        
+        function [columnFormat,editableTF] =replaceEmptyDropdowns(obj)
+            columnFormat = {obj.TaskPopupTableItems,obj.VPopPopupTableItems,'char','char'};
+            editableTF = [true,true,true,true];
+            if isempty(columnFormat{1})
+                columnFormat{1} = 'char';
+                editableTF(1) = false;
+            end
+            if isempty(columnFormat{2})
+                columnFormat{2} = 'char';
+                editableTF(2) = false;
+            end
+        end
     end
+    
+    
         
 end
 
