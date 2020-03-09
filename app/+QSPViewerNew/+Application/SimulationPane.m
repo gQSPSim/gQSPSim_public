@@ -188,7 +188,7 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
            obj.NewButton = uibutton(obj.SimButtonGrid,'push');
            obj.NewButton.Layout.Row = 1;
            obj.NewButton.Layout.Column = 1;
-           obj.NewButton.Icon = '+QSPViewerNew\+Resources\add_24.png';
+           obj.NewButton.Icon =QSPViewerNew.Resources.LoadResourcePath('add_24.png');
            obj.NewButton.Text = '';
            obj.NewButton.ButtonPushedFcn = @(h,e)obj.onAddSimItem();
             
@@ -196,7 +196,7 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
            obj.RemoveButton = uibutton(obj.SimButtonGrid,'push');
            obj.RemoveButton.Layout.Row = 2;
            obj.RemoveButton.Layout.Column = 1;
-           obj.RemoveButton.Icon = '+QSPViewerNew\+Resources\delete_24.png';
+           obj.RemoveButton.Icon = QSPViewerNew.Resources.LoadResourcePath('delete_24.png');
            obj.RemoveButton.Text = '';
            obj.RemoveButton.ButtonPushedFcn = @(h,e)obj.onRemoveSimItem();
            

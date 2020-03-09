@@ -251,23 +251,22 @@ classdef TaskPane < QSPViewerNew.Application.ViewPane
         end
         
         function onTimetoSteadyStateEdit(obj,NewData)
-            obj.TemporaryTask.RunToSteadyState = NewData;
+            obj.TemporaryTask.TimeToSteadyState = NewData;
             obj.IsDirty = true;
         end
         
         function onRuntoSteadyStateCheckBox(obj,NewData)
-            obj.TemporaryTask.TimeToSteadyState = NewData;
+            obj.TemporaryTask.RunToSteadyState = NewData;
             obj.IsDirty = true;
         end
         
         function onProjectFileSelector(obj,NewData)
             if ~strcmp(obj.TemporaryTask.RelativeFilePath,NewData)
+                obj.invalidProject();
                 obj.TemporaryTask.RelativeFilePath = NewData;
                 if exist(obj.TemporaryTask.FilePath,'file')==2
                     obj.modelChange(obj.TemporaryTask.ModelName);
                     obj.ModelDropDown.Items = obj.TemporaryTask.getModelList();
-                else
-                    obj.invalidProject();
                 end
                 obj.IsDirty = true;
             end
@@ -349,7 +348,7 @@ classdef TaskPane < QSPViewerNew.Application.ViewPane
             obj.updateDescriptionBox(obj.TemporaryTask.Description);
             obj.updateNameBox(obj.TemporaryTask.Name);
             obj.updateSummary(obj.TemporaryTask.getSummary());
-            
+            obj.ProjectFileSelector.setRelativePath(obj.TemporaryTask.RelativeFilePath);
             if exist(obj.TemporaryTask.FilePath,'file')==2
                 obj.modelChange(obj.TemporaryTask.ModelName)
                 obj.ProjectFileSelector.setRelativePath(obj.TemporaryTask.RelativeFilePath);
@@ -418,6 +417,8 @@ classdef TaskPane < QSPViewerNew.Application.ViewPane
             %Draw the superclass Widgets values
             
             %%For each Box, we must import the left and right list
+            
+            %%
             obj.VariantstoActivateDoubleBox.setLeftListBox(obj.TemporaryTask.VariantNames);
             obj.VariantstoActivateDoubleBox.setRightListBox(obj.TemporaryTask.ActiveVariantNames);
             
@@ -454,10 +455,6 @@ classdef TaskPane < QSPViewerNew.Application.ViewPane
         end
         
         function invalidProject(obj)
-            obj.updateDescriptionBox(obj.Task.Description);
-            obj.updateNameBox(obj.Task.Name);
-            obj.updateSummary(obj.Task.getSummary());
-            
             obj.ModelDropDown.Items = {QSP.makeInvalid('-')};
             
             obj.VariantstoActivateDoubleBox.setRightListBox({});

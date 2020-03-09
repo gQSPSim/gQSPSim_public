@@ -156,7 +156,7 @@ classdef VirtualPopulationGenerationDataPane < QSPViewerNew.Application.ViewPane
             
             obj.VirtPopGenDataFileSelector.setFileExtension('.xlsx')
             obj.VirtPopGenDataFileSelector.setRootDirectory(obj.TemporaryVirtPopGenData.Session.RootDirectory);
-            obj.VirtPopGenDataFileSelector.setFileTemplate('+QSPViewerNew/+Resources/TargetStatistics_Template.xlsx');
+            obj.VirtPopGenDataFileSelector.setFileTemplate(QSPViewerNew.Resources.LoadResourcePath('TargetStatistics_Template.xlsx'));
             obj.VirtPopGenDataFileSelector.setRelativePath(obj.TemporaryVirtPopGenData.RelativeFilePath);
             obj.IsDirty = false;
         end

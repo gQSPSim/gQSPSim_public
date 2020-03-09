@@ -296,7 +296,7 @@ classdef ViewPane < handle
            obj.SummaryButton = uibutton(obj.ButtonsLayout,'push');
            obj.SummaryButton.Layout.Row = 1;
            obj.SummaryButton.Layout.Column = 1;
-           obj.SummaryButton.Icon = '+QSPViewerNew\+Resources\report_24.png';
+           obj.SummaryButton.Icon = QSPViewerNew.Resources.LoadResourcePath('report_24.png');
            obj.SummaryButton.Tooltip = 'View summary';
            obj.SummaryButton.ButtonPushedFcn = @(h,e)obj.onNavigation('Summary');
            obj.SummaryButton.Text = '';
@@ -305,7 +305,7 @@ classdef ViewPane < handle
            obj.EditButton = uibutton(obj.ButtonsLayout,'push');
            obj.EditButton.Layout.Row = 1;
            obj.EditButton.Layout.Column = 2;
-           obj.EditButton.Icon = '+QSPViewerNew\+Resources\edit_24.png';
+           obj.EditButton.Icon = QSPViewerNew.Resources.LoadResourcePath('edit_24.png');
            obj.EditButton.Tooltip = 'Edit the selected item';
            obj.EditButton.ButtonPushedFcn = @(h,e)obj.onNavigation('Edit');
            obj.EditButton.Text = '';
@@ -318,7 +318,7 @@ classdef ViewPane < handle
                obj.RunButton = uibutton(ButtonGroupGrid,'push');
                obj.RunButton.Layout.Row = 1;
                obj.RunButton.Layout.Column = 3;
-               obj.RunButton.Icon = '+QSPViewerNew\+Resources\play_24.png';
+               obj.RunButton.Icon = QSPViewerNew.Resources.LoadResourcePath('play_24.png');
                obj.RunButton.Tooltip = 'Run the selected item';
                obj.RunButton.ButtonPushedFcn = @(h,e)obj.onNavigation('Run');
                obj.RunButton.Text = '';
@@ -327,7 +327,7 @@ classdef ViewPane < handle
                obj.VisualizeButton = uibutton(ButtonGroupGrid,'push');
                obj.VisualizeButton.Layout.Row = 1;
                obj.VisualizeButton.Layout.Column = 5;
-               obj.VisualizeButton.Icon = '+QSPViewerNew\+Resources\plot_24.png';
+               obj.VisualizeButton.Icon = QSPViewerNew.Resources.LoadResourcePath('plot_24.png');
                obj.VisualizeButton.Tooltip = 'Visualize the selected item';
                obj.VisualizeButton.ButtonPushedFcn = @(h,e)obj.onNavigation('Visualize');
                obj.VisualizeButton.Text = '';
@@ -336,7 +336,7 @@ classdef ViewPane < handle
                obj.SettingsButton = uibutton(ButtonGroupGrid,'push');
                obj.SettingsButton.Layout.Row = 1;
                obj.SettingsButton.Layout.Column = 6;
-               obj.SettingsButton.Icon = '+QSPViewerNew\+Resources\settings_24.png';
+               obj.SettingsButton.Icon = QSPViewerNew.Resources.LoadResourcePath('settings_24.png');
                obj.SettingsButton.Tooltip = 'Customize plot settings the selected item';
                obj.SettingsButton.ButtonPushedFcn = @(h,e)obj.onNavigation('Settings');
                obj.SettingsButton.Text = '';
@@ -345,7 +345,7 @@ classdef ViewPane < handle
                obj.ZoomInButton = uibutton(ButtonGroupGrid,'state');
                obj.ZoomInButton.Layout.Row = 1;
                obj.ZoomInButton.Layout.Column = 7;
-               obj.ZoomInButton.Icon = '+QSPViewerNew\+Resources\invalid_12.png';
+               obj.ZoomInButton.Icon = QSPViewerNew.Resources.LoadResourcePath('invalid_12.png');
                obj.ZoomInButton.Tooltip = 'Zoom in';
                obj.ZoomInButton.ValueChangedFcn = @(h,e)obj.onNavigation('ZoomIn');
                obj.ZoomInButton.Text = '';
@@ -354,7 +354,7 @@ classdef ViewPane < handle
                obj.ZoomOutButton = uibutton(ButtonGroupGrid,'state');
                obj.ZoomOutButton.Layout.Row = 1;
                obj.ZoomOutButton.Layout.Column = 8;
-               obj.ZoomOutButton.Icon = '+QSPViewerNew\+Resources\invalid_12.png';
+               obj.ZoomOutButton.Icon = QSPViewerNew.Resources.LoadResourcePath('invalid_12.png');
                obj.ZoomOutButton.Tooltip = 'Zoom out';
                obj.ZoomOutButton.ValueChangedFcn = @(h,e)obj.onNavigation('ZoomOut');
                obj.ZoomOutButton.Text = '';
@@ -363,7 +363,7 @@ classdef ViewPane < handle
                obj.PanButton = uibutton(ButtonGroupGrid,'state');
                obj.PanButton.Layout.Row = 1;
                obj.PanButton.Layout.Column = 9;
-               obj.PanButton.Icon = '+QSPViewerNew\+Resources\invalid_12.png';
+               obj.PanButton.Icon = QSPViewerNew.Resources.LoadResourcePath('invalid_12.png');
                obj.PanButton.Tooltip = 'Pan';
                obj.PanButton.ValueChangedFcn = @(h,e)obj.onNavigation('Pan');
                obj.PanButton.Text = '';
@@ -372,7 +372,7 @@ classdef ViewPane < handle
                obj.ExploreButton = uibutton(ButtonGroupGrid,'state');
                obj.ExploreButton.Layout.Row = 1;
                obj.ExploreButton.Layout.Column = 10;
-               obj.ExploreButton.Icon = '+QSPViewerNew\+Resources\invalid_12.png';
+               obj.ExploreButton.Icon = QSPViewerNew.Resources.LoadResourcePath('invalid_12.png');
                obj.ExploreButton.Tooltip = 'Explore';
                obj.ExploreButton.ValueChangedFcn = @(h,e)obj.onNavigation('Explore');
                obj.ExploreButton.Text = '';
@@ -468,6 +468,7 @@ classdef ViewPane < handle
                         %If the Summary window is not already shown.
                         obj.CurrentPane.Visible = 'off';
                         obj.CurrentPane = obj.SummaryPanel;
+                        obj.deleteTemporary();
                         obj.draw();
                         obj.CurrentPane.Visible = 'on';
                         
@@ -484,6 +485,7 @@ classdef ViewPane < handle
                         %If the Edit window is not already shown
                         obj.CurrentPane.Visible = 'off';
                         obj.CurrentPane = obj.EditPanel;
+                        obj.deleteTemporary();
                         obj.draw();
                         obj.CurrentPane.Visible = 'on';
                         
@@ -497,13 +499,31 @@ classdef ViewPane < handle
                     end
                 case 'Run'
                     obj.runModel();
-                    obj.Focus = 'Summary';
-                    obj.refocus()
+                    if strcmp(obj.SummaryPanel.Visible,'off')
+                        %If the Summary window is not already shown.
+                        obj.CurrentPane.Visible = 'off';
+                        obj.CurrentPane = obj.SummaryPanel;
+                        obj.deleteTemporary();
+                        obj.draw();
+                        obj.CurrentPane.Visible = 'on';
+                    else
+                        obj.deleteTemporary();
+                        obj.draw();
+                    end
+                    
+                    %Turn the buttons on 
+                    obj.ParentApp.enableInteraction();
+                    obj.SummaryButton.Enable = 'on';
+                    obj.EditButton.Enable = 'on';
+                    if obj.HasVisualization
+                         obj.toggleButtonsInteraction({'on','on','on','on','on','on','on','on','on'});
+                    end
                 case 'Visualize'
                     if strcmp(obj.VisualizationPanel.Visible,'off')
                         %If the Visualize window is not already shown
                         obj.CurrentPane.Visible = 'off';
                         obj.CurrentPane = obj.VisualizationPanel;
+                        obj.deleteTemporary();
                         obj.draw();
                         obj.CurrentPane.Visible = 'on';
                         

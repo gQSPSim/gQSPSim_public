@@ -115,9 +115,9 @@ classdef OptimizationDataPane < QSPViewerNew.Application.ViewPane
         function onFileType(obj,newData)
             obj.TemporaryOptimizationData.DatasetType = newData;
              if strcmp(obj.FileTypeDropDown.Value,'wide')
-                obj.OptimFileSelector.setFileTemplate('DataSet_Template.xlsx');
+                obj.OptimFileSelector.setFileTemplate(QSPViewerNew.Resources.LoadResourcePath('DataSet_Template.xlsx'));
             elseif strcmp(obj.FileTypeDropDown.Value,'tall')
-                obj.OptimFileSelector.setFileTemplate('DataSet_Template_tall.xlsx');
+                obj.OptimFileSelector.setFileTemplate(QSPViewerNew.Resources.LoadResourcePath('DataSet_Template_tall.xlsx'));
             end
             obj.IsDirty = true;
         end
@@ -196,9 +196,9 @@ classdef OptimizationDataPane < QSPViewerNew.Application.ViewPane
             obj.OptimFileSelector.setRelativePath(obj.TemporaryOptimizationData.RelativeFilePath);
             
             if strcmp(obj.FileTypeDropDown.Value,'wide')
-                obj.OptimFileSelector.setFileTemplate('+QSPViewerNew/+Resources/DataSet_Template.xlsx');
+                obj.OptimFileSelector.setFileTemplate(QSPViewerNew.Resources.LoadResourcePath('DataSet_Template.xlsx'));
             elseif strcmp(obj.FileTypeDropDown.Value,'tall')
-                obj.OptimFileSelector.setFileTemplate('+QSPViewerNew/+Resources/DataSet_Template_tall.xlsx');
+                obj.OptimFileSelector.setFileTemplate(QSPViewerNew.Resources.LoadResourcePath('DataSet_Template_tall.xlsx'));
             end
             
             obj.IsDirty = false;

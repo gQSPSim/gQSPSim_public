@@ -156,7 +156,7 @@ classdef ParametersPane < QSPViewerNew.Application.ViewPane
             
             obj.ParameterFileSelector.setFileExtension('.xlsx')
             obj.ParameterFileSelector.setRootDirectory(obj.Parameters.Session.RootDirectory);
-            obj.ParameterFileSelector.setFileTemplate('+QSPViewerNew/+Resources/Parameters_Template.xlsx');
+            obj.ParameterFileSelector.setFileTemplate(QSPViewerNew.Resources.LoadResourcePath('Parameters_Template.xlsx'));
             obj.ParameterFileSelector.setRelativePath(obj.TemporaryParameters.RelativeFilePath);
             obj.IsDirty = false;
         end

@@ -155,7 +155,7 @@ classdef VirtualPopulationDataPane < QSPViewerNew.Application.ViewPane
             
             obj.VirtPopDataFileSelector.setFileExtension('.xlsx')
             obj.VirtPopDataFileSelector.setRootDirectory(obj.TemporaryVirtPopData.Session.RootDirectory);
-            obj.VirtPopDataFileSelector.setFileTemplate('+QSPViewerNew/+Resources/AcceptanceCriteria_Template.xlsx');
+            obj.VirtPopDataFileSelector.setFileTemplate(QSPViewerNew.Resources.LoadResourcePath('AcceptanceCriteria_Template.xlsx'));
             obj.VirtPopDataFileSelector.setRelativePath(obj.TemporaryVirtPopData.RelativeFilePath);
             obj.IsDirty = false;
         end
