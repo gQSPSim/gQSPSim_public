@@ -55,6 +55,7 @@ classdef ViewPane < handle
         PanButton           matlab.ui.control.StateButton
         ExploreButton       matlab.ui.control.StateButton
         VisualizationPanel  matlab.ui.container.Panel
+        VisualizationGrid   QSPViewerNew.Widgets.GridFlex
     end
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -383,6 +384,9 @@ classdef ViewPane < handle
                obj.VisualizationPanel.Layout.Row = 2;
                obj.VisualizationPanel.Layout.Column = 1;
                obj.VisualizationPanel.Visible = 'off';
+               
+               %Create visualization panel layout. 
+               obj.VisualizationGrid = QSPViewerNew.Widgets.GridFlex(obj.VisualizationPanel);
            end
            
        end
@@ -528,7 +532,6 @@ classdef ViewPane < handle
                         obj.CurrentPane.Visible = 'on';
                         
                         %Disable all external buttons and other views
-                        obj.ParentApp.disableInteraction();
                         obj.toggleButtonsInteraction({'on','on','on','on','on','on','on','on','on'});
                     end
                 case 'Settings'
@@ -584,6 +587,7 @@ classdef ViewPane < handle
             obj.PanButton.Value =  ButtonVector(3);
             obj.ExploreButton.Value =  ButtonVector(4);
         end
+        
     end
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -607,7 +611,14 @@ classdef ViewPane < handle
             obj.SummaryContent.Information = value;
         end
         
-        function hidePane(obj)
+        function hidePane(obj)           
+            %Remove callbacks for pane
+            if obj.HasVisualization
+                obj.ParentApp.removeWindowDownCallback(obj.VisualizationGrid.getButtonDownCallback());
+                obj.ParentApp.removeWindowUpCallback(obj.VisualizationGrid.getButtonUpCallback());
+                obj.ParentApp.removeWindowMoveCallback(obj.VisualizationGrid.getButtonMoveCallback());
+            end
+            
             %hide this pane
             obj.OuterGrid.Visible = 'off';
         end
@@ -617,6 +628,12 @@ classdef ViewPane < handle
             %summary
             obj.Focus = 'Summary';
             obj.refocus;
+            
+            if obj.HasVisualization
+                obj.ParentApp.addWindowDownCallback(obj.VisualizationGrid.getButtonDownCallback());
+                obj.ParentApp.addWindowUpCallback(obj.VisualizationGrid.getButtonUpCallback());
+                obj.ParentApp.addWindowMoveCallback(obj.VisualizationGrid.getButtonMoveCallback());
+            end
             obj.OuterGrid.Visible = 'on';
         end
         

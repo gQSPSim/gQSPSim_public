@@ -42,6 +42,10 @@ classdef ApplicationUI < matlab.apps.AppBase
         IsConstructed = false;
         Type
         TypeStr
+        
+        WindowButtonDownCallbacks = {};
+        WindowButtonUpCallbacks = {};
+        WindowButtonMoveCallbacks = {};
     end
     
     properties (SetAccess = private, Dependent = true, AbortSet = true)
@@ -80,8 +84,9 @@ classdef ApplicationUI < matlab.apps.AppBase
         RestoreSelectedItemMenu  matlab.ui.container.Menu
         HelpMenu                 matlab.ui.container.Menu
         AboutMenu                matlab.ui.container.Menu
-        GridLayout               matlab.ui.container.GridLayout
+        FlexGridLayout           QSPViewerNew.Widgets.GridFlex
         SessionExplorerPanel     matlab.ui.container.Panel
+        SessionExplorerGrid      matlab.ui.container.GridLayout
         TreeRoot                 matlab.ui.container.Tree
         TreeMenu                 
         OpenRecentMenuArray 
@@ -140,6 +145,9 @@ classdef ApplicationUI < matlab.apps.AppBase
             app.UIFigure = uifigure('Visible', 'off');
             app.UIFigure.Position = [100 100 1005 864];
             app.UIFigure.Name = 'UI Figure';
+            app.UIFigure.WindowButtonUpFcn = @(h,e) app.ExecuteCallbackArray(app.WindowButtonUpCallbacks,h,e);
+            app.UIFigure.WindowButtonDownFcn = @(h,e) app.ExecuteCallbackArray(app.WindowButtonDownCallbacks,h,e);
+            app.UIFigure.WindowButtonMotionFcn = @(h,e) app.ExecuteCallbackArray(app.WindowButtonMoveCallbacks,h,e);
 
             % Create FileMenu
             app.FileMenu = uimenu(app.UIFigure);
@@ -265,19 +273,25 @@ classdef ApplicationUI < matlab.apps.AppBase
             app.AboutMenu.MenuSelectedFcn = @app.onAbout;
 
             % Create GridLayout
-            app.GridLayout = uigridlayout(app.UIFigure);
-            app.GridLayout.ColumnWidth = {'4x', '10x'};
-            app.GridLayout.RowHeight = {'1x'};
+            app.FlexGridLayout = QSPViewerNew.Widgets.GridFlex(app.UIFigure);
+            app.FlexGridLayout.getGridHandle();
+            app.addWindowDownCallback(app.FlexGridLayout.getButtonDownCallback());
+            app.addWindowUpCallback(app.FlexGridLayout.getButtonUpCallback());
+            app.addWindowMoveCallback(app.FlexGridLayout.getButtonMoveCallback());
 
             % Create SessionExplorerPanel
-            app.SessionExplorerPanel = uipanel(app.GridLayout);
+            app.SessionExplorerPanel = uipanel(app.FlexGridLayout.getGridHandle());
             app.SessionExplorerPanel.Title = 'Session Explorer';
             app.SessionExplorerPanel.Layout.Row = 1;
             app.SessionExplorerPanel.Layout.Column = 1;
+            
+            %Create TreeGrid
+            app.SessionExplorerGrid = uigridlayout(app.SessionExplorerPanel);
+            app.SessionExplorerGrid.ColumnWidth = {'1x'};
+            app.SessionExplorerGrid.RowHeight = {'1x'};
 
             % Create Tree
-            app.TreeRoot = uitree(app.SessionExplorerPanel);
-            app.TreeRoot.Position = [1 0 278 820];
+            app.TreeRoot = uitree(app.SessionExplorerGrid);
             app.TreeRoot.Multiselect = 'on';
             app.TreeRoot.SelectionChangedFcn = @app.onTreeSelectionChanged;
             
@@ -719,6 +733,12 @@ classdef ApplicationUI < matlab.apps.AppBase
             disp("TODO: Duplicate This item")
         end
         
+        function ExecuteCallbackArray(~,functionArray,h,e)
+           for i = 1:length(functionArray)
+               feval(functionArray{i},h,e)
+           end
+        end
+       
     end
     
     % %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %%
@@ -909,29 +929,71 @@ classdef ApplicationUI < matlab.apps.AppBase
     % Methods for drawing UI components.
     % %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %%
     methods (Access = public)
-       
-       function disableInteraction(app)
-           app.TreeRoot.Enable = 'off';
-           app.FileMenu.Enable = 'off';
-           app.QSPMenu.Enable = 'off';
-       end
-       
-       function enableInteraction(app)
-           app.TreeRoot.Enable = 'on';
-           app.FileMenu.Enable = 'on';
-           app.QSPMenu.Enable = 'on';
-       end
-       
-       function changeInBackEnd(app,newSession)
-           %1.Replace the current Session with the newSession
-           app.Sessions(app.SelectedSessionIdx) = newSession;
-           
-           %2. It must update the tree to reflect all the new values from
-           %the session
-           app.updateTreeData(app.TreeRoot.Children(app.SelectedSessionIdx),newSession,'Session')
-           
-           app.refresh();
+
+    function disableInteraction(app)
+       app.TreeRoot.Enable = 'off';
+       app.FileMenu.Enable = 'off';
+       app.QSPMenu.Enable = 'off';
+    end
+
+    function enableInteraction(app)
+       app.TreeRoot.Enable = 'on';
+       app.FileMenu.Enable = 'on';
+       app.QSPMenu.Enable = 'on';
+    end
+
+    function changeInBackEnd(app,newSession)
+       %1.Replace the current Session with the newSession
+       app.Sessions(app.SelectedSessionIdx) = newSession;
+
+       %2. It must update the tree to reflect all the new values from
+       %the session
+       app.updateTreeData(app.TreeRoot.Children(app.SelectedSessionIdx),newSession,'Session')
+
+       app.refresh();
+    end
+
+    function addWindowDownCallback(app,functionHandle)
+        app.WindowButtonDownCallbacks{end+1} = functionHandle;
+    end
+
+    function removeWindowDownCallback(app,functionHandle)
+        %Need to use loop because == does not support function handles, need
+        %to use isequal
+        for i = 1:length(app.WindowButtonDownCallbacks)
+            if isequal(app.WindowButtonDownCallbacks{i},functionHandle)
+                app.WindowButtonDownCallbacks{i} = [];
+            end
         end
+    end
+
+    function addWindowUpCallback(app,functionHandle)
+        app.WindowButtonUpCallbacks{end+1} = functionHandle;
+    end
+
+    function removeWindowUpCallback(app,functionHandle)
+        %Need to use loop because == does not support function handles, need
+        %to use isequal
+        for i = 1:length(app.WindowButtonUpCallbacks)
+            if isequal(app.WindowButtonDownCallbacks{i},functionHandle)
+                app.WindowButtonDownCallbacks{i} = [];
+            end
+        end
+    end  
+    
+    function addWindowMoveCallback(app,functionHandle)
+        app.WindowButtonMoveCallbacks{end+1} = functionHandle;
+    end
+
+    function removeWindowMoveCallback(app,functionHandle)
+        %Need to use loop because == does not support function handles, need
+        %to use isequal
+        for i = 1:length(app.WindowButtonMoveCallbacks)
+            if isequal(app.WindowButtonMoveCallbacks{i},functionHandle)
+                app.WindowButtonMoveCallbacks{i} = [];
+            end
+        end
+    end  
        
     end
     
@@ -1067,7 +1129,7 @@ classdef ApplicationUI < matlab.apps.AppBase
         
         function launchNewPane(app,NodeData)
             %Inputs that the pane API should require in the constructor
-            classInputs = {app.GridLayout,1,2,app};
+            classInputs = {app.FlexGridLayout.getGridHandle(),1,3,app};
             
             %Need to hide old pane
             if ~isempty(app.ActivePane)
@@ -1298,8 +1360,8 @@ classdef ApplicationUI < matlab.apps.AppBase
                 case 'QSP.VirtualPopulationGenerationData'
                     PaneClass = 'QSPViewerNew.Application.VirtualPopulationGenerationDataPane';
             end
-        end
-        
+       end
+       
     end
     
     % %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %%
