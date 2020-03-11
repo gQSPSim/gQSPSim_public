@@ -79,7 +79,6 @@ classdef GridFlex < handle
     methods(Access = public)
     
         function buttonDownFcn(obj,coordinates,objectHandle)
-            disp("Down")
             %Detemine if the object selected is our axis
             if obj.InnerAxis == objectHandle
                 obj.ChangeModeTF = true;
