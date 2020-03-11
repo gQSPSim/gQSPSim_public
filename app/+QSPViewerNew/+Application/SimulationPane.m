@@ -72,6 +72,15 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
         NewButton                   matlab.ui.control.Button
         RemoveButton                matlab.ui.control.Button
         SimItemsTable               matlab.ui.control.Table
+        SimulationVisualizationGrid matlab.ui.container.GridLayout
+        SpeciesLabel                matlab.ui.control.Label
+        SpeciesTable                matlab.ui.control.Table
+        SimulationItemsLabel        matlab.ui.control.Label
+        SimulationItemsTable        matlab.ui.control.Table
+        DataLabel                   matlab.ui.control.Label
+        DataTable                   matlab.ui.control.Table
+        GroupLabel                  matlab.ui.control.Label
+        GroupTable                  matlab.ui.control.Table
     end
         
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -210,6 +219,65 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
            obj.SimItemsTable.ColumnEditable = [true,true,true,true];
            obj.SimItemsTable.CellEditCallback = @(h,e) obj.onTableSelectionEdit(e);
            obj.SimItemsTable.CellSelectionCallback = @(h,e) obj.onTableSelectionChange(e);
+           
+           %VisualizationPanel Items
+           obj.SimulationVisualizationGrid = uigridlayout(obj.getVisualizationGrid());
+           obj.SimulationVisualizationGrid.Layout.Row = 2;
+           obj.SimulationVisualizationGrid.Layout.Column = 1;
+           obj.SimulationVisualizationGrid.RowHeight = {obj.WidgetHeight,'1x',obj.WidgetHeight,'1x',obj.WidgetHeight,'1x',obj.WidgetHeight,'1x'};
+           obj.SimulationVisualizationGrid.ColumnWidth = {'1x'};
+           
+           %Species Label and Table;
+           obj.SpeciesLabel = uilabel(obj.SimulationVisualizationGrid);
+           obj.SpeciesLabel.Text = 'Species';
+           obj.SpeciesLabel.Layout.Row = 1;
+           obj.SpeciesLabel.Layout.Column = 1;
+           obj.SpeciesLabel.FontWeight = 'bold';
+           
+           obj.SpeciesTable = uitable(obj.SimulationVisualizationGrid);
+           obj.SpeciesTable.Layout.Row = 2;
+           obj.SpeciesTable.Layout.Column = 1;
+           obj.SpeciesTable.Data = {};
+           obj.SpeciesTable.ColumnName = {'Plot','Style','Name', 'Display'};
+           
+           %SimulationItems Label and Table;
+           obj.SimulationItemsLabel = uilabel(obj.SimulationVisualizationGrid);
+           obj.SimulationItemsLabel.Text = 'Simulation Items';
+           obj.SimulationItemsLabel.Layout.Row = 3;
+           obj.SimulationItemsLabel.Layout.Column = 1;
+           obj.SimulationItemsLabel.FontWeight = 'bold';
+           
+           obj.SimulationItemsTable = uitable(obj.SimulationVisualizationGrid);
+           obj.SimulationItemsTable.Layout.Row = 4;
+           obj.SimulationItemsTable.Layout.Column = 1;
+           obj.SimulationItemsTable.Data = {};
+           obj.SimulationItemsTable.ColumnName = {'Include','Color','Task', 'Virtual Subject(s)','Group','Display'};
+           
+           %Data Label and Table;
+           obj.DataLabel = uilabel(obj.SimulationVisualizationGrid);
+           obj.DataLabel.Text = 'Data';
+           obj.DataLabel.Layout.Row = 5;
+           obj.DataLabel.Layout.Column = 1;
+           obj.DataLabel.FontWeight = 'bold';
+           
+           obj.DataTable = uitable(obj.SimulationVisualizationGrid);
+           obj.DataTable.Layout.Row = 6;
+           obj.DataTable.Layout.Column = 1;
+           obj.DataTable.Data = {};
+           obj.DataTable.ColumnName = {'Plot','Marker','Name', 'Display'};
+           
+           %Group Label and Table;
+           obj.GroupLabel = uilabel(obj.SimulationVisualizationGrid);
+           obj.GroupLabel.Text = 'Group (dataset)';
+           obj.GroupLabel.Layout.Row = 7;
+           obj.GroupLabel.Layout.Column = 1;
+           obj.GroupLabel.FontWeight = 'bold';
+           
+           obj.GroupTable = uitable(obj.SimulationVisualizationGrid);
+           obj.GroupTable.Layout.Row = 8;
+           obj.GroupTable.Layout.Column = 1;
+           obj.GroupTable.Data = {};
+           obj.GroupTable.ColumnName = {'Include','Color','Name', 'Display'};
         end
         
         function createListenersAndCallbacks(obj)
@@ -225,7 +293,7 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
         
         function onRemoveSimItem(obj)
             DeleteIdx = obj.SelectedRow;
-            if DeleteIdx <= numel(obj.TemporarySimulation.Item)
+            if DeleteIdx~= 0 & DeleteIdx <= numel(obj.TemporarySimulation.Item)
                  obj.TemporarySimulation.Item(DeleteIdx) = [];
             end
             obj.updateSimulationTable();
@@ -240,8 +308,7 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
                     NewTaskVPop.Group = '';
                     obj.TemporarySimulation.Item(end+1) = NewTaskVPop;
                 else
-                    hDlg = uialert(obj.getUIFigure(),'At least one task must be defined in order to add a simulation item.','Cannot Add');
-                    uiwait(hDlg);
+                    uialert(obj.getUIFigure(),'At least one task must be defined in order to add a simulation item.','Cannot Add');
             end
             obj.updateSimulationTable();
             obj.IsDirty = true;
@@ -365,6 +432,10 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
             obj.IsDirty = true;
         end
         
+        function NotifyOfChangeInPlotConfig(obj,value)
+            obj.Data.SelectedPlotLayout = value;
+            
+        end
         function [StatusOK] = saveBackEndInformation(obj)
             
             %Validate the temporary data
@@ -590,9 +661,8 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
                 editableTF(2) = false;
             end
         end
+        
     end
-    
-    
         
 end
 
