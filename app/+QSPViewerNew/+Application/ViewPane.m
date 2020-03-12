@@ -79,6 +79,8 @@ classdef ViewPane < handle
         MeanMenu = matlab.ui.container.Menu.empty(1,0);
         MedianMenu = matlab.ui.container.Menu.empty(1,0);
         StandardDeviationMenu = matlab.ui.container.Menu.empty(1,0);
+        
+        EmptyParent = matlab.ui.Figure.empty(1,0);
     end
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -441,8 +443,11 @@ classdef ViewPane < handle
                
                %Create all plot objects
                for plotIndex = 1:obj.MaxNumPlots
-                    obj.PlotArray(plotIndex) = uiaxes(obj.PlottingGrid,'Visible','off');
+                    obj.PlotArray(plotIndex) = uiaxes('Parent',obj.EmptyParent);
                     currentPlot = obj.PlotArray(plotIndex);
+                    disableDefaultInteractivity(currentPlot)
+                    currentPlot.Tag = ['plot',num2str(plotIndex)];
+                    currentPlot.Toolbar.Visible = 'off';
 
                     %Title
                     currentPlot.Title.String = sprintf('Plot %d',plotIndex);
@@ -485,7 +490,7 @@ classdef ViewPane < handle
                     
                     %Add the context menus. 
                     %create context menu object;
-                    obj.ContextMenuArray(plotIndex) = uicontextmenu(ancestor(currentPlot,'figure'));
+                    obj.ContextMenuArray(plotIndex) = uicontextmenu(ancestor(obj.PlottingGrid,'figure'));
                     
                     obj.YScaleMenu(plotIndex) = uimenu(obj.ContextMenuArray(plotIndex));
                     obj.YScaleMenu(plotIndex).Label = 'Y-Scale';
@@ -552,7 +557,7 @@ classdef ViewPane < handle
                     obj.StandardDeviationMenu(plotIndex).Tag = 'ShowSD';
                     obj.StandardDeviationMenu(plotIndex).MenuSelectedFcn = @(h,e) obj.onAxisConextMenu(h,e,plotIndex);
                     
-                    currentPlot.ContextMenu =  obj.ContextMenuArray(plotIndex);
+                    %currentPlot.ContextMenu =  obj.ContextMenuArray(plotIndex);
                end
            end
            
@@ -700,8 +705,7 @@ classdef ViewPane < handle
                         %If the Visualize window is not already shown
                         obj.CurrentPane.Visible = 'off';
                         obj.CurrentPane = obj.VisualizationPanel;
-                        obj.deleteTemporary();
-                        obj.draw();
+                        obj.drawVisualization();
                         obj.CurrentPane.Visible = 'on';
                         
                         %Disable all external buttons and other views
@@ -793,7 +797,7 @@ classdef ViewPane < handle
             end
             
             %hide this pane
-            obj.OuterGrid.Visible = 'off';
+            obj.OuterGrid.Parent = obj.EmptyParent;
         end
         
         function showPane(obj)
@@ -807,11 +811,50 @@ classdef ViewPane < handle
                 obj.ParentApp.addWindowUpCallback(obj.VisualizationGrid.getButtonUpCallback());
                 obj.ParentApp.addWindowMoveCallback(obj.VisualizationGrid.getButtonMoveCallback());
             end
-            obj.OuterGrid.Visible = 'on';
+            obj.OuterGrid.Parent = obj.Parent;
         end
         
         function notifyOfChange(obj,newBackEndObject)
             obj.ParentApp.changeInBackEnd(newBackEndObject);
+        end
+        
+        function updatePlotConfig(obj,value)
+            %If the drop down has not been updated, do so
+            obj.PlotDropDown.Value = value;
+            
+            %Extract the row and column values
+            SplitValue = strsplit(value,'x');
+            Rows = SplitValue{1};
+            Columns = SplitValue{2};
+            RowsInput = repmat({'1x'},1,str2double(Rows));
+            ColumnsInput = repmat({'1x'},1,str2double(Columns));
+            
+            %While we are working, set the grid to invisible
+            obj.PlottingGrid.Visible = 'off';
+            
+            %For all plots that will not be shown, set their parent to an
+            %empty object
+            for plotIndex = str2double(Rows)*str2double(Columns)+1:obj.MaxNumPlots
+                obj.PlotArray(plotIndex).ContextMenu = [];
+                obj.PlotArray(plotIndex).Parent = obj.EmptyParent;
+            end
+            
+            %For 1 to the number of plots to show, add them in order
+            PlotCount = 1;
+            for RowIndex = 1:str2double(Rows)
+                for ColumnIndex = 1:str2double(Columns)
+                    obj.PlotArray(PlotCount).Parent = obj.PlottingGrid;
+                    obj.PlotArray(PlotCount).ContextMenu =  obj.ContextMenuArray(plotIndex);
+                    obj.PlotArray(PlotCount).Layout.Row = RowIndex;
+                    obj.PlotArray(PlotCount).Layout.Column = ColumnIndex;
+                    PlotCount = PlotCount +1;
+                end
+            end
+            
+            obj.PlottingGrid.RowHeight = RowsInput;
+            obj.PlottingGrid.ColumnWidth = ColumnsInput;
+            obj.PlottingGrid.Visible = 'on';
+            drawnow();
         end
         
     end
@@ -830,7 +873,7 @@ classdef ViewPane < handle
             value = obj.ButtonsLayout;
         end
         
-        function value =  add ViewP(obj)
+        function value = getVisualizationGrid(obj)
             if obj.HasVisualization
                 value = obj.PlotInteractionGrid;
             else

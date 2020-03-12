@@ -89,7 +89,7 @@ classdef ApplicationUI < matlab.apps.AppBase
         SessionExplorerGrid      matlab.ui.container.GridLayout
         TreeRoot                 matlab.ui.container.Tree
         TreeMenu                 
-        OpenRecentMenuArray 
+        OpenRecentMenuArray      
     end
     
     methods (Access = public)

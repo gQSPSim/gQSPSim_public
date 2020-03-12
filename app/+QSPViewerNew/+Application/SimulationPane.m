@@ -418,6 +418,12 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
             end
         end
         
+        function drawVisualization(obj);
+            
+            %DropDown Update
+            obj.updatePlotConfig(obj.Simulation.SelectedPlotLayout);
+        end
+        
     end
        
     methods (Access = public)
@@ -433,9 +439,10 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
         end
         
         function NotifyOfChangeInPlotConfig(obj,value)
-            obj.Data.SelectedPlotLayout = value;
-            
+            obj.Simulation.SelectedPlotLayout = value;
+            obj.updatePlotConfig(value);
         end
+        
         function [StatusOK] = saveBackEndInformation(obj)
             
             %Validate the temporary data

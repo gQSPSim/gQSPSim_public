@@ -63,6 +63,7 @@ classdef GridFlex < handle
             obj.InnerAxis.Color = 'none';
             obj.InnerAxis.Toolbar.Visible = 'off';
             obj.InnerAxis.Color = [0,0,0];
+            disableDefaultInteractivity(obj.InnerAxis);
             
             %Create function handles
             obj.ButtonUpFunctionHandle = @(h,e) obj.buttonUpFcn();
