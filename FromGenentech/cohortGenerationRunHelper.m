@@ -730,7 +730,7 @@ if numel(obj.Item) == 0
     return
 end
 
-[Mappings, accCritData, ICTable, groupVec] = setupCohortGen();
+[Mappings, accCritData, ICTable, groupVec] = obj.setupCohortGen();
 
 %% Load Parameters
 Names = {obj.Settings.Parameters.Name};
@@ -900,7 +900,7 @@ while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients
     % criteria
 
         
-    [StatusOK, thisMessage, thisIsValid, nIC, thisViolation] = checkVPatientIsValid(Names0, Values0, accCritData, obj, ICTable, groupVec, Mappings); % TODO
+    [StatusOK, thisMessage, thisIsValid, nIC, thisViolation] = obj.checkVPatientIsValid(Names0, Values0, accCritData, ICTable, groupVec, Mappings); % TODO
     if ~StatusOK
         delete(hWbar)
         Message = [Message, thisMessage];

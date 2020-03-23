@@ -295,36 +295,7 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 end
                 
                 if obj.Session.AutoSaveGit
-                    gitFiles = obj.Session.GitFiles;
-                    
-                    for k=1:length(gitFiles)
-                        
-                        result = git(sprintf('-C "%s" --git-dir="%s" add "%s"', obj.Session.RootDirectory, ...
-                            obj.Session.GitRepo, gitFiles{k}));
-                        if ~isempty(result)
-                            warning(result)
-                        end
-                            
-                    end
-                    
-                    gitMessage = git(sprintf('-C "%s" diff', obj.Session.RootDirectory));
-                    if isempty(gitMessage)
-                        gitMessage = sprintf('Snapshot at %s', datestr(now));
-                    end
-
-                    result = git(sprintf('-C "%s" commit -m "%s"', obj.Session.RootDirectory, ...
-                        gitMessage));
-                    
-                    fprintf('[%s] Committed snapshot to git\n', datestr(now));
-                    
-                    % TODO version control qsp session as well
-                    
-%                     if ~isempty(result)
-%                         warning(result)
-%                     end   
-
-                
-
+                    obj.Session.gitCommit();
                 end
                 
                 % Run helper

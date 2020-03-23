@@ -477,7 +477,10 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 if obj.Session.AutoSaveBeforeRun
                     autoSaveFile(obj.Session,'Tag','preRunCohortGeneration');
                 end
-                
+
+                if obj.Session.AutoSaveGit
+                    obj.Session.gitCommit();
+                end
                 % Run helper
                 
                 % set RNG if specified
@@ -503,6 +506,9 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                     updateLastSavedTime(vpopObj);
                     % Validate
                     validate(vpopObj,false);
+                    
+                    % add entry to the database
+                    obj.Session.addExperimentToDB( 'COHORT GENERATION', obj.Name, now, obj.ExcelResultFileName);                    
                 else
                     vpopObj = QSP.VirtualPopulation.empty(0,1);
                 end

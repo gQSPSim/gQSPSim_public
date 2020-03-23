@@ -415,7 +415,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         end %function
         
         function addExperimentToDB(obj, type, Name, time, ResultFileNames)
-            commit = git(sprintf('-C "%s" rev-parse HEAD', obj.GitRepo));
+            commit = git(sprintf('-C "%s" --git-dir="%s" rev-parse HEAD', obj.RootDirectory, obj.GitRepo));
             cmd = sprintf('INSERT INTO Experiments VALUES ("%s", "%s", "%s", %f)', ...
                 type, Name, commit, time);
 %             if isempty(obj.dbid)
@@ -432,13 +432,84 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
             % add files
             id=mksqlite(sprintf('select rowid from Experiments where Type="%s" and Item="%s" and GitCommit="%s" and Time=%f', ...
                 type, Name, commit, time));
-            values=cellfun(@(s) sprintf('(%d, "%s")', id.rowid, s), ResultFileNames, 'UniformOutput', false);
-            cmd = sprintf('INSERT INTO RUNS VALUES %s', strjoin(values, ','));
+            if iscell(ResultFileNames)
+                values=cellfun(@(s) sprintf('(%d, "%s")', id.rowid, s), ResultFileNames, 'UniformOutput', false);
+                cmd = sprintf('INSERT INTO RUNS VALUES %s', strjoin(values, ','));
+                
+            else
+                values = sprintf('(%d, "%s")', id.rowid, ResultFileNames);
+                cmd = sprintf('INSERT INTO RUNS VALUES %s', values);
+            end
+            
             mksqlite(obj.dbid, cmd);
             
             
         end
-    end %methods    
+        
+        function gitCommit(obj)
+            
+            gitFiles = obj.GitFiles;
+            % get all the changes for each of the model files
+            fileChanges = git(sprintf('-C "%s" --git-dir="%s" diff --name-only', ...
+                obj.RootDirectory, obj.GitRepo));
+            fileChanges = strsplit(fileChanges,'\n');
+            % add files
+            for k=1:length(gitFiles)
+                result = git(sprintf('-C "%s" --git-dir="%s" add "%s"', obj.RootDirectory, ...
+                    obj.GitRepo, gitFiles{k}));
+                if ~isempty(result)
+                    warning(result)
+                end
+
+            end
+
+            % construct commit message
+%             gitMessage = git(sprintf('-C "%s" diff', obj.Session.RootDirectory));
+
+            
+            % get model files
+            objs = obj.Settings.Task;
+            sbprojFiles = {};
+            for ixObj = 1:length(objs)
+                m = objs(ixObj).ModelObj;
+                if ~isempty(m)
+                   sbprojFiles = [sbprojFiles, strrep( m.RelativeFilePath, [obj.RootDirectory filesep], '')];
+                end
+            end
+            sbprojFiles = unique(sbprojFiles);
+            sbprojFiles = intersect(sbprojFiles, fileChanges);
+            diffMsg = {};
+            
+            for ixProj = 1:length(sbprojFiles)
+                % pull out cached version for comparison
+                git(sprintf('-C "%s" --git-dir="%s" show HEAD:"%s" > "%s"', ...
+                    obj.RootDirectory, obj.GitRepo, sbprojFiles{ixProj}, fullfile(tempdir, sbprojFiles{ixProj}) ));
+                m1 = sbioloadproject(fullfile(tempdir, sbprojFiles{ixProj}));
+                m2 = sbioloadproject(sbprojFiles{ixProj});
+                evalc('thisMsg = sbprojDiff(m1.m1, m2.m1)'); % TODO handle case with multiple models
+                diffMsg = [diffMsg, thisMsg]; 
+            end
+            
+            gitMessage = [fileChanges, diffMsg];
+            
+            if isempty(gitMessage)
+                gitMessage = sprintf('Snapshot at %s', datestr(now));
+            end
+
+            result = git(sprintf('-C "%s" commit -m "%s"', obj.RootDirectory, ...
+                strjoin(gitMessage,'\r\n')));
+
+            fprintf('[%s] Committed snapshot to git\n', datestr(now));
+
+            % TODO version control qsp session as well
+
+%                     if ~isempty(result)
+%                         warning(result)
+%                     end               
+            
+            
+        end
+    end %methods
     
     %% Get/Set Methods
     methods
@@ -625,13 +696,23 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
             end
         end        
         
+        function sObj = getTaskItem(obj, Name)
+            MatchIdx = strcmp(Name, {obj.Settings.Task.Name});
+            sObj = [];
+            if ~isempty(MatchIdx)
+                sObj = obj.Settings.Task(MatchIdx);
+            else
+                warning('Task %s not found in session', Name)
+            end            
+        end
+            
         function sObj = getACItem(obj, Name)
             MatchIdx = strcmp(Name, {obj.Settings.VirtualPopulationData.Name});
             sObj = [];
             if ~isempty(MatchIdx)
                 sObj = obj.Settings.VirtualPopulationData(MatchIdx);
             else
-                warning('Virtual subjects %s not found in session', Name)
+                warning('Acceptance Criteria %s not found in session', Name)
             end
         end           
         
@@ -642,6 +723,16 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
                 sObj = obj.CohortGeneration(MatchIdx);
             else
                 warning('Cohort generation %s not found in session', Name)
+            end            
+        end
+        
+        function sObj = getParametersItem(obj, Name)
+            MatchIdx = strcmp(Name, {obj.Settings.Parameters.Name});
+            sObj = [];
+            if ~isempty(MatchIdx)
+                sObj = obj.Settings.Parameters(MatchIdx);
+            else
+                warning('Parameter %s not found in session', Name)
             end            
         end
     end
