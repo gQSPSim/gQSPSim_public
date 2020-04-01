@@ -415,7 +415,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         end %function
         
         function addExperimentToDB(obj, type, Name, time, ResultFileNames)
-            commit = git(sprintf('-C "%s" --git-dir="%s" rev-parse HEAD', obj.RootDirectory, obj.GitRepo));
+            commit = git(sprintf('-C "%s" --git-dir="%s" rev-parse HEAD', obj.RootDirectory, fullfile(obj.RootDirectory,obj.GitRepo)));
             cmd = sprintf('INSERT INTO Experiments VALUES ("%s", "%s", "%s", %f)', ...
                 type, Name, commit, time);
 %             if isempty(obj.dbid)
@@ -451,17 +451,23 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
             gitFiles = obj.GitFiles;
             % get all the changes for each of the model files
             fileChanges = git(sprintf('-C "%s" --git-dir="%s" diff --name-only', ...
-                obj.RootDirectory, obj.GitRepo));
+                obj.RootDirectory, fullfile(obj.RootDirectory,obj.GitRepo)));
             fileChanges = strsplit(fileChanges,'\n');
             % add files
             for k=1:length(gitFiles)
-                result = git(sprintf('-C "%s" --git-dir="%s" add "%s"', obj.RootDirectory, ...
+                result = git(sprintf('-C "%s" --git-dir="%s" add ''%s'' ', obj.RootDirectory, ...
                     obj.GitRepo, gitFiles{k}));
                 if ~isempty(result)
                     warning(result)
-                end
-
+                end                
             end
+            
+            % update files that were already added for now. would be better
+            % if this were only the files that are currently in the session
+            result = git(sprintf('-C "%s" --git-dir="%s" add -u ', obj.RootDirectory, obj.GitRepo));
+            if ~isempty(result)
+                warning(result)
+            end                    
 
             % construct commit message
 %             gitMessage = git(sprintf('-C "%s" diff', obj.Session.RootDirectory));
@@ -482,10 +488,12 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
             
             for ixProj = 1:length(sbprojFiles)
                 % pull out cached version for comparison
+                tmpFile = [tempname '.sbproj'];
+                
                 git(sprintf('-C "%s" --git-dir="%s" show HEAD:"%s" > "%s"', ...
-                    obj.RootDirectory, obj.GitRepo, sbprojFiles{ixProj}, fullfile(tempdir, sbprojFiles{ixProj}) ));
-                m1 = sbioloadproject(fullfile(tempdir, sbprojFiles{ixProj}));
-                m2 = sbioloadproject(sbprojFiles{ixProj});
+                    obj.RootDirectory, fullfile(obj.RootDirectory,obj.GitRepo), sbprojFiles{ixProj}, tmpFile ));
+                m1 = sbioloadproject( tmpFile);
+                m2 = sbioloadproject( fullfile(obj.RootDirectory, sbprojFiles{ixProj}));
                 evalc('thisMsg = sbprojDiff(m1.m1, m2.m1)'); % TODO handle case with multiple models
                 diffMsg = [diffMsg, thisMsg]; 
             end
@@ -636,10 +644,14 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         end
         
         function files = get.GitFiles(obj)
+            allFiles = {};
+
+            % session
+            allFiles = [allFiles, obj.SessionName];
+            
             % model files
             files = {};
             objs = obj.Settings.Task;
-            allFiles = {};
             for ixObj = 1:length(objs)
                 m = objs(ixObj).ModelObj;
                 if ~isempty(m)
