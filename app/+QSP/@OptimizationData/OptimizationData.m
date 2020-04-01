@@ -102,9 +102,9 @@ classdef OptimizationData < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                     StatusOK = false;
                 end
                 
-                ixSpecies = strcmpi(OptimHeader, 'Species');
+                ixIgnore = strcmpi(OptimHeader, 'Species') | strcmpi(OptimHeader,'Exclude');
                 try
-                    data = cell2mat(OptimData(:,~ixSpecies));
+                    data = cell2mat(OptimData(:,~ixIgnore));
                 catch
                     Message = sprintf('%s\n* Optimization data contains invalid non-numeric data\n', Message);
                     StatusOK = false;
@@ -178,6 +178,7 @@ classdef OptimizationData < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 excludeCol = strcmpi(Header,'Exclude');
                 if any(excludeCol)
                     Table = Table(~strcmpi('Yes',Table{:,excludeCol}),~excludeCol);
+                    Header = Header(~excludeCol);
                 end
                 
                 Data = table2cell(Table);
