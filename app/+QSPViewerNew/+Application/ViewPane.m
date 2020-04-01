@@ -297,7 +297,7 @@ classdef ViewPane < handle
            obj.SaveButton = uibutton(obj.EditButtonLayout,'push');
            obj.SaveButton.Layout.Row = 1;
            obj.SaveButton.Layout.Column = 3;
-           obj.SaveButton.Text = 'Save';
+           obj.SaveButton.Text = 'OK';
            obj.SaveButton.Tag = 'Save';
            obj.SaveButton.ButtonPushedFcn = @(~,~) obj.onSave();
            
@@ -446,7 +446,7 @@ classdef ViewPane < handle
                     obj.PlotArray(plotIndex) = uiaxes('Parent',obj.EmptyParent);
                     currentPlot = obj.PlotArray(plotIndex);
                     disableDefaultInteractivity(currentPlot)
-                    currentPlot.Tag = ['plot',num2str(plotIndex)];
+                    obj.PlotArray(plotIndex).Tag = ['plot',num2str(plotIndex)];
                     currentPlot.Toolbar.Visible = 'off';
 
                     %Title
@@ -484,13 +484,14 @@ classdef ViewPane < handle
                     currentPlot.YLimMode = QSP.PlotSettings.DefaultYLimMode;
                     
                     %Plot settings
-                    %TODO Examine if plot settings are necessary
+                    %TODO Discuss changes between uiaxes and axes 
                     %obj.PlotSettings(plotIndex) = QSP.PlotSettings(currentPlot);
-                    %obj.PlotSettings(plotIndex).Title = sprintf('Plot %d',index);
+                    %obj.PlotSettings(plotIndex).Title = sprintf('Plot %d',plotIndex);
                     
                     %Add the context menus. 
                     %create context menu object;
                     obj.ContextMenuArray(plotIndex) = uicontextmenu(ancestor(obj.PlottingGrid,'figure'));
+                    obj.ContextMenuArray(plotIndex).Tag = ['plot',num2str(plotIndex)];
                     
                     obj.YScaleMenu(plotIndex) = uimenu(obj.ContextMenuArray(plotIndex));
                     obj.YScaleMenu(plotIndex).Label = 'Y-Scale';
@@ -500,24 +501,24 @@ classdef ViewPane < handle
                     obj.YLinearMenu(plotIndex).Label = 'Linear';
                     obj.YLinearMenu(plotIndex).Tag = 'YScaleLinear';
                     obj.YLinearMenu(plotIndex).Checked = 'on';
-                    obj.YLinearMenu(plotIndex).MenuSelectedFcn = @(h,e) obj.onAxisConextMenu(h,e,plotIndex);
+                    obj.YLinearMenu(plotIndex).MenuSelectedFcn = @(h,e) obj.onAxisContextMenu(h,e);
                     
                     obj.YLogMenu(plotIndex) = uimenu(obj.YScaleMenu(plotIndex));
                     obj.YLogMenu(plotIndex).Label = 'Log';
                     obj.YLogMenu(plotIndex).Tag = 'YScaleLog';
                     obj.YLogMenu(plotIndex).Checked = 'off';
-                    obj.YLogMenu(plotIndex).MenuSelectedFcn = @(h,e) obj.onAxisConextMenu(h,e,plotIndex);
+                    obj.YLogMenu(plotIndex).MenuSelectedFcn = @(h,e) obj.onAxisContextMenu(h,e);
                     
                     obj.SaveMenu(plotIndex) = uimenu(obj.ContextMenuArray(plotIndex));
                     obj.SaveMenu(plotIndex).Label = 'Save Current Axes...';
                     obj.SaveMenu(plotIndex).Tag = 'ExportSingleAxes';
                     obj.SaveMenu(plotIndex).Separator = 'on';
-                    obj.SaveMenu(plotIndex).MenuSelectedFcn = @(h,e) obj.onAxisConextMenu(h,e,plotIndex);
+                    obj.SaveMenu(plotIndex).MenuSelectedFcn = @(h,e) obj.onAxisContextMenu(h,e);
                     
                     obj.SaveFullMenu(plotIndex) = uimenu(obj.ContextMenuArray(plotIndex));
                     obj.SaveFullMenu(plotIndex).Label = 'Save Full View';
                     obj.SaveFullMenu(plotIndex).Tag = 'ExportAllAxes';
-                    obj.SaveFullMenu(plotIndex).MenuSelectedFcn = @(h,e) obj.onAxisConextMenu(h,e,plotIndex);
+                    obj.SaveFullMenu(plotIndex).MenuSelectedFcn = @(h,e) obj.onAxisContextMenu(h,e);
                     
                     %By default, use no extras %TODO
                     obj.bShowTraces{plotIndex} = 'off'; % default off
@@ -531,33 +532,31 @@ classdef ViewPane < handle
                     obj.TracesMenu(plotIndex).Checked = obj.bShowTraces{plotIndex};
                     obj.TracesMenu(plotIndex).Separator = 'on';
                     obj.TracesMenu(plotIndex).Tag = 'ShowTraces';
-                    obj.TracesMenu(plotIndex).MenuSelectedFcn = @(h,e) obj.onAxisConextMenu(h,e,plotIndex);
+                    obj.TracesMenu(plotIndex).MenuSelectedFcn = @(h,e) obj.onAxisContextMenu(h,e);
                     
                     obj.QuantilesMenu(plotIndex) = uimenu(obj.ContextMenuArray(plotIndex));
                     obj.QuantilesMenu(plotIndex).Label = 'Show Upper/Lower Quantiles';
                     obj.QuantilesMenu(plotIndex).Checked = obj.bShowQuantiles{plotIndex};
                     obj.QuantilesMenu(plotIndex).Tag = 'ShowQuantiles';
-                    obj.QuantilesMenu(plotIndex).MenuSelectedFcn = @(h,e) obj.onAxisConextMenu(h,e,plotIndex);
+                    obj.QuantilesMenu(plotIndex).MenuSelectedFcn = @(h,e) obj.onAxisContextMenu(h,e);
                     
                     obj.MeanMenu(plotIndex) = uimenu(obj.ContextMenuArray(plotIndex));
                     obj.MeanMenu(plotIndex).Label = 'Show Mean (Weighted)';
                     obj.MeanMenu(plotIndex).Checked = obj.bShowMean{plotIndex};
                     obj.MeanMenu(plotIndex).Tag = 'ShowMean';
-                    obj.MeanMenu(plotIndex).MenuSelectedFcn = @(h,e) obj.onAxisConextMenu(h,e,plotIndex);
+                    obj.MeanMenu(plotIndex).MenuSelectedFcn = @(h,e) obj.onAxisContextMenu(h,e);
                     
                     obj.MedianMenu(plotIndex) = uimenu(obj.ContextMenuArray(plotIndex));
                     obj.MedianMenu(plotIndex).Label = 'Show Median (Weighted)';
                     obj.MedianMenu(plotIndex).Checked = obj.bShowMedian{plotIndex};
                     obj.MedianMenu(plotIndex).Tag = 'ShowMedian';
-                    obj.MedianMenu(plotIndex).MenuSelectedFcn = @(h,e) obj.onAxisConextMenu(h,e,plotIndex);
+                    obj.MedianMenu(plotIndex).MenuSelectedFcn = @(h,e) obj.onAxisContextMenu(h,e);
                     
                     obj.StandardDeviationMenu(plotIndex) = uimenu(obj.ContextMenuArray(plotIndex));
                     obj.StandardDeviationMenu(plotIndex).Label = 'Show Standard Deviation (Weighted)';
                     obj.StandardDeviationMenu(plotIndex).Checked = obj.bShowSD{plotIndex};
                     obj.StandardDeviationMenu(plotIndex).Tag = 'ShowSD';
-                    obj.StandardDeviationMenu(plotIndex).MenuSelectedFcn = @(h,e) obj.onAxisConextMenu(h,e,plotIndex);
-                    
-                    %currentPlot.ContextMenu =  obj.ContextMenuArray(plotIndex);
+                    obj.StandardDeviationMenu(plotIndex).MenuSelectedFcn = @(h,e) obj.onAxisContextMenu(h,e);
                end
            end
            
@@ -630,6 +629,26 @@ classdef ViewPane < handle
                     obj.NotifyOfChangeInDescription(value);
                 case 'PlotConfig'
                     obj.NotifyOfChangeInPlotConfig(value);
+            end
+        end
+        
+        function onAxisContextMenu(obj,h,~)
+            %Determine what plot we are working with
+            plotIndex = str2double(erase('plot',h.Parent.Tag));
+            plot = obj.PlotArray(plotIndex);
+            %TODO: We dont have a way to test these yet because we have no
+            %data to show yet
+            %Determine what our action should be
+            switch h.Tag
+                case 'YScaleLinear'
+                case 'YScaleLog'
+                case 'ExportSingleAxes'
+                case 'ExportAllAxes'
+                case 'ShowTraces'
+                case 'ShowQuantiles'
+                case 'ShowMean'
+                case 'ShowMedian'
+                case 'ShowSD'
             end
         end
         
@@ -844,7 +863,7 @@ classdef ViewPane < handle
             for RowIndex = 1:str2double(Rows)
                 for ColumnIndex = 1:str2double(Columns)
                     obj.PlotArray(PlotCount).Parent = obj.PlottingGrid;
-                    obj.PlotArray(PlotCount).ContextMenu =  obj.ContextMenuArray(plotIndex);
+                    obj.PlotArray(PlotCount).ContextMenu =  obj.ContextMenuArray(PlotCount);
                     obj.PlotArray(PlotCount).Layout.Row = RowIndex;
                     obj.PlotArray(PlotCount).Layout.Column = ColumnIndex;
                     PlotCount = PlotCount +1;
@@ -857,6 +876,20 @@ classdef ViewPane < handle
             drawnow();
         end
         
+        function updateLines(obj)
+            
+            %Iterate through all the lines and update the information
+            %if obj.HasSpeciesGroup && isempty
+                %TODO: This method is only used by some windows that are
+                %not complete yet. No way to test until we actually have
+                %those widnows
+            %end
+        end
+        
+        function updateLegends(obj)
+            %Same thing as updateLines
+            %TODO 
+        end
     end
 
     methods(Access = public)
@@ -880,6 +913,14 @@ classdef ViewPane < handle
                 error('Only panes with visualization should access this property')
             end
         end
+        
+        function Value = getAxesOptions(obj)
+            % Get axes options for dropdown
+            Value = num2cell(1:obj.MaxNumPlots)';
+            Value = cellfun(@(x)num2str(x),Value,'UniformOutput',false);
+            Value = vertcat({' '},Value);
+            
+        end 
     end
     
     methods(Abstract)
