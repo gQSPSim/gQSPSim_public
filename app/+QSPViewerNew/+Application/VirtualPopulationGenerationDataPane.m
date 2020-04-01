@@ -170,7 +170,7 @@ classdef VirtualPopulationGenerationDataPane < QSPViewerNew.Application.ViewPane
         end
         
         function [StatusOK,Message] = checkForDuplicateNames(obj,StatusOK,Message)
-            refObject = obj.VirtPopGenDataa.Session.VirtualPopulationGeneration;
+            refObject = obj.VirtPopGenData.Session.VirtualPopulationGeneration;
             ixDup = find(strcmp( obj.TemporaryVirtPopGenData.Name, {refObject.Name}));
             if ~isempty(ixDup) && (refObject(ixDup) ~= obj.VirtPopGenData)
                 Message = sprintf('%s\nDuplicate names are not allowed.\n', Message);
