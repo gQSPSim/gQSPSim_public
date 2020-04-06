@@ -188,7 +188,26 @@ classdef Settings < matlab.mixin.SetGet & uix.mixin.AssignPVPairs & uix.mixin.Ha
             end
         end
         
+        function taskObj = AddTask(obj, varargin)
+            taskObj = QSP.Task();
+            taskObj.Session = obj.Session;
+            allNames = {obj.Task.Name};
+            if nargin>1
+                TaskName = varargin{1};
+                if iscell(TaskName)
+                    TaskName = TaskName{1};
+                end
+            else
+                TaskName = 'New Task';
+            end
+            
+            taskObj.Name =  matlab.lang.makeUniqueStrings(TaskName, allNames);
+            
+            obj.Task(end+1) = taskObj;            
+        end
     end 
+    
+    
     
     
     %% Get/Set Methods

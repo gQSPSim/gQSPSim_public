@@ -536,4 +536,16 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         
     end %methods
     
+    %% API methods
+    methods 
+        function taskObj = CreateTask(obj, varargin)
+            if nargin>1
+                taskObj = obj.Settings.AddTask(varargin);
+            else
+                taskObj = obj.Settings.AddTask();
+            end
+        end
+        
+        
+    end
 end %classdef
