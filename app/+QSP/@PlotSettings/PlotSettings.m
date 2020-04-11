@@ -72,7 +72,7 @@ classdef PlotSettings < matlab.mixin.SetGet & uix.mixin.AssignPVPairs
     % QSP.PlotSettings Methods:
     %
     
-    % Copyright 2017 The MathWorks, Inc.
+    % Copyright 2019 The MathWorks, Inc.
     %
     % Auth/Revision:
     %   MathWorks Consulting
@@ -93,9 +93,11 @@ classdef PlotSettings < matlab.mixin.SetGet & uix.mixin.AssignPVPairs
         LegendFontWeight = QSP.PlotSettings.DefaultLegendFontWeight % 'normal'        
         LegendDataGroup = QSP.PlotSettings.DefaultLegendDataGroup % 'on'
         
-        LineWidth = QSP.PlotSettings.DefaultLineWidth % 0.5         
+        LineWidth = QSP.PlotSettings.DefaultLineWidth % 0.4 % For traces, etc.         
         BoundaryLineWidth = QSP.PlotSettings.DefaultBoundaryLineWidth % 2
         MeanLineWidth = QSP.PlotSettings.DefaultMeanLineWidth % 3
+        MedianLineWidth = QSP.PlotSettings.DefaultMedianLineWidth % 3
+        StandardDevLineWidth = QSP.PlotSettings.DefaultStandardDevLineWidth % 3
         DataSymbolSize = QSP.PlotSettings.DefaultDataSymbolSize % 6
         
         BandplotLowerQuantile = QSP.PlotSettings.DefaultBandplotLowerQuantile
@@ -168,9 +170,11 @@ classdef PlotSettings < matlab.mixin.SetGet & uix.mixin.AssignPVPairs
         DefaultYLimMode = 'auto'
         DefaultCustomXLim = '0  1'
         DefaultCustomYLim = '0  1'
-        DefaultLineWidth = 0.5000
+        DefaultLineWidth = 0.4000
         DefaultBoundaryLineWidth = 2
         DefaultMeanLineWidth = 3
+        DefaultMedianLineWidth = 3
+        DefaultStandardDevLineWidth = 3
         DefaultDataSymbolSize = 6
         DefaultLegendVisibility = 'on'
         DefaultLegendLocation = 'northeast'
@@ -259,9 +263,11 @@ classdef PlotSettings < matlab.mixin.SetGet & uix.mixin.AssignPVPairs
             }
         
         SettablePropertiesGroup4 = {
-            'LineWidth','numeric';
-            'BoundaryLineWidth','numeric';
-            'MeanLineWidth','numeric';
+            'LineWidth','numeric'; % Traces
+            'BoundaryLineWidth','numeric'; % Quantiles
+            'MeanLineWidth','numeric'; % Mean
+            'MedianLineWidth','numeric'; % Median
+            'StandardDevLineWidth','numeric'; % Standard Deviation
             'DataSymbolSize','numeric';
             'LegendVisibility',QSP.PlotSettings.LegendOptions(:)';
             'LegendLocation',QSP.PlotSettings.LegendLocationOptions(:)';
@@ -795,6 +801,18 @@ classdef PlotSettings < matlab.mixin.SetGet & uix.mixin.AssignPVPairs
         function set.MeanLineWidth(obj,Value)            
             validateattributes(Value,{'numeric'},{'scalar','nonnegative','nonnan'})
             obj.MeanLineWidth = Value;
+        end %function
+        
+        
+        function set.MedianLineWidth(obj,Value)            
+            validateattributes(Value,{'numeric'},{'scalar','nonnegative','nonnan'})
+            obj.MedianLineWidth = Value;
+        end %function
+        
+        
+        function set.StandardDevLineWidth(obj,Value)            
+            validateattributes(Value,{'numeric'},{'scalar','nonnegative','nonnan'})
+            obj.StandardDevLineWidth = Value;
         end %function
         
         

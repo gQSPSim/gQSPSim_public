@@ -5,7 +5,7 @@ function StatusOk = closeSession(obj,idx)
 % session to a file
 %
 
-% Copyright 2016 The MathWorks, Inc.
+% Copyright 2019 The MathWorks, Inc.
 %
 % Auth/Revision:
 %   MathWorks Consulting
@@ -17,6 +17,9 @@ StatusOk = true;
 
 % Delete timer
 deleteTimer(obj.Session(idx));
+
+% remove the session's UDF from the path
+obj.SelectedSession.removeUDF();
 
 % Delete the session's tree node
 delete(obj.SessionNode(idx));

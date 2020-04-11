@@ -5,7 +5,7 @@ classdef Simulation < uix.abstract.CardViewPane
     %
 
     
-    %   Copyright 2014-2016 The MathWorks, Inc.
+    %   Copyright 2019 The MathWorks, Inc.
     %
     % Auth/Revision:
     %   MathWorks Consulting
@@ -393,7 +393,7 @@ classdef Simulation < uix.abstract.CardViewPane
             
             vObj.Data.PlotItemTable(RowIdx,ColIdx) = ThisData(RowIdx,ColIdx);
             
-            if ColIdx == 5
+            if ColIdx == 6
                 % Display name                
                 [vObj.h.AxesLegend,vObj.h.AxesLegendChildren] = updatePlots(vObj.Data,vObj.h.MainAxes,vObj.h.SpeciesGroup,vObj.h.DatasetGroup);
                 

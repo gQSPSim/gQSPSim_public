@@ -60,7 +60,8 @@ if ~isempty(paramData)
     colId.Name = find(strcmpi(paramHeaders, 'Name'));
     colId.LB = find(strcmpi(paramHeaders, 'LB'));
     colId.UB = find(strcmpi(paramHeaders, 'UB'));
-    colId.P0 = find(contains(upper(paramHeaders), 'P0'), 1, 'first'); % keep only first column for now!
+%     colId.P0 = find(contains(upper(paramHeaders), 'P0'), 1, 'first'); % keep only first column for now!
+    colId.P0 = find(contains(upper(paramHeaders), 'P0')); % keep only first column for now!    
     colId.Scale = find(strcmpi(paramHeaders, 'SCALE'));
     
     
@@ -74,7 +75,7 @@ if ~isempty(paramData)
     end
    
     % remove any NaNs at bottom of file
-    paramData = paramData(~cellfun(@isnan,paramData(:,colId.P0)),:);
+    paramData = paramData(~all(cellfun(@isnan,paramData(:,colId.P0)),2),:);
     optimizeIdx = find(strcmpi('Yes',paramData(:,colId.Include)));
     
     

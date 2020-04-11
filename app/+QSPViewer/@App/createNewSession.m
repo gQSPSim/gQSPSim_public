@@ -4,7 +4,7 @@ function createNewSession(obj,Session)
 % Abstract: This method is executed when the user creates a new session
 %
 
-% Copyright 2016 The MathWorks, Inc.
+% Copyright 2019 The MathWorks, Inc.
 %
 % Auth/Revision:
 %   MathWorks Consulting

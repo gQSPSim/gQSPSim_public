@@ -7,7 +7,9 @@ function [hLegend,hLegendChildren] = updateVirtualCohortGenerationPlots(obj,hAxe
 %           updateVirtualCohortGenerationPlots(aObj,hAxes)
 %
 % Inputs:
-%           obj - QSP.Simulation object
+%           obj - QSP.VirtualPopulationGeneration or QSP.CohortGeneration object
+%
+%           hAxes
 %
 %           hSpeciesGroup
 %
@@ -24,7 +26,7 @@ function [hLegend,hLegendChildren] = updateVirtualCohortGenerationPlots(obj,hAxe
 % Notes: none
 %
 
-% Copyright 2014-2015 The MathWorks, Inc.
+% Copyright 2019 The MathWorks, Inc.
 %
 % Auth/Revision:
 %   MathWorks Consulting
@@ -124,13 +126,17 @@ for axIndex = AxIndices(:)'
         chTrace = TheseChildren(IsTrace);
         chTraceVisible = TheseChildren(IsTrace & IsItemVisible);
         
-        IsMeanLine = strcmpi(get(TheseChildren,'Tag'),'WeightedMeanLine');
+%         IsWeightedMeanLine = strcmpi(get(TheseChildren,'Tag'),'WeightedMeanLine');
+%         chWeightedMeanLine = TheseChildren(IsWeightedMeanLine);
+%         chWeightedMeanLineVisible = TheseChildren(IsWeightedMeanLine & IsItemVisible);
+        
+        IsMeanLine = strcmpi(get(TheseChildren,'Tag'),'MeanLine');
         chMeanLine = TheseChildren(IsMeanLine);
         chMeanLineVisible = TheseChildren(IsMeanLine & IsItemVisible);
         
-        IsQuantile = strcmpi(get(TheseChildren,'Tag'),'MeanLine');
-        chQuantile = TheseChildren(IsQuantile);
-        chQuantileVisible = TheseChildren(IsQuantile & IsItemVisible);
+        IsMedianLine = strcmpi(get(TheseChildren,'Tag'),'MedianLine');
+        chMedianLine = TheseChildren(IsMedianLine);
+        chMedianLineVisible = TheseChildren(IsMedianLine & IsItemVisible);
         
         IsBoundaryLine = strcmpi(get(TheseChildren,'Tag'),'BoundaryLine');
         chIsBoundaryLine = TheseChildren(IsBoundaryLine);
@@ -163,23 +169,28 @@ for axIndex = AxIndices(:)'
             set(chTrace,'Visible','off')
         end
         if obj.bShowQuantiles(axIndex)
-            set(chQuantileVisible,'Visible','on')
-            set(chMeanLine,'Visible','off')
             set(chIsBoundaryLineVisible,'Visible','on')
             set(chBoundaryPatchVisible,'Visible','on')
-        else
-            set(chQuantile,'Visible','off')
-            set(chMeanLineVisible,'Visible','on')
+        else            
             set(chIsBoundaryLine,'Visible','off')
             set(chBoundaryPatch,'Visible','off')
         end
-        
-        if isa(obj, 'QSP.VirtualPopulationGeneration') 
-            if obj.bShowSD(axIndex)
+        if obj.bShowMean(axIndex)
+            set(chMeanLineVisible,'Visible','on')
+%             set(chWeightedMeanLineVisible,'Visible','on')            
+        else
+            set(chMeanLine,'Visible','off')
+%             set(chWeightedMeanLine,'Visible','off')
+        end
+        if obj.bShowMedian(axIndex)
+            set(chMedianLineVisible,'Visible','on')
+        else
+            set(chMedianLine,'Visible','off')
+        end
+        if obj.bShowSD(axIndex) % Previously, if isa(obj, 'QSP.VirtualPopulationGeneration') 
             set(chSDVisible,'Visible','on')
-            else
-                set(chSD,'Visible','off')
-            end        
+        else
+            set(chSD,'Visible','off')
         end
         set(chErrorbarVisible,'Visible','on')
         
@@ -196,31 +207,47 @@ for axIndex = AxIndices(:)'
         
         % Get one type of child - either trace OR quantile
         TheseSimItems = [];
-        if obj.bShowTraces(axIndex) && obj.bShowQuantiles(axIndex)
-            % Process trace to only set ONE display name per unique entry
-            if ~isempty(chQuantile)
-                TheseSimItems = [TheseSimItems; chQuantile(:)]; %#ok<AGROW>
-            end
-            if ~isempty(chTrace)
-                TheseSimItems = [TheseSimItems; chTrace(:)]; %#ok<AGROW>
-            end
-        elseif obj.bShowTraces(axIndex) && ~obj.bShowQuantiles(axIndex)
-            % Process trace to only set ONE display name per unique entry
-            if ~isempty(chMeanLine)
-                TheseSimItems = [TheseSimItems; chMeanLine(:)]; %#ok<AGROW>
-            end
-            if ~isempty(chTrace)
-                TheseSimItems = [TheseSimItems; chTrace(:)]; %#ok<AGROW>
-            end
-        elseif ~obj.bShowTraces(axIndex) && obj.bShowQuantiles(axIndex) && ~isempty(chQuantile)
-            % Process quantile to only set ONE display name per unique entry
-            TheseSimItems = chQuantile;
-        elseif ~obj.bShowTraces(axIndex) && ~obj.bShowQuantiles(axIndex) && ~isempty(chMeanLine)
-            % Process mean line to only set ONE display name per unique
-            % entry
-            TheseSimItems = chMeanLine;
+        
+        if obj.bShowTraces(axIndex) && ~isempty(chTrace)
+            TheseSimItems = [TheseSimItems; chTrace(:)]; %#ok<AGROW>
+        end
+        if obj.bShowMean(axIndex) && ~isempty(chMeanLine)
+            TheseSimItems = [TheseSimItems; chMeanLine(:)]; %#ok<AGROW>
+        end
+        if obj.bShowMedian(axIndex) && ~isempty(chMedianLine)
+            TheseSimItems = [TheseSimItems; chMedianLine(:)]; %#ok<AGROW>
+        end
+        if obj.bShowSD(axIndex) && ~isempty(chSD)
+            TheseSimItems = [TheseSimItems; chSD(:)]; %#ok<AGROW>
         end
         
+        
+%         if obj.bShowTraces(axIndex) && obj.bShowQuantiles(axIndex)
+%             % Process trace to only set ONE display name per unique entry
+%             if ~isempty(chMeanLine)
+%                 TheseSimItems = [TheseSimItems; chMeanLine(:)]; %#ok<AGROW>
+%             end
+%             if ~isempty(chTrace)
+%                 TheseSimItems = [TheseSimItems; chTrace(:)]; %#ok<AGROW>
+%             end
+%         elseif obj.bShowTraces(axIndex) && ~obj.bShowQuantiles(axIndex)
+%             % Process trace to only set ONE display name per unique entry
+%             if ~isempty(chWeightedMeanLine)
+%                 TheseSimItems = [TheseSimItems; chWeightedMeanLine(:)]; %#ok<AGROW>
+%             end
+%             if ~isempty(chTrace)
+%                 TheseSimItems = [TheseSimItems; chTrace(:)]; %#ok<AGROW>
+%             end
+%         elseif ~obj.bShowTraces(axIndex) && obj.bShowQuantiles(axIndex) && ~isempty(chMeanLine)
+%             % Process quantile to only set ONE display name per unique entry
+%             TheseSimItems = chMeanLine;
+%         elseif ~obj.bShowTraces(axIndex) && ~obj.bShowQuantiles(axIndex) && ~isempty(chWeightedMeanLine)
+%             % Process mean line to only set ONE display name per unique
+%             % entry
+%             TheseSimItems = chWeightedMeanLine;
+%         end
+        
+
         % Append errorbar (necessary for export, if errorbar is the only
         % item plotted)        
         if ~isempty(chErrorbar)

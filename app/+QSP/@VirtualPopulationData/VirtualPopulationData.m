@@ -18,7 +18,7 @@ classdef VirtualPopulationData < QSP.abstract.BaseProps & uix.mixin.HasTreeRefer
     %
     %
     
-    % Copyright 2016 The MathWorks, Inc.
+    % Copyright 2019 The MathWorks, Inc.
     %
     % Auth/Revision:
     %   MathWorks Consulting
@@ -62,7 +62,7 @@ classdef VirtualPopulationData < QSP.abstract.BaseProps & uix.mixin.HasTreeRefer
                 'Name',obj.Name;
                 'Last Saved',obj.LastSavedTimeStr;
                 'Description',obj.Description;       
-                'File name',obj.RelativeFilePath;                         
+                'File Name',obj.RelativeFilePath;                         
                 };
         end
         

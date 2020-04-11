@@ -1,4 +1,4 @@
-function varargout=shadedErrorBar(x,y,errBar,varargin)
+function varargout=shadedErrorBar(x,y,ymed,errBar,varargin)
 % generate continuous error bar area around a line plot
 %
 % function H=shadedErrorBar(x,y,errBar, ...)
@@ -74,6 +74,7 @@ params.CaseSensitive = false;
 params.addParameter('lineProps', '-k', @(x) ischar(x) | iscell(x));
 params.addParameter('transparent', true, @(x) islogical (x) || x==0 || x==1);
 params.addParameter('meanlinewidth',0.5, @(x) isnumeric(x));
+params.addParameter('medianlinewidth',0.5, @(x) isnumeric(x));
 params.addParameter('boundarylinewidth',0.5, @(x) isnumeric(x));
 params.addParameter('parent',[]);
 
@@ -83,6 +84,7 @@ params.parse(varargin{:});
 lineProps =  params.Results.lineProps;
 transparent =  params.Results.transparent;
 meanlinewidth =  params.Results.meanlinewidth;
+medianlinewidth =  params.Results.medianlinewidth;
 boundarylinewidth =  params.Results.boundarylinewidth;
 parent = params.Results.parent;
 if isempty(parent)
@@ -127,14 +129,16 @@ end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Plot to get the parameters of the line
-H.mainLine=plot(x,y,lineProps{:},'linewidth',meanlinewidth,'parent',parent,'Tag','MeanLine');
+hold(parent,'on')
+H.meanLine=plot(x,y,lineProps{:},'linewidth',meanlinewidth,'parent',parent,'Tag','MeanLine');
+H.medianLine=plot(x,ymed,lineProps{:},'linewidth',medianlinewidth,'parent',parent,'Tag','MedianLine');
 
 
 % Work out the color of the shaded region and associated lines.
 % Here we have the option of choosing alpha or a de-saturated
 % solid colour for the patch surface.
 
-col=get(H.mainLine,'color');
+col=get(H.medianLine,'color');
 edgeColor=col+(1-col)*0.55;
 patchSaturation=0.15; % How de-saturated or transparent to make patch
 if transparent
@@ -178,7 +182,8 @@ H.edge(2)=plot(x,uE,'-','color',edgeColor,'linewidth',boundarylinewidth,'parent'
 
 
 %Now replace the line (this avoids having to bugger about with z coordinates)
-uistack(H.mainLine,'top')
+uistack(H.meanLine,'top')
+uistack(H.medianLine,'top')
 
 
 if ~holdStatus, hold(parent,'off'), end

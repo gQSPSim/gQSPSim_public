@@ -7,7 +7,7 @@ function updateVisualizationView(vObj)
 %           updateVisualizationView(vObj)
 %
 % Inputs:
-%           vObj - The MyPackageViewer.Empty vObject
+%           vObj - QSPViewer.CohortGeneration vObject
 %
 % Outputs:
 %           none
@@ -18,7 +18,7 @@ function updateVisualizationView(vObj)
 % Notes: none
 %
 
-% Copyright 2014-2015 The MathWorks, Inc.
+% Copyright 2019 The MathWorks, Inc.
 %
 % Auth/Revision:
 %   MathWorks Consulting
@@ -34,6 +34,9 @@ end
 if ~isempty(vObj.Data)
     vObj.Data.bShowTraces = vObj.bShowTraces;
     vObj.Data.bShowQuantiles = vObj.bShowQuantiles;
+    vObj.Data.bShowMean = vObj.bShowMean;
+    vObj.Data.bShowMedian = vObj.bShowMedian;
+    vObj.Data.bShowSD = vObj.bShowSD;
 end
 
 %% Update table contextmenu
@@ -220,7 +223,13 @@ if ~isempty(vObj.Data)
     % Get the raw SpeciesNames, DataNames
     TaskNames = {vObj.Data.Item.TaskName};
     SpeciesNames = {vObj.Data.SpeciesData.SpeciesName};
+    [~,order] = sort(upper(SpeciesNames));
+    vObj.Data.SpeciesData = vObj.Data.SpeciesData(order);
+    
+    SpeciesNames = {vObj.Data.SpeciesData.SpeciesName};
     DataNames = {vObj.Data.SpeciesData.DataName};
+    
+    
     
     % Get the list of all active species from all valid selected tasks
     ValidSpeciesList = getSpeciesFromValidSelectedTasks(vObj.Data.Settings,TaskNames);

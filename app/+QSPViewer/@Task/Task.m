@@ -5,7 +5,7 @@ classdef Task < uix.abstract.CardViewPane
     %
 
     
-    %   Copyright 2014-2016 The MathWorks, Inc.
+    %   Copyright 2019 The MathWorks, Inc.
     %
     % Auth/Revision:
     %   MathWorks Consulting
@@ -85,6 +85,8 @@ classdef Task < uix.abstract.CardViewPane
             ModelNameOptions = get(h,'String');
             ModelName = ModelNameOptions{get(h,'Value')}; %get(h,'String');
             
+            
+            
             if strcmpi(ModelName,QSP.makeInvalid('-'))
                 ModelName = '';
             end
@@ -101,21 +103,37 @@ classdef Task < uix.abstract.CardViewPane
                 if isempty(allVariantNames)
                     allVariantNames = {};
                 end
-                vObj.TempData.ActiveVariantNames = allVariantNames(cell2mat(get(vObj.TempData.ModelObj.mObj.Variants,'Active')));
+                VariantsActiveBoolean = get(vObj.TempData.ModelObj.mObj.Variants,'Active');
+                if ~iscell(VariantsActiveBoolean)
+                    VariantsActiveBoolean = {VariantsActiveBoolean};
+                end
+                
+                vObj.TempData.ActiveVariantNames = allVariantNames(cell2mat(VariantsActiveBoolean));
 
                  % get inactive reactions from the model
                 allReactionNames = vObj.TempData.ReactionNames; 
                 if isempty(allReactionNames)
                     allReactionNames = {};
                 end
-                vObj.TempData.InactiveReactionNames = allReactionNames(~cell2mat(get(vObj.TempData.ModelObj.mObj.Reactions,'Active')));
+                ReactionsActiveBoolean = get(vObj.TempData.ModelObj.mObj.Reactions,'Active');
+                if ~iscell(ReactionsActiveBoolean)
+                    ReactionsActiveBoolean = {ReactionsActiveBoolean};
+                end
+                
+                vObj.TempData.InactiveReactionNames = allReactionNames(~cell2mat(ReactionsActiveBoolean));
 
                 % get inactive rules from model
                 allRulesNames = vObj.TempData.RuleNames;
                 if isempty(allRulesNames)
                     allRulesNames = {};
                 end
-                vObj.TempData.InactiveRuleNames = allRulesNames(~cell2mat(get(vObj.TempData.ModelObj.mObj.Rules,'Active')));
+                
+                RulesActiveBoolean = get(vObj.TempData.ModelObj.mObj.Rules,'Active');
+                if ~iscell(RulesActiveBoolean)
+                    RulesActiveBoolean = {RulesActiveBoolean};
+                end
+                
+                vObj.TempData.InactiveRuleNames = allRulesNames(~cell2mat(RulesActiveBoolean));
             end
             % Update the view
             update(vObj);

@@ -7,7 +7,7 @@ function updateEditView(vObj)
 %           updateEditView(vObj)
 %
 % Inputs:
-%           vObj - The MyPackageViewer.Empty vObject
+%           vObj - QSPViewer.CohortGeneration vObject
 %
 % Outputs:
 %           none
@@ -18,7 +18,7 @@ function updateEditView(vObj)
 % Notes: none
 %
 
-% Copyright 2014-2015 The MathWorks, Inc.
+% Copyright 2019 The MathWorks, Inc.
 %
 % Auth/Revision:
 %   MathWorks Consulting
@@ -64,6 +64,9 @@ updateMaxNumSims(vObj);
 
 updateMaxNumVirtualPatients(vObj);
 
+
+%% update RNG
+set(vObj.h.RNGSeedEdit, 'Value', vObj.TempData.RNGSeed)
 
 %% set initial conditions file
 if ~isempty(vObj.Data)

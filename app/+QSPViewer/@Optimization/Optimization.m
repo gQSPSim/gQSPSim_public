@@ -5,7 +5,7 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
     %
 
     
-    %   Copyright 2014-2016 The MathWorks, Inc.
+    %   Copyright 2019 The MathWorks, Inc.
     %
     % Auth/Revision:
     %   MathWorks Consulting
@@ -42,6 +42,9 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
         
         ParametersHeader = {} % From RefParamName
         ParametersData = {} % From RefParamName
+        
+        FixRNGSeed = false
+        RNGSeed = 100
         
         ObjectiveFunctions = {'defaultObj'}
         
@@ -1173,7 +1176,9 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
                     [StatusOk,~,Header,Data] = importData(pObj, pObj.FilePath);
                     if StatusOk
                         idP0 = strcmpi(Header,'P0_1');
-                        Data(:,idP0) = Values(2,:);
+                        idName = strcmpi(Header,'Name');
+                        [~,ix] = ismember(Data(:,idName), Values(1,:));
+                        Data(:,idP0) = Values(2,ix);
                         xlwrite(parameterObj.FilePath,[Header; Data]); 
                         
                     end
@@ -1317,6 +1322,36 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
             onNavigation@uix.abstract.CardViewPane(vObj,View);
             
         end %function
+        
+        function onFixRNGSeed(vObj,h,e)
+            vObj.TempData.FixRNGSeed = h.Value;
+            if vObj.TempData.FixRNGSeed
+                set(vObj.h.RNGSeedEdit,'Enable','on')
+            else
+                set(vObj.h.RNGSeedEdit,'Enable','off')
+            end
+            
+            updateEditView(vObj);
+
+            
+        end
+        
+        function onRNGSeedEdit(vObj,h,e)
+            
+            value = vObj.TempData.RNGSeed;
+            try
+                value = str2double(get(h,'Value'));
+            catch ME
+                hDlg = errordlg(ME.message,'Invalid Value','modal');
+                uiwait(hDlg);
+            end
+            if isnan(value) || value < 0 || floor(value) ~= value
+                hDlg = errordlg('Please enter a non-negative integer value for RNG seed','modal');
+                uiwait(hDlg);
+            else
+                vObj.TempData.RNGSeed = value;
+            end                        
+        end        
         
     end
         

@@ -5,7 +5,7 @@ classdef CohortGeneration < uix.abstract.CardViewPane
     %
     
     
-    %   Copyright 2014-2016 The MathWorks, Inc.
+    %   Copyright 2019 The MathWorks, Inc.
     %
     % Auth/Revision:
     %   MathWorks Consulting
@@ -202,9 +202,7 @@ classdef CohortGeneration < uix.abstract.CardViewPane
 
             
         end
-        
-        
-        
+                
         function onGroupNamePopup(vObj,h,e)
             
             vObj.TempData.GroupName = vObj.DatasetGroupPopupItems{get(h,'Value')};
@@ -216,7 +214,7 @@ classdef CohortGeneration < uix.abstract.CardViewPane
         end %function
         
         function onSaveInvalidPopup(vObj,h,e)
-            values = {'Save all vpatients', 'Save valid vpatients'};
+            values = {'Save all virtual subjects', 'Save valid virtual subjects'};
             vObj.TempData.SaveInvalid = values{get(h,'Value')};
             % Update the view
             updateDataset(vObj);
@@ -429,6 +427,25 @@ classdef CohortGeneration < uix.abstract.CardViewPane
             
         end
         
+        function onRNGSeedEdit(vObj,h,e)
+            
+            value = vObj.TempData.RNGSeed;
+            try
+                value = str2double(get(h,'Value'));
+            catch ME
+                hDlg = errordlg(ME.message,'Invalid Value','modal');
+                uiwait(hDlg);
+            end
+            if isnan(value) || value < 0 || floor(value) ~= value
+                hDlg = errordlg('Please enter a non-negative integer value for RNG seed','modal');
+                uiwait(hDlg);
+            else
+                vObj.TempData.RNGSeed = value;
+            end                        
+        end
+        
+        
+        
         function onPlotParameterDistributionDiagnostics(vObj,h,e)
             
             if ~isempty(vObj.Data.VPopName)
@@ -462,8 +479,8 @@ classdef CohortGeneration < uix.abstract.CardViewPane
                     ParamValues = ParamValues( ParamValues(:, strcmp(ParamNames,'PWeight')) > 0, :);
                 end
                 
-                ParamValues = ParamValues(:,~strcmp(ParamNames,'PWeight'));
-                ParamNames(strcmpi(ParamNames,'PWeight')) = [];
+                ParamValues = ParamValues(:,~ismember(ParamNames,{'PWeight','Groups'}));
+                ParamNames = ParamNames(~ismember(ParamNames,{'PWeight','Groups'}));
                 nCol = length(ParamNames);
                 
                 gridLayout = uix.Grid('Parent', scrollingPanel); %,  'Units', 'pixels', 'Position', [0 0 200*dims(1) 200*dims(2)], 'Spacing', 1);
@@ -846,6 +863,19 @@ classdef CohortGeneration < uix.abstract.CardViewPane
             onNavigation@uix.abstract.CardViewPane(vObj,View);
             
         end %function
+        
+        function onFixRNGSeed(vObj,h,e)
+            vObj.TempData.FixRNGSeed = h.Value;
+            if vObj.TempData.FixRNGSeed
+                set(vObj.h.RNGSeedEdit,'Enable','on')
+            else
+                set(vObj.h.RNGSeedEdit,'Enable','off')
+            end
+            
+            updateEditView(vObj);
+
+            
+        end
         
     end
     

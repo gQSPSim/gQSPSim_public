@@ -143,6 +143,25 @@ if ~isempty(ItemModels)
     if ~isempty(runItems)
         updateLastSavedTime(obj);        
     end
+    
+    task_indices = [];
+    if obj.Session.UseParallel
+        ParallelCluster = obj.Session.ParallelCluster;
+        c = parcluster(ParallelCluster);    
+
+        UDF_files = dir(fullfile(taskObj.Session.UserDefinedFunctionsDirectory,'**','*.m'));
+        UDF_files = arrayfun(@(x) fullfile(x.folder,x.name), UDF_files, 'UniformOutput', false);
+
+        RootPath = { fullfile(fileparts(fileparts(mfilename('fullpath'))),'app'); fullfile(fileparts(fileparts(mfilename('fullpath'))),'FromGenentech'); ...
+            fullfile(fileparts(fileparts(mfilename('fullpath'))),'utilities')};
+
+        job = createJob(c, 'AttachedFiles', [UDF_files; RootPath]);
+    else
+        job = [];
+    end
+    
+    taskIndex=1;
+    taskIDs = {};
     for ii = runItems
         ItemModel = ItemModels(options.runIndices(ii));
         if ~StatusOK % interrupted
@@ -155,7 +174,7 @@ if ~isempty(ItemModels)
 %         end
         options.WaitBar = hWbar2;
 
-        % simulate virtual patients
+        % start simulations for virtual patients
         for jj=1:length(options.Pin)
             thisOptions = options;
             thisOptions.Pin = options.Pin{jj};
@@ -169,17 +188,72 @@ if ~isempty(ItemModels)
             thisOptions.ParallelCluster = obj.Session.ParallelCluster;
             thisOptions.UDF = obj.Session.UserDefinedFunctionsDirectory;
             
-            [Results, nFailedSims, ThisStatusOK, ThisMessage, Cancelled] = simulateVPatients(ItemModel, thisOptions, Message);
-            if ~ThisStatusOK
+            [thisResults, this_nFailedSims, ThisStatusOK, ThisMessage, Cancelled, taskID] = simulateVPatients(ItemModel, thisOptions, Message, job);
+            nFailedSims{ii,jj} = this_nFailedSims;
+            Results_array{ii,jj} = thisResults;
+            StatusOK_array{ii,jj} = ThisStatusOK;
+            Messages{ii,jj} = ThisMessage;
+            if ~isempty(taskID)
+                taskIDs{taskIndex} = taskID;
+            end
+            
+            taskIndex = taskIndex + 1;
+                                   
+            task_indices = [task_indices; ii, jj];  
+            
+            
+        end
+    end
+    
+    % run job if set up for cluster computing
+    
+    taskIndex = 1;
+    if ~isempty(taskIDs)
+        set(hWbar2, 'Name', 'Please wait')        
+        uix.utility.CustomWaitbar(0,hWbar2,sprintf('Submitted job with %d tasks to cluster %s.\nWaiting for completion.', nRunItems, ParallelCluster));        
+        submit(job)
+        wait(job)
+        data = fetchOutputs(job);
+%         delete(hWbar2);
+        
+        % unpack results
+        
+        for ii = runItems        
+            for jj=1:length(options.Pin)
+                Results_array{ii,jj} = data{taskIndex, 1};
+                nFailedSims{ii,jj} = data{taskIndex, 2};
+                StatusOK_array{ii,jj} = data{taskIndex, 3};                
+                Messages{ii,jj} = data{taskIndex, 4};           
+                ErrObj{ii,jj} = data{taskIndex,5};
+                taskIndex = taskIndex + 1;
+            end
+        end
+    
+    end
+    
+    % gather results
+    taskIndex = 1;
+    if isvalid(hWbar2)
+        set(hWbar2, 'Name', 'Processing results')
+    end
+    for ii = runItems        
+        ItemModel = ItemModels(options.runIndices(ii));
+        if isvalid(hWbar2)
+            uix.utility.CustomWaitbar(ii/length(runItems),hWbar2,'');
+        end
+        for jj=1:length(options.Pin)
+
+            if ~StatusOK_array{ii,jj}
                 StatusOK = false;
-                Message = sprintf('%s\n%s\n',Message,ThisMessage);
+                Message = sprintf('%s\n%s\n',Message,Messages{ii,jj});                
                 continue
             end
-
+            
             %%% Save results of each simulation in different files %%%%%%%%%%%%%%%%%%%%
             SaveFlag = isempty(options.Pin{1}); % don't save if PIn is provided
 
             % keep the VpopWeights for this group
+            Results = Results_array{ii,jj};
             Results.VpopWeights = ItemModel.VpopWeights;
 
             % add results to output cell
@@ -234,10 +308,10 @@ if ~isempty(ItemModels)
                     return
                 end
                 % right now it's one line of Message per Simulation Item
-                if nFailedSims == ItemModel.nPatients
+                if nFailedSims{ii,jj} == ItemModel.nPatients
                     ThisMessage = 'No simulations were successful. (Check that dependencies are valid.)';
                 else
-                    ThisMessage = [num2str(ItemModel.nPatients-nFailedSims) ' simulations were successful out of ' num2str(ItemModel.nPatients) '.'];
+                    ThisMessage = [num2str(ItemModel.nPatients-nFailedSims{ii,jj}) ' simulations were successful out of ' num2str(ItemModel.nPatients) '.'];
                 end
                 Message = sprintf('%s\n%s\n',Message,ThisMessage);        
             elseif isfield(options,'Pin') && isempty(options.Pin)
@@ -246,6 +320,7 @@ if ~isempty(ItemModels)
                 Message = sprintf('%s\n%s\n',Message,ThisMessage);
             end
             
+            taskIndex = taskIndex + 1;
             
         end % for jj
 
@@ -479,8 +554,8 @@ function [ItemModel, StatusOK, Message] = constructVpopItem(taskObj, vpopObj, gr
     
 end
 
-function [Results, nFailedSims, StatusOK, Message, Cancelled] = simulateVPatients(ItemModel, options, Message)  
+function [Results, nFailedSims, StatusOK, Message, Cancelled, taskID] = simulateVPatients(ItemModel, options, Message, job)  
        
-    [Results, nFailedSims, StatusOK, Message, Cancelled] = simulateVPatients_(ItemModel, options, Message);
+    [Results, nFailedSims, StatusOK, Message, Cancelled, taskID] = simulateVPatients_(ItemModel, options, Message, job);
     
 end

@@ -27,7 +27,7 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
     %
     %
     
-    % Copyright 2016 The MathWorks, Inc.
+    % Copyright 2019 The MathWorks, Inc.
     %
     % Auth/Revision:
     %   MathWorks Consulting
@@ -325,7 +325,7 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         
         function upToDate = checkExportedModelCurrent(obj)
             FileInfo = dir(obj.FilePath);
-            if length(FileInfo)>1
+            if length(FileInfo)>1 || isempty(FileInfo)
                 upToDate=false;
                 return
             end
@@ -386,6 +386,9 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                     ModelName = TheseModelNames{MatchIdx};
                     obj.ModelName = ModelName;
                 end
+            else
+                obj.ModelName = ModelName;
+
             end
             
             ThisData = [TheseFilePaths TheseModelNames];
@@ -617,6 +620,17 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             Value = obj.InactiveReactionNames(MatchIndex);
         end %function
         
+        function [statusOK, Message] = update(obj)
+            statusOK = true;
+            Message = '';
+            % check that the model is current and rebuild if necessary
+            if ~obj.checkExportedModelCurrent()
+                [statusOK, Message] = obj.constructModel();
+                if ~statusOK
+                    return
+                end            
+            end        
+        end
     end
     
     %% Get Methods

@@ -7,7 +7,7 @@ function create(vObj)
 %           create(vObj)
 %
 % Inputs:
-%           vObj - The MyPackageViewer.Empty vObject
+%           vObj - QSPViewer.VirtualPopulationData vObject
 %
 % Outputs:
 %           none
@@ -18,7 +18,7 @@ function create(vObj)
 % Notes: none
 %
 
-% Copyright 2014-2015 The MathWorks, Inc.
+% Copyright 2019 The MathWorks, Inc.
 %
 % Auth/Revision:
 %   MathWorks Consulting
@@ -74,7 +74,16 @@ vObj.h.FileSelector = uix.widget.FileSelector(...
     'InvalidForegroundColor',[1 0 0],...
     'Callback',@(h,e)onFileSelection(vObj,h,e) );
 
+
+% new button
+vObj.h.FileNew = uicontrol(...
+    'Parent', FileHLayout, ...
+    'Style','pushbutton',...
+    'Callback',@(h,e) onFileNewPress(vObj,h,e) , ...
+    'CData', uix.utility.loadIcon( 'add_24.png' ), ...
+    'TooltipString', 'Create new Acceptance Criteria');
+
 % Sizes
-FileHLayout.Widths = [LabelWidth -1];
+FileHLayout.Widths = [LabelWidth -1 30];
 
 

@@ -4,7 +4,7 @@ function createTree(obj, Parent, AllData)
 % Creates node(s) for the tree
 %
 
-% Copyright 2016 The MathWorks, Inc.
+% Copyright 2019 The MathWorks, Inc.
 %
 % Auth/Revision:
 %   MathWorks Consulting
@@ -72,8 +72,8 @@ for idx=1:numel(AllData)
             
             
             hVPops = i_addNode(hSettings, Data.Settings, ...
-                'Virtual Patient(s)', 'stickman3.png',...
-                obj.h.TreeMenu.Branch.VirtualPopulation, 'VirtualPopulation', 'Virtual Patient(s)');
+                'Virtual Subject(s)', 'stickman3.png',...
+                obj.h.TreeMenu.Branch.VirtualPopulation, 'VirtualPopulation', 'Virtual Subject(s)');
             thisFcn(hVPops, Data.Settings.VirtualPopulation);
             
             % Functionalities node and children

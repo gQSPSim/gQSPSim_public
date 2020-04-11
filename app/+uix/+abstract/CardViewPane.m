@@ -26,6 +26,8 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
     properties (SetAccess=protected)
        bShowTraces = []
        bShowQuantiles = []
+       bShowMean = []
+       bShowMedian = []
        bShowSD = []
     end
     
@@ -271,23 +273,49 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                         'Tag','ExportAllAxes',...
                         'Callback',@(h,e)onAxesContextMenu(obj,h,e,index));                    
                     
-                    % show traces/quantiles
-                    uimenu(obj.h.ContextMenu(index),...
+                    if strcmpi(class(obj),'QSPViewer.VirtualPopulationGeneration')
+                        obj.bShowTraces(index) = false; % default off
+                        obj.bShowQuantiles(index) = true; % default on
+                        obj.bShowMean(index) = true; % default on
+                        obj.bShowMedian(index) = false; % default off
+                        obj.bShowSD(index) = false; % default off
+                    else
+                        obj.bShowTraces(index) = false; % default off
+                        obj.bShowQuantiles(index) = true; % default on
+                        obj.bShowMean(index) = false; % default off
+                        obj.bShowMedian(index) = true; % default on
+                        obj.bShowSD(index) = false; % default off
+                    end
+                    
+                    % Show traces/quantiles/mean/median/SD
+                    obj.h.ContextMenuTraces(index) = uimenu(obj.h.ContextMenu(index),...
                         'Label','Show Traces',...
-                        'Checked', 'off',...
+                        'Checked',uix.utility.tf2onoff(obj.bShowTraces(index)),...
+                        'Separator','on',...
                         'Tag','ShowTraces',...
                         'Callback',@(h,e)onAxesContextMenu(obj,h,e,index));
-
-                     uimenu(obj.h.ContextMenu(index),...
-                        'Label','Show Quantiles',...
-                        'Checked', 'on',...
+                     obj.h.ContextMenuQuantiles(index) = uimenu(obj.h.ContextMenu(index),...
+                        'Label','Show Upper/Lower Quantiles',...
+                        'Checked',uix.utility.tf2onoff(obj.bShowQuantiles(index)),...
                         'Tag','ShowQuantiles',...
+                        'Callback',@(h,e)onAxesContextMenu(obj,h,e,index));
+                    obj.h.ContextMenuMean(index) = uimenu(obj.h.ContextMenu(index),...
+                        'Label','Show Mean (Weighted)',...
+                        'Checked',uix.utility.tf2onoff(obj.bShowMean(index)),...
+                        'Tag','ShowMean',...
+                        'Callback',@(h,e)onAxesContextMenu(obj,h,e,index));
+                    obj.h.ContextMenuMedian(index) =uimenu(obj.h.ContextMenu(index),...
+                        'Label','Show Median (Weighted)',...
+                        'Checked',uix.utility.tf2onoff(obj.bShowMedian(index)),...
+                        'Tag','ShowMedian',...
+                        'Callback',@(h,e)onAxesContextMenu(obj,h,e,index));
+                    obj.h.ContextMenuSD(index) =uimenu(obj.h.ContextMenu(index),...
+                        'Label','Show Standard Deviation (Weighted)',...
+                        'Checked',uix.utility.tf2onoff(obj.bShowSD(index)),...
+                        'Tag','ShowSD',...
                         'Callback',@(h,e)onAxesContextMenu(obj,h,e,index));
                     
                     set(obj.h.MainAxes(index),'UIContextMenu',obj.h.ContextMenu(index));
-                    
-                    obj.bShowQuantiles(index) = true; % default on
-                    obj.bShowTraces(index) = false; % default off
 
                 end
                 set(obj.h.MainAxes(1),'Visible','on');
@@ -920,9 +948,10 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                             
                             % Check if the plot has children
                             TheseChildren = get(ThisAxes,'Children');     
-                            if ~isempty(TheseChildren)
+                            if ~isempty(TheseChildren) && iscell(TheseChildren) 
                                 HasVisibleItem = true(1,numel(TheseChildren));
                                 for chIdx = 1:numel(TheseChildren)
+                                    
                                     ThisGroup = TheseChildren{chIdx};
                                     ThisGroupChildren = get(ThisGroup,'Children');
                                     if ~iscell(ThisGroupChildren)
@@ -934,6 +963,8 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                                     else
                                         HasVisibleItem(chIdx) = false;
                                     end
+                                    
+                                    
                                 end
                                 % Filter to only allow export of plots that
                                 % have children (at least one visible item
@@ -1069,31 +1100,25 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
 %                     end
                 case 'ShowTraces'
                     obj.bShowTraces(axIndex) = ~obj.bShowTraces(axIndex);
-                    if strcmp(h.Checked,'on')
-                        h.Checked = 'off';
-                    else
-                        h.Checked = 'on';
-                    end
+                    h.Checked = uix.utility.tf2onoff(obj.bShowTraces(axIndex));
                 case 'ShowQuantiles'
                     obj.bShowQuantiles(axIndex) = ~obj.bShowQuantiles(axIndex);
-                    if strcmp(h.Checked,'on')
-                        h.Checked = 'off';
-                    else
-                        h.Checked = 'on';
-                    end      
+                    h.Checked = uix.utility.tf2onoff(obj.bShowQuantiles(axIndex));
+                case 'ShowMean'
+                    obj.bShowMean(axIndex) = ~obj.bShowMean(axIndex);
+                    h.Checked = uix.utility.tf2onoff(obj.bShowMean(axIndex));                    
+                case 'ShowMedian'
+                    obj.bShowMedian(axIndex) = ~obj.bShowMedian(axIndex);
+                    h.Checked = uix.utility.tf2onoff(obj.bShowMedian(axIndex));
                 case 'ShowSD'
                     obj.bShowSD(axIndex) = ~obj.bShowSD(axIndex);
-                    if strcmp(h.Checked,'on')
-                        h.Checked = 'off';
-                    else
-                        h.Checked = 'on';
-                    end                         
+                    h.Checked = uix.utility.tf2onoff(obj.bShowSD(axIndex));
             end
             
             % Update the display
             obj.updateVisualizationView();
             
-            if strcmp(ThisTag,'ShowTraces') || strcmp(ThisTag,'ShowQuantiles') ||  strcmp(ThisTag,'ShowSD')
+            if strcmp(ThisTag,'ShowTraces') || strcmp(ThisTag,'ShowQuantiles') || strcmp(ThisTag,'ShowMean') || strcmp(ThisTag,'ShowMedian') || strcmp(ThisTag,'ShowSD')
                 if any(strcmpi(class(obj),{'QSPViewer.Simulation','QSPViewer.CohortGeneration','QSPViewer.VirtualPopulationGeneration'}))
                     [UpdatedAxesLegend,UpdatedAxesLegendChildren] = updatePlots(...
                         obj.Data,obj.h.MainAxes,obj.h.SpeciesGroup,obj.h.DatasetGroup,...
@@ -1322,6 +1347,8 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
             if isfield(obj.h,'SpeciesGroup') && ~isempty(obj.h.SpeciesGroup)
                 for axIndex = 1:size(obj.h.SpeciesGroup,2)
                     MeanLineWidth = obj.Data.PlotSettings(axIndex).MeanLineWidth;
+                    MedianLineWidth = obj.Data.PlotSettings(axIndex).MedianLineWidth;
+                    StandardDevLineWidth = obj.Data.PlotSettings(axIndex).StandardDevLineWidth;
                     BoundaryLineWidth = obj.Data.PlotSettings(axIndex).BoundaryLineWidth;
                     LineWidth = obj.Data.PlotSettings(axIndex).LineWidth;
                     
@@ -1336,14 +1363,20 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                     end         
                     ThisTag = get(hPlots,'Tag');
                     IsMeanLine = strcmpi(ThisTag,'MeanLine');
-                    IsWeightedMeanLine = strcmpi(ThisTag,'WeightedMeanLine');
+                    IsMedianLine = strcmpi(ThisTag,'MedianLine');
+                    IsStandardDevLine = strcmpi(ThisTag,'WeightedSD');
+%                     IsWeightedMeanLine = strcmpi(ThisTag,'WeightedMeanLine');
                     IsBoundaryLine = strcmpi(ThisTag,'BoundaryLine');
                     if ~isempty(hPlots)
-                        set(hPlots(IsMeanLine | IsWeightedMeanLine),...
+                        set(hPlots(IsMeanLine),...
                             'LineWidth',MeanLineWidth);
+                        set(hPlots(IsMedianLine),...
+                            'LineWidth',MedianLineWidth);
+                        set(hPlots(IsStandardDevLine),...
+                            'LineWidth',StandardDevLineWidth);
                         set(hPlots(IsBoundaryLine),...
                             'LineWidth',BoundaryLineWidth);
-                        set(hPlots(~IsMeanLine & ~IsWeightedMeanLine & ~IsBoundaryLine),...
+                        set(hPlots(~IsMeanLine & ~IsMedianLine & ~IsStandardDevLine & ~IsBoundaryLine),...
                             'LineWidth',LineWidth);
                     end
                 end

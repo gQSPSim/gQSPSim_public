@@ -7,7 +7,7 @@ function updateVisualizationView(vObj)
 %           updateVisualizationView(vObj)
 %
 % Inputs:
-%           vObj - The MyPackageViewer.Empty vObject
+%           vObj - QSPViewer.VirtualPopulationGeneration vObject
 %
 % Outputs:
 %           none
@@ -18,7 +18,7 @@ function updateVisualizationView(vObj)
 % Notes: none
 %
 
-% Copyright 2014-2015 The MathWorks, Inc.
+% Copyright 2019 The MathWorks, Inc.
 %
 % Auth/Revision:
 %   MathWorks Consulting
@@ -34,6 +34,8 @@ end
 if ~isempty(vObj.Data)
     vObj.Data.bShowTraces = vObj.bShowTraces;
     vObj.Data.bShowQuantiles = vObj.bShowQuantiles;
+    vObj.Data.bShowMean = vObj.bShowMean;
+    vObj.Data.bShowMedian = vObj.bShowMedian;
     vObj.Data.bShowSD = vObj.bShowSD;
 end
 

@@ -27,7 +27,7 @@ classdef Settings < matlab.mixin.SetGet & uix.mixin.AssignPVPairs & uix.mixin.Ha
     %    
     %
     
-    % Copyright 2016 The MathWorks, Inc.
+    % Copyright 2019 The MathWorks, Inc.
     %
     % Auth/Revision:
     %   MathWorks Consulting

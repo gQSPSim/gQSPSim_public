@@ -4,7 +4,7 @@ function create(obj)
 % Abstract: This method creates all parts of the main obj display
 %
 
-% Copyright 2016 The MathWorks, Inc.
+% Copyright 2019 The MathWorks, Inc.
 %
 % Auth/Revision:
 %   MathWorks Consulting
@@ -16,12 +16,12 @@ function create(obj)
 %% Create QSP Menus
 
 ItemTypes = {
-    'Settings: Dataset',      'OptimizationData'
-    'Settings: Parameter',             'Parameters'
-    'Settings: Task',                   'Task'
-    'Settings: Virtual Patient(s)',     'VirtualPopulation'    
-    'Settings: Acceptance Criteria',    'VirtualPopulationData'
-    'Settings: Target Statistics', 'VirtualPopulationGenerationData'
+    'Dataset',                          'OptimizationData'
+    'Parameter',                        'Parameters'
+    'Task',                             'Task'
+    'Virtual Subject(s)',               'VirtualPopulation'    
+    'Acceptance Criteria',              'VirtualPopulationData'
+    'Target Statistics',                'VirtualPopulationGenerationData'
     'Simulation',                       'Simulation'
     'Optimization',                     'Optimization'
     'Cohort Generation',                'CohortGeneration'
@@ -84,6 +84,8 @@ uimenu(...
     'Parent', obj.h.TreeMenu.Branch.Session,...
     'Label', 'SaveAs',...
     'Callback', @(h,e)onSaveAs(obj));
+
+
 
 % For most branches/leaves
 for idx=1:size(ItemTypes,1)

@@ -18,7 +18,7 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
     %
     %
     
-    % Copyright 2016 The MathWorks, Inc.
+    % Copyright 2019 The MathWorks, Inc.
     %
     % Auth/Revision:
     %   MathWorks Consulting
@@ -54,9 +54,7 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
         SelectedPlotLayout = '1x1'   
         PlotSettings = repmat(struct(),1,12)
         
-        RedistributeWeights = false
-        
-        bShowSD = []
+        RedistributeWeights = false        
     end
     
     properties (SetAccess = 'private')
@@ -215,9 +213,9 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
                 'Results Path',obj.VPopResultsFolderName;
                 'Cohort Used',obj.DatasetName;
                 'Group Name',obj.GroupName;
-                'Min No of Virtual Patients',num2str(obj.MinNumVirtualPatients);
+                'Min No of Virtual Subjects',num2str(obj.MinNumVirtualPatients);
                 'Items',VPopGenItems;
-                'Species-data mapping',SpeciesDataItems;
+                'Species-data Mapping',SpeciesDataItems;
                 'Results',obj.ExcelResultFileName;
                 };
             
@@ -368,7 +366,7 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
                 %%% Remove the invalid task/group combos if any
                 if all(isvalid(obj.Item))
                     [TaskItemIndex,MatchTaskIndex] = ismember({obj.Item.TaskName},{obj.Settings.Task.Name});
-                    if ~isempty({obj.Item.GroupID}) || ~isempty(GroupIDs)
+                    if ~isempty({obj.Item.GroupID}) && ~isempty(GroupIDs)
                         GroupItemIndex = ismember({obj.Item.GroupID},GroupIDs(:)');
                     else
                         GroupItemIndex = [];

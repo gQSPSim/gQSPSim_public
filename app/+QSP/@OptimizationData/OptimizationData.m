@@ -18,7 +18,7 @@ classdef OptimizationData < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
     %
     %
     
-    % Copyright 2016 The MathWorks, Inc.
+    % Copyright 2019 The MathWorks, Inc.
     %
     % Auth/Revision:
     %   MathWorks Consulting
@@ -75,7 +75,7 @@ classdef OptimizationData < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 'Name',obj.Name;
                 'Last Saved',obj.LastSavedTimeStr;
                 'Description',obj.Description;
-                'File name',obj.RelativeFilePath;                
+                'File Name',obj.RelativeFilePath;                
                 'Dataset Type',obj.DatasetType;
                 };
         end

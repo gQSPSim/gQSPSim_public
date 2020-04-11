@@ -1,24 +1,24 @@
 classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
-    % VirtualPopulationGeneration - Defines a VirtualPopulationGeneration object
+    % CohortGeneration - Defines a CohortGeneration object
     % ---------------------------------------------------------------------
-    % Abstract: This object defines VirtualPopulationGeneration
+    % Abstract: This object defines CohortGeneration
     %
     % Syntax:
-    %           obj = QSP.VirtualPopulationGeneration
-    %           obj = QSP.VirtualPopulationGeneration('Property','Value',...)
+    %           obj = QSP.CohortGeneration
+    %           obj = QSP.CohortGeneration('Property','Value',...)
     %
     %   All properties may be assigned at object construction using
     %   property-value pairs.
     %
-    % QSP.VirtualPopulationGeneration Properties:
+    % QSP.CohortGeneration Properties:
     %
     %
-    % QSP.VirtualPopulationGeneration Methods:
+    % QSP.CohortGeneration Methods:
     %
     %
     %
     
-    % Copyright 2016 The MathWorks, Inc.
+    % Copyright 2019 The MathWorks, Inc.
     %
     % Auth/Revision:
     %   MathWorks Consulting
@@ -29,7 +29,7 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
     %% Properties
     properties
         Settings = QSP.Settings.empty(0,1)
-        VPopResultsFolderName = 'VPopResults' 
+        VPopResultsFolderName = 'CohortGenerationResults' 
         ICFileName = ''
         ExcelResultFileName = ''
         VPopName = '' % VPop name from running vpop gen
@@ -38,7 +38,7 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         RefParamName = '' % Parameters.Name
         GroupName = ''
         Method = 'Distribution' 
-        SaveInvalid = 'Save all vpatients'
+        SaveInvalid = 'Save all virtual subjects'
         
         
         Item = QSP.TaskGroup.empty(0,1)
@@ -47,6 +47,9 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         MaxNumSimulations = 5000
         MaxNumVirtualPatients = 500
         MCMCTuningParam = 0.15
+       
+        FixRNGSeed = false
+        RNGSeed = 100
         
         PlotSpeciesTable = cell(0,5)
         PlotItemTable = cell(0,5) 
@@ -219,6 +222,12 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 nInvalid = 'N/A';
             end
             
+            % random seed
+            if obj.FixRNGSeed
+                randomSeedStr = num2str(obj.RNGSeed);
+            else
+                randomSeedStr = 'not fixed';
+            end
             % Populate summary
             Summary = {...
                 'Name',obj.Name;
@@ -228,14 +237,15 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 'Dataset',obj.DatasetName;
                 'Group Name',obj.GroupName;
                 'Items',VPopGenItems;
-                'Parameter file',obj.RefParamName;
-                'Parameters used for cohort generation',UsedParamNames;
-                'Species-data mapping',SpeciesDataItems;
-                'Initial conditions file',obj.ICFileName;
+                'Parameter File',obj.RefParamName;
+                'Parameters Used for Cohort Generation',UsedParamNames;
+                'Species-data Mapping',SpeciesDataItems;
+                'Initial Conditions File',obj.ICFileName;
                 'Max No of Simulations',num2str(obj.MaxNumSimulations);
-                'Max No of Virtual Patients',num2str(obj.MaxNumVirtualPatients);
-                'Number of valid virtual patients', nValid; ...
-                'Number of invalid virtual patients', nInvalid...
+                'Max No of Virtual Subjects',num2str(obj.MaxNumVirtualPatients);
+                'Number of Valid Virtual Subjects', nValid; ...
+                'Number of Invalid Virtual Subjects', nInvalid;...
+                'Random Seed', randomSeedStr
                 };
             
         end %function
@@ -469,6 +479,12 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 end
                 
                 % Run helper
+                
+                % set RNG if specified
+                if obj.FixRNGSeed
+                    rng(obj.RNGSeed)
+                end
+                
                 % clear cached results if any
                 obj.SimResults = {};
                 obj.SimFlag = [];
