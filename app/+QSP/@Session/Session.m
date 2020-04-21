@@ -462,6 +462,39 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
                 end                
             end
             
+            diffMsg = '';
+
+            
+            % do some diffing on the excel files
+            for k=1:length(fileChanges)
+                thisFile = fileChanges{k};
+                [~,~,ext] = fileparts(thisFile);
+                if strcmp(ext,'.xlsx')
+                    tmpFile = [tempname '.xlsx'];
+                    tmpXlsx = git(sprintf('-C "%s" --git-dir="%s" show HEAD:"%s" > "%s" ', obj.RootDirectory, ...
+                        obj.GitRepo, thisFile, tmpFile));
+                    
+                    % check if this is a vpop
+                    if ismember(thisFile, unique({obj.Settings.VirtualPopulation.RelativeFilePath}) )
+                        type = 'vpop';
+                    else
+                        type = '';
+                    end
+
+                    
+                    if isempty(type)
+                        xlsMsg = xlsxDiff(fullfile(obj.RootDirectory, thisFile), tmpFile);
+                    else
+                        xlsMsg = xlsxDiff(fullfile(obj.RootDirectory, thisFile), tmpFile, type);
+                    end
+                    
+                    diffMsg = sprintf('%s\n%s\n\n%s\n', diffMsg, thisFile, xlsMsg);
+                        
+                end
+            end
+            
+            
+            
             % update files that were already added for now. would be better
             % if this were only the files that are currently in the session
             result = git(sprintf('-C "%s" --git-dir="%s" add -u ', obj.RootDirectory, obj.GitRepo));
@@ -484,7 +517,6 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
             end
             sbprojFiles = unique(sbprojFiles);
             sbprojFiles = intersect(sbprojFiles, fileChanges);
-            diffMsg = {};
             
             for ixProj = 1:length(sbprojFiles)
                 % pull out cached version for comparison
@@ -681,6 +713,8 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
             
             % Session
             
+            % remove . for empty items
+            files = setdiff(files, {'.','./','.\'});
             
         end
         
