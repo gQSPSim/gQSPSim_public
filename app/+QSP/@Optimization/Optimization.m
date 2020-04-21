@@ -618,6 +618,11 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                     autoSaveFile(obj.Session,'Tag','preRunOptimization');
                 end
                 
+
+                 if obj.Session.AutoSaveGit
+                    obj.Session.gitCommit();
+                 end
+                
                 % If no initial conditions are specified, only one VPop is
                 % created. If IC are provided, the # of VPops is equivalent
                 % to the number of groups + 1
@@ -632,6 +637,9 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 % Update MATFileName in the simulation items
                 obj.ExcelResultFileName = ResultsFileNames;
                 obj.VPopName = VPopNames;
+                
+                % add entry to the database
+                obj.Session.addExperimentToDB('OPTIMIZATION', obj.Name, now, ResultsFileNames);
                 
                 % update last saved time for optimization
                 updateLastSavedTime(obj);
