@@ -129,6 +129,7 @@ end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Plot to get the parameters of the line
+hold(parent,'on')
 H.meanLine=plot(x,y,lineProps{:},'linewidth',meanlinewidth,'parent',parent,'Tag','MeanLine');
 H.medianLine=plot(x,ymed,lineProps{:},'linewidth',medianlinewidth,'parent',parent,'Tag','MedianLine');
 
