@@ -7,7 +7,7 @@ end
 
 obj = SelNodes.Value;
 
-[Header, Data, StatusOK, Message] = xlread(fullfile(obj.Session.RootDirectory, obj.RelativeFilePath));
+[StatusOK,Message,Header,Data] = importData(obj,fullfile(obj.Session.RootDirectory, obj.RelativeFilePath), 'tall')    ;
 
 if ~StatusOK
     warning('Failed to create target statistics:\n%s', Message)

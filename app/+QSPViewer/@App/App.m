@@ -210,6 +210,8 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
             
               % load the plugins
             if exist(fullfile(obj.PluginsDir, 'manifest'), 'file')
+                addpath(obj.PluginsDir)
+                
                 try
                     f = fopen(fullfile(obj.PluginsDir, 'manifest') );
                     PluginData = textscan(f, '%s %s %s', 'Delimiter', ',');

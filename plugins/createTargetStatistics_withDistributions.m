@@ -11,7 +11,7 @@ end
 
 obj = SelNodes.Value;
 
-[Header, Data, StatusOK, Message] = xlread(fullfile(obj.Session.RootDirectory, obj.RelativeFilePath));
+[StatusOK,Message,Header,Data] = importData(obj,fullfile(obj.Session.RootDirectory, obj.RelativeFilePath), 'tall')    ;
 
 if ~StatusOK
     warning('Failed to create target statistics:\n%s', Message)
@@ -52,6 +52,7 @@ out_file = fullfile(out_dir, [obj.Name, '_TargetStatistics_dist.xlsx']);
 
 out_data = [ [ {'Group', 'Time', 'Species', 'Type', 'Value1', 'Value2'}, repmat({[]}, 1, Nbins-1)] ; out_data];
 xlwrite(out_file, out_data)
+% writetable(out_data,out_file)
 
 % writetable(groups, out_file)
 
