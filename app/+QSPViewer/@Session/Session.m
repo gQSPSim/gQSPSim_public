@@ -107,6 +107,10 @@ classdef Session < uix.abstract.CardViewPane
             end
         end %function
         
+        function onLoggingCheckbox(vObj,h,evt)            
+            vObj.TempData.UseLogging = logical(h.Value);            
+        end
+        
         function onAutosaveTimerCheckbox(vObj,h,evt)
             vObj.TempData.UseAutoSaveTimer = logical(h.Value);
             if ~vObj.TempData.UseAutoSaveTimer

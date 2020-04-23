@@ -295,7 +295,10 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 end
                 
                 % Run helper
+                obj.Log(['running simulation ' obj.Name])
                 [ThisStatusOK,thisMessage,ResultFileNames,Cancelled] = simulationRunHelper(obj);
+                obj.Log('complete')
+                
                 if ~ThisStatusOK && ~Cancelled
 %                     error('run: %s',Message);
                     StatusOK = false;

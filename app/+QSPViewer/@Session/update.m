@@ -41,12 +41,16 @@ if isscalar(vObj.TempData)
     UseAutoSaveTimer = vObj.TempData.UseAutoSaveTimer;
     AutoSaveFrequency = vObj.TempData.AutoSaveFrequency;
     AutoSaveBeforeRun = vObj.TempData.AutoSaveBeforeRun;
+    
+    UseLogging = vObj.TempData.UseLogging;
 
 else
     RootDir = '';
     RelativeUserDefinedFunctionsPath = '';
     RelativeObjectiveFunctionsPath = '';
     RelativeAutoSavePath = '';
+    UseLogging = true;
+    
     
     UseAutoSaveTimer = false;
     AutoSaveFrequency = 1;
@@ -61,6 +65,7 @@ vObj.h.ObjectiveFunctionsDirSelector.RootDirectory = RootDir;
 vObj.h.ObjectiveFunctionsDirSelector.Value = RelativeObjectiveFunctionsPath;
 vObj.h.UserDefinedFunctionsDirSelector.RootDirectory = RootDir;
 vObj.h.UserDefinedFunctionsDirSelector.Value = RelativeUserDefinedFunctionsPath;
+vObj.h.UseLogFile.Value = UseLogging;
 % 
 
 %% autosave

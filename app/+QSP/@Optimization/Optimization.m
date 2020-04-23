@@ -628,7 +628,10 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 end
                 
                 % Run helper
+                obj.Log(['running optimization ' obj.Name])
                 [StatusOK,Message,ResultsFileNames,VPopNames] = optimizationRunHelper(obj);
+                obj.Log('complete')
+                
                 % Update MATFileName in the simulation items
                 obj.ExcelResultFileName = ResultsFileNames;
                 obj.VPopName = VPopNames;

@@ -541,6 +541,8 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
                 error('Invalid tree parent');
             end
             
+            ThisSession.Log(sprintf('added %s tree node item for %s', ItemType, NewName))
+            
             % Mark the current session dirty
             obj.markDirty();
             
@@ -629,6 +631,8 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
                 SelNode(nodeIdx).Tree.SelectedNodes = SelNode;
                 % Change context menu
                 SelNode(nodeIdx).UIContextMenu = obj.h.TreeMenu.Leaf.Deleted;
+                
+                ThisSession.Log(sprintf('Removed item %s', SelNode.Name))
             end
 %             
 %             % Update the tree

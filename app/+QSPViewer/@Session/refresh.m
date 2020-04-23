@@ -40,6 +40,7 @@ if isscalar(vObj.Data)
     set(vObj.h.UserDefinedFunctionsDirSelector,'RootDirectory',RootDir)
     
     set(vObj.h.UseParallelCheckbox, 'Value', vObj.Data.UseParallel);
+    set(vObj.h.UseLogFile, 'Value', vObj.Data.UseLogging)
     if vObj.Data.UseParallel
         Enable_cluster = 'on';
     else

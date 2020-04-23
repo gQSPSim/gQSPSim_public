@@ -86,6 +86,10 @@ classdef (Abstract) BaseProps < matlab.mixin.SetGet & matlab.mixin.Heterogeneous
             end
         end %function
         
+        function Log(obj, msg)
+            obj.Session.Log(msg);
+        end
+        
     end
     
     %% Methods
@@ -269,6 +273,7 @@ classdef (Abstract) BaseProps < matlab.mixin.SetGet & matlab.mixin.Heterogeneous
                 
             end %for pIdx = 1:numel(sProps)
         end %function
+        
         
     end % methods
     
