@@ -642,7 +642,9 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 obj.VPopName = VPopNames;
                 
                 % add entry to the database
-                obj.Session.addExperimentToDB('OPTIMIZATION', obj.Name, now, ResultsFileNames);
+                if obj.Session.UseSQL
+                    obj.Session.addExperimentToDB('OPTIMIZATION', obj.Name, now, ResultsFileNames);
+                end
                 
                 % update last saved time for optimization
                 updateLastSavedTime(obj);

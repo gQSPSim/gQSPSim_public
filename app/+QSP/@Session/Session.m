@@ -54,9 +54,11 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         ParallelCluster
         UseAutoSaveTimer = false
         
-        AutoSaveGit = true
+        AutoSaveGit = false
         GitRepo = '.git'                
-        experimentsDB = 'experiments.db3'
+        
+        UseSQL = false
+        experimentsDB = 'experiments.db3'        
         
         UseLogging = true
         LogFile = 'logfile.txt'
@@ -194,10 +196,18 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
                 'Root Directory',obj.RootDirectory;
                 'Objective Functions Directory',obj.ObjectiveFunctionsDirectory;
                 'User Functions Directory',obj.UserDefinedFunctionsDirectory;
+                'Enable Logging', mat2str(obj.UseLogging);
+                'Log file', obj.LogFile;
+                'Use Git Versioning', mat2str(obj.AutoSaveGit);
+                'Git Repository Directory', obj.GitRepo;
+                'Use SQLite DB', mat2str(obj.UseSQL);
+                'SQLite DB file', obj.experimentsDB;
+                'Use parallel toolbox', mat2str(logical(obj.UseParallel));
+                'Parallel cluster', obj.ParallelCluster;
                 'Use AutoSave',mat2str(obj.UseAutoSaveTimer);
                 'AutoSave Directory',obj.AutoSaveDirectory;
                 'AutoSave Frequency (min)',num2str(obj.AutoSaveFrequency);
-                'AutoSave Before Run',mat2str(obj.AutoSaveBeforeRun);
+                'AutoSave Before Run',mat2str(obj.AutoSaveBeforeRun);                
                 };
         end
         
@@ -288,6 +298,8 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
                 newObj.UseAutoSaveTimer = obj.UseAutoSaveTimer;
                 
                 newObj.UseLogging = obj.UseLogging;
+                newObj.AutoSaveGit = obj.AutoSaveGit;
+                newObj.UseSQL = obj.UseSQL;
                 
                 newObj.LastSavedTime = obj.LastSavedTime;
                 newObj.LastValidatedTime = obj.LastValidatedTime;

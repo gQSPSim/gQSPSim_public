@@ -489,6 +489,10 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
                     autoSaveFile(obj.Session,'Tag','preRunVPopGen');
                 end
                 
+                if obj.Session.AutoSaveGit
+                    obj.Session.gitCommit();
+                end                
+                
                 % Run helper
                 % clear cached results if any
                 obj.SimResults = {};
@@ -512,6 +516,12 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
                     updateLastSavedTime(vpopObj);
                     % Validate
                     validate(vpopObj,false);
+                    
+                    % add entry to the database
+                    if obj.Session.UseSQL
+                        obj.Session.addExperimentToDB( 'VPOP GENERATION', obj.Name, now, obj.ExcelResultFileName);                    
+                    end                    
+                    
                 else
                     vpopObj = QSP.VirtualPopulation.empty(0,1);
                 end

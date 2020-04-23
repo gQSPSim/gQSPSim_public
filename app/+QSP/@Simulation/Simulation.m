@@ -321,7 +321,9 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 end
                 
                 % add entry to the database
-                obj.Session.addExperimentToDB( 'SIMULATION', obj.Name, now, ResultFileNames);
+                if obj.Session.UseSQL
+                    obj.Session.addExperimentToDB( 'SIMULATION', obj.Name, now, ResultFileNames);
+                end
             end 
             
         end %function

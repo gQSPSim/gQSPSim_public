@@ -514,7 +514,10 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                     validate(vpopObj,false);
                     
                     % add entry to the database
-                    obj.Session.addExperimentToDB( 'COHORT GENERATION', obj.Name, now, obj.ExcelResultFileName);                    
+                    if obj.Session.UseSQL
+                        obj.Session.addExperimentToDB( 'COHORT GENERATION', obj.Name, now, obj.ExcelResultFileName);                    
+                    end
+                    
                 else
                     vpopObj = QSP.VirtualPopulation.empty(0,1);
                 end
