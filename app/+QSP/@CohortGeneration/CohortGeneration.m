@@ -32,6 +32,7 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         VPopResultsFolderName = 'CohortGenerationResults' 
         ICFileName = ''
         ExcelResultFileName = ''
+        MatFileName = '' % results from running the cohort generation
         VPopName = '' % VPop name from running vpop gen
               
         DatasetName = '' % VirtualPopulationData Name
@@ -491,10 +492,15 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 % clear cached results if any
                 obj.SimResults = {};
                 obj.SimFlag = [];
-                [StatusOK,Message,ResultsFileName,ThisVPopName] = cohortGenerationRunHelper(obj);
+                
+                obj.Log(['running virtual cohort generation ' obj.Name])
+                [StatusOK,Message,ResultsFileName,ThisVPopName,MatFileName] = cohortGenerationRunHelper(obj);
+                obj.Log('complete')
+                
                 % Update MATFileName in the simulation items
                 obj.ExcelResultFileName = ResultsFileName;
                 obj.VPopName = ThisVPopName;
+                obj.MatFileName = MatFileName;
                 
                 if StatusOK
                     % Create a new virtual population

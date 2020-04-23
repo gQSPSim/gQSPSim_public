@@ -155,7 +155,7 @@ classdef OptimizationData < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 
             
             % Get destination format
-            if nargin > 2 && islogical(varargin{1})
+            if nargin > 2 % && islogical(varargin{1})
                 DestDatasetType = varargin{1};
             else
                 % Default
@@ -198,7 +198,11 @@ classdef OptimizationData < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 if strcmpi(obj.DatasetType,'wide') && strcmpi(DestDatasetType,'tall')
                     % Wide -> Tall
                     
-                    warning('Wide to tall conversion not implemented.')
+                    SpeciesCols = find(~ismember( upper(Header), {'GROUP','ID','TIME'}) );
+                    Table = stack(Table, SpeciesCols, 'NewDataVariableName', 'Value', ...
+                        'IndexVariableName', 'Species');                    
+                    Header = Table.Properties.VariableNames;
+                    Data = table2cell(Table);   
                     
                 elseif strcmpi(obj.DatasetType,'tall') && strcmpi(DestDatasetType,'wide')
                     % Tall -> Wide

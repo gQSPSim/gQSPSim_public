@@ -154,7 +154,8 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
     %% Properties
     
     properties (SetAccess=private)
-        Session = QSP.Session.empty(0,1) %Top level session sessions        
+        Session = QSP.Session.empty(0,1) %Top level session sessions   
+        Plugins = struct()
     end
     
     properties (SetAccess=private, Dependent=true)
@@ -168,7 +169,8 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
     end
     
     properties(Constant)
-        Version = 'v1.0'
+        Version = '1.0'
+        PluginsDir = fullfile( fileparts(fileparts(fileparts(fileparts(mfilename('fullpath'))))), 'plugins');
     end
         
     %% Methods in separate files with custom permissions
@@ -206,6 +208,26 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
             % the superclass AppWithSessionFiles method to create one here:
             %obj.createUntitledSession();
             
+              % load the plugins
+            if exist(fullfile(obj.PluginsDir, 'manifest'), 'file')
+                addpath(obj.PluginsDir)
+                
+                try
+                    f = fopen(fullfile(obj.PluginsDir, 'manifest') );
+                    PluginData = textscan(f, '%s %s %s', 'Delimiter', ',');
+                    fclose(f);
+                    PluginData = horzcat(PluginData{:});
+                    
+                    obj.Plugins = cell2struct(PluginData, {'Target','Function','Label'}, 2);
+
+                catch err
+                    warning(err.identifier, 'Error encountered loading plugins file\n%s', err.message);
+                end
+                    
+            else
+                warning('Plugins manifest not detected')
+            end
+            
             % Create the graphics objects
             obj.create();
             
@@ -224,7 +246,8 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
             % check version
 %             QSPViewer.App.checkForUpdates() % TODO reenable when repo is
 %             public
-            
+
+          
             
         end %function
         
@@ -518,6 +541,8 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
                 error('Invalid tree parent');
             end
             
+            ThisSession.Log(sprintf('added %s tree node item for %s', ItemType, NewName))
+            
             % Mark the current session dirty
             obj.markDirty();
             
@@ -606,6 +631,8 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
                 SelNode(nodeIdx).Tree.SelectedNodes = SelNode;
                 % Change context menu
                 SelNode(nodeIdx).UIContextMenu = obj.h.TreeMenu.Leaf.Deleted;
+                
+                ThisSession.Log(sprintf('Removed item %s', SelNode.Name))
             end
 %             
 %             % Update the tree
@@ -924,6 +951,58 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
             end
         end %function
         
+        function addItemToSession(obj, ThisSession, ItemType, ThisObj, ItemName)
+            % add an node to the tree which corresponds to the data that is
+            % passed in
+                       
+            % Where does the item go?
+            if isprop(ThisSession,ItemType)
+                ParentObj = ThisSession;
+            else
+                ParentObj = ThisSession.Settings;
+            end
+            
+            % What tree branch does this go under?
+            ChildNodes = ParentObj.TreeNode.Children;
+            ChildTypes = {ChildNodes.UserData};
+            if any(strcmpi(ItemType,{'Simulation','Optimization','CohortGeneration','VirtualPopulationGeneration'}))
+                ThisChildNode = ChildNodes(strcmpi(ChildTypes,'Functionalities'));
+                ChildNodes = ThisChildNode.Children;
+                ChildTypes = {ChildNodes.UserData};
+            end
+            ParentNode = ChildNodes(strcmp(ChildTypes,ItemType));
+            
+            % Create the new item
+            NewName = ItemName;           
+            DisallowedNames = {ParentObj.(ItemType).Name};
+            NewName = matlab.lang.makeUniqueStrings(NewName, DisallowedNames);
+            ThisObj.Name = NewName;
+            
+            if isprop(ThisObj,'Settings')
+                ThisObj.Settings = ThisSession.Settings;
+            end
+            if isprop(ThisObj,'Session')
+                ThisObj.Session = ThisSession;
+            end
+            
+            % Place the item and add the tree node
+            if isscalar(ParentNode)
+                ParentObj.(ItemType)(end+1) = ThisObj;
+                obj.createTree(ParentNode, ThisObj);
+                ParentNode.expand();
+            else
+                error('Invalid tree parent');
+            end
+            
+            % Mark the current session dirty
+            obj.markDirty();
+            
+            % Update the display
+            obj.refresh();            
+            
+        end
+       
+    
     end %methods    
     
     

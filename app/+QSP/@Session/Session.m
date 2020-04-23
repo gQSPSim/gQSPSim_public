@@ -55,9 +55,13 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         UseAutoSaveTimer = false
         
         AutoSaveGit = true
-        GitRepo = '.git'        
-        
+        GitRepo = '.git'                
         experimentsDB = 'experiments.db3'
+        
+        UseLogging = true
+        LogFile = 'logfile.txt'
+        LogHandle = []
+        
     end
     
     properties (Transient=true)        
@@ -140,6 +144,11 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         end %function obj = Session(varargin)
         
         % Destructor
+        function delete(obj)
+            if ~isempty(obj.LogHandle) && obj.LogHandle > 0
+                fclose(obj.LogHandle);
+            end
+        end
 %         function delete(obj)
 %             removeUDF(obj)             
 %         end
@@ -251,6 +260,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
                     stop(obj.timerObj);
                 end
                 delete(obj.timerObj);
+                obj.timerObj = [];
             end
         end %function
         
@@ -274,7 +284,10 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
                 newObj.AutoSaveBeforeRun = obj.AutoSaveBeforeRun;
                 newObj.UseParallel = obj.UseParallel;
                 newObj.ParallelCluster = obj.ParallelCluster;
+                
                 newObj.UseAutoSaveTimer = obj.UseAutoSaveTimer;
+                
+                newObj.UseLogging = obj.UseLogging;
                 
                 newObj.LastSavedTime = obj.LastSavedTime;
                 newObj.LastValidatedTime = obj.LastValidatedTime;
@@ -549,7 +562,29 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
             
             
         end
-    end %methods
+      
+        function Log(obj,msg)
+            if ~obj.UseLogging
+                return
+            end
+
+            if isempty(obj.LogHandle)  
+                try
+                    obj.LogHandle = fopen(fullfile(obj.RootDirectory, obj.LogFile), 'a');
+                catch err
+                    warning('Could not open log file for writing.\n%s', err.message)
+                    obj.LogHandle = -1;
+                    return
+                end       
+            elseif obj.LogHandle == -1
+                return
+            end            
+
+            fprintf(obj.LogHandle, sprintf('[%s] %s\n', datestr(now), msg))  ;                      
+
+        end
+    
+    end %methods    
     
     %% Get/Set Methods
     methods
