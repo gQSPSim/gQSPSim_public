@@ -58,8 +58,8 @@ else
     RelativeObjectiveFunctionsPath = '';
     vObj.h.UseParallelCheckbox.Value = 0;
     vObj.h.UseLogFile.Value = false;
-    vObj.h.UseGit = false;
-    vObj.h.UseSQL = false;
+    vObj.h.UseGit.Value = false;
+    vObj.h.UseSQL.Value = false;
     
     Enable_cluster = 'off';
     ThisCluster = '';

@@ -1,5 +1,5 @@
 
-function [StatusOK,Message,isValid,Vpop,nPat,nSim, bCancelled]  = cohortGenerationRunHelper_par(obj, args)
+function [StatusOK,Message,isValid,Vpop,Results,nPat,nSim, bCancelled]  = cohortGenerationRunHelper_par(obj, args)
 
 StatusOK = true;
 Message = '';
@@ -26,7 +26,7 @@ for currGrp = unqGroups
     if ~any(groupVec==currGrp)
         StatusOK = false;
         Message = sprintf('%sInitial conditions file specified contains groups for which no task has been assigned.\n', Message);
-        delete(hWbar)
+%         delete(hWbar)
         return
     end
 end
@@ -48,13 +48,31 @@ q_vp = parallel.pool.DataQueue;
 
 hWbar = uix.utility.CustomWaitbar(0,'Virtual cohort generation','Generating virtual cohort...',true);
 
+for ixGrp = 1:length(unqGroups)
+    Results_all{ixGrp}.Data = [];
+end
+   
+lastResults = [];
+ViolationTable = [];
 
 function updateData(hWbar, data)
-    allPat = allPat + data(end); % 0 or 1
-    allSim = allSim + 1;
+    allPat = allPat + data.Valid; % 0 or 1
+    allSim = allSim + 1;    
+%     allPat = allPat + data(end); % 0 or 1
     
-    vPop_all = [vPop_all; data(1:end-1)];
-    isValid_all = [isValid_all; data(end)];
+    vPop_all = [vPop_all; data.Values];
+    isValid_all = [isValid_all; data.Valid];
+    
+%     vPop_all = [vPop_all; data(1:end-1)];
+%     isValid_all = [isValid_all; data(end)];    
+%     
+    for ixGrp = 1:length(data.Results)
+        % grow results
+        Results_all{ixGrp}.Data = [Results_all{ixGrp}.Data, data.Results{ixGrp}.Data];
+    end
+    
+    lastResults = data.Results;
+    ViolationTable = [ViolationTable; data.ViolationTable];
     
     if ~isempty(hWbar)
         thisStatusOK = uix.utility.CustomWaitbar(allPat/obj.MaxNumVirtualPatients,hWbar,sprintf('Succesfully generated %d/%d vpatients. (%d/%d Failed)',  ...
@@ -66,6 +84,7 @@ function updateData(hWbar, data)
     end
     
     if allPat > obj.MaxNumVirtualPatients || allSim  > obj.MaxNumSimulations
+%         send(workerQueueClient, true)
         cancel(F);
         delete(listener)
     end
@@ -79,21 +98,29 @@ bCancelled = false;
 allPat = 0;
 allSim = 0;
 
-F = parfevalOnAll(p, @cohortGenWhileBlock, 6, obj, args, [], q_vp);
+% F = parfevalOnAll(p, @cohortGenWhileBlock, 7, obj, args, [], q_vp, workerQueueConstant);
+% F = parfevalOnAll(p, @cohortGenWhileBlock, 7, obj, args, [], q_vp, workerQueueClient);
 
+F = parfevalOnAll(p, @cohortGenWhileBlock, 7, obj, args, [], q_vp);
 % cohortGenWhileBlock(obj, args, hWbar);
 
 fprintf('waiting...\n')
 wait(F)
 fprintf('Generated %d vpatients (%d valid)\n', size(vPop_all,1), nnz(isValid_all))
 
+% [Vpop, isValid, Results, ViolationTable, nPat, nSim, bCancelled] = fetchOutputs(F, 'UniformOutput', false);
 
 delete(hWbar)
 
 isValid = isValid_all;
 Vpop = vPop_all;
+Results = Results_all;
 
-
+for ixGrp=1:length(unqGroups)
+    Results{ixGrp}.VpopWeights = isValid;
+    Results{ixGrp}.Time = lastResults{ixGrp}.Time;
+    Results{ixGrp}.SpeciesNames = lastResults{ixGrp}.SpeciesNames;    
+end
 
 if nnz(isValid) > obj.MaxNumVirtualPatients
     % in case parallel went past last vpatient
@@ -108,8 +135,13 @@ nPat = nnz(isValid);
 ThisMessage = [num2str(nPat) ' virtual patients generated in ' num2str(nSim) ' simulations.'];
 Message = sprintf('%s\n%s\n',Message,ThisMessage);
 
-
-bProceed = true;
+if ~isempty(ViolationTable)
+    g = findgroups(ViolationTable.Task, ViolationTable.Species, cell2mat(ViolationTable.Time), ViolationTable.Type);
+    ViolationSums = splitapply(@length, ViolationTable.Type, g);
+    [~,ix] = unique(g);
+    ViolationSumsTable = [ViolationTable(ix,:), table(ViolationSums, 'VariableNames', {'Count'})];
+    disp(ViolationSumsTable)
+end
 
 
 end

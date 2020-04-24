@@ -299,6 +299,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
                 
                 newObj.UseLogging = obj.UseLogging;
                 newObj.AutoSaveGit = obj.AutoSaveGit;
+                newObj.GitRepo = obj.GitRepo;
                 newObj.UseSQL = obj.UseSQL;
                 
                 newObj.LastSavedTime = obj.LastSavedTime;
@@ -474,14 +475,24 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         function gitCommit(obj)
             
             gitFiles = obj.GitFiles;
+            
+            if ~exist(fullfile(obj.RootDirectory, obj.GitRepo), 'dir')
+                obj.Log('creating git repository')
+                [repoPath,repo,~] = fileparts(obj.GitRepo);
+                result = git(sprintf('init "%s"', fullfile(obj.RootDirectory, fullfile(repoPath,repo))));
+%                 if ~isempty(result)
+%                     warning(result)
+%                 end                
+            end
+                
             % get all the changes for each of the model files
             fileChanges = git(sprintf('-C "%s" --git-dir="%s" diff --name-only', ...
-                obj.RootDirectory, fullfile(obj.RootDirectory,obj.GitRepo)));
+                obj.RootDirectory, obj.GitRepo));
             fileChanges = strsplit(fileChanges,'\n');
             % add files
             for k=1:length(gitFiles)
                 result = git(sprintf('-C "%s" --git-dir="%s" add ''%s'' ', obj.RootDirectory, ...
-                    obj.GitRepo, gitFiles{k}));
+                     obj.GitRepo, gitFiles{k}));
                 if ~isempty(result)
                     warning(result)
                 end                
@@ -522,7 +533,8 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
             
             % update files that were already added for now. would be better
             % if this were only the files that are currently in the session
-            result = git(sprintf('-C "%s" --git-dir="%s" add -u ', obj.RootDirectory, obj.GitRepo));
+            result = git(sprintf('-C "%s" --git-dir="%s" add -u ', obj.RootDirectory, ...
+                obj.GitRepo));
             if ~isempty(result)
                 warning(result)
             end                    
@@ -548,7 +560,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
                 tmpFile = [tempname '.sbproj'];
                 
                 git(sprintf('-C "%s" --git-dir="%s" show HEAD:"%s" > "%s"', ...
-                    obj.RootDirectory, fullfile(obj.RootDirectory,obj.GitRepo), sbprojFiles{ixProj}, tmpFile ));
+                    obj.RootDirectory, obj.GitRepo, sbprojFiles{ixProj}, tmpFile ));
                 m1 = sbioloadproject( tmpFile);
                 m2 = sbioloadproject( fullfile(obj.RootDirectory, sbprojFiles{ixProj}));
                 evalc('thisMsg = sbprojDiff(m1.m1, m2.m1)'); % TODO handle case with multiple models
@@ -561,7 +573,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
                 gitMessage = sprintf('Snapshot at %s', datestr(now));
             end
 
-            result = git(sprintf('-C "%s" commit -m "%s"', obj.RootDirectory, ...
+            result = git(sprintf('-C "%s" --git-dir="%s" commit -m "%s"', obj.RootDirectory, obj.GitRepo, ...
                 strjoin(gitMessage,'\r\n')));
 
             fprintf('[%s] Committed snapshot to git\n', datestr(now));
@@ -592,7 +604,12 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
                 return
             end            
 
-            fprintf(obj.LogHandle, sprintf('[%s] %s\n', datestr(now), msg))  ;                      
+            try
+                fprintf(obj.LogHandle, sprintf('[%s] %s\n', datestr(now), msg))  ;                      
+            catch
+                warning('Could not write to log file.' )
+                obj.LogHandle = -1;
+            end
 
         end
     
