@@ -1,3 +1,0 @@
-function jobStartup(job)
-
-units
