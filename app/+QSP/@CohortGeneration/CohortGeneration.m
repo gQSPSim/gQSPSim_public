@@ -29,7 +29,7 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
     %% Properties
     properties
         Settings = QSP.Settings.empty(0,1)
-        VPopResultsFolderName = 'CohortGenerationResults' 
+        VPopResultsFolderPath = {'CohortGenerationResults'};
         ICFileName = ''
         ExcelResultFileName = ''
         VPopName = '' % VPop name from running vpop gen
@@ -75,6 +75,10 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             'Normal'
             'Diagnostic'
             }
+    end
+    
+    properties (Dependent)
+        VPopResultsFolderName
     end
     
     %% Transient Properties
@@ -685,8 +689,13 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         
         function set.VPopResultsFolderName(obj,Value)
             validateattributes(Value,{'char'},{'row'});
-            obj.VPopResultsFolderName = Value;
+            obj.VPopResultsFolderPath = strsplit(Value,filesep);        
         end
+        
+        function Value=get.VPopResultsFolderName(obj)            
+            Value = strjoin(obj.VPopResultsFolderPath,filesep);
+        end
+            
         
         function set.DatasetName(obj,Value)
             validateattributes(Value,{'char'},{});

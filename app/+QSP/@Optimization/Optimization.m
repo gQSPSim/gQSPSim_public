@@ -29,7 +29,7 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
     %% Properties
     properties
         Settings = QSP.Settings.empty(0,1)
-        OptimResultsFolderName = 'OptimResults' 
+        OptimResultsFolderPath = {'OptimResults'};
         ExcelResultFileName = {} % At least one file
         VPopName = {} % At least one Vpop
         
@@ -75,6 +75,10 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
     properties (Transient=true)
         ItemModels = []; % cached Item Models
         Results = []; % cached results
+    end
+    
+    properties (Dependent)
+        OptimResultsFolderName
     end
     
     %% Constructor
@@ -863,7 +867,11 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         
         function set.OptimResultsFolderName(obj,Value)
             validateattributes(Value,{'char'},{'row'});
-            obj.OptimResultsFolderName = Value;
+            obj.OptimResultsFolderPath = strsplit(Value,filesep);
+        end
+        
+        function Value=get.OptimResultsFolderName(obj)
+            Value = strjoin(obj.OptimResultsFolderPath,filesep);
         end
         
         function set.DatasetName(obj,Value)
@@ -928,6 +936,7 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             obj.PlotSettings = Value;
         end
         
+
     end %methods
     
 end %classdef

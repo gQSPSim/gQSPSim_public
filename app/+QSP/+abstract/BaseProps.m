@@ -41,7 +41,7 @@ classdef (Abstract) BaseProps < matlab.mixin.SetGet & matlab.mixin.Heterogeneous
     properties
         Session = QSP.Session.empty(1,0)
 %         Name = ''    % Name
-        RelativeFilePath = '' % Path to file
+        RelativeFilePathParts = {''}
 %         Description = '' % Description
         
         bShowTraces = []
@@ -58,6 +58,7 @@ classdef (Abstract) BaseProps < matlab.mixin.SetGet & matlab.mixin.Heterogeneous
     properties (Dependent=true)
         FilePath
 %         LastSavedTimeStr
+        RelativeFilePath
     end
     
     %% Protected Properties
@@ -282,7 +283,11 @@ classdef (Abstract) BaseProps < matlab.mixin.SetGet & matlab.mixin.Heterogeneous
         
         function set.RelativeFilePath(obj,value)
             validateattributes(value,{'char'},{})
-            obj.RelativeFilePath = value;
+            obj.RelativeFilePathParts = strsplit(value,filesep);
+        end
+        
+        function Value = get.RelativeFilePath(obj)
+            Value = strjoin(obj.RelativeFilePathParts,filesep);
         end
         
 %         function set.Description(obj,value)

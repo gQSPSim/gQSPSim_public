@@ -29,7 +29,6 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
     %% Properties
     properties
         Settings = QSP.Settings.empty(0,1)
-        SimResultsFolderName = 'SimResults' 
         
         DatasetName = '' % OptimizationData Name
         GroupName = ''
@@ -44,7 +43,12 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         SelectedPlotLayout = '1x1'
         
         PlotSettings = repmat(struct(),1,12)
+        SimResultsFolderPath = {'SimResults'}
 
+    end
+      
+    properties (Dependent)
+        SimResultsFolderName
     end
     
     properties (SetAccess = 'private')
@@ -417,7 +421,11 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         
         function set.SimResultsFolderName(obj,Value)
             validateattributes(Value,{'char'},{'row'});
-            obj.SimResultsFolderName = Value;
+            obj.SimResultsFolderPath = strsplit(Value, filesep);
+        end
+        
+        function Value = get.SimResultsFolderName(obj)
+            Value = strjoin(obj.SimResultsFolderPath, filesep);
         end
         
         function set.DatasetName(obj,Value)
@@ -461,4 +469,8 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         end
     end %methods
     
+%     %% Get Methods
+%     methods 
+%         
+%     end
 end %classdef

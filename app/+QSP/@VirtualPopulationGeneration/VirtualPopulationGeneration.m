@@ -29,7 +29,7 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
     %% Properties
     properties
         Settings = QSP.Settings.empty(0,1)
-        VPopResultsFolderName = 'VPopResults' 
+        VPopResultsFolderPath = {'VPopResults'}
         ExcelResultFileName = ''
         VPopName = '' % VPop name from running vpop gen
               
@@ -75,6 +75,9 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
         SimFlag = [] % valid/invalid flag for simulation
     end
     
+    properties (Dependent)
+        VPopResultsFolderName
+    end
     
     %% Constructor
     methods
@@ -673,8 +676,13 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
         
         function set.VPopResultsFolderName(obj,Value)
             validateattributes(Value,{'char'},{'row'});
-            obj.VPopResultsFolderName = Value;
+            obj.VPopResultsFolderPath = strsplit(Value,filesep);
         end
+        
+        function Value = get.VPopResultsFolderName(obj)
+            Value = strjoin(obj.VPopResultsFolderPath,filesep);
+        end
+        
         
         function set.DatasetName(obj,Value)
             validateattributes(Value,{'char'},{});
@@ -715,6 +723,7 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
             validateattributes(Value,{'struct'},{});
             obj.PlotSettings = Value;
         end
+        
     end %methods
     
 end %classdef
