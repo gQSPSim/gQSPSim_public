@@ -954,8 +954,14 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
         function checkForUpdates()
 
             w = weboptions('CertificateFile','');
-            webData = webread('https://api.github.com/repos/feigelman/gQSPsim-release/tags', w); % TODO: correct repo!
-
+            try
+                webData = webread('https://api.github.com/repos/feigelman/gQSPsim-release/tags', w); % TODO: correct repo!
+            catch err
+                warning('Check for updates failed.\n%s', err.message)
+                return
+            end
+            
+                    
             if ~isempty(webData) && isstruct(webData) && isfield(webData,'name')
                 webVersion = webData(1).name;
                 if ~strcmp(webVersion, QSPViewer.App.Version)            
