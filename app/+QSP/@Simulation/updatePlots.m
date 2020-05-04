@@ -64,7 +64,6 @@ for axIndex = AxIndices(:)'
     
     % Get all children
     TheseSpeciesGroups = [hSpeciesGroup{:,axIndex}];
-    TheseSpeciesGroups = TheseSpeciesGroups(arrayfun(@isvalid, TheseSpeciesGroups)); % remove deleted items
 
     try
         ch = get(TheseSpeciesGroups,'Children');
