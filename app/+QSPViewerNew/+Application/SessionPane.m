@@ -268,6 +268,7 @@ classdef SessionPane < QSPViewerNew.Application.ViewPane
         function attachNewSession(obj,NewSession)
             obj.Session = NewSession;
             obj.TemporarySession = copy(obj.Session);
+            obj.draw();
         end
         
         function value = checkDirty(obj)
@@ -288,16 +289,15 @@ classdef SessionPane < QSPViewerNew.Application.ViewPane
             obj.IsDirty = true;
         end
         
-        function saveBackEndInformation(obj)
+        function [StatusOK] =  saveBackEndInformation(obj)
             
             %Validate the temporary data
-            FlagRemoveInvalid = false;
-            [StatusOK,Message] = obj.TemporarySession.validate(FlagRemoveInvalid);          
+            FlagRemoveInvalid = false;     
+            [StatusOK,Message] = obj.TemporarySession.validate(FlagRemoveInvalid);
+            [StatusOK,Message] = obj.checkForDuplicateNames(StatusOK,Message);
             
             if StatusOK
                 obj.TemporarySession.updateLastSavedTime();
-                previousName = obj.TemporarySession.Name;
-                newName = obj.Session.Name;
                 
                 %This creates an entirely new copy of the Session except
                 %the name isnt copied
@@ -319,35 +319,35 @@ classdef SessionPane < QSPViewerNew.Application.ViewPane
         
         function draw(obj)
             %Draw the superclass Widgets values
-            obj.updateDescriptionBox(obj.Session.Description);
-            obj.updateNameBox(obj.Session.Name);
-            obj.updateSummary(obj.Session.getSummary());
+            obj.updateDescriptionBox(obj.TemporarySession.Description);
+            obj.updateNameBox(obj.TemporarySession.Name);
+            obj.updateSummary(obj.TemporarySession.getSummary());
             
             %Draw the widgets for this class
-            obj.RootDirSelector.setRelativePath(obj.Session.RootDirectory);
+            obj.RootDirSelector.setRelativePath(obj.TemporarySession.RootDirectory);
             
-            obj.ObjectiveFunDirSelector.setRelativePath(obj.Session.RelativeObjectiveFunctionsPath);
-            obj.ObjectiveFunDirSelector.setRootDirectory(obj.Session.RootDirectory);
+            obj.ObjectiveFunDirSelector.setRelativePath(obj.TemporarySession.RelativeObjectiveFunctionsPath);
+            obj.ObjectiveFunDirSelector.setRootDirectory(obj.TemporarySession.RootDirectory);
             
-            obj.UDFSelector.setRelativePath(obj.Session.RelativeUserDefinedFunctionsPath);
-            obj.UDFSelector.setRootDirectory(obj.Session.RootDirectory);
+            obj.UDFSelector.setRelativePath(obj.TemporarySession.RelativeUserDefinedFunctionsPath);
+            obj.UDFSelector.setRootDirectory(obj.TemporarySession.RootDirectory);
             
-            obj.AutoSaveFolderSelect.setRelativePath(obj.Session.RelativeAutoSavePath);
-            obj.AutoSaveFolderSelect.setRootDirectory(obj.Session.RootDirectory);
+            obj.AutoSaveFolderSelect.setRelativePath(obj.TemporarySession.RelativeAutoSavePath);
+            obj.AutoSaveFolderSelect.setRootDirectory(obj.TemporarySession.RootDirectory);
             
-            obj.UseParallelToolboxCheckBox.Value = obj.Session.UseParallel;
+            obj.UseParallelToolboxCheckBox.Value = obj.TemporarySession.UseParallel;
 
-            obj.AutoSavePeriodically.Value = obj.Session.UseAutoSaveTimer;
+            obj.AutoSavePeriodically.Value = obj.TemporarySession.UseAutoSaveTimer;
             
-            obj.AutoSaveBeforeRun.Value = obj.Session.AutoSaveBeforeRun;
+            obj.AutoSaveBeforeRun.Value = obj.TemporarySession.AutoSaveBeforeRun;
             
-            obj.AutoSaveFreqEdit.Value = obj.Session.AutoSaveFrequency;
+            obj.AutoSaveFreqEdit.Value = obj.TemporarySession.AutoSaveFrequency;
             
             %Determine the users parallel options
             info = ver;
             if ismember('Parallel Computing Toolbox', {info.Name})
                obj.UseParallelToolboxDropDown.Items = parallel.clusterProfiles;
-               obj.UseParallelToolboxCheckBox.Value = obj.Session.UseParallel;
+               obj.UseParallelToolboxCheckBox.Value = obj.TemporarySession.UseParallel;
                obj.UseParallelToolboxDropDown.Enable = 'on';
                obj.UseParallelToolboxCheckBox.Enable = 'on';
             else
@@ -366,6 +366,11 @@ classdef SessionPane < QSPViewerNew.Application.ViewPane
             % Remove the invalid entries
             validate(obj.TemporarySession,FlagRemoveInvalid);
             obj.draw()
+            obj.IsDirty = true;
+        end
+        
+        function [StatusOK,Message] = checkForDuplicateNames(~,StatusOK,Message)
+            %Sessions do not need to be check for duplicates
         end
         
     end

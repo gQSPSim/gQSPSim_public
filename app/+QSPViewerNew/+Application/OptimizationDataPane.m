@@ -115,9 +115,9 @@ classdef OptimizationDataPane < QSPViewerNew.Application.ViewPane
         function onFileType(obj,newData)
             obj.TemporaryOptimizationData.DatasetType = newData;
              if strcmp(obj.FileTypeDropDown.Value,'wide')
-                obj.OptimFileSelector.setFileTemplate('DataSet_Template.xlsx');
+                obj.OptimFileSelector.setFileTemplate(QSPViewerNew.Resources.LoadResourcePath('DataSet_Template.xlsx'));
             elseif strcmp(obj.FileTypeDropDown.Value,'tall')
-                obj.OptimFileSelector.setFileTemplate('DataSet_Template_tall.xlsx');
+                obj.OptimFileSelector.setFileTemplate(QSPViewerNew.Resources.LoadResourcePath('DataSet_Template_tall.xlsx'));
             end
             obj.IsDirty = true;
         end
@@ -136,6 +136,7 @@ classdef OptimizationDataPane < QSPViewerNew.Application.ViewPane
         function attachNewOptimizationData(obj,newOptimizationData)
             obj.OptimizationData = newOptimizationData;
             obj.TemporaryOptimizationData = copy(obj.OptimizationData);
+            obj.draw();
         end
         
         function value = checkDirty(obj)
@@ -156,11 +157,12 @@ classdef OptimizationDataPane < QSPViewerNew.Application.ViewPane
             obj.IsDirty = true;
         end
         
-        function saveBackEndInformation(obj)
+        function [StatusOK] = saveBackEndInformation(obj)
             
             %Validate the temporary data
             FlagRemoveInvalid = false;
-            [StatusOK,Message] = obj.TemporaryOptimizationData.validate(FlagRemoveInvalid);          
+            [StatusOK,Message] = obj.TemporaryOptimizationData.validate(FlagRemoveInvalid);
+            [StatusOK,Message] = obj.checkForDuplicateNames(StatusOK,Message);       
             
             if StatusOK
                 obj.TemporaryOptimizationData.updateLastSavedTime();
@@ -190,13 +192,13 @@ classdef OptimizationDataPane < QSPViewerNew.Application.ViewPane
             obj.FileTypeDropDown.Value = obj.TemporaryOptimizationData.DatasetType;
             
             obj.OptimFileSelector.setFileExtension('.xlsx')
-            obj.OptimFileSelector.setRootDirectory(obj.OptimizationData.Session.RootDirectory);
+            obj.OptimFileSelector.setRootDirectory(obj.TemporaryOptimizationData.Session.RootDirectory);
             obj.OptimFileSelector.setRelativePath(obj.TemporaryOptimizationData.RelativeFilePath);
             
             if strcmp(obj.FileTypeDropDown.Value,'wide')
-                obj.OptimFileSelector.setFileTemplate('+QSPViewerNew/+Resources/DataSet_Template.xlsx');
+                obj.OptimFileSelector.setFileTemplate(QSPViewerNew.Resources.LoadResourcePath('DataSet_Template.xlsx'));
             elseif strcmp(obj.FileTypeDropDown.Value,'tall')
-                obj.OptimFileSelector.setFileTemplate('+QSPViewerNew/+Resources/DataSet_Template_tall.xlsx');
+                obj.OptimFileSelector.setFileTemplate(QSPViewerNew.Resources.LoadResourcePath('DataSet_Template_tall.xlsx'));
             end
             
             obj.IsDirty = false;
@@ -207,8 +209,17 @@ classdef OptimizationDataPane < QSPViewerNew.Application.ViewPane
             % Remove the invalid entries
             validate(obj.TemporaryOptimizationData,FlagRemoveInvalid);
             obj.draw()
+            obj.IsDirty = true;
         end
         
+        function [StatusOK,Message] = checkForDuplicateNames(obj,StatusOK,Message)
+            refObject = obj.OptimizationData.Session.Settings.OptimizationData;
+            ixDup = find(strcmp( obj.TemporaryOptimizationData.Name, {refObject.Name}));
+            if ~isempty(ixDup) && (refObject(ixDup) ~= obj.TemporaryOptimizationData)
+                Message = sprintf('%s\nDuplicate names are not allowed.\n', Message);
+                StatusOK = false;
+            end
+        end
     end
     
     methods (Access = private)

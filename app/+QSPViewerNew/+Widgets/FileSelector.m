@@ -85,7 +85,7 @@ classdef FileSelector < handle
             obj.ButtonHandle = uibutton(obj.InternalGrid, 'push');
             obj.ButtonHandle.Layout.Row = 1;
             obj.ButtonHandle.Layout.Column = 3;
-            obj.ButtonHandle.Icon = '+QSPViewerNew\+Resources\folder_24.png';
+            obj.ButtonHandle.Icon = QSPViewerNew.Resources.LoadResourcePath('folder_24.png');
             obj.ButtonHandle.ButtonPushedFcn = @obj.onButtonPress;
             obj.ButtonHandle.Text = '';
             obj.ButtonHandle.Tooltip = {'Click to browse'};
@@ -111,8 +111,6 @@ classdef FileSelector < handle
                 obj.EditTextHandle.FontColor = 'r';
             end
             obj.EditTextHandle.Value = obj.RelativePath;
-            
-            notify(obj,'StateChanged')
         end
     end
     
@@ -141,11 +139,13 @@ classdef FileSelector < handle
             end
             
             obj.update();
+            notify(obj,'StateChanged')
         end
         
         function onEditValueChanged(obj,newValue)
             obj.RelativePath = newValue;
             obj.update();
+            notify(obj,'StateChanged')
         end
      
     end

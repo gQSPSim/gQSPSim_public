@@ -21,6 +21,12 @@ classdef ViewPane < handle
         ParentApp
         Focus = '';
         HasVisualization
+        PlotSettings = QSP.PlotSettings.empty(1,0)
+        bShowTraces  = cell.empty(1,0);
+        bShowQuantiles = cell.empty(1,0);
+        bShowMean = cell.empty(1,0); 
+        bShowMedian = cell.empty(1,0);
+        bShowSD = cell.empty(1,0);
     end
   
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -47,6 +53,34 @@ classdef ViewPane < handle
         ButtonsLayout       matlab.ui.container.GridLayout
         SummaryLabel        matlab.ui.control.Label
         EditLabel           matlab.ui.control.Label
+        RunButton           matlab.ui.control.Button
+        VisualizeButton     matlab.ui.control.Button
+        SettingsButton      matlab.ui.control.Button
+        ZoomInButton        matlab.ui.control.StateButton
+        ZoomOutButton       matlab.ui.control.StateButton
+        PanButton           matlab.ui.control.StateButton
+        ExploreButton       matlab.ui.control.StateButton
+        VisualizationPanel  matlab.ui.container.Panel
+        VisualizationGrid   QSPViewerNew.Widgets.GridFlex
+        PlottingGrid        matlab.ui.container.GridLayout
+        PlotInteractionGrid matlab.ui.container.GridLayout
+        PlotDropDown        matlab.ui.control.DropDown
+        YScaleMenu  = matlab.ui.control.UIAxes.empty(1,0);
+        
+        PlotArray = matlab.ui.control.UIAxes.empty(12,0);
+        
+        ContextMenuArray = matlab.ui.control.UIAxes.empty(1,0);
+        YLinearMenu = matlab.ui.container.Menu.empty(1,0);
+        YLogMenu = matlab.ui.container.Menu.empty(1,0);
+        SaveMenu = matlab.ui.container.Menu.empty(1,0);
+        SaveFullMenu = matlab.ui.container.Menu.empty(1,0);
+        TracesMenu = matlab.ui.container.Menu.empty(1,0);
+        QuantilesMenu = matlab.ui.container.Menu.empty(1,0);
+        MeanMenu = matlab.ui.container.Menu.empty(1,0);
+        MedianMenu = matlab.ui.container.Menu.empty(1,0);
+        StandardDeviationMenu = matlab.ui.container.Menu.empty(1,0);
+        
+        EmptyParent = matlab.ui.Figure.empty(1,0);
     end
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -88,6 +122,8 @@ classdef ViewPane < handle
         PanelBackgroundColor = [.97,.97,.97];
         SubPanelColor = [.97,.97,.97];
         SmallLabel = 80;
+        MaxNumPlots = 12
+        PlotLayoutOptions = {'1x1','1x2','2x1','2x2','3x2','3x3','3x4'}
     end
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -103,7 +139,7 @@ classdef ViewPane < handle
                 obj.ParentApp = varargin{4};
                 obj.HasVisualization = varargin{5};
             else
-                message = ['This constructor requires one of the following of inputs' ...
+                message = ['This constructor requires the following inputs' ...
                     newline '1.' ...
                     newline '-Graphical Parent: uigridlayout...' ...
                     newline '-GridRow: int' ...
@@ -261,7 +297,7 @@ classdef ViewPane < handle
            obj.SaveButton = uibutton(obj.EditButtonLayout,'push');
            obj.SaveButton.Layout.Row = 1;
            obj.SaveButton.Layout.Column = 3;
-           obj.SaveButton.Text = 'Save';
+           obj.SaveButton.Text = 'OK';
            obj.SaveButton.Tag = 'Save';
            obj.SaveButton.ButtonPushedFcn = @(~,~) obj.onSave();
            
@@ -288,7 +324,7 @@ classdef ViewPane < handle
            obj.SummaryButton = uibutton(obj.ButtonsLayout,'push');
            obj.SummaryButton.Layout.Row = 1;
            obj.SummaryButton.Layout.Column = 1;
-           obj.SummaryButton.Icon = '+QSPViewerNew\+Resources\report_24.png';
+           obj.SummaryButton.Icon = QSPViewerNew.Resources.LoadResourcePath('report_24.png');
            obj.SummaryButton.Tooltip = 'View summary';
            obj.SummaryButton.ButtonPushedFcn = @(h,e)obj.onNavigation('Summary');
            obj.SummaryButton.Text = '';
@@ -297,10 +333,233 @@ classdef ViewPane < handle
            obj.EditButton = uibutton(obj.ButtonsLayout,'push');
            obj.EditButton.Layout.Row = 1;
            obj.EditButton.Layout.Column = 2;
-           obj.EditButton.Icon = '+QSPViewerNew\+Resources\edit_24.png';
+           obj.EditButton.Icon = QSPViewerNew.Resources.LoadResourcePath('edit_24.png');
            obj.EditButton.Tooltip = 'Edit the selected item';
            obj.EditButton.ButtonPushedFcn = @(h,e)obj.onNavigation('Edit');
            obj.EditButton.Text = '';
+           
+           if obj.HasVisualization
+               %Draw items specific to the visualization
+               ButtonGroupGrid = obj.getButtonGrid();
+               %DrawButtons on the top
+               %Run Button
+               obj.RunButton = uibutton(ButtonGroupGrid,'push');
+               obj.RunButton.Layout.Row = 1;
+               obj.RunButton.Layout.Column = 3;
+               obj.RunButton.Icon = QSPViewerNew.Resources.LoadResourcePath('play_24.png');
+               obj.RunButton.Tooltip = 'Run the selected item';
+               obj.RunButton.ButtonPushedFcn = @(h,e)obj.onNavigation('Run');
+               obj.RunButton.Text = '';
+
+               %Visualize Button
+               obj.VisualizeButton = uibutton(ButtonGroupGrid,'push');
+               obj.VisualizeButton.Layout.Row = 1;
+               obj.VisualizeButton.Layout.Column = 5;
+               obj.VisualizeButton.Icon = QSPViewerNew.Resources.LoadResourcePath('plot_24.png');
+               obj.VisualizeButton.Tooltip = 'Visualize the selected item';
+               obj.VisualizeButton.ButtonPushedFcn = @(h,e)obj.onNavigation('Visualize');
+               obj.VisualizeButton.Text = '';
+
+               % Settings Button
+               obj.SettingsButton = uibutton(ButtonGroupGrid,'push');
+               obj.SettingsButton.Layout.Row = 1;
+               obj.SettingsButton.Layout.Column = 6;
+               obj.SettingsButton.Icon = QSPViewerNew.Resources.LoadResourcePath('settings_24.png');
+               obj.SettingsButton.Tooltip = 'Customize plot settings the selected item';
+               obj.SettingsButton.ButtonPushedFcn = @(h,e)obj.onNavigation('Settings');
+               obj.SettingsButton.Text = '';
+
+               %ZoomIn
+               obj.ZoomInButton = uibutton(ButtonGroupGrid,'state');
+               obj.ZoomInButton.Layout.Row = 1;
+               obj.ZoomInButton.Layout.Column = 7;
+               obj.ZoomInButton.Icon = QSPViewerNew.Resources.LoadResourcePath('zoomin.png');
+               obj.ZoomInButton.Tooltip = 'Zoom in';
+               obj.ZoomInButton.ValueChangedFcn = @(h,e)obj.onNavigation('ZoomIn');
+               obj.ZoomInButton.Text = '';
+
+               % Zoom out
+               obj.ZoomOutButton = uibutton(ButtonGroupGrid,'state');
+               obj.ZoomOutButton.Layout.Row = 1;
+               obj.ZoomOutButton.Layout.Column = 8;
+               obj.ZoomOutButton.Icon = QSPViewerNew.Resources.LoadResourcePath('zoomout.png');
+               obj.ZoomOutButton.Tooltip = 'Zoom out';
+               obj.ZoomOutButton.ValueChangedFcn = @(h,e)obj.onNavigation('ZoomOut');
+               obj.ZoomOutButton.Text = '';
+
+               % Pan
+               obj.PanButton = uibutton(ButtonGroupGrid,'state');
+               obj.PanButton.Layout.Row = 1;
+               obj.PanButton.Layout.Column = 9;
+               obj.PanButton.Icon = QSPViewerNew.Resources.LoadResourcePath('pan.png');
+               obj.PanButton.Tooltip = 'Pan';
+               obj.PanButton.ValueChangedFcn = @(h,e)obj.onNavigation('Pan');
+               obj.PanButton.Text = '';
+
+               % Explore
+               obj.ExploreButton = uibutton(ButtonGroupGrid,'state');
+               obj.ExploreButton.Layout.Row = 1;
+               obj.ExploreButton.Layout.Column = 10;
+               obj.ExploreButton.Icon = QSPViewerNew.Resources.LoadResourcePath('datatip.png');
+               obj.ExploreButton.Tooltip = 'Explore';
+               obj.ExploreButton.ValueChangedFcn = @(h,e)obj.onNavigation('Explore');
+               obj.ExploreButton.Text = '';
+               
+               %Create Visualization Panel
+               obj.VisualizationPanel = uipanel(obj.OuterGrid);
+               obj.VisualizationPanel.BackgroundColor = obj.PanelBackgroundColor;
+               obj.VisualizationPanel.Layout.Row = 2;
+               obj.VisualizationPanel.Layout.Column = 1;
+               obj.VisualizationPanel.Visible = 'off';
+               
+               %Create visualization panel layout. 
+               obj.VisualizationGrid = QSPViewerNew.Widgets.GridFlex(obj.VisualizationPanel);
+               
+               %Create the plotting grid
+               obj.PlottingGrid = uigridlayout(obj.VisualizationGrid.getGridHandle());
+               obj.PlottingGrid.Layout.Column = 1;
+               obj.PlottingGrid.Layout.Row = 1;
+               obj.PlottingGrid.ColumnWidth = {'1x'};
+               obj.PlottingGrid.RowHeight = {'1x'};
+               
+               obj.PlotInteractionGrid = uigridlayout(obj.VisualizationGrid.getGridHandle());
+               obj.PlotInteractionGrid.Layout.Column = 3;
+               obj.PlotInteractionGrid.Layout.Row = 1;
+               obj.PlotInteractionGrid.ColumnWidth = {'1x'};
+               obj.PlotInteractionGrid.RowHeight = {obj.WidgetHeight,'1x',obj.WidgetHeight};
+               
+               obj.PlotDropDown = uidropdown(obj.PlotInteractionGrid);
+               obj.PlotDropDown.Layout.Column = 1;
+               obj.PlotDropDown.Layout.Row = 1;
+               obj.PlotDropDown.Items = obj.PlotLayoutOptions;
+               obj.PlotDropDown.ValueChangedFcn = @(h,e) obj.onEdit('PlotConfig',e.Value);
+               
+               obj.RemoveButton = uibutton(obj.PlotInteractionGrid,'push');
+               obj.RemoveButton.Layout.Row = 3;
+               obj.RemoveButton.Layout.Column = 1;
+               obj.RemoveButton.Text = 'Remove Invalid';
+               obj.RemoveButton.Tag = 'Remove Invalid Visualization';
+               obj.RemoveButton.ButtonPushedFcn = @(~,~) obj.onRemoveInvalidVisualization();
+               
+               %Create all plot objects
+               for plotIndex = 1:obj.MaxNumPlots
+                    obj.PlotArray(plotIndex) = uiaxes('Parent',obj.EmptyParent);
+                    currentPlot = obj.PlotArray(plotIndex);
+                    disableDefaultInteractivity(currentPlot)
+                    obj.PlotArray(plotIndex).Tag = ['plot',num2str(plotIndex)];
+                    currentPlot.Toolbar.Visible = 'off';
+
+                    %Title
+                    currentPlot.Title.String = sprintf('Plot %d',plotIndex);
+                    currentPlot.Title.FontWeight = QSP.PlotSettings.DefaultTitleFontWeight;
+                    currentPlot.Title.FontSize = QSP.PlotSettings.DefaultTitleFontSize;
+
+                    %Xlabel
+                    currentPlot.XLabel.String = QSP.PlotSettings.DefaultXLabel;
+                    currentPlot.XLabel.FontWeight = QSP.PlotSettings.DefaultXLabelFontWeight;
+                    currentPlot.XLabel.FontSize = QSP.PlotSettings.DefaultXLabelFontSize;
+
+                    %XRuler
+                    currentPlot.XAxis.FontWeight = QSP.PlotSettings.DefaultXTickLabelFontWeight;
+                    currentPlot.XAxis.FontSize = QSP.PlotSettings.DefaultXTickLabelFontSize;
+
+                    %YLabel
+                    currentPlot.YLabel.String = QSP.PlotSettings.DefaultYLabel;
+                    currentPlot.YLabel.FontWeight = QSP.PlotSettings.DefaultYLabelFontWeight;
+                    currentPlot.YLabel.FontSize = QSP.PlotSettings.DefaultYLabelFontSize;
+
+                    %YRuler 
+                    currentPlot.YAxis.FontWeight = QSP.PlotSettings.DefaultYTickLabelFontWeight;
+                    currentPlot.YAxis.FontSize = QSP.PlotSettings.DefaultYTickLabelFontSize;
+
+                    %Plot area properties
+                    currentPlot.XGrid = QSP.PlotSettings.DefaultXGrid;
+                    currentPlot.YGrid = QSP.PlotSettings.DefaultYGrid;
+                    currentPlot.XMinorGrid = QSP.PlotSettings.DefaultXMinorGrid;
+                    currentPlot.YMinorGrid = QSP.PlotSettings.DefaultYMinorGrid;
+                    currentPlot.YScale = QSP.PlotSettings.DefaultYScale;
+                    currentPlot.XLim = str2double(strsplit(QSP.PlotSettings.DefaultCustomXLim));
+                    currentPlot.XLimMode = QSP.PlotSettings.DefaultXLimMode;
+                    currentPlot.YLim = str2double(strsplit(QSP.PlotSettings.DefaultCustomYLim));
+                    currentPlot.YLimMode = QSP.PlotSettings.DefaultYLimMode;
+                    
+                    %Plot settings
+                    %TODO Discuss changes between uiaxes and axes 
+                    %obj.PlotSettings(plotIndex) = QSP.PlotSettings(currentPlot);
+                    %obj.PlotSettings(plotIndex).Title = sprintf('Plot %d',plotIndex);
+                    
+                    %Add the context menus. 
+                    %create context menu object;
+                    obj.ContextMenuArray(plotIndex) = uicontextmenu(ancestor(obj.PlottingGrid,'figure'));
+                    obj.ContextMenuArray(plotIndex).Tag = ['plot',num2str(plotIndex)];
+                    
+                    obj.YScaleMenu(plotIndex) = uimenu(obj.ContextMenuArray(plotIndex));
+                    obj.YScaleMenu(plotIndex).Label = 'Y-Scale';
+                    obj.YScaleMenu(plotIndex).Tag = 'YScale';
+                    
+                    obj.YLinearMenu(plotIndex) = uimenu(obj.YScaleMenu(plotIndex));
+                    obj.YLinearMenu(plotIndex).Label = 'Linear';
+                    obj.YLinearMenu(plotIndex).Tag = 'YScaleLinear';
+                    obj.YLinearMenu(plotIndex).Checked = 'on';
+                    obj.YLinearMenu(plotIndex).MenuSelectedFcn = @(h,e) obj.onAxisContextMenu(h,e);
+                    
+                    obj.YLogMenu(plotIndex) = uimenu(obj.YScaleMenu(plotIndex));
+                    obj.YLogMenu(plotIndex).Label = 'Log';
+                    obj.YLogMenu(plotIndex).Tag = 'YScaleLog';
+                    obj.YLogMenu(plotIndex).Checked = 'off';
+                    obj.YLogMenu(plotIndex).MenuSelectedFcn = @(h,e) obj.onAxisContextMenu(h,e);
+                    
+                    obj.SaveMenu(plotIndex) = uimenu(obj.ContextMenuArray(plotIndex));
+                    obj.SaveMenu(plotIndex).Label = 'Save Current Axes...';
+                    obj.SaveMenu(plotIndex).Tag = 'ExportSingleAxes';
+                    obj.SaveMenu(plotIndex).Separator = 'on';
+                    obj.SaveMenu(plotIndex).MenuSelectedFcn = @(h,e) obj.onAxisContextMenu(h,e);
+                    
+                    obj.SaveFullMenu(plotIndex) = uimenu(obj.ContextMenuArray(plotIndex));
+                    obj.SaveFullMenu(plotIndex).Label = 'Save Full View';
+                    obj.SaveFullMenu(plotIndex).Tag = 'ExportAllAxes';
+                    obj.SaveFullMenu(plotIndex).MenuSelectedFcn = @(h,e) obj.onAxisContextMenu(h,e);
+                    
+                    %By default, use no extras %TODO
+                    obj.bShowTraces{plotIndex} = 'off'; % default off
+                    obj.bShowQuantiles{plotIndex} = 'off'; % default on
+                    obj.bShowMean{plotIndex} = 'off'; % default on
+                    obj.bShowMedian{plotIndex} = 'off'; % default off
+                    obj.bShowSD{plotIndex} = 'off'; % default off
+                    
+                    obj.TracesMenu(plotIndex) = uimenu(obj.ContextMenuArray(plotIndex));
+                    obj.TracesMenu(plotIndex).Label = 'Show Traces';
+                    obj.TracesMenu(plotIndex).Checked = obj.bShowTraces{plotIndex};
+                    obj.TracesMenu(plotIndex).Separator = 'on';
+                    obj.TracesMenu(plotIndex).Tag = 'ShowTraces';
+                    obj.TracesMenu(plotIndex).MenuSelectedFcn = @(h,e) obj.onAxisContextMenu(h,e);
+                    
+                    obj.QuantilesMenu(plotIndex) = uimenu(obj.ContextMenuArray(plotIndex));
+                    obj.QuantilesMenu(plotIndex).Label = 'Show Upper/Lower Quantiles';
+                    obj.QuantilesMenu(plotIndex).Checked = obj.bShowQuantiles{plotIndex};
+                    obj.QuantilesMenu(plotIndex).Tag = 'ShowQuantiles';
+                    obj.QuantilesMenu(plotIndex).MenuSelectedFcn = @(h,e) obj.onAxisContextMenu(h,e);
+                    
+                    obj.MeanMenu(plotIndex) = uimenu(obj.ContextMenuArray(plotIndex));
+                    obj.MeanMenu(plotIndex).Label = 'Show Mean (Weighted)';
+                    obj.MeanMenu(plotIndex).Checked = obj.bShowMean{plotIndex};
+                    obj.MeanMenu(plotIndex).Tag = 'ShowMean';
+                    obj.MeanMenu(plotIndex).MenuSelectedFcn = @(h,e) obj.onAxisContextMenu(h,e);
+                    
+                    obj.MedianMenu(plotIndex) = uimenu(obj.ContextMenuArray(plotIndex));
+                    obj.MedianMenu(plotIndex).Label = 'Show Median (Weighted)';
+                    obj.MedianMenu(plotIndex).Checked = obj.bShowMedian{plotIndex};
+                    obj.MedianMenu(plotIndex).Tag = 'ShowMedian';
+                    obj.MedianMenu(plotIndex).MenuSelectedFcn = @(h,e) obj.onAxisContextMenu(h,e);
+                    
+                    obj.StandardDeviationMenu(plotIndex) = uimenu(obj.ContextMenuArray(plotIndex));
+                    obj.StandardDeviationMenu(plotIndex).Label = 'Show Standard Deviation (Weighted)';
+                    obj.StandardDeviationMenu(plotIndex).Checked = obj.bShowSD{plotIndex};
+                    obj.StandardDeviationMenu(plotIndex).Tag = 'ShowSD';
+                    obj.StandardDeviationMenu(plotIndex).MenuSelectedFcn = @(h,e) obj.onAxisContextMenu(h,e);
+               end
+           end
+           
        end
        
    end
@@ -319,10 +578,16 @@ classdef ViewPane < handle
             obj.checkForInvalid();
         end
         
+        function onRemoveInvalidVisualization(obj)
+            %TODO 
+        end
+        
         function onSave(obj)
-            obj.saveBackEndInformation();
-            obj.Focus = 'Summary';
-            obj.refocus();
+            SuccesfulSave = obj.saveBackEndInformation();
+            if SuccesfulSave
+                obj.Focus = 'Summary';
+                obj.refocus();
+            end
         end
         
         function onCancel(obj)
@@ -342,6 +607,7 @@ classdef ViewPane < handle
                    
                     %Save as normal
                     obj.onSave();
+                    obj.deleteTemporary();
                 case 'Don''t Save'
                     
                     %Delete any temporaryCopies
@@ -361,6 +627,28 @@ classdef ViewPane < handle
                     obj.NotifyOfChangeInName(value);
                 case 'Description'
                     obj.NotifyOfChangeInDescription(value);
+                case 'PlotConfig'
+                    obj.NotifyOfChangeInPlotConfig(value);
+            end
+        end
+        
+        function onAxisContextMenu(obj,h,~)
+            %Determine what plot we are working with
+            plotIndex = str2double(erase('plot',h.Parent.Tag));
+            plot = obj.PlotArray(plotIndex);
+            %TODO: We dont have a way to test these yet because we have no
+            %data to show yet
+            %Determine what our action should be
+            switch h.Tag
+                case 'YScaleLinear'
+                case 'YScaleLog'
+                case 'ExportSingleAxes'
+                case 'ExportAllAxes'
+                case 'ShowTraces'
+                case 'ShowQuantiles'
+                case 'ShowMean'
+                case 'ShowMedian'
+                case 'ShowSD'
             end
         end
         
@@ -381,30 +669,121 @@ classdef ViewPane < handle
                         %If the Summary window is not already shown.
                         obj.CurrentPane.Visible = 'off';
                         obj.CurrentPane = obj.SummaryPanel;
+                        obj.deleteTemporary();
                         obj.draw();
                         obj.CurrentPane.Visible = 'on';
                         
                         %Turn the buttons on 
                         obj.ParentApp.enableInteraction();
                         obj.SummaryButton.Enable = 'on';
-                        %TODO obj.VisualizationButton.Enable = 'off';
+                        obj.EditButton.Enable = 'on';
+                        if obj.HasVisualization
+                             obj.toggleButtonsInteraction({'on','on','on','on','on','on','on','on','on'});
+                        end
                     end
                 case 'Edit'
                     if strcmp(obj.EditPanel.Visible,'off')
                         %If the Edit window is not already shown
                         obj.CurrentPane.Visible = 'off';
                         obj.CurrentPane = obj.EditPanel;
+                        obj.deleteTemporary();
                         obj.draw();
                         obj.CurrentPane.Visible = 'on';
                         
                         %Disable all external buttons and other views
                         obj.ParentApp.disableInteraction();
                         obj.SummaryButton.Enable = 'off';
-                        %TODO  obj.VisualizationButton.Enable = 'off';
+                        obj.EditButton.Enable = 'off';
+                        if obj.HasVisualization
+                            obj.toggleButtonsInteraction({'off','off','off','off','off','off','off','off','off'});
+                        end
+                    end
+                case 'Run'
+                    obj.runModel();
+                    if strcmp(obj.SummaryPanel.Visible,'off')
+                        %If the Summary window is not already shown.
+                        obj.CurrentPane.Visible = 'off';
+                        obj.CurrentPane = obj.SummaryPanel;
+                        obj.deleteTemporary();
+                        obj.draw();
+                        obj.CurrentPane.Visible = 'on';
+                    else
+                        obj.deleteTemporary();
+                        obj.draw();
+                    end
+                    
+                    %Turn the buttons on 
+                    obj.ParentApp.enableInteraction();
+                    obj.SummaryButton.Enable = 'on';
+                    obj.EditButton.Enable = 'on';
+                    if obj.HasVisualization
+                         obj.toggleButtonsInteraction({'on','on','on','on','on','on','on','on','on'});
+                    end
+                case 'Visualize'
+                    if strcmp(obj.VisualizationPanel.Visible,'off')
+                        %If the Visualize window is not already shown
+                        obj.CurrentPane.Visible = 'off';
+                        obj.CurrentPane = obj.VisualizationPanel;
+                        obj.drawVisualization();
+                        obj.CurrentPane.Visible = 'on';
+                        
+                        %Disable all external buttons and other views
+                        obj.toggleButtonsInteraction({'on','on','on','on','on','on','on','on','on'});
+                    end
+                case 'Settings'
+                    disp("TODO :Launch Settings Window");
+                case 'ZoomIn'
+                    obj.toggleButtonsInteraction({'on','on','on','on','on','on','on','on','on'});
+                    if obj.ZoomInButton.Value
+                        obj.toggleVisButtonsState([1,0,0,0]);
+                    else
+                        obj.toggleVisButtonsState([0,0,0,0]);
+                    end
+                case 'ZoomOut'
+                    obj.toggleButtonsInteraction({'on','on','on','on','on','on','on','on','on'});
+                    if obj.ZoomOutButton.Value
+                        obj.toggleVisButtonsState([0,1,0,0]);
+                    else
+                        obj.toggleVisButtonsState([0,0,0,0]);
+                    end
+                    
+                case 'Pan'
+                    obj.toggleButtonsInteraction({'on','on','on','on','on','on','on','on','on'});
+                    if obj.PanButton.Value
+                        obj.toggleVisButtonsState([0,0,1,0]);
+                    else
+                        obj.toggleVisButtonsState([0,0,0,0]);
+                    end
+                case 'Explore'
+                    obj.toggleButtonsInteraction({'on','on','on','on','on','on','on','on','on'});
+                    if obj.ExploreButton.Value
+                        obj.toggleVisButtonsState([0,0,0,1]);
+                    else
+                        obj.toggleVisButtonsState([0,0,0,0]);
                     end
             end 
         end
            
+        function toggleButtonsInteraction(obj,ButtonVector)
+            obj.SummaryButton.Enable = ButtonVector{1};
+            obj.RunButton.Enable = ButtonVector{2};
+            obj.EditButton.Enable = ButtonVector{3};
+            obj.VisualizeButton.Enable = ButtonVector{4};
+            obj.SettingsButton.Enable = ButtonVector{5};
+            obj.ZoomInButton.Enable = ButtonVector{6};
+            obj.ZoomOutButton.Enable = ButtonVector{7};
+            obj.PanButton.Enable = ButtonVector{8};
+            obj.ExploreButton.Enable = ButtonVector{9};
+            
+        end
+        
+        function toggleVisButtonsState(obj,ButtonVector)
+            obj.ZoomInButton.Value = ButtonVector(1);
+            obj.ZoomOutButton.Value = ButtonVector(2);
+            obj.PanButton.Value =  ButtonVector(3);
+            obj.ExploreButton.Value =  ButtonVector(4);
+        end
+        
     end
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -428,9 +807,16 @@ classdef ViewPane < handle
             obj.SummaryContent.Information = value;
         end
         
-        function hidePane(obj)
+        function hidePane(obj)           
+            %Remove callbacks for pane
+            if obj.HasVisualization
+                obj.ParentApp.removeWindowDownCallback(obj.VisualizationGrid.getButtonDownCallback());
+                obj.ParentApp.removeWindowUpCallback(obj.VisualizationGrid.getButtonUpCallback());
+                obj.ParentApp.removeWindowMoveCallback(obj.VisualizationGrid.getButtonMoveCallback());
+            end
+            
             %hide this pane
-            obj.OuterGrid.Visible = 'off';
+            obj.OuterGrid.Parent = obj.EmptyParent;
         end
         
         function showPane(obj)
@@ -438,13 +824,72 @@ classdef ViewPane < handle
             %summary
             obj.Focus = 'Summary';
             obj.refocus;
-            obj.OuterGrid.Visible = 'on';
+            
+            if obj.HasVisualization
+                obj.ParentApp.addWindowDownCallback(obj.VisualizationGrid.getButtonDownCallback());
+                obj.ParentApp.addWindowUpCallback(obj.VisualizationGrid.getButtonUpCallback());
+                obj.ParentApp.addWindowMoveCallback(obj.VisualizationGrid.getButtonMoveCallback());
+            end
+            obj.OuterGrid.Parent = obj.Parent;
         end
         
         function notifyOfChange(obj,newBackEndObject)
             obj.ParentApp.changeInBackEnd(newBackEndObject);
         end
         
+        function updatePlotConfig(obj,value)
+            %If the drop down has not been updated, do so
+            obj.PlotDropDown.Value = value;
+            
+            %Extract the row and column values
+            SplitValue = strsplit(value,'x');
+            Rows = SplitValue{1};
+            Columns = SplitValue{2};
+            RowsInput = repmat({'1x'},1,str2double(Rows));
+            ColumnsInput = repmat({'1x'},1,str2double(Columns));
+            
+            %While we are working, set the grid to invisible
+            obj.PlottingGrid.Visible = 'off';
+            
+            %For all plots that will not be shown, set their parent to an
+            %empty object
+            for plotIndex = str2double(Rows)*str2double(Columns)+1:obj.MaxNumPlots
+                obj.PlotArray(plotIndex).ContextMenu = [];
+                obj.PlotArray(plotIndex).Parent = obj.EmptyParent;
+            end
+            
+            %For 1 to the number of plots to show, add them in order
+            PlotCount = 1;
+            for RowIndex = 1:str2double(Rows)
+                for ColumnIndex = 1:str2double(Columns)
+                    obj.PlotArray(PlotCount).Parent = obj.PlottingGrid;
+                    obj.PlotArray(PlotCount).ContextMenu =  obj.ContextMenuArray(PlotCount);
+                    obj.PlotArray(PlotCount).Layout.Row = RowIndex;
+                    obj.PlotArray(PlotCount).Layout.Column = ColumnIndex;
+                    PlotCount = PlotCount +1;
+                end
+            end
+            
+            obj.PlottingGrid.RowHeight = RowsInput;
+            obj.PlottingGrid.ColumnWidth = ColumnsInput;
+            obj.PlottingGrid.Visible = 'on';
+            drawnow();
+        end
+        
+        function updateLines(obj)
+            
+            %Iterate through all the lines and update the information
+            %if obj.HasSpeciesGroup && isempty
+                %TODO: This method is only used by some windows that are
+                %not complete yet. No way to test until we actually have
+                %those widnows
+            %end
+        end
+        
+        function updateLegends(obj)
+            %Same thing as updateLines
+            %TODO 
+        end
     end
 
     methods(Access = public)
@@ -456,12 +901,33 @@ classdef ViewPane < handle
         function value = getEditGrid(obj)
             value = obj.EditLayout;
         end
+        
+        function value = getButtonGrid(obj)
+            value = obj.ButtonsLayout;
+        end
+        
+        function value = getVisualizationGrid(obj)
+            if obj.HasVisualization
+                value = obj.PlotInteractionGrid;
+            else
+                error('Only panes with visualization should access this property')
+            end
+        end
+        
+        function Value = getAxesOptions(obj)
+            % Get axes options for dropdown
+            Value = num2cell(1:obj.MaxNumPlots)';
+            Value = cellfun(@(x)num2str(x),Value,'UniformOutput',false);
+            Value = vertcat({' '},Value);
+            
+        end 
     end
     
     methods(Abstract)
         NotifyOfChangeInName(obj,value);
         NotifyOfChangeInDescription(obj,value);
         saveBackEndInformation(obj);
+        checkForDuplicateNames(obj);
         checkForInvalid(obj);
         draw(obj);
         deleteTemporary(obj);

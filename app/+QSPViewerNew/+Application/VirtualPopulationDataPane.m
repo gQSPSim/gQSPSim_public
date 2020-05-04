@@ -99,6 +99,7 @@ classdef VirtualPopulationDataPane < QSPViewerNew.Application.ViewPane
         function attachNewVirtPopData(obj,NewVirtPopData)
             obj.VirtPopData = NewVirtPopData;
             obj.TemporaryVirtPopData = copy(obj.VirtPopData);
+            obj.draw();
         end
         
         function value = checkDirty(obj)
@@ -119,11 +120,12 @@ classdef VirtualPopulationDataPane < QSPViewerNew.Application.ViewPane
             obj.IsDirty = true;
         end
         
-        function saveBackEndInformation(obj)
+        function [StatusOK] = saveBackEndInformation(obj)
             
             %Validate the temporary data
             FlagRemoveInvalid = false;
-            [StatusOK,Message] = obj.TemporaryVirtPopData.validate(FlagRemoveInvalid);          
+            [StatusOK,Message] = obj.TemporaryVirtPopData.validate(FlagRemoveInvalid);
+            [StatusOK,Message] = obj.checkForDuplicateNames(StatusOK,Message);
             
             if StatusOK
                 obj.TemporaryVirtPopData.updateLastSavedTime();
@@ -153,7 +155,7 @@ classdef VirtualPopulationDataPane < QSPViewerNew.Application.ViewPane
             
             obj.VirtPopDataFileSelector.setFileExtension('.xlsx')
             obj.VirtPopDataFileSelector.setRootDirectory(obj.TemporaryVirtPopData.Session.RootDirectory);
-            obj.VirtPopDataFileSelector.setFileTemplate('+QSPViewerNew/+Resources/AcceptanceCriteria_Template.xlsx');
+            obj.VirtPopDataFileSelector.setFileTemplate(QSPViewerNew.Resources.LoadResourcePath('AcceptanceCriteria_Template.xlsx'));
             obj.VirtPopDataFileSelector.setRelativePath(obj.TemporaryVirtPopData.RelativeFilePath);
             obj.IsDirty = false;
         end
@@ -163,6 +165,16 @@ classdef VirtualPopulationDataPane < QSPViewerNew.Application.ViewPane
             % Remove the invalid entries
             validate(obj.TemporaryVirtPopData,FlagRemoveInvalid);
             obj.draw()
+            obj.IsDirty = true;
+        end
+        
+        function [StatusOK,Message] = checkForDuplicateNames(obj,StatusOK,Message)
+            refObject = obj.VirtPopData.Session.Settings.VirtualPopulationData;
+            ixDup = find(strcmp( obj.TemporaryVirtPopData.Name, {refObject.Name}));
+            if ~isempty(ixDup) && (refObject(ixDup) ~= obj.VirtPopData)
+                Message = sprintf('%s\nDuplicate names are not allowed.\n', Message);
+                StatusOK = false;
+            end
         end
         
     end

@@ -100,6 +100,7 @@ classdef VirtualPopulationGenerationDataPane < QSPViewerNew.Application.ViewPane
         function attachNewVirtPopGenData(obj,NewVirtPopGenData)
             obj.VirtPopGenData = NewVirtPopGenData;
             obj.TemporaryVirtPopGenData = copy(obj.VirtPopGenData);
+            obj.draw();
         end
         
         function value = checkDirty(obj)
@@ -120,11 +121,12 @@ classdef VirtualPopulationGenerationDataPane < QSPViewerNew.Application.ViewPane
             obj.IsDirty = true;
         end
         
-        function saveBackEndInformation(obj)
+        function [StatusOK] = saveBackEndInformation(obj)
             
             %Validate the temporary data
             FlagRemoveInvalid = false;
-            [StatusOK,Message] = obj.TemporaryVirtPopGenData.validate(FlagRemoveInvalid);          
+            [StatusOK,Message] = obj.TemporaryVirtPopGenData.validate(FlagRemoveInvalid);
+            [StatusOK,Message] = obj.checkForDuplicateNames(StatusOK,Message);
             
             if StatusOK
                 obj.TemporaryVirtPopGenData.updateLastSavedTime();
@@ -154,7 +156,7 @@ classdef VirtualPopulationGenerationDataPane < QSPViewerNew.Application.ViewPane
             
             obj.VirtPopGenDataFileSelector.setFileExtension('.xlsx')
             obj.VirtPopGenDataFileSelector.setRootDirectory(obj.TemporaryVirtPopGenData.Session.RootDirectory);
-            obj.VirtPopGenDataFileSelector.setFileTemplate('+QSPViewerNew/+Resources/TargetStatistics_Template.xlsx');
+            obj.VirtPopGenDataFileSelector.setFileTemplate(QSPViewerNew.Resources.LoadResourcePath('TargetStatistics_Template.xlsx'));
             obj.VirtPopGenDataFileSelector.setRelativePath(obj.TemporaryVirtPopGenData.RelativeFilePath);
             obj.IsDirty = false;
         end
@@ -164,6 +166,16 @@ classdef VirtualPopulationGenerationDataPane < QSPViewerNew.Application.ViewPane
             % Remove the invalid entries
             validate(obj.TemporaryVirtPopGenData,FlagRemoveInvalid);
             obj.draw()
+            obj.IsDirty = true;
+        end
+        
+        function [StatusOK,Message] = checkForDuplicateNames(obj,StatusOK,Message)
+            refObject = obj.VirtPopGenData.Session.VirtualPopulationGeneration;
+            ixDup = find(strcmp( obj.TemporaryVirtPopGenData.Name, {refObject.Name}));
+            if ~isempty(ixDup) && (refObject(ixDup) ~= obj.VirtPopGenData)
+                Message = sprintf('%s\nDuplicate names are not allowed.\n', Message);
+                StatusOK = false;
+            end
         end
         
     end

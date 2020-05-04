@@ -123,7 +123,7 @@ classdef DoubleSelectBox < handle
             obj.MoveItemRightButton = uibutton(obj.GridMiddle,'push');
             obj.MoveItemRightButton.Layout.Row = 2;
             obj.MoveItemRightButton.Layout.Column = 1;
-            obj.MoveItemRightButton.Icon = uix.utility.findIcon('arrow_right_24.png');
+            obj.MoveItemRightButton.Icon = QSPViewerNew.Resources.LoadResourcePath('arrow_right_24.png');
             obj.MoveItemRightButton.Text = '';
             obj.MoveItemRightButton.ButtonPushedFcn = @obj.moveItemToRight;
 
@@ -142,7 +142,7 @@ classdef DoubleSelectBox < handle
             obj.MoveItemUpButton = uibutton(obj.GridBottom,'push');
             obj.MoveItemUpButton.Layout.Row = 1;
             obj.MoveItemUpButton.Layout.Column = 1;
-            obj.MoveItemUpButton.Icon = uix.utility.findIcon('arrow_up_24.png');
+            obj.MoveItemUpButton.Icon = QSPViewerNew.Resources.LoadResourcePath('arrow_up_24.png');
             obj.MoveItemUpButton.Text = '';
             obj.MoveItemUpButton.ButtonPushedFcn = @obj.moveItemUp;
 
@@ -150,7 +150,7 @@ classdef DoubleSelectBox < handle
             obj.MoveItemDownButton = uibutton(obj.GridBottom,'push');
             obj.MoveItemDownButton.Layout.Row = 1;
             obj.MoveItemDownButton.Layout.Column = 2;
-            obj.MoveItemDownButton.Icon = uix.utility.findIcon('arrow_down_24.png');
+            obj.MoveItemDownButton.Icon = QSPViewerNew.Resources.LoadResourcePath('arrow_down_24.png');
             obj.MoveItemDownButton.Text = '';
             obj.MoveItemDownButton.ButtonPushedFcn = @obj.moveItemDown;
 
@@ -158,7 +158,7 @@ classdef DoubleSelectBox < handle
             obj.RemoveItemButton = uibutton(obj.GridBottom,'push');
             obj.RemoveItemButton.Layout.Row = 1;
             obj.RemoveItemButton.Layout.Column = 3;
-            obj.RemoveItemButton.Icon = uix.utility.findIcon('delete_24.png');
+            obj.RemoveItemButton.Icon = QSPViewerNew.Resources.LoadResourcePath('delete_24.png');
             obj.RemoveItemButton.Text = '';
             obj.RemoveItemButton.ButtonPushedFcn = @obj.removeItem;
 

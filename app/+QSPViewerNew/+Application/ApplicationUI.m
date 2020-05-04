@@ -42,6 +42,10 @@ classdef ApplicationUI < matlab.apps.AppBase
         IsConstructed = false;
         Type
         TypeStr
+        
+        WindowButtonDownCallbacks = {};
+        WindowButtonUpCallbacks = {};
+        WindowButtonMoveCallbacks = {};
     end
     
     properties (SetAccess = private, Dependent = true, AbortSet = true)
@@ -80,11 +84,12 @@ classdef ApplicationUI < matlab.apps.AppBase
         RestoreSelectedItemMenu  matlab.ui.container.Menu
         HelpMenu                 matlab.ui.container.Menu
         AboutMenu                matlab.ui.container.Menu
-        GridLayout               matlab.ui.container.GridLayout
+        FlexGridLayout           QSPViewerNew.Widgets.GridFlex
         SessionExplorerPanel     matlab.ui.container.Panel
+        SessionExplorerGrid      matlab.ui.container.GridLayout
         TreeRoot                 matlab.ui.container.Tree
         TreeMenu                 
-        OpenRecentMenuArray 
+        OpenRecentMenuArray      
     end
     
     methods (Access = public)
@@ -140,6 +145,9 @@ classdef ApplicationUI < matlab.apps.AppBase
             app.UIFigure = uifigure('Visible', 'off');
             app.UIFigure.Position = [100 100 1005 864];
             app.UIFigure.Name = 'UI Figure';
+            app.UIFigure.WindowButtonUpFcn = @(h,e) app.ExecuteCallbackArray(app.WindowButtonUpCallbacks,h,e);
+            app.UIFigure.WindowButtonDownFcn = @(h,e) app.ExecuteCallbackArray(app.WindowButtonDownCallbacks,h,e);
+            app.UIFigure.WindowButtonMotionFcn = @(h,e) app.ExecuteCallbackArray(app.WindowButtonMoveCallbacks,h,e);
 
             % Create FileMenu
             app.FileMenu = uimenu(app.UIFigure);
@@ -265,19 +273,25 @@ classdef ApplicationUI < matlab.apps.AppBase
             app.AboutMenu.MenuSelectedFcn = @app.onAbout;
 
             % Create GridLayout
-            app.GridLayout = uigridlayout(app.UIFigure);
-            app.GridLayout.ColumnWidth = {'4x', '10x'};
-            app.GridLayout.RowHeight = {'1x'};
+            app.FlexGridLayout = QSPViewerNew.Widgets.GridFlex(app.UIFigure);
+            app.FlexGridLayout.getGridHandle();
+            app.addWindowDownCallback(app.FlexGridLayout.getButtonDownCallback());
+            app.addWindowUpCallback(app.FlexGridLayout.getButtonUpCallback());
+            app.addWindowMoveCallback(app.FlexGridLayout.getButtonMoveCallback());
 
             % Create SessionExplorerPanel
-            app.SessionExplorerPanel = uipanel(app.GridLayout);
+            app.SessionExplorerPanel = uipanel(app.FlexGridLayout.getGridHandle());
             app.SessionExplorerPanel.Title = 'Session Explorer';
             app.SessionExplorerPanel.Layout.Row = 1;
             app.SessionExplorerPanel.Layout.Column = 1;
+            
+            %Create TreeGrid
+            app.SessionExplorerGrid = uigridlayout(app.SessionExplorerPanel);
+            app.SessionExplorerGrid.ColumnWidth = {'1x'};
+            app.SessionExplorerGrid.RowHeight = {'1x'};
 
             % Create Tree
-            app.TreeRoot = uitree(app.SessionExplorerPanel);
-            app.TreeRoot.Position = [1 0 278 820];
+            app.TreeRoot = uitree(app.SessionExplorerGrid);
             app.TreeRoot.Multiselect = 'on';
             app.TreeRoot.SelectionChangedFcn = @app.onTreeSelectionChanged;
             
@@ -376,75 +390,75 @@ classdef ApplicationUI < matlab.apps.AppBase
 
                         % Session node
                         hSession = app.i_addNode(Parent, Data, ...
-                            'Session', 'folder_24.png',...
+                            'Session', QSPViewerNew.Resources.LoadResourcePath('folder_24.png'),...
                              app.TreeMenu.Branch.Session, [], 'Session');
                         Data.TreeNode = hSession; %Store node in the object for cross-ref
 
                         % Settings node and children
                         hSettings = app.i_addNode(hSession, Data.Settings, ...
-                            'Building blocks', 'settings_24.png',...
+                            'Building blocks', QSPViewerNew.Resources.LoadResourcePath('settings_24.png'),...
                             [], 'Settings', 'Building blocks for the session');
                         Data.Settings.TreeNode = hSettings; %Store node in the object for cross-ref
 
                         hTasks = app.i_addNode(hSettings, Data.Settings, ...
-                            'Tasks', 'flask2.png',...
+                            'Tasks', QSPViewerNew.Resources.LoadResourcePath('flask2.png'),...
                             app.TreeMenu.Branch.Task, 'Task', 'Tasks');
                         thisFcn(hTasks, Data.Settings.Task);
 
                         hParameters = app.i_addNode(hSettings, Data.Settings, ...
-                            'Parameters', 'param_edit_24.png',...
+                            'Parameters', QSPViewerNew.Resources.LoadResourcePath('param_edit_24.png'),...
                             app.TreeMenu.Branch.Parameters, 'Parameters', 'Parameters');
                         thisFcn(hParameters, Data.Settings.Parameters);
 
                         hOptimData = app.i_addNode(hSettings, Data.Settings, ...
-                            'Datasets', 'datatable_24.png',...
+                            'Datasets', QSPViewerNew.Resources.LoadResourcePath('datatable_24.png'),...
                             app.TreeMenu.Branch.OptimizationData, 'OptimizationData', 'Datasets');
                         thisFcn(hOptimData, Data.Settings.OptimizationData);
 
 
                         hVPopDatas = app.i_addNode(hSettings, Data.Settings, ...
-                            'Acceptance Criteria', 'acceptance_criteria.png',...
+                            'Acceptance Criteria', QSPViewerNew.Resources.LoadResourcePath('acceptance_criteria.png'),...
                             app.TreeMenu.Branch.VirtualPopulationData, 'VirtualPopulationData', 'Acceptance Criteria');
                         thisFcn(hVPopDatas, Data.Settings.VirtualPopulationData);
 
                         hVPopGenDatas = app.i_addNode(hSettings, Data.Settings, ...
-                            'Target Statistics', 'target_stats.png',...
+                            'Target Statistics', QSPViewerNew.Resources.LoadResourcePath('target_stats.png'),...
                             app.TreeMenu.Branch.VirtualPopulationGenerationData, 'VirtualPopulationGenerationData', 'Target Statistics');
                         thisFcn(hVPopGenDatas, Data.Settings.VirtualPopulationGenerationData);
 
 
                         hVPops = app.i_addNode(hSettings, Data.Settings, ...
-                            'Virtual Subject(s)', 'stickman3.png',...
+                            'Virtual Subject(s)', QSPViewerNew.Resources.LoadResourcePath('stickman3.png'),...
                              app.TreeMenu.Branch.VirtualPopulation, 'VirtualPopulation', 'Virtual Subject(s)');
                         thisFcn(hVPops, Data.Settings.VirtualPopulation);
 
                         % Functionalities node and children
                         hFunctionalities = app.i_addNode(hSession, Data, ...
-                            'Functionalities', 'settings_24.png',...
+                            'Functionalities', QSPViewerNew.Resources.LoadResourcePath('settings_24.png'),...
                             [], 'Functionalities', 'Functionalities for the session');
 
                         hSimulations = app.i_addNode(hFunctionalities, Data, ...
-                            'Simulations', 'simbio_24.png',...
+                            'Simulations', QSPViewerNew.Resources.LoadResourcePath('simbio_24.png'),...
                             app.TreeMenu.Branch.Simulation, 'Simulation', 'Simulation');
                         thisFcn(hSimulations, Data.Simulation);
 
                         hOptims = app.i_addNode(hFunctionalities, Data, ...
-                            'Optimizations', 'optim_24.png',...
+                            'Optimizations', QSPViewerNew.Resources.LoadResourcePath('optim_24.png'),...
                             app.TreeMenu.Branch.Optimization, 'Optimization', 'Optimization');
                         thisFcn(hOptims, Data.Optimization);
 
                         hCohortGen = app.i_addNode(hFunctionalities, Data, ...
-                            'Virtual Cohort Generations', 'stickman-3.png',...   
+                            'Virtual Cohort Generations', QSPViewerNew.Resources.LoadResourcePath('stickman-3.png'),...   
                            app.TreeMenu.Branch.CohortGeneration, 'CohortGeneration', 'Cohort Generation');
                         thisFcn(hCohortGen, Data.CohortGeneration);
 
                         hVPopGens = app.i_addNode(hFunctionalities, Data, ...
-                            'Virtual Population Generations', 'stickman-3-color.png',...
+                            'Virtual Population Generations', QSPViewerNew.Resources.LoadResourcePath('stickman-3-color.png'),...
                             app.TreeMenu.Branch.VirtualPopulationGeneration, 'VirtualPopulationGeneration', 'Virtual Population Generation');
                         thisFcn(hVPopGens, Data.VirtualPopulationGeneration);
 
                         hDeleteds = app.i_addNode(hSession, Data, ...
-                            'Deleted Items', 'trash_24.png',...
+                            'Deleted Items', QSPViewerNew.Resources.LoadResourcePath('trash_24.png'),...
                             app.TreeMenu.Branch.Deleted, 'Deleted', 'Deleted Items');
                         thisFcn(hDeleteds, Data.Deleted);
 
@@ -454,61 +468,61 @@ classdef ApplicationUI < matlab.apps.AppBase
 
                     case 'QSP.OptimizationData'
 
-                        hNode = app.i_addNode(Parent, Data, Data.Name, 'datatable_24.png',...
+                        hNode = app.i_addNode(Parent, Data, Data.Name, QSPViewerNew.Resources.LoadResourcePath('datatable_24.png'),...
                             app.TreeMenu.Leaf.OptimizationData, [], '');
                         Data.TreeNode = hNode; %Store node in the object for cross-ref
 
                     case 'QSP.Parameters'
 
-                        hNode = app.i_addNode(Parent, Data, Data.Name, 'param_edit_24.png',...
+                        hNode = app.i_addNode(Parent, Data, Data.Name, QSPViewerNew.Resources.LoadResourcePath('param_edit_24.png'),...
                             app.TreeMenu.Leaf.Parameters, [], '');
                         Data.TreeNode = hNode; %Store node in the object for cross-ref
 
                     case 'QSP.Task'
 
-                        hNode = app.i_addNode(Parent, Data, Data.Name, 'flask2.png',...
+                        hNode = app.i_addNode(Parent, Data, Data.Name, QSPViewerNew.Resources.LoadResourcePath('flask2.png'),...
                             app.TreeMenu.Leaf.Task, [], '');
                         Data.TreeNode = hNode; %Store node in the object for cross-ref
 
                     case 'QSP.VirtualPopulation'
 
-                        hNode = app.i_addNode(Parent, Data, Data.Name, 'stickman3.png',...
+                        hNode = app.i_addNode(Parent, Data, Data.Name, QSPViewerNew.Resources.LoadResourcePath('stickman3.png'),...
                             app.TreeMenu.Leaf.VirtualPopulation, [], '');
                         Data.TreeNode = hNode; %Store node in the object for cross-ref
 
 
                     case 'QSP.VirtualPopulationData'
 
-                        hNode = app.i_addNode(Parent, Data, Data.Name, 'acceptance_criteria.png',...
+                        hNode = app.i_addNode(Parent, Data, Data.Name, QSPViewerNew.Resources.LoadResourcePath('acceptance_criteria.png'),...
                             app.TreeMenu.Leaf.VirtualPopulationData, [], '');
                         Data.TreeNode = hNode; %Store node in the object for cross-ref
 
                     case 'QSP.Simulation'
 
-                        hNode = app.i_addNode(Parent, Data, Data.Name, 'simbio_24.png',...
+                        hNode = app.i_addNode(Parent, Data, Data.Name, QSPViewerNew.Resources.LoadResourcePath('simbio_24.png'),...
                             app.TreeMenu.Leaf.Simulation, [], '');
                         Data.TreeNode = hNode; %Store node in the object for cross-ref
 
                     case 'QSP.Optimization'
 
-                        hNode = app.i_addNode(Parent, Data, Data.Name, 'optim_24.png',...
+                        hNode = app.i_addNode(Parent, Data, Data.Name, QSPViewerNew.Resources.LoadResourcePath('optim_24.png'),...
                             app.TreeMenu.Leaf.Optimization, [], '');
                         Data.TreeNode = hNode; %Store node in the object for cross-ref
 
                     case 'QSP.CohortGeneration'
 
-                        hNode = app.i_addNode(Parent, Data, Data.Name, 'stickman-3.png',...
+                        hNode = app.i_addNode(Parent, Data, Data.Name, QSPViewerNew.Resources.LoadResourcePath('stickman-3.png'),...
                             app.TreeMenu.Leaf.CohortGeneration, [], '');
                         Data.TreeNode = hNode; %Store node in the object for cross-ref            
 
                     case 'QSP.VirtualPopulationGeneration'
 
-                        hNode = app.i_addNode(Parent, Data, Data.Name, 'stickman-3-color.png',...
+                        hNode = app.i_addNode(Parent, Data, Data.Name, QSPViewerNew.Resources.LoadResourcePath('stickman-3-color.png'),...
                             app.TreeMenu.Leaf.VirtualPopulationGeneration, [], '');
                         Data.TreeNode = hNode; %Store node in the object for cross-ref
 
                     case 'QSP.VirtualPopulationGenerationData'
-                        hNode = app.i_addNode(Parent, Data, Data.Name, 'target_stats.png',...
+                        hNode = app.i_addNode(Parent, Data, Data.Name, QSPViewerNew.Resources.LoadResourcePath('target_stats.png'),...
                             app.TreeMenu.Leaf.VirtualPopulationGeneration, [], '');
                         Data.TreeNode = hNode; %Store node in the object for cross-ref
 
@@ -719,6 +733,12 @@ classdef ApplicationUI < matlab.apps.AppBase
             disp("TODO: Duplicate This item")
         end
         
+        function ExecuteCallbackArray(~,functionArray,h,e)
+           for i = 1:length(functionArray)
+               feval(functionArray{i},h,e)
+           end
+        end
+       
     end
     
     % %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %%
@@ -815,7 +835,7 @@ classdef ApplicationUI < matlab.apps.AppBase
                     if status
                         %Copy the sessionobject, then add it the application
                         Session = copy(loadedSession.Session);
-                        loadedSession.Session.RootDirectory = newFilePath;
+                        Session.RootDirectory = newFilePath;
                         app.createNewSession(Session);
 
                         %Edit the app properties to reflect a new loaded session was
@@ -909,29 +929,71 @@ classdef ApplicationUI < matlab.apps.AppBase
     % Methods for drawing UI components.
     % %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %%
     methods (Access = public)
-       
-       function disableInteraction(app)
-           app.TreeRoot.Enable = 'off';
-           app.FileMenu.Enable = 'off';
-           app.QSPMenu.Enable = 'off';
-       end
-       
-       function enableInteraction(app)
-           app.TreeRoot.Enable = 'on';
-           app.FileMenu.Enable = 'on';
-           app.QSPMenu.Enable = 'on';
-       end
-       
-       function changeInBackEnd(app,newSession)
-           %1.Replace the current Session with the newSession
-           app.Sessions(app.SelectedSessionIdx) = newSession;
-           
-           %2. It must update the tree to reflect all the new values from
-           %the session
-           app.updateTreeData(app.TreeRoot.Children(app.SelectedSessionIdx),newSession,'Session')
-           
-           app.refresh();
+
+    function disableInteraction(app)
+       app.TreeRoot.Enable = 'off';
+       app.FileMenu.Enable = 'off';
+       app.QSPMenu.Enable = 'off';
+    end
+
+    function enableInteraction(app)
+       app.TreeRoot.Enable = 'on';
+       app.FileMenu.Enable = 'on';
+       app.QSPMenu.Enable = 'on';
+    end
+
+    function changeInBackEnd(app,newSession)
+       %1.Replace the current Session with the newSession
+       app.Sessions(app.SelectedSessionIdx) = newSession;
+
+       %2. It must update the tree to reflect all the new values from
+       %the session
+       app.updateTreeData(app.TreeRoot.Children(app.SelectedSessionIdx),newSession,'Session')
+
+       app.refresh();
+    end
+
+    function addWindowDownCallback(app,functionHandle)
+        app.WindowButtonDownCallbacks{end+1} = functionHandle;
+    end
+
+    function removeWindowDownCallback(app,functionHandle)
+        %Need to use loop because == does not support function handles, need
+        %to use isequal
+        for i = 1:length(app.WindowButtonDownCallbacks)
+            if isequal(app.WindowButtonDownCallbacks{i},functionHandle)
+                app.WindowButtonDownCallbacks{i} = [];
+            end
         end
+    end
+
+    function addWindowUpCallback(app,functionHandle)
+        app.WindowButtonUpCallbacks{end+1} = functionHandle;
+    end
+
+    function removeWindowUpCallback(app,functionHandle)
+        %Need to use loop because == does not support function handles, need
+        %to use isequal
+        for i = 1:length(app.WindowButtonUpCallbacks)
+            if isequal(app.WindowButtonDownCallbacks{i},functionHandle)
+                app.WindowButtonDownCallbacks{i} = [];
+            end
+        end
+    end  
+    
+    function addWindowMoveCallback(app,functionHandle)
+        app.WindowButtonMoveCallbacks{end+1} = functionHandle;
+    end
+
+    function removeWindowMoveCallback(app,functionHandle)
+        %Need to use loop because == does not support function handles, need
+        %to use isequal
+        for i = 1:length(app.WindowButtonMoveCallbacks)
+            if isequal(app.WindowButtonMoveCallbacks{i},functionHandle)
+                app.WindowButtonMoveCallbacks{i} = [];
+            end
+        end
+    end  
        
     end
     
@@ -1067,7 +1129,7 @@ classdef ApplicationUI < matlab.apps.AppBase
         
         function launchNewPane(app,NodeData)
             %Inputs that the pane API should require in the constructor
-            classInputs = {app.GridLayout,1,2,app};
+            classInputs = {app.FlexGridLayout.getGridHandle(),1,3,app};
             
             %Need to hide old pane
             if ~isempty(app.ActivePane)
@@ -1098,8 +1160,8 @@ classdef ApplicationUI < matlab.apps.AppBase
                     app.ActivePane = QSPViewerNew.Application.VirtualPopulationDataPane(classInputs);
                     app.ActivePane.attachNewVirtPopData(NodeData);
                 case 'QSP.Simulation'
-                    %app.ActivePane = QSPViewerNew.Application.SimulationPane(app.GridLayout);
-                    disp("TODO: Create a QSPViewerNew.Application.SimulationPane class to launch");
+	                app.ActivePane = QSPViewerNew.Application.SimulationPane(classInputs);	
+                    app.ActivePane.attachNewSimulation(NodeData);
                 case 'QSP.Optimization'
                     %app.ActivePane = QSPViewerNew.Application.OptimizationPane(app.GridLayout);
                     disp("TODO: Create a QSPViewerNew.Application.OptimizationPane class to launch");
@@ -1147,8 +1209,10 @@ classdef ApplicationUI < matlab.apps.AppBase
                     app.ActivePane.attachNewVirtPop(NodeData);
                 case 'QSPViewerNew.Application.VirualPopulationPane'
                     app.ActivePane.attachNewVirtPopData(NodeData);
-                case'QSPViewerNew.Application.VirualPopulationGenerationDataPane'
+                case 'QSPViewerNew.Application.VirualPopulationGenerationDataPane'
                     app.ActivePane.attachNewVirtPopGenData(NodeData);
+                case 'QSPViewerNew.Application.SimulationPane'
+                    app.ActivePane.attachNewSimulation(NodeData);
             end
             
             app.ActivePane.showThisPane();
@@ -1296,8 +1360,8 @@ classdef ApplicationUI < matlab.apps.AppBase
                 case 'QSP.VirtualPopulationGenerationData'
                     PaneClass = 'QSPViewerNew.Application.VirtualPopulationGenerationDataPane';
             end
-        end
-        
+       end
+       
     end
     
     % %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %%
