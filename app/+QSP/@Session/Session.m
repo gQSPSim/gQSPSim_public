@@ -239,7 +239,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         end %function
         
         function deleteTimer(obj)
-            if ~isempty(obj.timerObj)
+            if ~isempty(obj.timerObj) && isvalid(obj.timerObj)
                 if strcmpi(obj.timerObj.Running,'on')
                     stop(obj.timerObj);
                 end
