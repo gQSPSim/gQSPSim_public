@@ -38,7 +38,7 @@ try
 
     % check the session root
     if ~exist(s.Session.RootDirectory, 'dir') && strcmp(questdlg('Session root directory is invalid. Select a new root directory?', 'Select root directory', 'Yes'),'Yes')        
-        rootDir = uigetdir(s.Session.RootDirectory, 'Select valid session root directory');
+        rootDir = uigetdir(fileparts(FilePath), 'Select valid session root directory');
         if rootDir ~= 0
             s.Session.RootDirectory = rootDir;
         end
