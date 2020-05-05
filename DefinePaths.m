@@ -27,7 +27,7 @@ function DefinePaths(varargin)
 %   $Revision: 312 $  $Date: 2016-09-08 13:06:09 -0400 (Thu, 08 Sep 2016) $
 % ---------------------------------------------------------------------
 
-if nargin<1
+if nargin < 1
     EchoOutput = true;
 else
     if islogical(varargin{1})
