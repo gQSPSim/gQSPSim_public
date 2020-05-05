@@ -951,7 +951,7 @@ if StatusOK && bProceed
 %     VpopHeader = [perturbParamNames; 'PWeight']';
     VpopHeader = [Names0; 'PWeight']';
 
-   if strcmp(obj.SaveInvalid, 'Save valid vpatients')
+   if strcmp(obj.SaveInvalid, 'Save valid virtual subjects')
         % filter out invalids
         Vpop = Vpop(isValid==1,:);
         isValid = true(size(Vpop,1),1);
