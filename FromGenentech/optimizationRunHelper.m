@@ -206,10 +206,12 @@ if ~isempty(optimHeader) && ~isempty(optimData)
     
     % check for weights column
     weightIdx = find(strcmpi('Weight',optimHeader));
-%     weights = ones(size(optimData,1),1);
     if ~isempty(weightIdx)
         tmp = cell2mat(optimData(:,weightIdx));
         weights(~isnan(tmp)) = tmp(~isnan(tmp));
+    else
+        weights = ones(size(optimData,1));
+        
     end
     
     % find columns corresponding to species data and initial conditions
@@ -224,7 +226,9 @@ if ~isempty(optimHeader) && ~isempty(optimData)
     dataNames = optimHeader(:,dataInds);
     
     % convert weights
-    weights = cell2mat(weights(:,dataInds));
+    if iscell(weights)
+        weights = cell2mat(weights(:,dataInds));
+    end
     
     % remove data for groups that are not currently being used in optimization
     optimGrps = cell2mat(cellfun(@str2num, {obj.Item.GroupID}, 'UniformOutput', false));
