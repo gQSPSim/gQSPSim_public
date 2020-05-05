@@ -148,7 +148,12 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         % Destructor
         function delete(obj)
             if ~isempty(obj.LogHandle) && obj.LogHandle > 0
-                fclose(obj.LogHandle);
+                try
+                    status = fclose(obj.LogHandle);
+                catch err
+                   warning('Failed to  the log file.\n%s', err.message)
+                end
+
             end
         end
 %         function delete(obj)
