@@ -31,8 +31,12 @@ classdef tgQSPSim < matlab.unittest.TestCase
         
     methods(Test)
         function tSimulations(testCase)
+            w1 = warning('off', 'MATLAB:table:ModifiedAndSavedVarnames');
+            w2 = warning('off', 'MATLAB:ui:javacomponent:FunctionToBeRemoved');
             obj = gQSPSimTester;
             testCase = obj.runSimulations(testCase);
+            warning(w1.state, w1.identifier); 
+            warning(w2.state, w2.identifier);
         end
         
         %function tOptimizations(testCase)
