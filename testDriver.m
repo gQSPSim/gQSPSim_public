@@ -1,4 +1,4 @@
-% Script to drive running of gQSPSim tests.
+% Script to drive running of gQSPSim tests on gitlab-runner.
 addpath(genpath(pwd));
 result = runtests("tests");
 

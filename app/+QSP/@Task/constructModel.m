@@ -15,14 +15,14 @@ if ~isempty(obj.ActiveVariantNames)
     % turn off all variants
     
     variants = sbioselect(model, 'Name', obj.VariantNames, 'Type', 'variant');
-    set(variants, 'Active', false)
+    set(variants, 'Active', false);
     
     % combine active variants in order into a new variant, add to the
     % model and activate
     [~,tmp] = ismember(obj.ActiveVariantNames, obj.VariantNames);
     %         varObj_i = model.variant(tmp);
     for k=1:length(tmp)
-        commit(model.variant(tmp(k)), model)
+        commit(model.variant(tmp(k)), model);
         
     end
     %         model = CombineVariants(model,varObj_i);
