@@ -32,8 +32,8 @@ R2019b Test:
 R2020a Test:
     stage: test
     tags:
-        -maci64
+        - maci64
     script:
         - ./gQSPSimTesterScript.sh /Applications/MATLAB_R2020a.app
-        
+
 
