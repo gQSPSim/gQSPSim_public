@@ -43,7 +43,7 @@ classdef gQSPSimTester < QSPViewer.App
                     expectedFile = expectedResults(expectedEntryTF);
                     expected = load(expectedFile.folder + "/" + expectedFile.name);
                     
-                    testCase.verifyEqual(actual, expected, 'RelTol', 1e-2, 'AbsTol', 1e-4);
+                    testCase.verifyEqual(actual, expected, 'RelTol', 1e-3, 'AbsTol', 1e-4);
                     
                     % Cleanup TODO. If the test failed move the generated
                     % data to a failed directory to aid debugging. Else we
