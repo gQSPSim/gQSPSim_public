@@ -22,11 +22,9 @@ classdef tgQSPSim < matlab.unittest.TestCase & QSPViewer.App
     methods
         function obj = tgQSPSim(filename)
             if nargin == 0
-                rootDirectory = "/Users/pax/work/gQSPsim/Sessions/CaseStudy_aPCSK9/aPCSK9_v7_MES_complete/";
+                rootDirectory = string(pwd) + "/../Sessions/CaseStudy_aPCSK9/aPCSK9_v7_MES_complete/";;
+                %rootDirectory = "/Users/pax/work/gQSPsim/Sessions/CaseStudy_aPCSK9/aPCSK9_v7_MES_complete/";
                 filename = rootDirectory + "CaseStudy2_aPCSK9.qsp.mat";
-                
-                %rootDirectory = "/Users/pax/work/gQSPsim/Sessions/CaseStudy_TMDD/";
-                %filename = rootDirectory + "CaseStudy_TMDD_complete/CaseStudy1_TMDD.qsp.mat";
             else
                 rootDirectory = fileparts(filename);
             end
