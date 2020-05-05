@@ -505,7 +505,8 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             if isempty(thisObj)            
                 % Virtual Population
                 Names = {obj.Settings.VirtualPopulation.Name};
-                [~,ThisName] = fileparts(NewSource);
+%                 [~,ThisName] = fileparts(NewSource);
+                ThisName = NewSource;
                 MatchIdx = strcmpi(Names,ThisName);
                 if any(MatchIdx)
                     thisObj = obj.Settings.VirtualPopulation(MatchIdx);
