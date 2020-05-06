@@ -1,4 +1,4 @@
-function DefinePaths(varargin)
+function OutPaths = DefinePaths(varargin)
 % DefinePaths - Set up the MATLAB path
 % -------------------------------------------------------------------------
 % Abstract: This function prepares the MATLAB path
@@ -34,7 +34,13 @@ else
         EchoOutput = varargin{1};
     else
         EchoOutput = true;
-    end
+    end       
+end
+
+if nargin==2
+    doAdd = varargin{2};
+else
+    doAdd = true;
 end
 
 % Disable warnings
@@ -64,6 +70,8 @@ rootDirs={...
     fullfile(RootPath,'FromGenentech'),true;... %root folder with children
     
     };
+
+OutPaths = {};
 
 %************ EDIT ABOVE %************
 
@@ -103,11 +111,19 @@ for pCount = 1:size(rootDirs,1)
             end
             if ispc  % Windows is not case-sensitive
                 if ~any(strcmpi(rawPathCell{pCount}, pathCell))
-                    addpath(rawPathCell{pCount}); %#ok<MCAP>
+                    thisPath = rawPathCell{pCount};
+                    if doAdd
+                        addpath(thisPath); %#ok<MCAP>
+                    end
+                    OutPaths = [OutPaths, thisPath];
                 end
             else
                 if ~any(strcmp(rawPathCell{pCount}, pathCell))
-                    addpath(rawPathCell{pCount}); %#ok<MCAP>
+                    thisPath = rawPathCell{pCount};         
+                    if doAdd
+                        addpath(thisPath); %#ok<MCAP>
+                    end
+                    OutPaths = [OutPaths, thisPath];                    
                 end
             end
         else

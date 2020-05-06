@@ -66,6 +66,9 @@ if ~isempty(vObj.TempData)
         if ~isempty(Value)
             FullModelList = ModelList;
         else
+            if ~iscell(ModelList)
+                ModelList = {ModelList};
+            end
             FullModelList = unique(vertcat(ModelList(:),vObj.TempData.ModelName));
             MatchIdx = strcmp(FullModelList,vObj.TempData.ModelName);
             FullModelList(MatchIdx) = {QSP.makeInvalid(vObj.TempData.ModelName)};

@@ -119,94 +119,105 @@ end
 
 % Process all
 IsSelected = true(size(obj.PlotItemTable,1),1);
-
-if isempty(obj.SimResults)
-    IsCached = false(size(obj.PlotItemTable(:,1)));
-    obj.SimResults = cell(size(obj.PlotItemTable(:,1)));
-else
-    IsCached = ~cellfun(@isempty, obj.SimResults);
-end
-RunInds = IsSelected & ~IsCached;
-
-if any(RunInds) && ~isempty(obj.VPopName)
-    
-    SelectedInds = find(RunInds);
-    
-    % make Task-Vpop pairs for each selected task
-    nSelected = nnz(RunInds);
-    
-    simObj = QSP.Simulation;
-    simObj.Settings = obj.Settings;
-    simObj.Session = obj.Session;
-    for ii = 1:nSelected
-        simObj.Item(ii) = QSP.TaskVirtualPopulation;
-        % NOTE: Indexing into Item may not be valid from PlotItemTable (Incorrect if there are/were invalids: simObj.Item(ii).TaskName = obj.Item(SelectedInds(ii)).TaskName;)
-        simObj.Item(ii).TaskName = obj.PlotItemTable{SelectedInds(ii),3};
-        simObj.Item(ii).VPopName = obj.VPopName;
-        simObj.Item(ii).Group = obj.PlotItemTable{SelectedInds(ii),4};
-    end
-else
-    simObj = QSP.Simulation.empty(0,1);
+CohortGenResults = {};
+try
+    CohortGenResults = load(fullfile(obj.FilePath, obj.VPopResultsFolderName, obj.MatFileName));    
+    CohortGenResults = CohortGenResults.Results;
 end
 
-% get the virtual population object
-% allVpopNames = {obj.Settings.VirtualPopulation.Name};
-% vObj = obj.Settings.VirtualPopulation(strcmp(obj.VPopName,allVpopNames));
+% rerun sims if unable to load the cached results
+if isempty(CohortGenResults)
 
-%% Run the simulations for those that are not cached
-if ~isempty(simObj)
-    
-    if strcmpi(Mode,'Cohort')
-        % Cohort
-        TimeVec = cell2mat(ThisData(:,strcmp('Time',ThisHeader)));
-        [ThisStatusOK,Message,ResultFileNames,Cancelled,Results] = simulationRunHelper(simObj, [], {}, TimeVec); %#ok<ASGLU>
+    if isempty(obj.SimResults)
+        IsCached = false(size(obj.PlotItemTable(:,1)));
+        obj.SimResults = cell(size(obj.PlotItemTable(:,1)));
     else
-        % VP
-        [ThisStatusOK,Message,ResultFileNames,Cancelled,Results] = simulationRunHelper(simObj); %#ok<ASGLU>
+        IsCached = ~cellfun(@isempty, obj.SimResults);
     end
-    
-    if ~ThisStatusOK  && ~Cancelled
-        errordlg(Message)
-        return
+    RunInds = IsSelected & ~IsCached;
+
+    if any(RunInds) && ~isempty(obj.VPopName)
+
+        SelectedInds = find(RunInds);
+
+        % make Task-Vpop pairs for each selected task
+        nSelected = nnz(RunInds);
+
+        simObj = QSP.Simulation;
+        simObj.Settings = obj.Settings;
+        simObj.Session = obj.Session;
+        for ii = 1:nSelected
+            simObj.Item(ii) = QSP.TaskVirtualPopulation;
+            % NOTE: Indexing into Item may not be valid from PlotItemTable (Incorrect if there are/were invalids: simObj.Item(ii).TaskName = obj.Item(SelectedInds(ii)).TaskName;)
+            simObj.Item(ii).TaskName = obj.PlotItemTable{SelectedInds(ii),3};
+            simObj.Item(ii).VPopName = obj.VPopName;
+            simObj.Item(ii).Group = obj.PlotItemTable{SelectedInds(ii),4};
+        end
+    else
+        simObj = QSP.Simulation.empty(0,1);
     end
-    
-    if Cancelled
-        return
+
+    % get the virtual population object
+    % allVpopNames = {obj.Settings.VirtualPopulation.Name};
+    % vObj = obj.Settings.VirtualPopulation(strcmp(obj.VPopName,allVpopNames));
+
+    %% Run the simulations for those that are not cached
+    if ~isempty(simObj)
+
+        if strcmpi(Mode,'Cohort')
+            % Cohort
+            TimeVec = cell2mat(ThisData(:,strcmp('Time',ThisHeader)));
+            [ThisStatusOK,Message,ResultFileNames,Cancelled,Results] = simulationRunHelper(simObj, [], {}, TimeVec); %#ok<ASGLU>
+        else
+            % VP
+            [ThisStatusOK,Message,ResultFileNames,Cancelled,Results] = simulationRunHelper(simObj); %#ok<ASGLU>
+        end
+
+        if ~ThisStatusOK  && ~Cancelled
+            errordlg(Message)
+            return
+        end
+
+        if Cancelled
+            return
+        end
+
+        % cache the result to avoid simulating again
+        for ii = 1:length(simObj.Item)
+            obj.SimResults{SelectedInds(ii)}.Time = Results{ii}.Time;
+            obj.SimResults{SelectedInds(ii)}.SpeciesNames = Results{ii}.SpeciesNames;
+            obj.SimResults{SelectedInds(ii)}.Data = Results{ii}.Data;
+            obj.SimResults{SelectedInds(ii)}.VpopWeights = Results{ii}.VpopWeights;
+        end
+    else
+        Results = [];
     end
-    
-    % cache the result to avoid simulating again
-    for ii = 1:length(simObj.Item)
-        obj.SimResults{SelectedInds(ii)}.Time = Results{ii}.Time;
-        obj.SimResults{SelectedInds(ii)}.SpeciesNames = Results{ii}.SpeciesNames;
-        obj.SimResults{SelectedInds(ii)}.Data = Results{ii}.Data;
-        obj.SimResults{SelectedInds(ii)}.VpopWeights = Results{ii}.VpopWeights;
+
+
+    %% add the cached results to get the complete simulation results
+
+    % add cached results
+    indCached = find(IsSelected & IsCached);
+    newResults = [];
+
+    for ii = 1:length(indCached)
+        newResults{indCached(ii)} = obj.SimResults{indCached(ii)}; %#ok<AGROW>
     end
+
+    indNotCached = find(IsSelected & ~IsCached);
+    if ~isempty(Results)
+        for ii = 1:length(indNotCached)
+            newResults{indNotCached(ii)} = Results{ii}; %#ok<AGROW>
+        end
+    end
+
+    if ~isempty(newResults)
+        Results = newResults(~cellfun(@isempty,newResults)); % combined cached & new simulations
+    end
+
 else
-    Results = [];
-end
-
-
-%% add the cached results to get the complete simulation results
-
-% add cached results
-indCached = find(IsSelected & IsCached);
-newResults = [];
-
-for ii = 1:length(indCached)
-    newResults{indCached(ii)} = obj.SimResults{indCached(ii)}; %#ok<AGROW>
-end
-
-indNotCached = find(IsSelected & ~IsCached);
-if ~isempty(Results)
-    for ii = 1:length(indNotCached)
-        newResults{indNotCached(ii)} = Results{ii}; %#ok<AGROW>
-    end
-end
-
-if ~isempty(newResults)
-    Results = newResults(~cellfun(@isempty,newResults)); % combined cached & new simulations
-end
-
+    Results = CohortGenResults;
+end % if unable to load .mat
 
 %% Plot Simulation Items
 
@@ -376,6 +387,11 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
             
             % transform data
             thisData = obj.SpeciesData(sIdx).evaluate(Results{itemIdx}.Data);
+            
+            % continue if there is no data!
+            if isempty(thisData)
+                continue
+            end
             
             % invalid lines
             if ~isempty(ColumnIdx_invalid)
@@ -610,6 +626,10 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
             end % if Cohort
             
             % plot the standard deviations (VP only)
+            if isempty(vpopWeights)
+                vpopWeights = ones(size(thisData(:,ColumnIdx) ));
+            end
+            vpopWeights = reshape(vpopWeights,[],1);
             mu = thisData(:,ColumnIdx) * vpopWeights/sum(vpopWeights) ;
             wSD = sqrt((thisData(:,ColumnIdx) - mu).^2* ...
                 vpopWeights/sum(vpopWeights));

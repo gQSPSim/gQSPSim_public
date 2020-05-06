@@ -536,4 +536,15 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         
     end %methods
     
+    methods
+        function relativePath = getTaskRelativePath(obj, taskName)
+            relativePath = '';
+            
+            idx = strcmp({obj.Settings.Task.Name}, taskName);
+            if any(idx)
+                relativePath = obj.Settings.Task(idx).ModelObj.RelativeFilePath;
+            end
+        end         
+    end
+    
 end %classdef

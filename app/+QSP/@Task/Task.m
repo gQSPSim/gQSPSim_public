@@ -351,6 +351,9 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             
             if ~isempty(obj.ModelObj)
                 ModelNames = obj.ModelObj.ModelList;
+%                 if ~iscell(ModelNames)
+%                     ModelNames = {ModelNames};
+%                 end
             else
                 ModelNames = {};
             end
@@ -360,8 +363,33 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         function [StatusOk,Message] = importModel(obj,ProjectPath,ModelName)
             
             % Defaults
+%             persistent count
+%             if isempty(count)
+%                 count=0;
+%             else
+%                 count=count+1;
+%             end
+%             fprintf('calls to importModel %d\n', count)
+            
             StatusOk = true;
             Message = '';
+            
+            % check if the root directory does not exist
+            % for example if running on a worker on a remote cluster
+            % if that is the case then change the root directory
+            if ~exist(obj.Session.RootDirectory,'dir')
+                newRoot = getAttachedFilesFolder(obj.Session.RootDirectory);
+                if ~isempty(newRoot)
+                    % working on remote machine
+                    RelProjectPath = uix.utility.getRelativeFilePath(ProjectPath, obj.Session.RootDirectory, true);
+                    obj.Session.RootDirectory = newRoot;
+                    ProjectPath = fullfile(newRoot, RelProjectPath);
+                else
+                    % local but folder does not exist
+                    obj.Session.RootDirectory = pwd;
+                end
+                warning('Changed root directory to %s', pwd)
+            end
             
             % Clean-up
             theseModels = obj.Session.Settings.Model;
@@ -453,14 +481,21 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             else
                 % Create a new model
                 thisObj = QSP.Model();
+                
                 [StatusOK,Message] = importModel(thisObj,ProjectPath,ModelName);
+                
+                  % Store path
+                thisObj.RelativeFilePath = uix.utility.getRelativeFilePath(ProjectPath, obj.Session.RootDirectory, true);
+
                 % If import errors for 
                 if StatusOK
                     obj.ModelObj_ = thisObj;
+                    obj.ModelName = thisObj.ModelName;
                     % Store into Settings
                     obj.Session.Settings.Model(end+1) = thisObj;
                 else
                     obj.ModelObj_ = QSP.Model.empty(0,1);
+                    Message = sprintf('%s\nFailed to create model object.\nProject path %s exist=%d.\n', Message, ProjectPath, exist(ProjectPath));
                 end
             end
         end %function
@@ -639,7 +674,10 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         function Value = get.ModelObj(obj)
             % NOTE: importModel (obj.ModelObj_) is quick if NOT stale (all
             % timestamp validation occurs inside
-            importModel(obj,obj.FilePath,obj.ModelName);
+            [StatusOK,Message]=importModel(obj,obj.FilePath,obj.ModelName);
+            if ~StatusOK
+                warning('Failed to load model.\n%s',Message)
+            end
             Value = obj.ModelObj_;
         end
         

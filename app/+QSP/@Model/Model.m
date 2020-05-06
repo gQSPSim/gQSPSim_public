@@ -159,9 +159,7 @@ classdef Model < QSP.abstract.BaseProps
             if ~isequal(obj.FilePath,ProjectPath)                
                 obj.ModelTimeStamp = [];
             end
-            % Store path
-            obj.FilePath = ProjectPath;            
-            
+          
             % Return if NOT stale
             if ~obj.IsStale
                 return;
