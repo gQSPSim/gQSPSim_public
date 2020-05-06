@@ -7,36 +7,29 @@ classdef tgQSPSim < matlab.unittest.TestCase
 %             sbioreset;
 %         end
 %     end
+    properties
+        rootDirectory string
+    end
     
-%     methods
-%         function delete(obj)
-%             disp('tgQSPSim delete called');
-%             dbstack
-%         end
-%     end
+    properties (TestParameter)
+        caseStudy = {"Sessions/CaseStudy_aPCSK9/aPCSK9_v7_MES_complete/CaseStudy2_aPCSK9.qsp.mat"};
+    end
     
-%     methods(TestClassSetup)
-%         function foo(testCase)
-%             rootDirectory = string(pwd) + "/../Sessions/CaseStudy_aPCSK9/aPCSK9_v7_MES_complete/";
-%             filename = rootDirectory + "CaseStudy2_aPCSK9.qsp.mat";
-%             testCase.loadSessionFromFile(filename, false);
-%             testCase.Session.RootDirectory = char(rootDirectory);
-%             testCase.Session.UseParallel = false;
-%             testCase.Session.AutoSaveBeforeRun = false;
-%         end
-%     end
+    methods(TestClassSetup)
+        function foo(testCase)
+            % This gets called when pwd is 'tests' in the RootDirectory
+            testCase.rootDirectory = string(pwd) + "/..";
+        end
+    end
     
     methods(TestMethodSetup)
     end
         
     methods(Test)
-        function tSimulations(testCase)
-            w1 = warning('off', 'MATLAB:table:ModifiedAndSavedVarnames');
-            w2 = warning('off', 'MATLAB:ui:javacomponent:FunctionToBeRemoved');
-            obj = gQSPSimTester;
+        function tSimulations(testCase, caseStudy)
+            absolutePath = testCase.rootDirectory + "/" + caseStudy;
+            obj = gQSPSimTester(absolutePath);
             testCase = obj.runSimulations(testCase);
-            warning(w1.state, w1.identifier); 
-            warning(w2.state, w2.identifier);
         end
         
         %function tOptimizations(testCase)

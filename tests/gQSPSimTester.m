@@ -1,20 +1,31 @@
 classdef gQSPSimTester < QSPViewer.App
+    properties
+        originalWarningStates = struct('state', 'off', 'identifier', '');
+    end
+    
     methods
-        function obj = gQSPSimTester(filename)
-            if nargin == 0
-                rootDirectory = string(pwd) + "/../Sessions/CaseStudy_aPCSK9/aPCSK9_v7_MES_complete/";;
-                filename = rootDirectory + "CaseStudy2_aPCSK9.qsp.mat";
-            else
-                rootDirectory = fileparts(filename);
-            end
+        function obj = gQSPSimTester(filename)            
+            rootDirectory = fileparts(filename);
+            % Suppress some warnings.
+            obj.originalWarningStates(1) = warning('off', 'MATLAB:table:ModifiedAndSavedVarnames');
+            obj.originalWarningStates(2) = warning('off', 'MATLAB:ui:javacomponent:FunctionToBeRemoved');
             
-            a = obj.loadSessionFromFile(filename, false);
+            sessionLoadedTF = obj.loadSessionFromFile(filename, false);
+            assert(sessionLoadedTF == true);
+            
             obj.Session.RootDirectory = char(rootDirectory);
             obj.Session.UseParallel = false;
             obj.Session.AutoSaveBeforeRun = false;
         end
         
+        function delete(obj)
+            for w = 1:numel(obj.originalWarningStates)                
+                warning(obj.originalWarningStates(w).state, obj.originalWarningStates(w).identifier);
+            end
+        end
+        
         function testCase = runSimulations(obj, testCase)
+            %assert(class(testCase)
             for i = 1:numel(obj.Session.Simulation)
                 simResultsFolder = string(obj.Session.Simulation(i).SimResultsFolderName);
                 obj.Session.Simulation(i).SimResultsFolderName = 'tmp';
