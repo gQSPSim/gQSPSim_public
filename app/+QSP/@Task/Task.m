@@ -374,23 +374,6 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             StatusOk = true;
             Message = '';
             
-            % check if the root directory does not exist
-            % for example if running on a worker on a remote cluster
-            % if that is the case then change the root directory
-            if ~exist(obj.Session.RootDirectory,'dir')
-                newRoot = getAttachedFilesFolder(obj.Session.RootDirectory);
-                if ~isempty(newRoot)
-                    % working on remote machine
-                    RelProjectPath = uix.utility.getRelativeFilePath(ProjectPath, obj.Session.RootDirectory, true);
-                    obj.Session.RootDirectory = newRoot;
-                    ProjectPath = fullfile(newRoot, RelProjectPath);
-                else
-                    % local but folder does not exist
-                    obj.Session.RootDirectory = pwd;
-                end
-                warning('Changed root directory to %s', pwd)
-            end
-            
             % Clean-up
             theseModels = obj.Session.Settings.Model;
             TheseFilePaths = {theseModels.FilePath};

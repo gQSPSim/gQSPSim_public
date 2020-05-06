@@ -146,6 +146,21 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
             
             obj = s;
             
+            % check if the root directory does not exist
+            % for example if running on a worker on a remote cluster
+            % if that is the case then change the root directory
+            if ~exist(obj.RootDirectory,'dir')
+                newRoot = getAttachedFilesFolder(obj.RootDirectory);
+                if ~isempty(newRoot)
+                    % working on remote machine
+                    obj.RootDirectory = newRoot;
+                else
+                    % local but folder does not exist
+                    obj.RootDirectory = pwd;
+                end
+                warning('Changed root directory to %s', pwd)
+            end
+            
             info = ver;
             if ~any(contains({info.Name},'Parallel Computing Toolbox'))
                 obj.UseParallel = false; % disable parallel
@@ -161,6 +176,10 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
                     rethrow(err)
                 end
             end
+            
+            
+            
+            
         end %function
         
     end %methods (Static)
