@@ -583,7 +583,9 @@ end
  
                     % simulate experiment for this ID
                     OutputTimes = sort(unique(Time_id(Time_id>=0)));
-                    StopTime = max(Time_id(Time_id>=0));
+                    maxTime = max(Time_id(Time_id>=0));
+                    OutputTimes = OutputTimes(OutputTimes <= maxTime);
+
                     Values = [IC;est_p];
                     Names = [{SpeciesIC.SpeciesName}'; estParamNames];
                     if ~isempty(fixed_p)
@@ -594,8 +596,7 @@ end
                     [simData_id, thisStatusOK, thisMessage] = ItemModels.Task(grpIdx).simulate(...
                         'Names', Names, ...
                         'Values', Values, ...
-                        'OutputTimes', OutputTimes, ...
-                        'StopTime', StopTime );
+                        'OutputTimes', OutputTimes);
                     
                     if ~thisStatusOK
                         % simulation failed for this particular task
