@@ -22,6 +22,7 @@ classdef gQSPSimTester < QSPViewer.App
             for w = 1:numel(obj.originalWarningStates)                
                 warning(obj.originalWarningStates(w).state, obj.originalWarningStates(w).identifier);
             end
+            close all force
         end
         
         function testCase = runSimulations(obj, testCase)
@@ -52,7 +53,10 @@ classdef gQSPSimTester < QSPViewer.App
                     
                     expectedEntryTF = expectedFileNames.contains(currentFile);
                     expectedFile = expectedResults(expectedEntryTF);
-                    expected = load(expectedFile.folder + "/" + expectedFile.name);
+                    if numel(expectedFile) > 1
+                        warning("Found two possible baselines. Using first one found.");
+                    end
+                    expected = load(expectedFile(1).folder + "/" + expectedFile(1).name);
                     
                     testCase.verifyEqual(actual, expected, 'RelTol', 1e-3, 'AbsTol', 1e-4);
                     
