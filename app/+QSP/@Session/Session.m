@@ -154,11 +154,13 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
                 if ~isempty(newRoot)
                     % working on remote machine
                     obj.RootDirectory = newRoot;
+                    warning('Changed root directory to worker temp dir %s', newRoot)                    
                 else
                     % local but folder does not exist
                     obj.RootDirectory = pwd;
+                    warning('Changed root directory to current dir %s', pwd)
+                    
                 end
-                warning('Changed root directory to %s', pwd)
             end
             
             info = ver;
