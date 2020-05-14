@@ -73,9 +73,7 @@ Results_all = cell(1,length(unqGroups));
 for ixGrp = 1:length(unqGroups)
     Results_all{ixGrp}.Data = [];
 end
-   
-lastResults = [];
-ViolationTable = [];
+
 stopFile = tempname;
 
 function updateData(hWbar, data)
@@ -106,6 +104,11 @@ function updateData(hWbar, data)
             fclose(fid);
             bCancelled = true;
         end
+        
+        if mod(allSim,100)==0
+            t=toc-t;
+            fprintf('Generated 100 samples in %0.02f seconds\n', t)
+        end
     end
     
     if allPat > obj.MaxNumVirtualPatients || allSim  > obj.MaxNumSimulations
@@ -135,7 +138,8 @@ allSim = 0;
 %     % not possible to interrupt
 %     F = parfevalOnAll(p, @cohortGenWhileBlock, 9, obj, args, [], []);   
 % else
-
+tic
+t=0;
 F = parfevalOnAll(p, @cohortGenWhileBlock, 8, obj, args,  [], q_vp, stopFile);
 % end
 % cohortGenWhileBlock(obj, args, hWbar);
@@ -184,7 +188,7 @@ for ixGrp=1:length(unqGroups)
 end
 Results = Results_all;
 
-StatusOK = any(vertcat(StatusOK{:})) && nnz(isValid) >= obj.MaxNumVirtualPatients;
+StatusOK = any(vertcat(StatusOK{:})); % && nnz(isValid) >= obj.MaxNumVirtualPatients;
 
 %     Message = strjoin([Message{:}],'\n');
 Message = strjoin(Message,'\n');
@@ -203,19 +207,24 @@ end
 nSim = size(Vpop,1);
 nPat = nnz(isValid);
 
-ThisMessage = [num2str(nPat) ' virtual patients generated in ' num2str(nSim) ' simulations.'];
+ThisMessage = [num2str(nPat) ' virtual subjects generated in ' num2str(nSim) ' simulations.'];
+if nnz(isValid) < obj.MaxNumVirtualPatients
+    ThisMessage = sprintf('%s\nDid not produce target number of virtual subjects.', ThisMessage);
+end   
 
 Message = sprintf('%s\n%s\n',Message,ThisMessage);
 
 
-if ~isempty(ViolationTable)
-    g = findgroups(ViolationTable.Task, ViolationTable.Species, cell2mat(ViolationTable.Time), ViolationTable.Type);
-    ViolationSums = splitapply(@length, ViolationTable.Type, g);
-    [~,ix] = unique(g);
-    ViolationSumsTable = [ViolationTable(ix,:), table(ViolationSums, 'VariableNames', {'Count'})];
-    disp(ViolationSumsTable)
-end
+% if ~isempty(ViolationTable)
+%     g = findgroups(ViolationTable.Task, ViolationTable.Species, cell2mat(ViolationTable.Time), ViolationTable.Type);
+%     ViolationSums = splitapply(@length, ViolationTable.Type, g);
+%     [~,ix] = unique(g);
+%     ViolationSumsTable = [ViolationTable(ix,:), table(ViolationSums, 'VariableNames', {'Count'})];
+%     disp(ViolationSumsTable)
+% end
 
+fprintf('Summary of acceptance criteria violations:\n')
+disp(ViolationTable)
 
 end
 
