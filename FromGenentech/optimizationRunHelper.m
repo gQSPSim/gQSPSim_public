@@ -320,7 +320,7 @@ switch obj.AlgorithmName
         UB = estParamData(:,2);
 
         % options
-        LSQopts = optimoptions(@lsqnonlin,'MaxFunctionEvaluations',1e4,'MaxIterations',1e4,'UseParallel',false,'FunctionTolerance',1e-5,'StepTolerance',1e-3,...
+        LSQopts = optimoptions(@lsqnonlin,'MaxFunctionEvaluations',1e4,'MaxIterations',1e4,'FunctionTolerance',1e-5,'StepTolerance',1e-3,...
             'Display', 'iter', 'PlotFcn', @optimplotfval, 'UseParallel', obj.Session.UseParallel );
 
         % fit
