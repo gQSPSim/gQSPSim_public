@@ -192,6 +192,9 @@ if ~isempty(ItemModels)
                 Results_array{ii,jj} = thisResults;
                 StatusOK_array{ii,jj} = ThisStatusOK;
                 Messages{ii,jj} = ThisMessage;
+                if Cancelled
+                    break
+                end
             end
         end
     end    

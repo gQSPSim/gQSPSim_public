@@ -98,8 +98,15 @@ function [Results, nFailedSims, StatusOK, Message, Cancelled] = simulateVPatient
             
             F = parfeval(p, @parBlock, 2, taskObj, Names, Values, Results.Time, size(Results.Data), NS, options, q);           
             wait(F)
-            
-            [Results.Data, nFailedSims] = fetchOutputs(F);
+            try
+                [Results.Data, nFailedSims] = fetchOutputs(F);
+            catch err
+                Message = err.message;
+                Cancelled = ~isvalid(options.WaitBar);                
+                StatusOK = false;
+                return
+            end
+                
         else % cluster
             [Results.Data, nFailedSims] = parBlock(taskObj, Names, Values,  Results.Time, size(Results.Data), NS, options, [] );
             
