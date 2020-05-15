@@ -317,7 +317,10 @@ Vpop = Vpop(1:nSim,:);
 for ixGrp = 1:length(unqGroups)
 %     tmp = [LocalResults{:,ixGrp}];
 %     Results{ixGrp}.Data = horzcat(tmp.Data);
-    Results{ixGrp}.VpopWeights = VpopWeights;
+    Results{ixGrp}.VpopWeights = reshape(VpopWeights(1:nSim),[],1);
+    Results{ixGrp}.Data = Results{ixGrp}.Data(:, 1:(NS(ixGrp)*nSim));
 end
+
+
     
 end
