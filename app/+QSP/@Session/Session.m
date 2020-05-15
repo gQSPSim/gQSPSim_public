@@ -44,15 +44,18 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
     %% Properties
     properties
         RootDirectory = pwd
-        RelativeResultsPath = ''        
-        RelativeUserDefinedFunctionsPath = ''
-        RelativeObjectiveFunctionsPath = ''        
-        RelativeAutoSavePath = ''
+
         AutoSaveFrequency = 1 % minutes
         AutoSaveBeforeRun = true
         UseParallel = false
         ParallelCluster
         UseAutoSaveTimer = false
+        
+        RelativeResultsPathParts = {}
+        RelativeUserDefinedFunctionsPathParts = {}
+        RelativeObjectiveFunctionsPathParts = {}
+        RelativeAutoSavePathParts = {}
+        
     end
     
     properties (Transient=true)        
@@ -79,6 +82,13 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
     
     properties (Constant=true)
         DefaultColorMap = repmat(lines(10),5,1)
+    end
+    
+    properties (Dependent)
+        RelativeResultsPath = ''        
+        RelativeUserDefinedFunctionsPath = ''
+        RelativeObjectiveFunctionsPath = ''        
+        RelativeAutoSavePath = ''        
     end
         
     properties (Dependent=true, SetAccess='immutable')
@@ -440,23 +450,45 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         
         function set.RelativeResultsPath(obj,Value)
             validateattributes(Value,{'char'},{});
-            obj.RelativeResultsPath = fullfile(Value);
-        end %function
+%             obj.RelativeResultsPath = fullfile(Value);
+            obj.RelativeResultsPathParts = strsplit(fullfile(Value), filesep);
+        end %function\
+        
+        function Value=get.RelativeResultsPath(obj)
+            Value = strjoin(obj.RelativeResultsPathParts, filesep);
+        end
         
         function set.RelativeObjectiveFunctionsPath(obj,Value)
             validateattributes(Value,{'char'},{});
-            obj.RelativeObjectiveFunctionsPath = fullfile(Value);
+%             obj.RelativeObjectiveFunctionsPath = fullfile(Value);
+            obj.RelativeObjectiveFunctionsPathParts = strsplit(fullfile(Value),filesep);
         end %function
         
+        function Value = get.RelativeObjectiveFunctionsPath(obj)
+            Value = strjoin(obj.RelativeObjectiveFunctionsPathParts, filesep);
+        end
+        
+                
         function set.RelativeUserDefinedFunctionsPath(obj,Value)
             validateattributes(Value,{'char'},{});
-            obj.RelativeUserDefinedFunctionsPath = fullfile(Value);                
+%             obj.RelativeUserDefinedFunctionsPath = fullfile(Value);
+            obj.RelativeUserDefinedFunctionsPathParts = strsplit(fullfile(Value), filesep);
         end %function
         
+        function Value = get.RelativeUserDefinedFunctionsPath(obj)
+            Value = strjoin(obj.RelativeUserDefinedFunctionsPathParts, filesep);
+        end
+            
+                
         function set.RelativeAutoSavePath(obj,Value)
             validateattributes(Value,{'char'},{});
-            obj.RelativeAutoSavePath = fullfile(Value);                
+%             obj.RelativeAutoSavePath = fullfile(Value);                
+            obj.RelativeAutoSavePathParts = strsplit(fullfile(Value), filesep);           
         end %function
+        
+        function Value = get.RelativeAutoSavePath(obj)
+            Value = strjoin(obj.RelativeAutoSavePathParts,filesep);
+        end
         
         function addUDF(obj)
             % add the UDF to the path
