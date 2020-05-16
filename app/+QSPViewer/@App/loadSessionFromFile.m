@@ -39,7 +39,7 @@ try
     % check the session root
     if ~exist(s.Session.RootDirectory, 'dir')         
         s.Session.RootDirectory = fileparts(FilePath);
-        fprintf('Setting root directory to: %s\n', s.Session.RootDirectory)
+%         fprintf('Setting root directory to: %s\n', s.Session.RootDirectory)
         
         if usejava('jvm') && feature('ShowFigureWindows') % there is a display
             if strcmp(questdlg('Session root directory is invalid. Select a new root directory?', 'Select root directory', 'Yes'),'Yes')        
@@ -49,6 +49,7 @@ try
                 end
             end
         end
+        
     end
     
     Session = copy(s.Session);

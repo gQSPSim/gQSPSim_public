@@ -138,7 +138,7 @@ classdef VirtualPopulationGeneration < uix.abstract.CardViewPane
         function onFolderSelection(vObj,~,evt) %#ok<*INUSD>
             
             % Update the value
-            vObj.TempData.VPopResultsFolderName = evt.NewValue;
+            vObj.TempData.VPopResultsFolderName_new = evt.NewValue;
             
             % Update the view
             updateResultsDir(vObj);
@@ -387,7 +387,7 @@ classdef VirtualPopulationGeneration < uix.abstract.CardViewPane
                 h = figure('Name', 'Parameter Distribution Diagnostic'); %, 'Units', 'pixels', 'Position', [0 0 1000 1000]);
                 p = uix.ScrollingPanel('Parent', h, 'Units', 'Normalized', 'Position', [0 0 1 1]); %,  'Units', 'pixels', 'Position', [0 0 1000 600]);
 
-                vpopFile = fullfile(vObj.Data.FilePath, vObj.Data.VPopResultsFolderName, vObj.Data.ExcelResultFileName);                
+                vpopFile = fullfile(vObj.Data.FilePath, vObj.Data.VPopResultsFolderName_new, vObj.Data.ExcelResultFileName);                
                 try
                     Raw = readtable(vpopFile);
                     ParamNames = Raw.Properties.VariableNames;

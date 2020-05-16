@@ -44,11 +44,12 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         
         PlotSettings = repmat(struct(),1,12)
         SimResultsFolderPath = {'SimResults'}
-
+        SimResultsFolderName = ''
+        
     end
       
     properties (Dependent)
-        SimResultsFolderName
+        SimResultsFolderName_new
     end
     
     properties (SetAccess = 'private')
@@ -148,7 +149,7 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 'Name',obj.Name;
                 'Last Saved',obj.LastSavedTimeStr;
                 'Description',obj.Description;
-                'Results Path',obj.SimResultsFolderName;
+                'Results Path',obj.SimResultsFolderName_new;
                 'Dataset',obj.DatasetName;       
                 'Group Name',obj.GroupName;
                 'Items',SimulationItems;
@@ -367,7 +368,7 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                     end
                     
                     % Results file
-                    ThisFilePath = fullfile(obj.Session.RootDirectory,obj.SimResultsFolderName,obj.Item(index).MATFileName);
+                    ThisFilePath = fullfile(obj.Session.RootDirectory,obj.SimResultsFolderName_new,obj.Item(index).MATFileName);
                     if exist(ThisFilePath,'file') == 2
                         FileInfo = dir(ThisFilePath);
                         ResultLastSavedTime = FileInfo.datenum;
@@ -419,12 +420,12 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             obj.Settings = Value;
         end
         
-        function set.SimResultsFolderName(obj,Value)
+        function set.SimResultsFolderName_new(obj,Value)
             validateattributes(Value,{'char'},{'row'});
             obj.SimResultsFolderPath = strsplit(Value, filesep);
         end
         
-        function Value = get.SimResultsFolderName(obj)
+        function Value = get.SimResultsFolderName_new(obj)
             Value = strjoin(obj.SimResultsFolderPath, filesep);
         end
         

@@ -43,6 +43,7 @@ classdef (Abstract) BaseProps < matlab.mixin.SetGet & matlab.mixin.Heterogeneous
 %         Name = ''    % Name
         RelativeFilePathParts = {''}
 %         Description = '' % Description
+        RelativeFilePath = ''
         
         bShowTraces = []
         bShowQuantiles = []
@@ -57,8 +58,8 @@ classdef (Abstract) BaseProps < matlab.mixin.SetGet & matlab.mixin.Heterogeneous
     end
     properties (Dependent=true)
         FilePath
-%         LastSavedTimeStr
-        RelativeFilePath
+        RelativeFilePath_new
+%         LastSavedTimeStr        
     end
     
     %% Protected Properties
@@ -75,8 +76,12 @@ classdef (Abstract) BaseProps < matlab.mixin.SetGet & matlab.mixin.Heterogeneous
             obj.assignPVPairs(varargin{:});
             
         end % constructor       
+        
+        
                 
     end % Public methods
+    
+    
     
     %% Protected methods
     methods (Access=protected)
@@ -281,12 +286,12 @@ classdef (Abstract) BaseProps < matlab.mixin.SetGet & matlab.mixin.Heterogeneous
 %             obj.Name = value;
 %         end
         
-        function set.RelativeFilePath(obj,value)
+        function set.RelativeFilePath_new(obj,value)
             validateattributes(value,{'char'},{})
             obj.RelativeFilePathParts = strsplit(value,filesep);
         end
         
-        function Value = get.RelativeFilePath(obj)
+        function Value = get.RelativeFilePath_new(obj)
             Value = strjoin(obj.RelativeFilePathParts,filesep);
         end
         

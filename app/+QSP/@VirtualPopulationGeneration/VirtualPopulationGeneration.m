@@ -30,6 +30,8 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
     properties
         Settings = QSP.Settings.empty(0,1)
         VPopResultsFolderPath = {'VPopResults'}
+        VPopResultsFolderName = ''
+        
         ExcelResultFileName = ''
         VPopName = '' % VPop name from running vpop gen
               
@@ -76,7 +78,7 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
     end
     
     properties (Dependent)
-        VPopResultsFolderName
+        VPopResultsFolderName_new
     end
     
     %% Constructor
@@ -213,7 +215,7 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
                 'Name',obj.Name;
                 'Last Saved',obj.LastSavedTimeStr;
                 'Description',obj.Description;
-                'Results Path',obj.VPopResultsFolderName;
+                'Results Path',obj.VPopResultsFolderName_new;
                 'Cohort Used',obj.DatasetName;
                 'Group Name',obj.GroupName;
                 'Min No of Virtual Subjects',num2str(obj.MinNumVirtualPatients);
@@ -506,7 +508,7 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
                     vpopObj = QSP.VirtualPopulation;
                     vpopObj.Session = obj.Session;
                     vpopObj.Name = ThisVPopName;
-                    vpopObj.FilePath = fullfile(obj.Session.RootDirectory,obj.VPopResultsFolderName,obj.ExcelResultFileName);
+                    vpopObj.FilePath = fullfile(obj.Session.RootDirectory,obj.VPopResultsFolderName_new,obj.ExcelResultFileName);
                     % Update last saved time
                     updateLastSavedTime(vpopObj);
                     % Validate
@@ -600,7 +602,7 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
                     % Compare times
                     
                     % Optimization object (this)
-                    ResultFileInfo = dir(fullfile(obj.Session.RootDirectory, obj.VPopResultsFolderName, obj.ExcelResultFileName));
+                    ResultFileInfo = dir(fullfile(obj.Session.RootDirectory, obj.VPopResultsFolderName_new, obj.ExcelResultFileName));
                     if ~isempty(ResultFileInfo)
                         VpopLastSavedTime = ResultFileInfo.datenum;
                     else
@@ -620,7 +622,7 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
                     VirtualPopulationDataFileLastSavedTime = FileInfo.datenum;
                                         
                     % Results file - ONE file
-                    ThisFilePath = fullfile(obj.Session.RootDirectory,obj.VPopResultsFolderName,obj.ExcelResultFileName);
+                    ThisFilePath = fullfile(obj.Session.RootDirectory,obj.VPopResultsFolderName_new,obj.ExcelResultFileName);
                     if exist(ThisFilePath,'file') == 2
                         FileInfo = dir(ThisFilePath);                        
                         ResultLastSavedTime = FileInfo.datenum;
@@ -674,12 +676,12 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
             obj.Settings = Value;
         end
         
-        function set.VPopResultsFolderName(obj,Value)
+        function set.VPopResultsFolderName_new(obj,Value)
             validateattributes(Value,{'char'},{'row'});
             obj.VPopResultsFolderPath = strsplit(Value,filesep);
         end
         
-        function Value = get.VPopResultsFolderName(obj)
+        function Value = get.VPopResultsFolderName_new(obj)
             Value = strjoin(obj.VPopResultsFolderPath,filesep);
         end
         

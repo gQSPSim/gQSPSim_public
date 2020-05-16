@@ -126,7 +126,7 @@ classdef Simulation < uix.abstract.CardViewPane
         function onFolderSelection(vObj,h,evt) %#ok<*INUSD>
             
             % Update the value
-            vObj.TempData.SimResultsFolderName = evt.NewValue;
+            vObj.TempData.SimResultsFolderName_new = evt.NewValue;
             
             % Update the view
             updateResultsDir(vObj);

@@ -121,7 +121,7 @@ end
 IsSelected = true(size(obj.PlotItemTable,1),1);
 CohortGenResults = {};
 try
-    CohortGenResults = load(fullfile(obj.FilePath, obj.VPopResultsFolderName, obj.MatFileName));    
+    CohortGenResults = load(fullfile(obj.FilePath, obj.VPopResultsFolderName_new, obj.MatFileName));    
     CohortGenResults = CohortGenResults.Results;
 end
 

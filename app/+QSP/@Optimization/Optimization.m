@@ -30,6 +30,8 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
     properties
         Settings = QSP.Settings.empty(0,1)
         OptimResultsFolderPath = {'OptimResults'};
+        OptimResultsFolderName = ''
+        
         ExcelResultFileName = {} % At least one file
         VPopName = {} % At least one Vpop
         
@@ -78,7 +80,7 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
     end
     
     properties (Dependent)
-        OptimResultsFolderName
+        OptimResultsFolderName_new
     end
     
     %% Constructor
@@ -208,7 +210,7 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 'Name',obj.Name;
                 'Last Saved',obj.LastSavedTimeStr;
                 'Description',obj.Description;
-                'Results Path',obj.OptimResultsFolderName;
+                'Results Path',obj.OptimResultsFolderName_new;
                 'Optimization Algorithm',obj.AlgorithmName;
                 'Dataset',obj.DatasetName;
                 'Group Name',obj.GroupName;
@@ -647,7 +649,7 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                         thisVpopObj = QSP.VirtualPopulation;
                         thisVpopObj.Session = obj.Session;
                         thisVpopObj.Name = VPopNames{idx};
-                        thisVpopObj.FilePath = fullfile(obj.Session.RootDirectory,obj.OptimResultsFolderName,obj.ExcelResultFileName{idx});
+                        thisVpopObj.FilePath = fullfile(obj.Session.RootDirectory,obj.OptimResultsFolderName_new,obj.ExcelResultFileName{idx});
                         % Update last saved time
                         updateLastSavedTime(thisVpopObj);
                         % Validate
@@ -816,7 +818,7 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                             || isempty(obj.ExcelResultFileName{index}) % no excel file available for this index
                         ResultLastSavedTime = '';        
                     else
-                        ThisFilePath = fullfile(obj.Session.RootDirectory,obj.OptimResultsFolderName,obj.ExcelResultFileName{index});
+                        ThisFilePath = fullfile(obj.Session.RootDirectory,obj.OptimResultsFolderName_new,obj.ExcelResultFileName{index});
                         if exist(ThisFilePath,'file') == 2
                             FileInfo = dir(ThisFilePath);                        
                             ResultLastSavedTime = FileInfo.datenum;                        
@@ -865,12 +867,12 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             obj.Settings = Value;
         end
         
-        function set.OptimResultsFolderName(obj,Value)
+        function set.OptimResultsFolderName_new(obj,Value)
             validateattributes(Value,{'char'},{'row'});
             obj.OptimResultsFolderPath = strsplit(Value,filesep);
         end
         
-        function Value=get.OptimResultsFolderName(obj)
+        function Value=get.OptimResultsFolderName_new(obj)
             Value = strjoin(obj.OptimResultsFolderPath,filesep);
         end
         
