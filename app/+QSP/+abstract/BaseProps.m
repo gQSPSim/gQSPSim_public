@@ -41,8 +41,9 @@ classdef (Abstract) BaseProps < matlab.mixin.SetGet & matlab.mixin.Heterogeneous
     properties
         Session = QSP.Session.empty(1,0)
 %         Name = ''    % Name
-        RelativeFilePath = '' % Path to file
+        RelativeFilePathParts = {''}
 %         Description = '' % Description
+        RelativeFilePath = ''
         
         bShowTraces = []
         bShowQuantiles = []
@@ -57,7 +58,8 @@ classdef (Abstract) BaseProps < matlab.mixin.SetGet & matlab.mixin.Heterogeneous
     end
     properties (Dependent=true)
         FilePath
-%         LastSavedTimeStr
+        RelativeFilePath_new
+%         LastSavedTimeStr        
     end
     
     %% Protected Properties
@@ -74,8 +76,12 @@ classdef (Abstract) BaseProps < matlab.mixin.SetGet & matlab.mixin.Heterogeneous
             obj.assignPVPairs(varargin{:});
             
         end % constructor       
+        
+        
                 
     end % Public methods
+    
+    
     
     %% Protected methods
     methods (Access=protected)
@@ -85,10 +91,6 @@ classdef (Abstract) BaseProps < matlab.mixin.SetGet & matlab.mixin.Heterogeneous
                 obj.(Property) = Value;
             end
         end %function
-        
-        function Log(obj, msg)
-            obj.Session.Log(msg);
-        end
         
     end
     
@@ -274,7 +276,6 @@ classdef (Abstract) BaseProps < matlab.mixin.SetGet & matlab.mixin.Heterogeneous
             end %for pIdx = 1:numel(sProps)
         end %function
         
-        
     end % methods
     
     %% Get/Set methods
@@ -285,9 +286,13 @@ classdef (Abstract) BaseProps < matlab.mixin.SetGet & matlab.mixin.Heterogeneous
 %             obj.Name = value;
 %         end
         
-        function set.RelativeFilePath(obj,value)
+        function set.RelativeFilePath_new(obj,value)
             validateattributes(value,{'char'},{})
-            obj.RelativeFilePath = value;
+            obj.RelativeFilePathParts = strsplit(value,filesep);
+        end
+        
+        function Value = get.RelativeFilePath_new(obj)
+            Value = strjoin(obj.RelativeFilePathParts,filesep);
         end
         
 %         function set.Description(obj,value)

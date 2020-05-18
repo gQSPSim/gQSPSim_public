@@ -62,7 +62,7 @@ classdef VirtualPopulation < uix.abstract.CardViewPane
             DataFilePath = e.NewValue;
             
             % Update the relative file path
-            vObj.TempData.RelativeFilePath = DataFilePath;
+            vObj.TempData.RelativeFilePath_new = DataFilePath;
             
             if exist(vObj.TempData.FilePath,'file')==2
                 

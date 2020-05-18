@@ -34,10 +34,11 @@ update@uix.abstract.CardViewPane(vObj);
 
 if isscalar(vObj.TempData)
     RootDir = vObj.TempData.RootDirectory;
-    RelativeObjectiveFunctionsPath = vObj.TempData.RelativeObjectiveFunctionsPath;
-    RelativeUserDefinedFunctionsPath = vObj.TempData.RelativeUserDefinedFunctionsPath;
 
-    RelativeAutoSavePath = vObj.TempData.RelativeAutoSavePath;    
+    RelativeObjectiveFunctionsPath_new = vObj.TempData.RelativeObjectiveFunctionsPath_new;
+    RelativeUserDefinedFunctionsPath_new = vObj.TempData.RelativeUserDefinedFunctionsPath_new;
+    RelativeAutoSavePath_new = vObj.TempData.RelativeAutoSavePath_new;    
+
     UseAutoSaveTimer = vObj.TempData.UseAutoSaveTimer;
     AutoSaveFrequency = vObj.TempData.AutoSaveFrequency;
     AutoSaveBeforeRun = vObj.TempData.AutoSaveBeforeRun;
@@ -48,9 +49,10 @@ if isscalar(vObj.TempData)
     
 else
     RootDir = '';
-    RelativeUserDefinedFunctionsPath = '';
-    RelativeObjectiveFunctionsPath = '';
-    RelativeAutoSavePath = '';
+    RelativeUserDefinedFunctionsPath_new = '';
+    RelativeObjectiveFunctionsPath_new = '';
+    RelativeAutoSavePath_new = '';
+
     UseLogging = true;
     AutoSaveGit = false;
     UseSQL = false;
@@ -65,9 +67,9 @@ vObj.h.ResultsDirSelector.RootDirectory = RootDir;
 % vObj.h.ResultsDirSelector.Value = RelativeResultsPath;
 vObj.h.FunctionsDirSelector.RootDirectory = RootDir;
 vObj.h.ObjectiveFunctionsDirSelector.RootDirectory = RootDir;
-vObj.h.ObjectiveFunctionsDirSelector.Value = RelativeObjectiveFunctionsPath;
+vObj.h.ObjectiveFunctionsDirSelector.Value = RelativeObjectiveFunctionsPath_new;
 vObj.h.UserDefinedFunctionsDirSelector.RootDirectory = RootDir;
-vObj.h.UserDefinedFunctionsDirSelector.Value = RelativeUserDefinedFunctionsPath;
+vObj.h.UserDefinedFunctionsDirSelector.Value = RelativeUserDefinedFunctionsPath_new;
 vObj.h.UseLogFile.Value = UseLogging;
 vObj.h.UseGit.Value = AutoSaveGit;
 vObj.h.UseSQL.Value = UseSQL;
@@ -76,7 +78,7 @@ vObj.h.UseSQL.Value = UseSQL;
 %% autosave
 vObj.h.UseAutoSaveCheckbox.Value = UseAutoSaveTimer;
 vObj.h.AutoSaveDirSelector.RootDirectory = RootDir;
-vObj.h.AutoSaveDirSelector.Value = RelativeAutoSavePath;
+vObj.h.AutoSaveDirSelector.Value = RelativeAutoSavePath_new;
 vObj.h.AutoSaveFrequencyEdit.String = num2str(AutoSaveFrequency);
 vObj.h.AutoSaveBeforeRunCheckbox.Value = AutoSaveBeforeRun;
 % 

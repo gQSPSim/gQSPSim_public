@@ -8,6 +8,7 @@ if ~isempty(obj.ModelObj)
     model = copyobj(obj.ModelObj.mObj);
 else
     model = [];
+    error('Model is empty. Project Path %s. Root dir %s', obj.FilePath, obj.Session.RootDirectory)
 end
 
 % apply the active variants (if specified)
@@ -22,6 +23,9 @@ if ~isempty(obj.ActiveVariantNames)
     [~,tmp] = ismember(obj.ActiveVariantNames, obj.VariantNames);
     %         varObj_i = model.variant(tmp);
     for k=1:length(tmp)
+        if isempty(model)
+            warning('constructModel:EmptyModel', 'Model is empty. Project Path %s', obj.FilePath)
+        end
         commit(model.variant(tmp(k)), model)
         
     end
@@ -30,8 +34,7 @@ end % if
 
 % inactivate reactions (if specified)
 % turn on all reactions
-% reactions = sbioselect(model,  'Reaction', obj.ReactionNames,'Type', 'reaction');
-reactions = sbioselect(model, 'Type', 'Reaction');
+reactions = sbioselect(model,  'Reaction', obj.ReactionNames,'Type', 'reaction');
 set(reactions,'Active',true);
 if ~isempty(obj.InactiveReactionNames)
     % turn off inactive reactions

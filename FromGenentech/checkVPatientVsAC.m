@@ -138,6 +138,7 @@ for grpIdx = 1:length(unqGroups) %nItems
             LB_outputs = [LB_outputs;NaN(length(grpInds),1)];            
             UB_outputs = [UB_outputs;NaN(length(grpInds),1)];
             StatusOK = false;
+            Message = getReport(ME2);
             D = inf;
         end
     end % for ixIC

@@ -121,7 +121,7 @@ end
 IsSelected = true(size(obj.PlotItemTable,1),1);
 CohortGenResults = {};
 try
-    CohortGenResults = load(fullfile(obj.FilePath, obj.VPopResultsFolderName, obj.MatFileName));    
+    CohortGenResults = load(fullfile(obj.FilePath, obj.VPopResultsFolderName_new, obj.MatFileName));    
     CohortGenResults = CohortGenResults.Results;
 end
 
@@ -388,6 +388,11 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
             % transform data
             thisData = obj.SpeciesData(sIdx).evaluate(Results{itemIdx}.Data);
             
+            % continue if there is no data!
+            if isempty(thisData)
+                continue
+            end
+            
             % invalid lines
             if ~isempty(ColumnIdx_invalid)
                 % Plot
@@ -621,6 +626,9 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
             end % if Cohort
             
             % plot the standard deviations (VP only)
+            if isempty(vpopWeights)
+                vpopWeights = ones(size(thisData(:,ColumnIdx) ));
+            end
             vpopWeights = reshape(vpopWeights,[],1);
             mu = thisData(:,ColumnIdx) * vpopWeights/sum(vpopWeights) ;
             wSD = sqrt((thisData(:,ColumnIdx) - mu).^2* ...

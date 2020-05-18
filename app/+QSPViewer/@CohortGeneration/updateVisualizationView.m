@@ -168,7 +168,7 @@ if ~isempty(vObj.Data)
     end
     
     % Check which results files are invalid
-    ResultsDir = fullfile(vObj.Data.Session.RootDirectory,vObj.Data.VPopResultsFolderName);
+    ResultsDir = fullfile(vObj.Data.Session.RootDirectory,vObj.Data.VPopResultsFolderName_new);
     if exist(fullfile(ResultsDir,vObj.Data.ExcelResultFileName),'file') == 2
         FlagIsInvalidResultFile = false; % Exists, not invalid
     else

@@ -1,8 +1,10 @@
-function [Vpop, isValid, Results, ViolationTable, nPat, nSim, bCancelled] = cohortGenWhileBlock(obj, args, hWbar, q_vp)
+function [Vpop, isValid, Results, ViolationTable, nPat, nSim, StatusOK, Message] = cohortGenWhileBlock(obj, args, hWbar, q_vp, stopFile)
     
 nPat = 0;
 nSim = 0;
-bCancelled = false;
+StatusOK = true;
+Message = '';
+
 
 % unpack args
 LB = args.LB;
@@ -132,25 +134,38 @@ options_RP=saoptimset('ObjectiveLimit',0.005,'TolFun',1e-5,'Display','iter',...
 
 waitStatus = true;
 
-while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients 
-    
+% normally distrbuted variables
+
+
+LocalResults = cell(obj.MaxNumSimulations, length(unqGroups));
+for ixGrp = 1:length(unqGroups)
+    NS(ixGrp) = length(grpData.taskObj{ixGrp}.ActiveSpeciesNames);
+    NT(ixGrp) = length(grpData.OutputTimes{ixGrp});
+    Results{ixGrp}.Data = zeros( NT(ixGrp) , NS(ixGrp) * obj.MaxNumSimulations);
+end
+VpopWeights = zeros(1,obj.MaxNumSimulations);
+Vpop = zeros(obj.MaxNumSimulations, length(perturbParamNames));
+isValid = zeros(1,obj.MaxNumSimulations);
+
+while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients % && gop(@plus, nPat) < obj.MaxNumVirtualPatients && gop(@plus,nSim) < obj.MaxNumSimulations
+    if exist(stopFile,'file')
+        break
+    end
     nSim = nSim+1; % tic up the number of simulations
     
     if strcmp(obj.Method, 'Distribution') || strcmp(obj.Method, 'Relative Prevalence')
         % produce sample uniformly sampled between LB & UB
-
-        param_candidate = unifrnd(LB,UB);
-        param_candidate_norm = P0_1 + CV.*P0_1.*randn(size(P0_1)); %MES edit 2/13
-        param_candidate(normInds) = param_candidate_norm(normInds); %MES edit 2/13 
-
+        param_candidate(~normInds) = unifrnd(LB(~normInds),UB(~normInds));        
+        param_candidate(normInds) = normrnd(P0_1(normInds), P0_1(normInds).*CV(normInds));
+        
     elseif strcmp(obj.Method, 'MCMC')
-
-        param_candidate = param_candidate_old + (UB-LB).*(2*rand(size(LB))-1)*tune_param;
-        param_candidate_norm = param_candidate_old + CV.*my_randn(nSim,:)'*tune_param;
-        param_candidate(normInds) = param_candidate_norm(normInds); %MES edit 2/13 
+        param_candidate = param_candidate_old + (UB-LB).*(2*rand(size(LB))-1)*tune_param;              
     end
+    param_candidate = reshape(param_candidate,[],1);
     
-    param_candidate = max(param_candidate, LB); param_candidate = min(param_candidate, UB);
+    param_candidate = max(param_candidate, LB); 
+    param_candidate = min(param_candidate, UB);
+        
     P = param_candidate;
     P(logInds) = 10.^P(logInds);    
     Values0 = [P; fixedParams];
@@ -181,8 +196,6 @@ while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients
         if ~isempty(model_outputs) 
             Vpop(nSim,:) = Values0'; % store the parameter set
             isValid(nSim) = double(all(model_outputs>=LB_outputs) && all(model_outputs<=UB_outputs));    
-
-            
         end
     end
 
@@ -198,21 +211,25 @@ while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients
     
     if isValid(nSim) || ~strcmp(obj.SaveInvalid, 'Save valid vpatients')    
         % Add results of the simulation to Results.Data
-        if ~isempty(q_vp)
-            % parallel
-            for ixGrp = 1:length(unqGroups)                            
-                Results{ixGrp}.Data = activeSpecData{ixGrp};
-            end
-        else
+%         if ~isempty(q_vp)
+%             % parallel
+%             for ixGrp = 1:length(unqGroups)                            
+%                 Results{ixGrp}.Data = activeSpecData{ixGrp};
+%             end
+%         else
             for ixGrp = 1:length(unqGroups)
-                Results{ixGrp}.Data = [Results{ixGrp}.Data, activeSpecData{ixGrp}];
-                Results{ixGrp}.VpopWeights = [Results{ixGrp}.VpopWeights; isValid(nSim)];
+%                 LocalResults{nSim,ixGrp}.Data = activeSpecData{ixGrp};
+%                 Results{ixGrp}.Data = [Results{ixGrp}.Data, activeSpecData{ixGrp}];
+%                 LocalResults{nSim,ixGrp}.VpopWeights = isValid(nSim);
+%                 Results{ixGrp}.Data(:, (nSim-1)*NS(ixGrp) + (1:NS(ixGrp))) = activeSpecData{ixGrp};
+                Results{ixGrp}.Data( (nSim-1)*NT(ixGrp)*NS(ixGrp) + (1:NS(ixGrp)*NT(ixGrp)) ) = activeSpecData{ixGrp};
+                
+                VpopWeights(nSim)= isValid(nSim);
+%                 Results{ixGrp}.VpopWeights = [Results{ixGrp}.VpopWeights; isValid(nSim)];
             end            
-        end
+%         end
     end    
-    
 
-    
     if ~waitStatus
         bCancelled = true;
         break
@@ -223,43 +240,87 @@ while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients
             nPat, obj.MaxNumVirtualPatients, nSim-nPat, nSim ));
     end
 
-    LB_violation = [LB_violation; find(model_outputs<LB_outputs)];
-    UB_violation = [UB_violation; find(model_outputs>UB_outputs)];
-
+    if isempty(LB_violation)
+        LB_violation = model_outputs<LB_outputs;
+    else
+        LB_violation = LB_violation + (model_outputs<LB_outputs);
+    end
     
-    LBTable = table(taskName_outputs(LB_violation), ...
-        spec_outputs(LB_violation), ...
-        num2cell(time_outputs(LB_violation)),...
-        repmat({'LB'},size(LB_violation)), ...
-        'VariableNames', {'Task','Species','Time','Type'});
-    UBTable = table(taskName_outputs(UB_violation), ...
-        spec_outputs(UB_violation), ...
-        num2cell(time_outputs(UB_violation)),...
-        repmat({'UB'},size(UB_violation)), ...
-        'VariableNames', {'Task','Species','Time','Type'});
+    if isempty(UB_violation)
+        UB_violation = (model_outputs>UB_outputs);
+    else
+        UB_violation = UB_violation + (model_outputs>UB_outputs);
+    end
+
+%     
+%     
+%     LBTable = table(taskName_outputs(LB_violation), ...
+%         spec_outputs(LB_violation), ...
+%         num2cell(time_outputs(LB_violation)),...
+%         repmat({'LB'},size(LB_violation)), ...
+%         'VariableNames', {'Task','Species','Time','Type'});
+%     UBTable = table(taskName_outputs(UB_violation), ...
+%         spec_outputs(UB_violation), ...
+%         num2cell(time_outputs(UB_violation)),...
+%         repmat({'UB'},size(UB_violation)), ...
+%         'VariableNames', {'Task','Species','Time','Type'});
            
     if ~isempty(q_vp)
-        % parallel, send each result after completion
-        ViolationTable = [LBTable; UBTable];
+        % parallel (not batch mode), send each result after completion
+%         ViolationTable = [LBTable; UBTable];
         
-        data.Values = Values0';
-        data.Valid = isValid(nSim);
-        data.Results = Results;
-        data.ViolationTable = ViolationTable;
-        data.nPat = nPat;
-        data.nSim = nSim;
-        data.bCancelled = bCancelled;
+%         data.Values = Values0';
+%         data.Valid = isValid(nSim);
+%         data.Results = Results;
+%         data.ViolationTable = ViolationTable;
+%         data.nPat = nPat;
+%         data.nSim = nSim;
+%         data.bCancelled = bCancelled;
+%         
+%         send(q_vp, data)
         
-        send(q_vp, data)
-    else
-        % grow ViolationTable
-        ViolationTable = [ViolationTable; LBTable; UBTable];
-    end    
-   
+        send(q_vp, isValid(nSim))
+
+
+%     else
+%         % grow ViolationTable
+%         ViolationTable = [ViolationTable; LBTable; UBTable];
+    end
+    
+%     ViolationTable = [ViolationTable; LBTable; UBTable];
+
+
             
 end % while
+
+
+ixUB = find(UB_violation);
+ixLB = find(LB_violation);
+
+ViolationTable = [ table(taskName_outputs(ixUB), ...
+        spec_outputs(ixUB), ...
+        num2cell(time_outputs(ixUB)),...
+        repmat({'Exceeds UB'},size(ixUB)), ...
+        UB_violation(ixUB), ...
+        'VariableNames', {'Task','Species','Time','Type','Count'});
+        
+        table(taskName_outputs(ixLB), ...
+        spec_outputs(ixLB), ...
+        num2cell(time_outputs(ixLB)),...
+        repmat({'Below LB'},size(ixLB)), ...
+        UB_violation(ixLB), ...
+        'VariableNames', {'Task','Species','Time','Type','Count'})];
 
 isValid = isValid(1:nSim);
 Vpop = Vpop(1:nSim,:);
 
+for ixGrp = 1:length(unqGroups)
+%     tmp = [LocalResults{:,ixGrp}];
+%     Results{ixGrp}.Data = horzcat(tmp.Data);
+    Results{ixGrp}.VpopWeights = reshape(VpopWeights(1:nSim),[],1);
+    Results{ixGrp}.Data = Results{ixGrp}.Data(:, 1:(NS(ixGrp)*nSim));
+end
+
+
+    
 end

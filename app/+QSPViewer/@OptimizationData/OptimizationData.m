@@ -62,7 +62,7 @@ classdef OptimizationData < uix.abstract.CardViewPane
             DataFilePath = e.NewValue;
             
             % Update the relative file path
-            vObj.TempData.RelativeFilePath = DataFilePath;
+            vObj.TempData.RelativeFilePath_new = DataFilePath;
             vObj.TempData.clearData();
             
             
@@ -124,7 +124,7 @@ classdef OptimizationData < uix.abstract.CardViewPane
                     return
                 end
                 
-                vObj.TempData.RelativeFilePath = newFile ;
+                vObj.TempData.RelativeFilePath_new = newFile ;
                 
                 update(vObj);
                 

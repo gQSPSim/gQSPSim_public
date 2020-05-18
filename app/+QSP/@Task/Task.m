@@ -150,7 +150,7 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 'Name',obj.Name;
                 'Last Saved',obj.LastSavedTimeStr;
                 'Description',obj.Description;
-                'Model',obj.RelativeFilePath;                
+                'Model',obj.RelativeFilePath_new;                
                 'Active Variants',obj.ActiveVariantNames;
                 'Active Doses',obj.ActiveDoseNames;
                 'Active Species',obj.ActiveSpeciesNames;
@@ -453,14 +453,21 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             else
                 % Create a new model
                 thisObj = QSP.Model();
+                
                 [StatusOK,Message] = importModel(thisObj,ProjectPath,ModelName);
+                
+                  % Store path
+                thisObj.RelativeFilePath_new = uix.utility.getRelativeFilePath(ProjectPath, obj.Session.RootDirectory, true);
+
                 % If import errors for 
                 if StatusOK
                     obj.ModelObj_ = thisObj;
+                    obj.ModelName = thisObj.ModelName;
                     % Store into Settings
                     obj.Session.Settings.Model(end+1) = thisObj;
                 else
                     obj.ModelObj_ = QSP.Model.empty(0,1);
+                    Message = sprintf('%s\nFailed to create model object.\nProject path %s exist=%d.\n', Message, ProjectPath, exist(ProjectPath));
                 end
             end
         end %function
@@ -639,7 +646,10 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         function Value = get.ModelObj(obj)
             % NOTE: importModel (obj.ModelObj_) is quick if NOT stale (all
             % timestamp validation occurs inside
-            importModel(obj,obj.FilePath,obj.ModelName);
+            [StatusOK,Message]=importModel(obj,obj.FilePath,obj.ModelName);
+            if ~StatusOK
+                warning('Failed to load model.\n%s',Message)
+            end
             Value = obj.ModelObj_;
         end
         

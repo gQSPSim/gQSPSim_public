@@ -108,6 +108,9 @@ for axIndex = AxIndices(:)'
         
         % Get all Traces and Quantiles
         TheseChildren = ch(~IsDummyLine);
+        if isempty(TheseChildren)
+            continue
+        end
         
         ChildrenUserData = get(TheseChildren,'UserData');
         if iscell(ChildrenUserData)

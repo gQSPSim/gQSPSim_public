@@ -300,7 +300,7 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
         function onFolderSelection(vObj,h,evt) %#ok<*INUSD>
             
             % Update the value
-            vObj.TempData.OptimResultsFolderName = evt.NewValue;
+            vObj.TempData.OptimResultsFolderName_new = evt.NewValue;
             
             % Update the view
             updateResultsDir(vObj);
@@ -1093,7 +1093,7 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
                 ThisVPopName = matlab.lang.makeValidName(strtrim(Answer{1}));
                 ThisVPopName = sprintf('%s - %s',ThisProfile.Source,ThisVPopName);
                 
-                ThisFilePath = fullfile(vObj.Data.Session.RootDirectory, vObj.Data.OptimResultsFolderName,[ThisVPopName '.xlsx']);
+                ThisFilePath = fullfile(vObj.Data.Session.RootDirectory, vObj.Data.OptimResultsFolderName_new,[ThisVPopName '.xlsx']);
                 
                 if isempty(ThisVPopName) || any(strcmpi(ThisVPopName,AllVPopNames)) || ...
                         any(strcmpi(ThisFilePath,AllVPopFilePaths))

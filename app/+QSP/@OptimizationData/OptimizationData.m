@@ -76,7 +76,7 @@ classdef OptimizationData < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 'Name',obj.Name;
                 'Last Saved',obj.LastSavedTimeStr;
                 'Description',obj.Description;
-                'File Name',obj.RelativeFilePath;                
+                'File Name',obj.RelativeFilePath_new;                
                 'Dataset Type',obj.DatasetType;
                 };
         end
@@ -164,7 +164,6 @@ classdef OptimizationData < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             end
                 
             
-            
                 
             % Defaults
             StatusOk = true;
@@ -231,7 +230,6 @@ classdef OptimizationData < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                         Table = unstack(Table,'Value','Species', 'AggregationFunction', @mean);
                             
                         end
-                        
                         
                         % Overwrite Header and Data
                         Header = Table.Properties.VariableNames;

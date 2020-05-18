@@ -6,7 +6,7 @@ StatusOK = true;
 % generate the virtual patients    
 hWbar = uix.utility.CustomWaitbar(0,'Virtual cohort generation','Generating virtual cohort...',true);
 
-[Vpop, isValid, Results, ViolationTable, nPat, nSim, bCancelled] = cohortGenWhileBlock(obj, args, hWbar, []);
+[Vpop, isValid, Results, ViolationTable, nPat, nSim, bCancelled] = cohortGenWhileBlock(obj, args, hWbar, [], []);
 
 
 if ~isempty(hWbar) && ishandle(hWbar)
@@ -17,13 +17,16 @@ end
 
 
 %% DEBUG: output all the violations of the constraints
-if ~isempty(ViolationTable)
-    g = findgroups(ViolationTable.Task, ViolationTable.Species, cell2mat(ViolationTable.Time), ViolationTable.Type);
-    ViolationSums = splitapply(@length, ViolationTable.Type, g);
-    [~,ix] = unique(g);
-    ViolationSumsTable = [ViolationTable(ix,:), table(ViolationSums, 'VariableNames', {'Count'})];
-    disp(ViolationSumsTable)
-end
+% if ~isempty(ViolationTable)
+%     g = findgroups(ViolationTable.Task, ViolationTable.Species, cell2mat(ViolationTable.Time), ViolationTable.Type);
+%     ViolationSums = splitapply(@length, ViolationTable.Type, g);
+%     [~,ix] = unique(g);
+%     ViolationSumsTable = [ViolationTable(ix,:), table(ViolationSums, 'VariableNames', {'Count'})];
+%     disp(ViolationSumsTable)
+% end
+
+fprintf('Summary of acceptance criteria violations:\n')
+disp(ViolationTable)
 %% Outputs
 
 ThisMessage = [num2str(nPat) ' virtual patients generated in ' num2str(nSim) ' simulations.'];
