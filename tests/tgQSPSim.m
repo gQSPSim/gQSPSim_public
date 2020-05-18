@@ -1,12 +1,5 @@
 classdef tgQSPSim < matlab.unittest.TestCase
     
-%     methods(TestMethodTeardown)
-%         function tcleanup(testCase)
-%             disp('test method tear down called');
-%             close all force
-%             sbioreset;
-%         end
-%     end
     properties
         rootDirectory string
     end
