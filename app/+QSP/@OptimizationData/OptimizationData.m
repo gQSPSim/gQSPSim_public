@@ -142,9 +142,19 @@ classdef OptimizationData < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 lastSavedTime = obj.LastSavedTime;
             end
             
+            % Get destination format
+            if nargin > 2 % && islogical(varargin{1})
+                DestDatasetType = varargin{1};
+            else
+                % Default
+                DestDatasetType = 'wide';
+            end
+            
             if ~isempty(lastSavedTime) && ~isempty(FileInfo) && ...
                     lastSavedTime > FileInfo.datenum && ...
-                    ~isempty(obj.Data) && ~isempty(obj.Header)
+                    ~isempty(obj.Data) && ~isempty(obj.Header) && ...
+                    strcmp(DestDatasetType,obj.DatasetType)
+                
                 Header = obj.Header;
                 Data = obj.Data;
                 Message = '';
@@ -154,13 +164,7 @@ classdef OptimizationData < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             end
                 
             
-            % Get destination format
-            if nargin > 2 % && islogical(varargin{1})
-                DestDatasetType = varargin{1};
-            else
-                % Default
-                DestDatasetType = 'wide';
-            end
+            
                 
             % Defaults
             StatusOk = true;
