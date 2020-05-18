@@ -151,7 +151,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
                 try
                     status = fclose(obj.LogHandle);
                 catch err
-                   warning('Failed to  the log file.\n%s', err.message)
+                   warning('Failed to close the log file.\n%s', err.message)
                 end
 
             end
@@ -270,7 +270,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         end %function
         
         function deleteTimer(obj)
-            if ~isempty(obj.timerObj)
+            if ~isempty(obj.timerObj) && isvalid(obj.timerObj)
                 if strcmpi(obj.timerObj.Running,'on')
                     stop(obj.timerObj);
                 end
@@ -529,7 +529,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
                         xlsMsg = xlsxDiff(fullfile(obj.RootDirectory, thisFile), tmpFile, type);
                     end
                     
-                    diffMsg = sprintf('%s\n%s\n\n%s\n', diffMsg, thisFile, xlsMsg);
+                    diffMsg = sprintf('%s\n%s\n%s\n', diffMsg, thisFile, xlsMsg);
                         
                 end
             end
