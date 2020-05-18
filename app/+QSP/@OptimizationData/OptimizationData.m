@@ -36,7 +36,8 @@ classdef OptimizationData < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
     
     properties (Access=private)
         Data
-        Header        
+        Header
+        Weights
     end
     
     %% Constructor
@@ -102,9 +103,9 @@ classdef OptimizationData < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                     StatusOK = false;
                 end
                 
-                ixSpecies = strcmpi(OptimHeader, 'Species');
+                ixIgnore = strcmpi(OptimHeader, 'Species') | strcmpi(OptimHeader,'Exclude');
                 try
-                    data = cell2mat(OptimData(:,~ixSpecies));
+                    data = cell2mat(OptimData(:,~ixIgnore));
                 catch
                     Message = sprintf('%s\n* Optimization data contains invalid non-numeric data\n', Message);
                     StatusOK = false;
@@ -132,7 +133,7 @@ classdef OptimizationData < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
     
     %% Methods
     methods
-        function [StatusOk,Message,Header,Data] = importData(obj,DataFilePath,varargin)            
+        function [StatusOk,Message,Header,Data,Weights] = importData(obj,DataFilePath,varargin)            
             
             FileInfo = dir(DataFilePath);
             if ischar(obj.LastSavedTime)
@@ -141,17 +142,6 @@ classdef OptimizationData < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 lastSavedTime = obj.LastSavedTime;
             end
             
-            if ~isempty(lastSavedTime) && ~isempty(FileInfo) && ...
-                    lastSavedTime > FileInfo.datenum && ...
-                    ~isempty(obj.Data) && ~isempty(obj.Header)
-                Header = obj.Header;
-                Data = obj.Data;
-                Message = '';
-                StatusOk = true;
-                return
-            end
-                
-            
             % Get destination format
             if nargin > 2 % && islogical(varargin{1})
                 DestDatasetType = varargin{1};
@@ -159,6 +149,22 @@ classdef OptimizationData < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 % Default
                 DestDatasetType = 'wide';
             end
+            
+            if ~isempty(lastSavedTime) && ~isempty(FileInfo) && ...
+                    lastSavedTime > FileInfo.datenum && ...
+                    ~isempty(obj.Data) && ~isempty(obj.Header) && ...
+                    strcmp(DestDatasetType,obj.DatasetType)
+                
+                Header = obj.Header;
+                Data = obj.Data;
+                Message = '';
+                StatusOk = true;
+                Weights = obj.Weights;
+                return
+            end
+                
+            
+            
                 
             % Defaults
             StatusOk = true;
@@ -178,9 +184,20 @@ classdef OptimizationData < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 excludeCol = strcmpi(Header,'Exclude');
                 if any(excludeCol)
                     Table = Table(~strcmpi('Yes',Table{:,excludeCol}),~excludeCol);
+                    Header = Header(~excludeCol);
                 end
                 
+                weightsCol = strcmpi(Header,'Weight');
+                if any(weightsCol)
+                    Weights = Table(:,weightsCol);
+                else
+                    Weights = {};
+                end                    
+                
                 Data = table2cell(Table);
+                
+
+                    
                 % Convert between formats if needed
                 if strcmpi(obj.DatasetType,'wide') && strcmpi(DestDatasetType,'tall')
                     % Wide -> Tall
@@ -197,7 +214,24 @@ classdef OptimizationData < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                     MatchSpecies = find(strcmpi(Header,'Species'));
                     MatchValue = find(strcmpi(Header,'Value'));
                     if numel(MatchSpecies) == 1 && numel(MatchValue) == 1
+%                         ixStr = cellfun(@isstr, Table{:,MatchValue} );
+%                         value = Table{:,MatchValue};
+%                         value(ixStr) = cellfun(@str2num, value(ixStr), 'UniformOutput', false);
+%                         Table(:, MatchValue) = cell2mat(value);
+                        WeightIdx = strcmpi(Header,'Weight');
+                        if nnz(WeightIdx) == 1
+                            Table.Weight(isnan(Table.Weight)) = 1;
+                            ValueIdx = strcmpi(Header,'Value');
+                            WeightsTable = unstack(Table(:,~ValueIdx),'Weight','Species', 'AggregationFunction', @mean);
+                            Weights = table2cell(WeightsTable);
+                            Table = unstack(Table(:,~WeightIdx),'Value','Species', 'AggregationFunction', @mean);
+
+                        else
+                            Weights = {};
                         Table = unstack(Table,'Value','Species', 'AggregationFunction', @mean);
+                            
+                        end
+                        
                         
                         % Overwrite Header and Data
                         Header = Table.Properties.VariableNames;
@@ -217,6 +251,7 @@ classdef OptimizationData < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 obj.LastSavedTime = now;
                 obj.Data = Data;
                 obj.Header = Header;
+                obj.Weights = Weights;
             end
         end %function
         

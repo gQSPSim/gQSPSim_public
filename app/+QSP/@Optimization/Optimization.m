@@ -505,7 +505,8 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             if isempty(thisObj)            
                 % Virtual Population
                 Names = {obj.Settings.VirtualPopulation.Name};
-                [~,ThisName] = fileparts(NewSource);
+%                 [~,ThisName] = fileparts(NewSource);
+                ThisName = NewSource;
                 MatchIdx = strcmpi(Names,ThisName);
                 if any(MatchIdx)
                     thisObj = obj.Settings.VirtualPopulation(MatchIdx);
@@ -618,6 +619,11 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                     autoSaveFile(obj.Session,'Tag','preRunOptimization');
                 end
                 
+
+                 if obj.Session.AutoSaveGit
+                    obj.Session.gitCommit();
+                 end
+                
                 % If no initial conditions are specified, only one VPop is
                 % created. If IC are provided, the # of VPops is equivalent
                 % to the number of groups + 1
@@ -635,6 +641,11 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 % Update MATFileName in the simulation items
                 obj.ExcelResultFileName = ResultsFileNames;
                 obj.VPopName = VPopNames;
+                
+                % add entry to the database
+                if obj.Session.UseSQL
+                    obj.Session.addExperimentToDB('OPTIMIZATION', obj.Name, now, ResultsFileNames);
+                end
                 
                 % update last saved time for optimization
                 updateLastSavedTime(obj);

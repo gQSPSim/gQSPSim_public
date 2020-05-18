@@ -30,7 +30,8 @@ end % if
 
 % inactivate reactions (if specified)
 % turn on all reactions
-reactions = sbioselect(model,  'Reaction', obj.ReactionNames,'Type', 'reaction');
+% reactions = sbioselect(model,  'Reaction', obj.ReactionNames,'Type', 'reaction');
+reactions = sbioselect(model, 'Type', 'Reaction');
 set(reactions,'Active',true);
 if ~isempty(obj.InactiveReactionNames)
     % turn off inactive reactions
@@ -38,7 +39,8 @@ if ~isempty(obj.InactiveReactionNames)
 end % if
 
 % turn on all rules
-rules = sbioselect(model,  'Rule', obj.RuleNames,'Type', 'rule');
+% rules = sbioselect(model,  'Rule', obj.RuleNames,'Type', 'rule');
+rules = sbioselect(model, 'Type', 'rule');
 set(rules,'Active',true);
 % inactivate rules (if specified)
 if ~isempty(obj.InactiveRuleNames)

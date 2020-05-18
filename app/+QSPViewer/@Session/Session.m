@@ -108,8 +108,47 @@ classdef Session < uix.abstract.CardViewPane
         end %function
         
         function onLoggingCheckbox(vObj,h,evt)            
-            vObj.TempData.UseLogging = logical(h.Value);            
+            vObj.TempData.UseLogging = logical(h.Value); 
+            
+            if h.Value == 0
+                enable = 'off';
+            else
+                enable = 'on';
+            end
+            
+            set(vObj.h.LogFileLabel, 'Enable', enable)
+            set(vObj.h.LogFileDirSelector, 'Enable', enable)
+            
         end
+        
+        function onGitCheckbox(vObj,h,evt)    
+            vObj.TempData.AutoSaveGit = logical(h.Value);   
+            
+            if h.Value == 0
+                enable = 'off';
+            else
+                enable = 'on';
+            end
+            
+            set(vObj.h.GitLabel, 'Enable', enable)
+            set(vObj.h.GitDirSelector, 'Enable', enable)
+                      
+        end
+        
+        function onSQLCheckbox(vObj,h,evt)    
+            vObj.TempData.UseSQL = logical(h.Value);      
+            
+            if h.Value == 0
+                enable = 'off';
+            else
+                enable = 'on';
+            end
+            
+            set(vObj.h.SQLLabel, 'Enable', enable)
+            set(vObj.h.SQLSelector, 'Enable', enable)
+                                  
+        end        
+        
         
         function onAutosaveTimerCheckbox(vObj,h,evt)
             vObj.TempData.UseAutoSaveTimer = logical(h.Value);

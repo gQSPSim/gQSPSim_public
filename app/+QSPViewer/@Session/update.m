@@ -43,15 +43,18 @@ if isscalar(vObj.TempData)
     AutoSaveBeforeRun = vObj.TempData.AutoSaveBeforeRun;
     
     UseLogging = vObj.TempData.UseLogging;
-
+    AutoSaveGit = vObj.TempData.AutoSaveGit;
+    UseSQL = vObj.TempData.UseSQL;
+    
 else
     RootDir = '';
     RelativeUserDefinedFunctionsPath = '';
     RelativeObjectiveFunctionsPath = '';
     RelativeAutoSavePath = '';
     UseLogging = true;
-    
-    
+    AutoSaveGit = false;
+    UseSQL = false;
+        
     UseAutoSaveTimer = false;
     AutoSaveFrequency = 1;
     AutoSaveBeforeRun = false;
@@ -66,6 +69,8 @@ vObj.h.ObjectiveFunctionsDirSelector.Value = RelativeObjectiveFunctionsPath;
 vObj.h.UserDefinedFunctionsDirSelector.RootDirectory = RootDir;
 vObj.h.UserDefinedFunctionsDirSelector.Value = RelativeUserDefinedFunctionsPath;
 vObj.h.UseLogFile.Value = UseLogging;
+vObj.h.UseGit.Value = AutoSaveGit;
+vObj.h.UseSQL.Value = UseSQL;
 % 
 
 %% autosave

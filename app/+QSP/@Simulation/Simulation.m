@@ -294,6 +294,10 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                     autoSaveFile(obj.Session,'Tag','preRunSimulation');
                 end
                 
+                if obj.Session.AutoSaveGit
+                    obj.Session.gitCommit();
+                end
+                
                 % Run helper
                 obj.Log(['running simulation ' obj.Name])
                 [ThisStatusOK,thisMessage,ResultFileNames,Cancelled] = simulationRunHelper(obj);
@@ -303,6 +307,7 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
 %                     error('run: %s',Message);
                     StatusOK = false;
                     Message = sprintf('%s\n\n%s', Message, thisMessage);
+                    
                     return
                 end
                 
@@ -315,9 +320,32 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                     obj.Item(index).MATFileName = ResultFileNames{index};
                 end
                 
+                % add entry to the database
+                if obj.Session.UseSQL
+                    obj.Session.addExperimentToDB( 'SIMULATION', obj.Name, now, ResultFileNames);
+                end
             end 
             
         end %function
+        
+        function data = GetData(obj)
+            Items = obj.Item;
+            data = struct();
+            for k = 1:length(Items)
+                try
+                    filePath = fullfile( obj.Session.RootDirectory, obj.SimResultsFolderName, Items(k).MATFileName);
+                    tmp = load(filePath);
+                    data(k).Data = tmp.Results;
+                    data(k).TaskName = Items(k).TaskName;
+                    data(k).VPopName = Items(k).VPopName;
+
+                catch err
+                    warning(err.message)                    
+                end
+
+            end
+            
+        end
         
         function updateSpeciesLineStyles(obj)
             ThisMap = obj.Settings.LineStyleMap;

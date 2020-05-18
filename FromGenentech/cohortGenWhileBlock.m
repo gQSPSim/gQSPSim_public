@@ -1,4 +1,4 @@
-function [Vpop, isValid, ViolationTable, nPat, nSim, bCancelled] = cohortGenWhileBlock(obj, args, hWbar, q_vp)
+function [Vpop, isValid, Results, ViolationTable, nPat, nSim, bCancelled] = cohortGenWhileBlock(obj, args, hWbar, q_vp)
     
 nPat = 0;
 nSim = 0;
@@ -45,7 +45,7 @@ for grpIdx = 1:nGroups
     
     currGrp = unqGroups(grpIdx);
 
-% get matching taskGroup item based on group ID        
+    % get matching taskGroup item based on group ID        
     itemIdx = strcmp({obj.Item.GroupID}, num2str(currGrp));
     if ~any(itemIdx)
         % this group is not part of this vpop generation
@@ -93,11 +93,21 @@ for grpIdx = 1:nGroups
         IC_species = {};
     end
     
+    % cached results
+    Results{grpIdx}.Data = [];
+    Results{grpIdx}.VpopWeights = [];
+    Results{grpIdx}.Time = OutputTimes{grpIdx};
+    
+    if ~isempty(taskObj{grpIdx}.ActiveSpeciesNames)
+        Results{grpIdx}.SpeciesNames = taskObj{grpIdx}.ActiveSpeciesNames;
+    else
+        Results{grpIdx}.SpeciesNames = taskObj{grpIdx}.SpeciesNames;
+    end       
+    
 end
 
 grpData = {'taskObj', 'Species_grp', 'Time_grp', 'LB_grp', 'UB_grp', 'OutputTimes', 'ICs', 'nIC', 'IC_species', 'grpInds'};
 grpData = cell2struct( cellfun(@(s) evalin('caller',s), grpData, 'UniformOutput', false), grpData, 2);
-
 
 %%
 % Relative Prevalence options
@@ -105,8 +115,25 @@ options_RP=saoptimset('ObjectiveLimit',0.005,'TolFun',1e-5,'Display','iter',...
     'ReannealInterval',500,'InitialTemperature',0.5,'MaxIter',400,'TemperatureFcn',...
     @temperatureboltz,'AnnealingFcn', @annealingboltz,'AcceptanceFcn',@acceptancesa);
 
+% function checkCancelled(data)
+%     waitStatus = false;
+%     disp('interrupt received')
+% end
 
-while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients
+% callback for cancellation interrupt
+% if ~isempty(workerQueueConstant)
+%     disp('add listener')
+%     listener = afterEach(workerQueueConstant.Value, @(data) checkCancelled(data) );
+%     listener = afterEach(workerQueueConstant.Value, @(data) checkCancelled(data)  );
+    
+%     listener = afterEach(workerQueueConstant, @(data) checkCancelled(data) );
+% end
+
+
+waitStatus = true;
+
+while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients 
+    
     nSim = nSim+1; % tic up the number of simulations
     
     if strcmp(obj.Method, 'Distribution') || strcmp(obj.Method, 'Relative Prevalence')
@@ -147,14 +174,15 @@ while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients
             isValid(nSim) = true;
         end
 
-
     else
         % just check this one VP if it is valid
-        [model_outputs, StatusOK, Message, LB_outputs, UB_outputs, spec_outputs, taskName_outputs, time_outputs, nIC, D] = checkVPatientVsAC(obj, args, grpData, Names0, Values0);
+        [model_outputs, StatusOK, Message, LB_outputs, UB_outputs, spec_outputs, taskName_outputs, time_outputs, nIC, D, activeSpecData] = checkVPatientVsAC(obj, args, grpData, Names0, Values0);
         % compare model outputs to acceptance criteria
         if ~isempty(model_outputs) 
             Vpop(nSim,:) = Values0'; % store the parameter set
             isValid(nSim) = double(all(model_outputs>=LB_outputs) && all(model_outputs<=UB_outputs));    
+
+            
         end
     end
 
@@ -168,37 +196,67 @@ while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients
         param_candidate_old = param_candidate; % keep new candidate as starting point        
     end
     
-    if ~isempty(q_vp)
-        send(q_vp, [Values0', isValid(nSim)]);
-    end
+    if isValid(nSim) || ~strcmp(obj.SaveInvalid, 'Save valid vpatients')    
+        % Add results of the simulation to Results.Data
+        if ~isempty(q_vp)
+            % parallel
+            for ixGrp = 1:length(unqGroups)                            
+                Results{ixGrp}.Data = activeSpecData{ixGrp};
+            end
+        else
+            for ixGrp = 1:length(unqGroups)
+                Results{ixGrp}.Data = [Results{ixGrp}.Data, activeSpecData{ixGrp}];
+                Results{ixGrp}.VpopWeights = [Results{ixGrp}.VpopWeights; isValid(nSim)];
+            end            
+        end
+    end    
     
-    if ~isempty(hWbar)
-        waitStatus = uix.utility.CustomWaitbar(nPat/obj.MaxNumVirtualPatients,hWbar,sprintf('Succesfully generated %d/%d vpatients. (%d/%d Failed)',  ...
-            nPat, obj.MaxNumVirtualPatients, nSim-nPat, nSim ));
-    else
-        waitStatus = true;
-    end
-%     LB_violation = [LB_violation; find(model_outputs<LB_outputs)];
-%     UB_violation = [UB_violation; find(model_outputs>UB_outputs)];
-% 
-%     
-%     LBTable = table(taskName_outputs(LB_violation), ...
-%         spec_outputs(LB_violation), ...
-%         num2cell(time_outputs(LB_violation)),...
-%         repmat({'LB'},size(LB_violation)), ...
-%         'VariableNames', {'Task','Species','Time','Type'});
-%     UBTable = table(taskName_outputs(UB_violation), ...
-%         spec_outputs(UB_violation), ...
-%         num2cell(time_outputs(UB_violation)),...
-%         repmat({'UB'},size(UB_violation)), ...
-%         'VariableNames', {'Task','Species','Time','Type'});
-%     ViolationTable = [ViolationTable; LBTable; UBTable];
+
     
     if ~waitStatus
         bCancelled = true;
         break
     end
     
+    if ~isempty(hWbar)
+        waitStatus = uix.utility.CustomWaitbar(nPat/obj.MaxNumVirtualPatients,hWbar,sprintf('Succesfully generated %d/%d vpatients. (%d/%d Failed)',  ...
+            nPat, obj.MaxNumVirtualPatients, nSim-nPat, nSim ));
+    end
+
+    LB_violation = [LB_violation; find(model_outputs<LB_outputs)];
+    UB_violation = [UB_violation; find(model_outputs>UB_outputs)];
+
+    
+    LBTable = table(taskName_outputs(LB_violation), ...
+        spec_outputs(LB_violation), ...
+        num2cell(time_outputs(LB_violation)),...
+        repmat({'LB'},size(LB_violation)), ...
+        'VariableNames', {'Task','Species','Time','Type'});
+    UBTable = table(taskName_outputs(UB_violation), ...
+        spec_outputs(UB_violation), ...
+        num2cell(time_outputs(UB_violation)),...
+        repmat({'UB'},size(UB_violation)), ...
+        'VariableNames', {'Task','Species','Time','Type'});
+           
+    if ~isempty(q_vp)
+        % parallel, send each result after completion
+        ViolationTable = [LBTable; UBTable];
+        
+        data.Values = Values0';
+        data.Valid = isValid(nSim);
+        data.Results = Results;
+        data.ViolationTable = ViolationTable;
+        data.nPat = nPat;
+        data.nSim = nSim;
+        data.bCancelled = bCancelled;
+        
+        send(q_vp, data)
+    else
+        % grow ViolationTable
+        ViolationTable = [ViolationTable; LBTable; UBTable];
+    end    
+   
+            
 end % while
 
 isValid = isValid(1:nSim);

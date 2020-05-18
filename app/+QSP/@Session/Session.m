@@ -54,6 +54,12 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         ParallelCluster
         UseAutoSaveTimer = false
         
+        AutoSaveGit = false
+        GitRepo = '.git'                
+        
+        UseSQL = false
+        experimentsDB = 'experiments.db3'        
+        
         UseLogging = true
         LogFile = 'logfile.txt'
         LogHandle = []
@@ -62,6 +68,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
     
     properties (Transient=true)        
         timerObj
+        dbid = []
     end
     
     properties % (NonCopyable=true) % Note: These properties need to be public for tree
@@ -91,6 +98,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         ObjectiveFunctionsDirectory
         UserDefinedFunctionsDirectory
         AutoSaveDirectory
+        GitFiles
     end
     
     %% Constructor and Destructor
@@ -140,7 +148,12 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         % Destructor
         function delete(obj)
             if ~isempty(obj.LogHandle) && obj.LogHandle > 0
-                fclose(obj.LogHandle);
+                try
+                    status = fclose(obj.LogHandle);
+                catch err
+                   warning('Failed to close the log file.\n%s', err.message)
+                end
+
             end
         end
 %         function delete(obj)
@@ -188,10 +201,18 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
                 'Root Directory',obj.RootDirectory;
                 'Objective Functions Directory',obj.ObjectiveFunctionsDirectory;
                 'User Functions Directory',obj.UserDefinedFunctionsDirectory;
+                'Enable Logging', mat2str(obj.UseLogging);
+                'Log file', obj.LogFile;
+                'Use Git Versioning', mat2str(obj.AutoSaveGit);
+                'Git Repository Directory', obj.GitRepo;
+                'Use SQLite DB', mat2str(obj.UseSQL);
+                'SQLite DB file', obj.experimentsDB;
+                'Use parallel toolbox', mat2str(logical(obj.UseParallel));
+                'Parallel cluster', obj.ParallelCluster;
                 'Use AutoSave',mat2str(obj.UseAutoSaveTimer);
                 'AutoSave Directory',obj.AutoSaveDirectory;
                 'AutoSave Frequency (min)',num2str(obj.AutoSaveFrequency);
-                'AutoSave Before Run',mat2str(obj.AutoSaveBeforeRun);
+                'AutoSave Before Run',mat2str(obj.AutoSaveBeforeRun);                
                 };
         end
         
@@ -249,7 +270,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         end %function
         
         function deleteTimer(obj)
-            if ~isempty(obj.timerObj)
+            if ~isempty(obj.timerObj) && isvalid(obj.timerObj)
                 if strcmpi(obj.timerObj.Running,'on')
                     stop(obj.timerObj);
                 end
@@ -282,6 +303,9 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
                 newObj.UseAutoSaveTimer = obj.UseAutoSaveTimer;
                 
                 newObj.UseLogging = obj.UseLogging;
+                newObj.AutoSaveGit = obj.AutoSaveGit;
+                newObj.GitRepo = obj.GitRepo;
+                newObj.UseSQL = obj.UseSQL;
                 
                 newObj.LastSavedTime = obj.LastSavedTime;
                 newObj.LastValidatedTime = obj.LastValidatedTime;
@@ -420,12 +444,159 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
                 end
             end
         end %function
+        
+        function addExperimentToDB(obj, type, Name, time, ResultFileNames)
+            commit = git(sprintf('-C "%s" --git-dir="%s" rev-parse HEAD', obj.RootDirectory, fullfile(obj.RootDirectory,obj.GitRepo)));
+            cmd = sprintf('INSERT INTO Experiments VALUES ("%s", "%s", "%s", %f)', ...
+                type, Name, commit, time);
+%             if isempty(obj.dbid)
+                system(sprintf('touch "%s"', fullfile(obj.RootDirectory, obj.experimentsDB)) );
+                obj.dbid = mksqlite('open', fullfile(obj.RootDirectory, obj.experimentsDB), 'rw');
+%                 obj.dbid = mksqlite('open', 'experiments.db3', 'rw');
+                
+                mksqlite(obj.dbid, 'create table if not exists EXPERIMENTS (Type TEXT, Item TEXT, GitCommit TEXT, Time INTEGER);')
+                mksqlite(obj.dbid, 'create table if not exists RUNS (Experiment INTEGER, Files TEXT);')                
+%             end
+            
+            mksqlite( obj.dbid, cmd );
+                       
+            % add files
+            id=mksqlite(sprintf('select rowid from Experiments where Type="%s" and Item="%s" and GitCommit="%s" and Time=%f', ...
+                type, Name, commit, time));
+            if iscell(ResultFileNames)
+                values=cellfun(@(s) sprintf('(%d, "%s")', id.rowid, s), ResultFileNames, 'UniformOutput', false);
+                cmd = sprintf('INSERT INTO RUNS VALUES %s', strjoin(values, ','));
+                
+            else
+                values = sprintf('(%d, "%s")', id.rowid, ResultFileNames);
+                cmd = sprintf('INSERT INTO RUNS VALUES %s', values);
+            end
+            
+            mksqlite(obj.dbid, cmd);
+            
+            
+        end
+        
+        function gitCommit(obj)
+            
+            gitFiles = obj.GitFiles;
+            
+            if ~exist(fullfile(obj.RootDirectory, obj.GitRepo), 'dir')
+                obj.Log('creating git repository')
+                [repoPath,repo,~] = fileparts(obj.GitRepo);
+                result = git(sprintf('init "%s"', fullfile(obj.RootDirectory, fullfile(repoPath,repo))));
+%                 if ~isempty(result)
+%                     warning(result)
+%                 end                
+            end
+                
+            % get all the changes for each of the model files
+            fileChanges = git(sprintf('-C "%s" --git-dir="%s" diff --name-only', ...
+                obj.RootDirectory, obj.GitRepo));
+            fileChanges = strsplit(fileChanges,'\n');
+            % add files
+            for k=1:length(gitFiles)
+                result = git(sprintf('-C "%s" --git-dir="%s" add ''%s'' ', obj.RootDirectory, ...
+                     obj.GitRepo, gitFiles{k}));
+                if ~isempty(result)
+                    warning(result)
+                end                
+            end
+            
+            diffMsg = '';
+
+            
+            % do some diffing on the excel files
+            for k=1:length(fileChanges)
+                thisFile = fileChanges{k};
+                [~,~,ext] = fileparts(thisFile);
+                if strcmp(ext,'.xlsx')
+                    tmpFile = [tempname '.xlsx'];
+                    tmpXlsx = git(sprintf('-C "%s" --git-dir="%s" show HEAD:"%s" > "%s" ', obj.RootDirectory, ...
+                        obj.GitRepo, thisFile, tmpFile));
+                    
+                    % check if this is a vpop
+                    if ismember(thisFile, unique({obj.Settings.VirtualPopulation.RelativeFilePath}) )
+                        type = 'vpop';
+                    else
+                        type = '';
+                    end
+
+                    
+                    if isempty(type)
+                        xlsMsg = xlsxDiff(fullfile(obj.RootDirectory, thisFile), tmpFile);
+                    else
+                        xlsMsg = xlsxDiff(fullfile(obj.RootDirectory, thisFile), tmpFile, type);
+                    end
+                    
+                    diffMsg = sprintf('%s\n%s\n%s\n', diffMsg, thisFile, xlsMsg);
+                        
+                end
+            end
+            
+            
+            
+            % update files that were already added for now. would be better
+            % if this were only the files that are currently in the session
+            result = git(sprintf('-C "%s" --git-dir="%s" add -u ', obj.RootDirectory, ...
+                obj.GitRepo));
+            if ~isempty(result)
+                warning(result)
+            end                    
+
+            % construct commit message
+%             gitMessage = git(sprintf('-C "%s" diff', obj.Session.RootDirectory));
+
+            
+            % get model files
+            objs = obj.Settings.Task;
+            sbprojFiles = {};
+            for ixObj = 1:length(objs)
+                m = objs(ixObj).ModelObj;
+                if ~isempty(m)
+                   sbprojFiles = [sbprojFiles, strrep( m.RelativeFilePath, [obj.RootDirectory filesep], '')];
+                end
+            end
+            sbprojFiles = unique(sbprojFiles);
+            sbprojFiles = intersect(sbprojFiles, fileChanges);
+            
+            for ixProj = 1:length(sbprojFiles)
+                % pull out cached version for comparison
+                tmpFile = [tempname '.sbproj'];
+                
+                git(sprintf('-C "%s" --git-dir="%s" show HEAD:"%s" > "%s"', ...
+                    obj.RootDirectory, obj.GitRepo, sbprojFiles{ixProj}, tmpFile ));
+                m1 = sbioloadproject( tmpFile);
+                m2 = sbioloadproject( fullfile(obj.RootDirectory, sbprojFiles{ixProj}));
+                evalc('thisMsg = sbprojDiff(m1.m1, m2.m1)'); % TODO handle case with multiple models
+                diffMsg = [diffMsg, thisMsg]; 
+            end
+            
+            gitMessage = [fileChanges, diffMsg];
+            
+            if isempty(gitMessage)
+                gitMessage = sprintf('Snapshot at %s', datestr(now));
+            end
+
+            result = git(sprintf('-C "%s" --git-dir="%s" commit -m "%s"', obj.RootDirectory, obj.GitRepo, ...
+                strjoin(gitMessage,'\r\n')));
+
+            fprintf('[%s] Committed snapshot to git\n', datestr(now));
+
+            % TODO version control qsp session as well
+
+%                     if ~isempty(result)
+%                         warning(result)
+%                     end               
+            
+            
+        end
       
         function Log(obj,msg)
             if ~obj.UseLogging
                 return
             end
-            
+
             if isempty(obj.LogHandle)  
                 try
                     obj.LogHandle = fopen(fullfile(obj.RootDirectory, obj.LogFile), 'a');
@@ -438,9 +609,15 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
                 return
             end            
 
-            fprintf(obj.LogHandle, sprintf('[%s] %s\n', datestr(now), msg))  ;                      
-           
+            try
+                fprintf(obj.LogHandle, sprintf('[%s] %s\n', datestr(now), msg))  ;                      
+            catch
+                warning('Could not write to log file.' )
+                obj.LogHandle = -1;
+            end
+
         end
+    
     end %methods    
     
     %% Get/Set Methods
@@ -567,7 +744,111 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
             obj.ColorMap2 = Value;
         end
         
+        function files = get.GitFiles(obj)
+            allFiles = {};
+
+            % session
+            allFiles = [allFiles, obj.SessionName];
+            
+            % model files
+            files = {};
+            objs = obj.Settings.Task;
+            for ixObj = 1:length(objs)
+                m = objs(ixObj).ModelObj;
+                if ~isempty(m)
+                   allFiles = [allFiles, strrep( m.RelativeFilePath, [obj.RootDirectory filesep], '')];
+                end
+            end
+            allFiles = unique(allFiles);
+            
+            files = allFiles;
+            
+            %% input files
+            
+            % virtual populations
+            files = [files, unique({obj.Settings.VirtualPopulation.RelativeFilePath})];
+            
+            % parameters
+            files = [files, unique({obj.Settings.Parameters.RelativeFilePath})];
+            
+            % data
+            files = [files, unique({obj.Settings.OptimizationData.RelativeFilePath})];
+            
+            % acceptance criteria
+            files = [files, unique({obj.Settings.VirtualPopulationData.RelativeFilePath})];
+            
+            % target statistics
+            files = [files, unique({obj.Settings.VirtualPopulationGenerationData.RelativeFilePath})];
+            
+            % Session
+            
+            % remove . for empty items
+            files = setdiff(files, {'.','./','.\'});
+            
+        end
         
     end %methods
     
+    %% Utility Methods
+    methods
+        function sObj = getSimulationItem(obj, Name)
+            MatchIdx = strcmp(Name, {obj.Simulation.Name});
+            sObj = [];
+            if ~isempty(MatchIdx)
+                sObj = obj.Simulation(MatchIdx);
+            else
+                warning('Simulation %s not found in session', Name)
+            end
+        end
+        
+        function sObj = getVPopItem(obj, Name)
+            MatchIdx = strcmp(Name, {obj.Settings.VirtualPopulation.Name});
+            sObj = [];
+            if ~isempty(MatchIdx)
+                sObj = obj.Settings.VirtualPopulation(MatchIdx);
+            else
+                warning('Virtual subjects %s not found in session', Name)
+            end
+        end        
+        
+        function sObj = getTaskItem(obj, Name)
+            MatchIdx = strcmp(Name, {obj.Settings.Task.Name});
+            sObj = [];
+            if ~isempty(MatchIdx)
+                sObj = obj.Settings.Task(MatchIdx);
+            else
+                warning('Task %s not found in session', Name)
+            end            
+        end
+            
+        function sObj = getACItem(obj, Name)
+            MatchIdx = strcmp(Name, {obj.Settings.VirtualPopulationData.Name});
+            sObj = [];
+            if ~isempty(MatchIdx)
+                sObj = obj.Settings.VirtualPopulationData(MatchIdx);
+            else
+                warning('Acceptance Criteria %s not found in session', Name)
+            end
+        end           
+        
+        function sObj = getCohortGenItem(obj, Name)
+            MatchIdx = strcmp(Name, {obj.CohortGeneration.Name});
+            sObj = [];
+            if ~isempty(MatchIdx)
+                sObj = obj.CohortGeneration(MatchIdx);
+            else
+                warning('Cohort generation %s not found in session', Name)
+            end            
+        end
+        
+        function sObj = getParametersItem(obj, Name)
+            MatchIdx = strcmp(Name, {obj.Settings.Parameters.Name});
+            sObj = [];
+            if ~isempty(MatchIdx)
+                sObj = obj.Settings.Parameters(MatchIdx);
+            else
+                warning('Parameter %s not found in session', Name)
+            end            
+        end
+    end
 end %classdef

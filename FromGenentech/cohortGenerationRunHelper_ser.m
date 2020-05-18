@@ -1,12 +1,12 @@
 
-function [StatusOK,Message,isValid,Vpop,nPat,nSim, bCancelled] = cohortGenerationRunHelper_ser(obj, args)
+function [StatusOK,Message,isValid,Vpop,Results,nPat,nSim, bCancelled] = cohortGenerationRunHelper_ser(obj, args)
 Message = '';
 StatusOK = true;
     
 % generate the virtual patients    
 hWbar = uix.utility.CustomWaitbar(0,'Virtual cohort generation','Generating virtual cohort...',true);
 
-[Vpop, isValid, ViolationTable, nPat, nSim, bCancelled] = cohortGenWhileBlock(obj, args, hWbar, []);
+[Vpop, isValid, Results, ViolationTable, nPat, nSim, bCancelled] = cohortGenWhileBlock(obj, args, hWbar, []);
 
 
 if ~isempty(hWbar) && ishandle(hWbar)
