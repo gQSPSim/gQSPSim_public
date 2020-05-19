@@ -65,7 +65,7 @@ args = convertToString(varargin{:});
 % create the command to execute
 % cat is included so that calls to diff don't get messed up in the command window
 cmd = sprintf('%s %s %s | cat', EDIT_ARG, GIT_BINARY, args);
-fprintf('%s', cmd)
+% fprintf('%s', cmd)
 
 [~,  result] = system(cmd);
 

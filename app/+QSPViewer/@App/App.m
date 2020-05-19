@@ -1053,3 +1053,5 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
             end
         end
     end
+    
+end %classdef

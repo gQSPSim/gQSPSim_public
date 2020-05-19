@@ -549,6 +549,10 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
                 else
                     FileName = sprintf('%s_%s.qsp.mat',ThisName,TimeStamp);
                 end
+                if ~exist(obj.AutoSaveDirectory, 'dir')
+                    mkdir(obj.AutoSaveDirectory)
+                    warning('Creating autosave directory %s', obj.AutoSaveDirectory)
+                end
                 FilePath = fullfile(obj.AutoSaveDirectory,FileName);
                 save(FilePath,'-struct','s')
             catch err %#ok<NASGU>

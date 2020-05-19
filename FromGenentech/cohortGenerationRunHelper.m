@@ -380,7 +380,7 @@ if StatusOK && bProceed
     obj.PrevalenceWeights = cell2mat(Vpop(2:end,end));     % save prevalence weight to object
     
     % save results
-    SaveFilePath = fullfile(obj.Session.RootDirectory,obj.VPopResultsFolderName);
+    SaveFilePath = fullfile(obj.Session.RootDirectory,obj.VPopResultsFolderName_new);
     if ~exist(SaveFilePath,'dir')
         [ThisStatusOk,ThisMessage] = mkdir(SaveFilePath);
         if ~ThisStatusOk

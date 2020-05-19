@@ -337,7 +337,7 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             data = struct();
             for k = 1:length(Items)
                 try
-                    filePath = fullfile( obj.Session.RootDirectory, obj.SimResultsFolderName, Items(k).MATFileName);
+                    filePath = fullfile( obj.Session.RootDirectory, obj.SimResultsFolderName_new, Items(k).MATFileName);
                     tmp = load(filePath);
                     data(k).Data = tmp.Results;
                     data(k).TaskName = Items(k).TaskName;

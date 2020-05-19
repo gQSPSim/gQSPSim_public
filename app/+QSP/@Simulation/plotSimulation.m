@@ -93,7 +93,7 @@ if ~isempty(IsSelected)
             end
         end
     end
-    ResultsDir = fullfile(obj.Session.RootDirectory,obj.SimResultsFolderName);
+    ResultsDir = fullfile(obj.Session.RootDirectory,obj.SimResultsFolderName_new);
     MATResultFilePaths = cellfun(@(X) fullfile(ResultsDir,X), MATFileNames, 'UniformOutput', false);
 else
     MATResultFilePaths = {};

@@ -455,7 +455,7 @@ else
 
         % save current group's Vpop
         SaveFlag = true;
-        SaveFilePath = fullfile(obj.Session.RootDirectory,obj.OptimResultsFolderName);
+        SaveFilePath = fullfile(obj.Session.RootDirectory,obj.OptimResultsFolderName_new);
         if ~exist(SaveFilePath,'dir')
             [ThisStatusOk,ThisMessage] = mkdir(SaveFilePath);
             if ~ThisStatusOk
@@ -511,7 +511,7 @@ Vpop = [ VpopHeaders; VpopData];
 
 % save final Vpop
 SaveFlag = true;
-SaveFilePath = fullfile(obj.Session.RootDirectory,obj.OptimResultsFolderName);
+SaveFilePath = fullfile(obj.Session.RootDirectory,obj.OptimResultsFolderName_new);
 if ~exist(SaveFilePath,'dir')
     [ThisStatusOk,ThisMessage] = mkdir(SaveFilePath);
     if ~ThisStatusOk

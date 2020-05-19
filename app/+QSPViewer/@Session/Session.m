@@ -243,4 +243,5 @@ classdef Session < uix.abstract.CardViewPane
         
     end %methods
 
+    
 end %classdef
