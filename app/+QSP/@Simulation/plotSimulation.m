@@ -93,7 +93,7 @@ if ~isempty(IsSelected)
             end
         end
     end
-    ResultsDir = fullfile(obj.Session.RootDirectory,obj.SimResultsFolderName);
+    ResultsDir = fullfile(obj.Session.RootDirectory,obj.SimResultsFolderName_new);
     MATResultFilePaths = cellfun(@(X) fullfile(ResultsDir,X), MATFileNames, 'UniformOutput', false);
 else
     MATResultFilePaths = {};
@@ -272,6 +272,7 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
         
         quantileStyle = 'mean_std'; % 'quantile'
         
+        hold(hThisParent,'on')
         SE = weightedQuantilePlot(ThisResult.Time, x, w0, ThisColor, ...
             'linestyle',ThisLineStyle,...
             'meanlinewidth',obj.PlotSettings(axIdx).MeanLineWidth,...

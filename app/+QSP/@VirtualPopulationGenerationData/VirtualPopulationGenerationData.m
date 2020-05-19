@@ -85,8 +85,8 @@ classdef VirtualPopulationGenerationData < QSP.abstract.BaseProps & uix.mixin.Ha
                 if ~ThisStatusOk
                     Message = sprintf('%s\n* Error loading data "%s". %s\n',Message,obj.FilePath,ThisMessage);
                 end
-                                
-                if ~all(ismember(upper(VpopGenHeader), {'GROUP', 'TIME', 'SPECIES', 'TYPE', 'VALUE1', 'VALUE2'}))
+                                                
+                if ~all(ismember({'GROUP', 'TIME', 'SPECIES', 'TYPE', 'VALUE1', 'VALUE2'}, upper(VpopGenHeader)))
                     StatusOK = false;
                     Message = sprintf('%s\n* Vpop generation data file must contain the columns Group, Time, Species, Type, Value1, and Value2\n', Message);
                 end                

@@ -114,11 +114,20 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             %    aObj = QSP.Task();
             
             % Populate public properties from P-V input pairs
+                        
             obj.assignPVPairs(varargin{:});
             obj.ExportedModelTimeStamp = 0;
         end %function obj = Task(varargin)
         
         [t,x,names] = simulate(obj, varargin) % prototype
+        
+        function obj = loadobj(obj)
+            % check for old RelativeFilePath and reassign
+            if ~isempty(obj.RelativeFilePath)
+                obj.RelativeFilePath_new = obj.RelativeFilePath;
+                obj.RelativeFilePath = [];
+            end
+        end
         
         function compile(obj)
             

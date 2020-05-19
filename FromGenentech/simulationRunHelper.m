@@ -249,7 +249,7 @@ if ~isempty(ItemModels)
             % add results to output cell
             output{jj,ii} = Results;
 
-            SaveFilePath = fullfile(obj.Session.RootDirectory,obj.SimResultsFolderName);
+            SaveFilePath = fullfile(obj.Session.RootDirectory,obj.SimResultsFolderName_new);
             if ~exist(SaveFilePath,'dir')
                 [ThisStatusOk,ThisMessage] = mkdir(SaveFilePath);
                 if ~ThisStatusOk

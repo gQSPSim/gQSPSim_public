@@ -247,7 +247,7 @@ if StatusOK
     obj.PrevalenceWeights = PW;     % save prevalence weight to object
     Vpop = [VpopHeader; num2cell(cohortData), num2cell(PW)];
     % save results
-    SaveFilePath = fullfile(obj.Session.RootDirectory,obj.VPopResultsFolderName);
+    SaveFilePath = fullfile(obj.Session.RootDirectory,obj.VPopResultsFolderName_new);
     if ~exist(SaveFilePath,'dir')
         [ThisStatusOk,ThisMessage] = mkdir(SaveFilePath);
         if ~ThisStatusOk

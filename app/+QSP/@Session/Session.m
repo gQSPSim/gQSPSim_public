@@ -242,6 +242,8 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
                 'Root Directory',obj.RootDirectory;
                 'Objective Functions Directory',obj.ObjectiveFunctionsDirectory;
                 'User Functions Directory',obj.UserDefinedFunctionsDirectory;
+                'Use parallel toolbox', mat2str(logical(obj.UseParallel));
+                'Parallel cluster', obj.ParallelCluster;                
                 'Use AutoSave',mat2str(obj.UseAutoSaveTimer);
                 'AutoSave Directory',obj.AutoSaveDirectory;
                 'AutoSave Frequency (min)',num2str(obj.AutoSaveFrequency);
@@ -308,6 +310,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
                     stop(obj.timerObj);
                 end
                 delete(obj.timerObj);
+                obj.timerObj = [];                
             end
         end %function
         
@@ -586,12 +589,12 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         function addUDF(obj)
             % add the UDF to the path
             p = path;
-            if isempty(obj.RelativeUserDefinedFunctionsPath)
+            if isempty(obj.RelativeUserDefinedFunctionsPath_new)
                 % don't add anything unless UDF is defined
                 return
             end
             
-            UDF = fullfile(obj.RootDirectory, obj.RelativeUserDefinedFunctionsPath);
+            UDF = fullfile(obj.RootDirectory, obj.RelativeUserDefinedFunctionsPath_new);
             
             if exist(UDF, 'dir')
                 if ~isempty(obj.RelativeUserDefinedFunctionsPath) && ...
@@ -608,13 +611,13 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
             end
                 
             % don't do anything if the UDF is empty
-            if isempty(obj.RelativeUserDefinedFunctionsPath)
+            if isempty(obj.RelativeUserDefinedFunctionsPath_new)
                 return
             end
             
             % remove UDF from the path
             p = path;
-            subdirs = genpath(fullfile(obj.RootDirectory, obj.RelativeUserDefinedFunctionsPath));
+            subdirs = genpath(fullfile(obj.RootDirectory, obj.RelativeUserDefinedFunctionsPath_new));
             if isempty(subdirs)
                 return
             end
