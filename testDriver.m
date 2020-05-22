@@ -2,7 +2,7 @@
 addpath(genpath(pwd));
 results = runtests("tests");
 
-if any([tests.Failed])
+if any([results.Failed])
     error('Some errors encountered. See log file for details.');
 end
 
