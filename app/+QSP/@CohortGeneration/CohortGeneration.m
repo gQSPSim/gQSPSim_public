@@ -516,6 +516,7 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                     vpopObj.FilePath = fullfile(obj.Session.RootDirectory,obj.VPopResultsFolderName_new,obj.ExcelResultFileName);
                     % Update last saved time
                     updateLastSavedTime(vpopObj);
+                    updateLastSavedTime(obj);
                     % Validate
                     validate(vpopObj,false);
                     

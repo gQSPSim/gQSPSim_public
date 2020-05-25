@@ -167,10 +167,22 @@ classdef Model < QSP.abstract.BaseProps
                 return;
             end
             
+            
+            if ~exist(ProjectPath,'file')
+                StatusOk = false;
+                dirFiles = dir(fileparts(ProjectPath));
+                Message = sprintf('Project file %s does not exist. ', ProjectPath);
+                fprintf('Project file %s does not exist.\nContents of dir: %s\n', ProjectPath, strjoin({dirFiles.name},'\n') );
+                return
+            end
+            
             % Continue IF stale
             % Load project
             try
+%                fprintf('Loading %s\n', ProjectPath);                
                 AllModels = sbioloadproject(ProjectPath);
+%                fprintf('Success\n')
+                
             catch ME
                 StatusOk = false;
                 Message = ME.message;

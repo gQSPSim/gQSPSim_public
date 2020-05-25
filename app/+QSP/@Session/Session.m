@@ -208,24 +208,22 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
             % check if the root directory does not exist
             % for example if running on a worker on a remote cluster
             % if that is the case then change the root directory
-            if ~exist(obj.RootDirectory,'dir')
-                try
-                    newRoot = getAttachedFilesFolder(obj.RootDirectory);
-                catch 
-                    newRoot = '';
-                end
-                
-                if ~isempty(newRoot)
-                    % working on remote machine
-                    obj.RootDirectory = newRoot;
-                    warning('Changed root directory to worker temp dir %s', newRoot)                    
-%                 else
-                    % local but folder does not exist
-%                     obj.RootDirectory = pwd;
-%                     warning('Changed root directory to current dir %s', fileparts(s))
-                    
-                end
-            end
+%             if ~exist(obj.RootDirectory,'dir')
+%                 try
+%                     newRoot = getAttachedFilesFolder(obj.RootDirectory);
+%                     obj.OriginalRootDirectory = obj.RootDirectory;
+%                 catch 
+%                     newRoot = '';
+%                 end
+%                 
+%                 if ~isempty(newRoot) 
+%                     % working on remote machine                     
+%                     obj.RootDirectory = newRoot;
+%                     warning('Changed root directory to worker temp dir %s', newRoot)                 
+%                     files = dir(newRoot);                   
+%                     fprintf('Directory contents: %s\n', strjoin({files.name},'\n'));               
+%                 end
+%             end
             
             info = ver;
             if ~any(contains({info.Name},'Parallel Computing Toolbox'))
@@ -242,6 +240,9 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
                     rethrow(err)
                 end
             end
+            
+            % run units script
+            units
 
         end %function
         
@@ -439,26 +440,50 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
                 
                 for idx = 1:numel(obj.Settings.Task)
 %                     sObj.Task(idx) = copy(obj.Settings.Task(idx));
+                    if ~isempty(sObj.Task(idx).RelativeFilePath)
+                        sObj.Task(idx).RelativeFilePath_new = sObj.Task(idx).RelativeFilePath;
+                        sObj.Task(idx).RelativeFilePath = [];
+                    end
                     sObj.Task(idx).Session = newObj;
                 end
                 for idx = 1:numel(obj.Settings.VirtualPopulation)
 %                     sObj.VirtualPopulation(idx) = copy(obj.Settings.VirtualPopulation(idx));
+                    if ~isempty(sObj.VirtualPopulation(idx).RelativeFilePath)
+                        sObj.VirtualPopulation(idx).RelativeFilePath_new = sObj.VirtualPopulation(idx).RelativeFilePath;
+                        sObj.VirtualPopulation(idx).RelativeFilePath = [];
+                    end
                     sObj.VirtualPopulation(idx).Session = newObj;
                 end
                 for idx = 1:numel(obj.Settings.Parameters)
 %                     sObj.Parameters(idx) = copy(obj.Settings.Parameters(idx));
+                    if ~isempty(sObj.Parameters(idx).RelativeFilePath)
+                        sObj.Parameters(idx).RelativeFilePath_new = sObj.Parameters(idx).RelativeFilePath;
+                        sObj.Parameters(idx).RelativeFilePath = [];
+                    end
                     sObj.Parameters(idx).Session = newObj;
                 end
                 for idx = 1:numel(obj.Settings.OptimizationData)
 %                     sObj.OptimizationData(idx) = copy(obj.Settings.OptimizationData(idx));
+                    if ~isempty(sObj.OptimizationData(idx).RelativeFilePath)
+                        sObj.OptimizationData(idx).RelativeFilePath_new = sObj.OptimizationData(idx).RelativeFilePath;
+                        sObj.OptimizationData(idx).RelativeFilePath = [];
+                    end
                     sObj.OptimizationData(idx).Session = newObj;
                 end
                 for idx = 1:numel(obj.Settings.VirtualPopulationData)
 %                     sObj.VirtualPopulationData(idx) = copy(obj.Settings.VirtualPopulationData(idx));
+                    if ~isempty(sObj.VirtualPopulationData(idx).RelativeFilePath)
+                        sObj.VirtualPopulationData(idx).RelativeFilePath_new = sObj.VirtualPopulationData(idx).RelativeFilePath;
+                        sObj.VirtualPopulationData(idx).RelativeFilePath = [];
+                    end
                     sObj.VirtualPopulationData(idx).Session = newObj;
                 end
                 for idx = 1:numel(obj.Settings.VirtualPopulationGenerationData)
 %                     sObj.VirtualPopulationGenerationData(idx) = copy(obj.Settings.VirtualPopulationGenerationData(idx));
+                    if ~isempty(sObj.VirtualPopulationGenerationData(idx).RelativeFilePath)
+                        sObj.VirtualPopulationGenerationData(idx).RelativeFilePath_new = sObj.VirtualPopulationGenerationData(idx).RelativeFilePath;
+                        sObj.VirtualPopulationGenerationData(idx).RelativeFilePath = [];
+                    end
                     sObj.VirtualPopulationGenerationData(idx).Session = newObj;
                 end
           
@@ -845,18 +870,30 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         
         function value = get.ResultsDirectory(obj)
             value = fullfile(obj.RootDirectory, obj.RelativeResultsPath_new);
+            if ~isempty(getCurrentWorker)
+                value = getAttachedFilesFolder(value);
+            end
         end
         
         function value = get.ObjectiveFunctionsDirectory(obj)
             value = fullfile(obj.RootDirectory, obj.RelativeObjectiveFunctionsPath_new);
+            if ~isempty(getCurrentWorker)
+                value = getAttachedFilesFolder(value);
+            end            
         end
         
         function value = get.UserDefinedFunctionsDirectory(obj)
             value = fullfile(obj.RootDirectory, obj.RelativeUserDefinedFunctionsPath_new);
+            if ~isempty(getCurrentWorker)
+                value = getAttachedFilesFolder(value);
+            end            
         end
         
         function value = get.AutoSaveDirectory(obj)
             value = fullfile(obj.RootDirectory, obj.RelativeAutoSavePath_new);
+            if ~isempty(getCurrentWorker)
+                value = getAttachedFilesFolder(value);
+            end            
         end
         
         function set.UseAutoSaveTimer(obj,Value)

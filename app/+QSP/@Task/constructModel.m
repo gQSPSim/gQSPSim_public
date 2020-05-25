@@ -8,7 +8,20 @@ if ~isempty(obj.ModelObj)
     model = copyobj(obj.ModelObj.mObj);
 else
     model = [];
-    error('Model is empty. Project Path %s. Root dir %s', obj.FilePath, obj.Session.RootDirectory)
+    dirFiles = dir(obj.Session.RootDirectory);
+    
+    StatusOK = false;
+    Message = sprintf('Failed to load model %s', obj.FilePath);
+    return    
+%    curDirFiles = dir(pwd);
+%    
+%    affFiles = dir(fullfile(getAttachedFilesFolder, '**'));
+%    
+%    error('Model is empty. Project Path %s  (exists=%d).\n Root dir %s (exists=%d).\n Running on %s.\n Contents: %s\n Current dir %s\nContents %s\nAttached File Folder %s\nContents: %s', ...
+%        obj.FilePath, exist(obj.FilePath, 'file'), obj.Session.RootDirectory, exist(obj.Session.RootDirectory,'dir'), ...
+%        getenv('HOST'), strjoin({dirFiles.name},'\n'), pwd,  strjoin({curDirFiles.name}, '\n'), ...
+%        getAttachedFilesFolder, strjoin( arrayfun(@(i) fullfile(i.folder, i.name), affFiles, 'UniformOutput', false), '\n') )
+
 end
 
 % apply the active variants (if specified)

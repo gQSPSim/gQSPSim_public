@@ -321,14 +321,26 @@ classdef (Abstract) BaseProps < matlab.mixin.SetGet & matlab.mixin.Heterogeneous
         function value = get.SessionRoot(obj)
             if isscalar(obj.Session)
                 value = obj.Session.RootDirectory;
+                if ~isempty(getCurrentWorker)
+                    newRoot = getAttachedFilesFolder(value);
+                    if ~isempty(newRoot)
+                        obj.Session.RootDirectory = newRoot; % update session root
+                        value = newRoot;
+                    end
+                end                
             else
                 value = '';
             end
         end
         
         function value = get.FilePath(obj)
-            value = fullfile(obj.SessionRoot, obj.RelativeFilePath_new);
+            value = fullfile(obj.SessionRoot, obj.RelativeFilePath_new);       
+            if isempty(value)
+                return
+            end
+            
         end
+        
         function set.FilePath(obj,value)
             validateattributes(value,{'char'},{})
             obj.RelativeFilePath_new = uix.utility.getRelativeFilePath(value, obj.SessionRoot, false);

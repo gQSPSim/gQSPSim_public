@@ -280,19 +280,25 @@ if obj.Session.UseParallel
             paths(cellfun(@isempty,paths)) = [];
                             
             % task paths
-            
-            modelPaths = unique(cellfun(@(TaskName) obj.Session.getTaskRelativePath(TaskName), ...
-                {obj.Item.TaskName}, 'UniformOutput', false));
-            
+%             
+%             modelPaths = unique(cellfun(@(TaskName) obj.Session.getTaskRelativePath(TaskName), ...
+%                 {obj.Item.TaskName}, 'UniformOutput', false));
+            xlsFiles = dir(fullfile(obj.Session.RootDirectory, '**/*.xlsx'));
+            sbprojFiles = dir(fullfile(obj.Session.RootDirectory, '**/*.sbproj'));
+            paths = [paths'; arrayfun( @(i) fullfile(i.folder, i.name), xlsFiles, 'UniformOutput', false);
+                arrayfun( @(i) fullfile(i.folder, i.name), sbprojFiles, 'UniformOutput', false)]; 
           
             
 %             j = createJob(c,'AttachedFiles', [obj.Session.UserDefinedFunctionsDirectory, paths], 'AutoAddClientPath', true, 'Type', 'pool');
 %             createTask(j, @cohortGenerationRunHelper_par, 8, {obj,args});
 %             submit(j);
             hWait=warndlg(sprintf('Submitting job to cluster %s.', obj.Session.ParallelCluster), 'Please wait','non-modal');
+            allAttachedFiles = [obj.Session.UserDefinedFunctionsDirectory; paths]; %, ... % modelPaths, ...
+%                 obj.Session.RootDirectory];
+%            args.AttachedFiles = allAttachedFiles;
+            
             j = batch(c, @cohortGenerationRunHelper_par, 8, {obj,args}, 'Pool', 10, ... % c.NumWorkers - 1, ...
-                'AttachedFiles', [obj.Session.UserDefinedFunctionsDirectory, paths, modelPaths, ...
-                obj.Session.RootDirectory], 'AutoAddClientPath', false);
+                'AttachedFiles', allAttachedFiles, 'AutoAddClientPath', false);
             delete(hWait)
             hWait=warndlg({'Finished submitting job to cluster.','Waiting for completion'},'Please wait','non-modal');
             
