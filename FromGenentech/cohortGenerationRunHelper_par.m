@@ -97,9 +97,10 @@ function updateData(hWbar, data)
         thisStatusOK = uix.utility.CustomWaitbar(allPat/obj.MaxNumVirtualPatients,hWbar,sprintf('Succesfully generated %d/%d vpatients. (%d/%d Failed)',  ...
             allPat, obj.MaxNumVirtualPatients, allSim-allPat, allSim ));
         if ~thisStatusOK
-%             cancel(F);
+            % create stop file
             fid=fopen(stopFile,'w');
             fclose(fid);
+            addAttachedFiles(p, stopFile);
             bCancelled = true;
         end
         

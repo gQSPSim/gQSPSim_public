@@ -695,6 +695,29 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             end 
         end %function
         
+        function files = getDependencyPaths(obj)
+            % get the file paths of all dependencies for the cohort
+            % generation. useful for submitting to a remote cluster
+            
+            files = {};
+            for idxItem = 1:length(obj.Item)
+
+                % get model files
+                taskObj = obj.Session.getTaskItem(obj.Item(idxItem).TaskName );
+                mObj = obj.Session.getModelItem(taskObj.ModelName);
+                files = [files; mObj.FilePath];               
+            end
+            files = unique(files);
+            
+            % get acceptance criteria
+            acObj = obj.Session.getACItem(obj.DatasetName);
+            files = [files; acObj.FilePath];
+            
+            % parameters
+            pObj = obj.Session.getParametersItem(obj.RefParamName);
+            files = [files; pObj.FilePath];
+
+        end
     end %methods
     
    

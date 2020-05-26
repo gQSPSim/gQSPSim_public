@@ -788,7 +788,11 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         end %function
         
         function Value = get.RelativeObjectiveFunctionsPath_new(obj)
-            Value = strjoin(obj.RelativeObjectiveFunctionsPathParts, filesep);
+            if ~isempty(obj.RelativeObjectiveFunctionsPathParts)
+                Value = strjoin(obj.RelativeObjectiveFunctionsPathParts, filesep);
+            else
+                Value = '';
+            end
         end
         
                 
@@ -799,7 +803,12 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         end %function
         
         function Value = get.RelativeUserDefinedFunctionsPath_new(obj)
-            Value = strjoin(obj.RelativeUserDefinedFunctionsPathParts, filesep);
+            if ~isempty(obj.RelativeUserDefinedFunctionsPathParts)
+                Value = strjoin(obj.RelativeUserDefinedFunctionsPathParts, filesep);
+            else
+                Value = '';
+            end
+                
         end
             
                 
@@ -971,7 +980,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         function sObj = getSimulationItem(obj, Name)
             MatchIdx = strcmp(Name, {obj.Simulation.Name});
             sObj = [];
-            if ~isempty(MatchIdx)
+            if any(MatchIdx)
                 sObj = obj.Simulation(MatchIdx);
             else
                 warning('Simulation %s not found in session', Name)
@@ -981,7 +990,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         function sObj = getVPopItem(obj, Name)
             MatchIdx = strcmp(Name, {obj.Settings.VirtualPopulation.Name});
             sObj = [];
-            if ~isempty(MatchIdx)
+            if any(MatchIdx)
                 sObj = obj.Settings.VirtualPopulation(MatchIdx);
             else
                 warning('Virtual subjects %s not found in session', Name)
@@ -991,17 +1000,28 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         function sObj = getTaskItem(obj, Name)
             MatchIdx = strcmp(Name, {obj.Settings.Task.Name});
             sObj = [];
-            if ~isempty(MatchIdx)
+            if any(MatchIdx)
                 sObj = obj.Settings.Task(MatchIdx);
             else
                 warning('Task %s not found in session', Name)
             end            
         end
+        
+        function mObj = getModelItem(obj, Name)
+            MatchIdx = strcmp(Name, {obj.Settings.Model.ModelName});
+            mObj = [];
+            if any(MatchIdx)
+                mObj = obj.Settings.Model(MatchIdx);
+            else
+                warning('Model %s not found in session', Name)
+            end            
+        end        
+        
             
         function sObj = getACItem(obj, Name)
             MatchIdx = strcmp(Name, {obj.Settings.VirtualPopulationData.Name});
             sObj = [];
-            if ~isempty(MatchIdx)
+            if any(MatchIdx)
                 sObj = obj.Settings.VirtualPopulationData(MatchIdx);
             else
                 warning('Acceptance Criteria %s not found in session', Name)
@@ -1011,7 +1031,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         function sObj = getCohortGenItem(obj, Name)
             MatchIdx = strcmp(Name, {obj.CohortGeneration.Name});
             sObj = [];
-            if ~isempty(MatchIdx)
+            if any(MatchIdx)
                 sObj = obj.CohortGeneration(MatchIdx);
             else
                 warning('Cohort generation %s not found in session', Name)
@@ -1021,7 +1041,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         function sObj = getParametersItem(obj, Name)
             MatchIdx = strcmp(Name, {obj.Settings.Parameters.Name});
             sObj = [];
-            if ~isempty(MatchIdx)
+            if any(MatchIdx)
                 sObj = obj.Settings.Parameters(MatchIdx);
             else
                 warning('Parameter %s not found in session', Name)

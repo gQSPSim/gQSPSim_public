@@ -147,19 +147,26 @@ VpopWeights = zeros(1,obj.MaxNumSimulations);
 Vpop = zeros(obj.MaxNumSimulations, length(perturbParamNames));
 isValid = zeros(1,obj.MaxNumSimulations);
 
-if ~isempty(getCurrentWorker) 
-%    warning('stopfile on worker = %s (exists = %d)\n', stopFile, exist(stopFile))
+% if ~isempty(getCurrentWorker) 
+%     warning('stopfile on worker = %s (exists = %d)\n', stopFile, exist(stopFile))
     [~,stopName] = fileparts(stopFile);
     
     newStopFileFolder = getAttachedFilesFolder(stopFile);
     if ~isempty(newStopFileFolder)
         stopFile = fullfile(newStopFileFolder, stopName);
+        warning('stopfile on worker (modified) = %s (exists = %d)\n', stopFile, exist(stopFile))        
     end
-%    warning('stopfile on worker (modified) = %s (exists = %d)\n', stopFile, exist(stopFile))
     
-end
+% end
 
 while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients % && gop(@plus, nPat) < obj.MaxNumVirtualPatients && gop(@plus,nSim) < obj.MaxNumSimulations
+    
+%     fH = fopen(stopFile,'r');
+%     stop = fread(fH);
+%     if ~isempty(stop)
+%         break
+%     end
+%     fclose(fH);
     
     if exist(stopFile,'file')
         break

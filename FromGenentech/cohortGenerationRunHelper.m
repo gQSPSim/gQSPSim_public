@@ -279,15 +279,18 @@ if obj.Session.UseParallel
             paths = strsplit(paths,pathsep);
             paths(cellfun(@isempty,paths)) = [];
                             
+            
+            cohortGenPaths = obj.getDependencyPaths();
+            
             % task paths
 %             
 %             modelPaths = unique(cellfun(@(TaskName) obj.Session.getTaskRelativePath(TaskName), ...
 %                 {obj.Item.TaskName}, 'UniformOutput', false));
-            xlsFiles = dir(fullfile(obj.Session.RootDirectory, '**/*.xlsx'));
-            sbprojFiles = dir(fullfile(obj.Session.RootDirectory, '**/*.sbproj'));
-            paths = [paths'; arrayfun( @(i) fullfile(i.folder, i.name), xlsFiles, 'UniformOutput', false);
-                arrayfun( @(i) fullfile(i.folder, i.name), sbprojFiles, 'UniformOutput', false)]; 
-          
+%             xlsFiles = dir(fullfile(obj.Session.RootDirectory, '**/*.xlsx'));
+%             sbprojFiles = dir(fullfile(obj.Session.RootDirectory, '**/*.sbproj'));
+%             paths = [paths'; arrayfun( @(i) fullfile(i.folder, i.name), xlsFiles, 'UniformOutput', false);
+%                 arrayfun( @(i) fullfile(i.folder, i.name), sbprojFiles, 'UniformOutput', false)]; 
+            paths = [paths'; cohortGenPaths];
             
 %             j = createJob(c,'AttachedFiles', [obj.Session.UserDefinedFunctionsDirectory, paths], 'AutoAddClientPath', true, 'Type', 'pool');
 %             createTask(j, @cohortGenerationRunHelper_par, 8, {obj,args});
@@ -413,8 +416,14 @@ if StatusOK && bProceed
                 end
             end
         else
-            [ThisStatusOk,ThisMessage] = xlwrite(fullfile(SaveFilePath,ResultsFileName),Vpop);
+            try
+                [ThisStatusOk,ThisMessage] = xlwrite(fullfile(SaveFilePath,ResultsFileName),Vpop);
+            catch err
+                ThisStatusOk = false;
+                Message = sprintf('%s\n%s\n',Message,err.message);                
+            end
         end
+        
         if ~ThisStatusOk
             StatusOK = false;
             Message = sprintf('%s\n%s\n',Message,ThisMessage.message);
