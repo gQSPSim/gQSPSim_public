@@ -149,15 +149,16 @@ isValid = zeros(1,obj.MaxNumSimulations);
 
 % if ~isempty(getCurrentWorker) 
 %     warning('stopfile on worker = %s (exists = %d)\n', stopFile, exist(stopFile))
+
+if ~isempty(stopFile)
     [~,stopName] = fileparts(stopFile);
-    
+
     newStopFileFolder = getAttachedFilesFolder(stopFile);
     if ~isempty(newStopFileFolder)
         stopFile = fullfile(newStopFileFolder, stopName);
         warning('stopfile on worker (modified) = %s (exists = %d)\n', stopFile, exist(stopFile))        
-    end
-    
-% end
+    end    
+end
 
 while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients % && gop(@plus, nPat) < obj.MaxNumVirtualPatients && gop(@plus,nSim) < obj.MaxNumSimulations
     

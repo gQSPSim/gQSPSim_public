@@ -662,7 +662,7 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             % NOTE: importModel (obj.ModelObj_) is quick if NOT stale (all
             % timestamp validation occurs inside
             [StatusOK,Message]=importModel(obj,obj.FilePath,obj.ModelName);
-            if ~StatusOK
+            if ~StatusOK && ~isempty(obj.ModelName)
                 warning('Failed to load model.\n%s',Message)
             end
             Value = obj.ModelObj_;
