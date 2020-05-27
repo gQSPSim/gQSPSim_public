@@ -102,9 +102,9 @@ classdef OptimizationData < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                     StatusOK = false;
                 end
                 
-                ixSpecies = strcmpi(OptimHeader, 'Species');
+                ixIgnore = strcmpi(OptimHeader, 'Species') | strcmpi(OptimHeader,'Exclude');
                 try
-                    data = cell2mat(OptimData(:,~ixSpecies));
+                    data = cell2mat(OptimData(:,~ixIgnore));
                 catch
                     Message = sprintf('%s\n* Optimization data contains invalid non-numeric data\n', Message);
                     StatusOK = false;
@@ -178,14 +178,29 @@ classdef OptimizationData < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 excludeCol = strcmpi(Header,'Exclude');
                 if any(excludeCol)
                     Table = Table(~strcmpi('Yes',Table{:,excludeCol}),~excludeCol);
+                    Header = Header(~excludeCol);
                 end
                 
+                weightsCol = strcmpi(Header,'Weight');
+                if any(weightsCol)
+                    Weights = Table(:,weightsCol);
+                else
+                    Weights = {};
+                end                    
+                
                 Data = table2cell(Table);
+                
+
+                    
                 % Convert between formats if needed
                 if strcmpi(obj.DatasetType,'wide') && strcmpi(DestDatasetType,'tall')
                     % Wide -> Tall
                     
-                    warning('Wide to tall conversion not implemented.')
+                    SpeciesCols = find(~ismember( upper(Header), {'GROUP','ID','TIME'}) );
+                    Table = stack(Table, SpeciesCols, 'NewDataVariableName', 'Value', ...
+                        'IndexVariableName', 'Species');                    
+                    Header = Table.Properties.VariableNames;
+                    Data = table2cell(Table);   
                     
                 elseif strcmpi(obj.DatasetType,'tall') && strcmpi(DestDatasetType,'wide')
                     % Tall -> Wide

@@ -167,10 +167,10 @@ if isempty(CohortGenResults)
         if strcmpi(Mode,'Cohort')
             % Cohort
             TimeVec = cell2mat(ThisData(:,strcmp('Time',ThisHeader)));
-            [ThisStatusOK,Message,ResultFileNames,Cancelled,Results] = simulationRunHelper(simObj, [], {}, TimeVec); %#ok<ASGLU>
+            [ThisStatusOK,Message,ResultFileNames,Cancelled,Results] = simulationRunHelper(simObj, [], {}, TimeVec, [], 1:length(simObj.Item), [], false); %#ok<ASGLU>
         else
             % VP
-            [ThisStatusOK,Message,ResultFileNames,Cancelled,Results] = simulationRunHelper(simObj); %#ok<ASGLU>
+            [ThisStatusOK,Message,ResultFileNames,Cancelled,Results] = simulationRunHelper(simObj, [], {}, [], [], 1:length(simObj.Item), [], false); %#ok<ASGLU>
         end
 
         if ~ThisStatusOK  && ~Cancelled
@@ -393,6 +393,14 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
                 continue
             end
             
+            % LIMIT NUMBER OF LINES PLOTTED
+            MAX_LINES = 200;
+            
+            ColumnIdx_invalid = ColumnIdx_invalid(discretesample(ones(size(ColumnIdx_invalid))/length(ColumnIdx_invalid), MAX_LINES));
+            
+            
+            
+            
             % invalid lines
             if ~isempty(ColumnIdx_invalid)
                 % Plot
@@ -421,13 +429,21 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
                     vpopWeights = Results{itemIdx}.VpopWeights;
                 end
                 
+                
+                
                 if strcmpi(Mode,'Cohort')
                     % Cohort
-                    x = thisData(:,setdiff(ColumnIdx, ColumnIdx_invalid));
+                    ValidIdx = setdiff(ColumnIdx, ColumnIdx_invalid);
+                    ValidIdx = ValidIdx(discretesample(ones(size(ValidIdx))/length(ValidIdx), MAX_LINES));
+                    
+                    x = thisData(:,ValidIdx);
                     w = ones(size(x,2),1) * 1/size(x,2);
                 else
                     % VP
-                    x = thisData(:,ColumnIdx);
+                    ValidIdx = ColumnIdx;
+                    ValidIdx = ValidIdx(discretesample(ones(size(ValidIdx))/length(ValidIdx), MAX_LINES));
+                    
+                    x = thisData(:,ValidIdx);
                     w = vpopWeights/sum(vpopWeights);
                 end
                 
@@ -438,7 +454,9 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
                     ThisMarkerStyle = 'none';
                 end                
                 
-                hThisTrace = plot(hSpeciesGroup{sIdx,axIdx},Results{itemIdx}.Time,thisData(:,setdiff(ColumnIdx, ColumnIdx_invalid)),...
+
+                
+                hThisTrace = plot(hSpeciesGroup{sIdx,axIdx},Results{itemIdx}.Time,thisData(:,ValidIdx),...
                     'Color',ItemColors(itemIdx,:),...
                     'Tag','TraceLine',...
                     'LineStyle',ThisLineStyle,...

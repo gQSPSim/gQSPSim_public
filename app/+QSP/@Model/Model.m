@@ -159,16 +159,28 @@ classdef Model < QSP.abstract.BaseProps
             if ~isequal(obj.FilePath,ProjectPath)                
                 obj.ModelTimeStamp = [];
             end
-          
+            % Store path
+            obj.FilePath = ProjectPath;            
+            
             % Return if NOT stale
             if ~obj.IsStale
                 return;
+            end
+            
+            
+            if ~exist(ProjectPath,'file')
+                StatusOk = false;
+                dirFiles = dir(fileparts(ProjectPath));
+                Message = sprintf('Project file %s does not exist. ', ProjectPath);
+%                fprintf('Project file %s does not exist.\nContents of dir: %s\n', ProjectPath, strjoin({dirFiles.name},'\n') );
+                return
             end
             
             % Continue IF stale
             % Load project
             try
                 AllModels = sbioloadproject(ProjectPath);
+                
             catch ME
                 StatusOk = false;
                 Message = ME.message;

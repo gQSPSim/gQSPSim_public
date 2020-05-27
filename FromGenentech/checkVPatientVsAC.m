@@ -46,6 +46,8 @@ taskName_outputs = [];
 model_outputs = [];
 activeSpecData = [];
 
+D = 0;
+
 % loop over unique groups in the acceptance criteria file
 for grpIdx = 1:length(unqGroups) %nItems
     
@@ -62,11 +64,15 @@ for grpIdx = 1:length(unqGroups) %nItems
 
         % simulate
         try
-            simData  = taskObj{grpIdx}.simulate(...
+            [simData, StatusOK, Message]  = taskObj{grpIdx}.simulate(...
                 'Names', Names, ...
                 'Values', Values, ...
                 'OutputTimes', OutputTimes{grpIdx});
 
+            if ~StatusOK
+                return
+            end
+            
             % for each species in this grp acc crit, find the corresponding
             % model output, grab relevant time points, compare
             uniqueSpecies_grp = unique(Species_grp{grpIdx});

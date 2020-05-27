@@ -103,12 +103,6 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 obj.PlotSettings(index).Title = sprintf('Plot %d', index);
             end
             
-            % check for previous SimuResultsFolderName from older version
-            if ~isempty(obj.SimResultsFolderName)
-                obj.SimResultsFolderName_new = obj.SimResultsFolderName;
-                obj.SimResultsFolderName = [];
-            end
-            
         end %function obj = Simulation(varargin)
         
     end %methods
@@ -327,6 +321,25 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             
         end %function
         
+        function data = GetData(obj)
+            Items = obj.Item;
+            data = struct();
+            for k = 1:length(Items)
+                try
+                    filePath = fullfile( obj.Session.RootDirectory, obj.SimResultsFolderName_new, Items(k).MATFileName);
+                    tmp = load(filePath);
+                    data(k).Data = tmp.Results;
+                    data(k).TaskName = Items(k).TaskName;
+                    data(k).VPopName = Items(k).VPopName;
+
+                catch err
+                    warning(err.message)                    
+                end
+
+            end
+            
+        end
+        
         function updateSpeciesLineStyles(obj)
             ThisMap = obj.Settings.LineStyleMap;
             if ~isempty(ThisMap) && size(obj.PlotSpeciesTable,1) ~= numel(obj.SpeciesLineStyles)
@@ -476,8 +489,4 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         end
     end %methods
     
-%     %% Get Methods
-%     methods 
-%         
-%     end
 end %classdef

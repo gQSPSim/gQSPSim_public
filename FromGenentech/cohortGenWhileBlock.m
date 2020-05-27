@@ -147,7 +147,18 @@ VpopWeights = zeros(1,obj.MaxNumSimulations);
 Vpop = zeros(obj.MaxNumSimulations, length(perturbParamNames));
 isValid = zeros(1,obj.MaxNumSimulations);
 
+    [~,stopName] = fileparts(stopFile);
+    
+    newStopFileFolder = getAttachedFilesFolder(stopFile);
+    if ~isempty(newStopFileFolder)
+        stopFile = fullfile(newStopFileFolder, stopName);
+        warning('stopfile on worker (modified) = %s (exists = %d)\n', stopFile, exist(stopFile))        
+    end
+    
+
 while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients % && gop(@plus, nPat) < obj.MaxNumVirtualPatients && gop(@plus,nSim) < obj.MaxNumSimulations
+    
+    
     if exist(stopFile,'file')
         break
     end

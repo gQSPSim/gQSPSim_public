@@ -924,6 +924,58 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
             end
         end %function
         
+        function addItemToSession(obj, ThisSession, ItemType, ThisObj, ItemName)
+            % add an node to the tree which corresponds to the data that is
+            % passed in
+                       
+            % Where does the item go?
+            if isprop(ThisSession,ItemType)
+                ParentObj = ThisSession;
+            else
+                ParentObj = ThisSession.Settings;
+            end
+            
+            % What tree branch does this go under?
+            ChildNodes = ParentObj.TreeNode.Children;
+            ChildTypes = {ChildNodes.UserData};
+            if any(strcmpi(ItemType,{'Simulation','Optimization','CohortGeneration','VirtualPopulationGeneration'}))
+                ThisChildNode = ChildNodes(strcmpi(ChildTypes,'Functionalities'));
+                ChildNodes = ThisChildNode.Children;
+                ChildTypes = {ChildNodes.UserData};
+            end
+            ParentNode = ChildNodes(strcmp(ChildTypes,ItemType));
+            
+            % Create the new item
+            NewName = ItemName;           
+            DisallowedNames = {ParentObj.(ItemType).Name};
+            NewName = matlab.lang.makeUniqueStrings(NewName, DisallowedNames);
+            ThisObj.Name = NewName;
+            
+            if isprop(ThisObj,'Settings')
+                ThisObj.Settings = ThisSession.Settings;
+            end
+            if isprop(ThisObj,'Session')
+                ThisObj.Session = ThisSession;
+            end
+            
+            % Place the item and add the tree node
+            if isscalar(ParentNode)
+                ParentObj.(ItemType)(end+1) = ThisObj;
+                obj.createTree(ParentNode, ThisObj);
+                ParentNode.expand();
+            else
+                error('Invalid tree parent');
+            end
+            
+            % Mark the current session dirty
+            obj.markDirty();
+            
+            % Update the display
+            obj.refresh();            
+            
+        end
+       
+    
     end %methods    
     
     
@@ -975,4 +1027,5 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
             end
         end
     end
+    
 end %classdef

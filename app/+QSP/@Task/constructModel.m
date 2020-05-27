@@ -8,7 +8,11 @@ if ~isempty(obj.ModelObj)
     model = copyobj(obj.ModelObj.mObj);
 else
     model = [];
-    error('Model is empty. Project Path %s. Root dir %s', obj.FilePath, obj.Session.RootDirectory)
+    
+    StatusOK = false;
+    Message = sprintf('Failed to load model %s', obj.FilePath);
+    return    
+
 end
 
 % apply the active variants (if specified)
@@ -42,7 +46,8 @@ if ~isempty(obj.InactiveReactionNames)
 end % if
 
 % turn on all rules
-rules = sbioselect(model,  'Rule', obj.RuleNames,'Type', 'rule');
+% rules = sbioselect(model,  'Rule', obj.RuleNames,'Type', 'rule');
+rules = sbioselect(model, 'Type', 'rule');
 set(rules,'Active',true);
 % inactivate rules (if specified)
 if ~isempty(obj.InactiveRuleNames)

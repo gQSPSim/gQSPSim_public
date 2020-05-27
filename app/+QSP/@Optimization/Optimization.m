@@ -5,7 +5,7 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
     %
     % Syntax:
     %           obj = QSP.Optimization
-    %           obj = QSP.Optimization('Property','Value',...)T
+    %           obj = QSP.Optimization('Property','Value',...)
     %
     %   All properties may be assigned at object construction using
     %   property-value pairs.
@@ -119,12 +119,6 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             for index = 1:length(obj.PlotSettings)
                 obj.PlotSettings(index).Title = sprintf('Plot %d', index);
             end            
-            
-            
-            if ~isempty(obj.OptimResultsFolderName)
-                obj.OptimResultsFolderName_new = obj.OptimResultsFolderName_new;
-                obj.OptimResultsFolderName_new = [];
-            end
             
         end %function obj = Optimization(varargin)
         

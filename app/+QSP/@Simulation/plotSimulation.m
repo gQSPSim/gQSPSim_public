@@ -205,6 +205,11 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
             ThisMarkerStyle = 'none';
         end
         
+        MAX_LINES = 200;
+        
+        ColumnIdx = ColumnIdx(discretesample( ones(size(ColumnIdx))/length(ColumnIdx), MAX_LINES));
+        
+        
         hThisTrace = plot(hSpeciesGroup{sIdx,axIdx},ThisResult.Time,ThisResult.Data(:,ColumnIdx),...
             'Color',ThisColor,...
             'Tag','TraceLine',...

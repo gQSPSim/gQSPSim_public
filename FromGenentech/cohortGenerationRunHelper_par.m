@@ -47,18 +47,11 @@ if ~batchMode % don't create a pool when in batch mode
     end
 % else
 %     tmp = mfilename('fullpath');
-%     if ~ispc
-%         paths = strsplit(genpath([tmp, '/../../app']), ':');
-%         paths = [paths, strsplit(genpath([tmp, '/../../FromGenentech']), ':') ];
-%         paths = [paths, strsplit(genpath(obj.Session.RootDirectory), ':')];
-%     else
-%         paths = strsplit(genpath([tmp, '/../../app']), ';');
-%         paths = [paths, strsplit(genpath([tmp, '/../../FromGenentech']), ';') ];
-%         paths = [paths, strsplit(genpath(obj.Session.RootDirectory), ';')];
-%     end
 %     paths(cellfun(@isempty,paths)) = [];                                
 %     
 %     addAttachedFiles(p, paths);
+    
+
 end
 
 
@@ -99,9 +92,10 @@ function updateData(hWbar, data)
         thisStatusOK = uix.utility.CustomWaitbar(allPat/obj.MaxNumVirtualPatients,hWbar,sprintf('Succesfully generated %d/%d vpatients. (%d/%d Failed)',  ...
             allPat, obj.MaxNumVirtualPatients, allSim-allPat, allSim ));
         if ~thisStatusOK
-%             cancel(F);
+            % create stop file
             fid=fopen(stopFile,'w');
             fclose(fid);
+            addAttachedFiles(p, stopFile);
             bCancelled = true;
         end
         
@@ -114,10 +108,14 @@ function updateData(hWbar, data)
     if allPat > obj.MaxNumVirtualPatients || allSim  > obj.MaxNumSimulations
 %         send(workerQueueClient, true)
 %         cancel(F);
+        
+        % create stop file
         fid=fopen(stopFile,'w');
         fclose(fid);
+        addAttachedFiles(p, stopFile);
         
-        delete(listener)
+        
+%         delete(listener)
     end
     
 end
@@ -138,15 +136,21 @@ allSim = 0;
 %     % not possible to interrupt
 %     F = parfevalOnAll(p, @cohortGenWhileBlock, 9, obj, args, [], []);   
 % else
+
+%fprintf('stopfile = %s\n', stopFile);
+
 tic
 t=0;
+
 F = parfevalOnAll(p, @cohortGenWhileBlock, 8, obj, args,  [], q_vp, stopFile);
 % end
 % cohortGenWhileBlock(obj, args, hWbar);
 
+orig_state = warning('off', 'parallel:lang:pool:IgnoringAlreadyAttachedFiles');
 fprintf('waiting...\n')
 wait(F)
 fprintf('Generated %d vpatients (%d valid)\n', allSim, allPat)
+warning(orig_state);
 
 % [Vpop, isValid, Results, ViolationTable, nPat, nSim, bCancelled] = fetchOutputs(F, 'UniformOutput', false);
 

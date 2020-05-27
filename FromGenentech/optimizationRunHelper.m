@@ -605,7 +605,9 @@ end
                         % for this group
                         Message = sprintf('%s\n%s\n', Message, thisMessage);
                         fprintf('Warning: Group %d produced error %s\n', currGrp, thisMessage);
-                        
+                        objective = 1e6;
+                        path(myPath);
+                        return                             
                     end
                                         
                     % generate elements of objective vector by comparing model

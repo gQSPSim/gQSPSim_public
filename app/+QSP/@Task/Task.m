@@ -47,7 +47,7 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         RunToSteadyState = true
         TimeToSteadyState = 100
         Resample = true
-        ModelObj_ = QSP.Model % Need default for copy to work (QSP.Model)
+        ModelObj_ = QSP.Model.empty(0,1) % Need default for copy to work (QSP.Model)
     end
     
     %% Protected Properties
@@ -114,20 +114,11 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             %    aObj = QSP.Task();
             
             % Populate public properties from P-V input pairs
-                        
             obj.assignPVPairs(varargin{:});
             obj.ExportedModelTimeStamp = 0;
         end %function obj = Task(varargin)
         
         [t,x,names] = simulate(obj, varargin) % prototype
-        
-        function obj = loadobj(obj)
-            % check for old RelativeFilePath and reassign
-            if ~isempty(obj.RelativeFilePath)
-                obj.RelativeFilePath_new = obj.RelativeFilePath;
-                obj.RelativeFilePath = [];
-            end
-        end
         
         function compile(obj)
             
@@ -333,7 +324,14 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
 %         end
         
         function upToDate = checkExportedModelCurrent(obj)
-            FileInfo = dir(obj.FilePath);
+            try
+                FileInfo = dir(obj.FilePath);
+            catch err
+                fprintf('Invalid FilePath: %s\n', evalc('disp(obj.FilePath)'))
+                upToDate = false;
+                return
+            end
+            
             if length(FileInfo)>1 || isempty(FileInfo)
                 upToDate=false;
                 return
@@ -360,9 +358,6 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             
             if ~isempty(obj.ModelObj)
                 ModelNames = obj.ModelObj.ModelList;
-%                 if ~iscell(ModelNames)
-%                     ModelNames = {ModelNames};
-%                 end
             else
                 ModelNames = {};
             end
@@ -372,14 +367,6 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         function [StatusOk,Message] = importModel(obj,ProjectPath,ModelName)
             
             % Defaults
-%             persistent count
-%             if isempty(count)
-%                 count=0;
-%             else
-%                 count=count+1;
-%             end
-%             fprintf('calls to importModel %d\n', count)
-            
             StatusOk = true;
             Message = '';
             
@@ -445,6 +432,10 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             if ~isfile(ProjectPath) % || isempty(ModelName)
                 % Clear
                 obj.ModelObj_ = QSP.Model.empty(0,1);
+                StatusOk = false;
+                Message = sprintf('Project path does not exist %s\n', ProjectPath);
+%                fprintf('Project path does not exist %s\n', ProjectPath);
+                return
                 
             elseif ~isempty(MatchIdx)
                 % if the model is up-to-date then just use the existing
@@ -473,21 +464,25 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             else
                 % Create a new model
                 thisObj = QSP.Model();
+                thisObj.Session = obj.Session;
+                 % Store path
+%                fprintf('Importing %s\nRoot directory %s:', evalc('disp(ProjectPath)'), evalc('disp(obj.Session.RootDirectory)'))
+                 
+                thisObj.RelativeFilePath_new = uix.utility.getRelativeFilePath(ProjectPath, obj.Session.RootDirectory, true);                
                 
                 [StatusOK,Message] = importModel(thisObj,ProjectPath,ModelName);
-                
-                  % Store path
-                thisObj.RelativeFilePath_new = uix.utility.getRelativeFilePath(ProjectPath, obj.Session.RootDirectory, true);
-
-                % If import errors for 
+               
                 if StatusOK
                     obj.ModelObj_ = thisObj;
                     obj.ModelName = thisObj.ModelName;
                     % Store into Settings
                     obj.Session.Settings.Model(end+1) = thisObj;
+%                    fprintf('Successfully imported model. ModelObj = %s\nStack = %s\n', evalc('disp(obj.ModelObj)'), evalc('dbstack') )
+
                 else
                     obj.ModelObj_ = QSP.Model.empty(0,1);
                     Message = sprintf('%s\nFailed to create model object.\nProject path %s exist=%d.\n', Message, ProjectPath, exist(ProjectPath));
+%                    fprintf('%s\nFailed to create model object.\nProject path %s exist=%d.\n', Message, ProjectPath, exist(ProjectPath));
                 end
             end
         end %function

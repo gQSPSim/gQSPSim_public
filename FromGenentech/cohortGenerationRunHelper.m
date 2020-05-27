@@ -279,20 +279,20 @@ if obj.Session.UseParallel
             paths = strsplit(paths,pathsep);
             paths(cellfun(@isempty,paths)) = [];
                             
+            
+            cohortGenPaths = obj.getDependencyPaths();
+            
             % task paths
-            
-            modelPaths = unique(cellfun(@(TaskName) obj.Session.getTaskRelativePath(TaskName), ...
-                {obj.Item.TaskName}, 'UniformOutput', false));
-            
-          
+            paths = [paths'; cohortGenPaths];
             
 %             j = createJob(c,'AttachedFiles', [obj.Session.UserDefinedFunctionsDirectory, paths], 'AutoAddClientPath', true, 'Type', 'pool');
 %             createTask(j, @cohortGenerationRunHelper_par, 8, {obj,args});
 %             submit(j);
             hWait=warndlg(sprintf('Submitting job to cluster %s.', obj.Session.ParallelCluster), 'Please wait','non-modal');
+            allAttachedFiles = [obj.Session.UserDefinedFunctionsDirectory; paths]; %, ... % modelPaths, ...
+            
             j = batch(c, @cohortGenerationRunHelper_par, 8, {obj,args}, 'Pool', 10, ... % c.NumWorkers - 1, ...
-                'AttachedFiles', [obj.Session.UserDefinedFunctionsDirectory, paths, modelPaths, ...
-                obj.Session.RootDirectory], 'AutoAddClientPath', false);
+                'AttachedFiles', allAttachedFiles, 'AutoAddClientPath', false);
             delete(hWait)
             hWait=warndlg({'Finished submitting job to cluster.','Waiting for completion'},'Please wait','non-modal');
             
@@ -407,8 +407,14 @@ if StatusOK && bProceed
                 end
             end
         else
-            [ThisStatusOk,ThisMessage] = xlwrite(fullfile(SaveFilePath,ResultsFileName),Vpop);
+            try
+                [ThisStatusOk,ThisMessage] = xlwrite(fullfile(SaveFilePath,ResultsFileName),Vpop);
+            catch err
+                ThisStatusOk = false;
+                Message = sprintf('%s\n%s\n',Message,err.message);                
+            end
         end
+        
         if ~ThisStatusOk
             StatusOK = false;
             Message = sprintf('%s\n%s\n',Message,ThisMessage.message);

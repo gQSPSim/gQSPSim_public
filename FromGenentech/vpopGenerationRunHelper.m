@@ -108,7 +108,7 @@ for ii = 1:nItems
 %     ixGrp =  
     if any(ixGrp)
 %         Values = cohortData(~ixGrp, cell2mat(cohortData(:,ixGrp))==str2num(obj.Item(ii).GroupID) ); 
-        Values = cohortData(cohortData(:,ixGrp)==str2num(obj.Item(ii).GroupID),: ); % TODO verify that this is correct
+        Values = cohortData(cohortData(:,ixGrp)==str2num(obj.Item(ii).GroupID), ~ixGrp ); % TODO verify that this is correct
 
     else
         Values = cohortData;
