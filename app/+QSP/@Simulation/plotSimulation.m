@@ -206,11 +206,15 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
         end
         
         MAX_LINES = 200;
+        w0 = ThisResult.VpopWeights;
+        if isempty(w0)
+            w0 = ones(1, size(ThisResult.Data,2)/length(ThisResult.SpeciesNames));
+        end
+        w0 = reshape(w0./sum(w0),[],1); % renormalization
         
-        ColumnIdx = ColumnIdx(discretesample( ones(size(ColumnIdx))/length(ColumnIdx), MAX_LINES));
+        SampleIdx = ColumnIdx(discretesample( w0(w0>0), MAX_LINES));
         
-        
-        hThisTrace = plot(hSpeciesGroup{sIdx,axIdx},ThisResult.Time,ThisResult.Data(:,ColumnIdx),...
+        hThisTrace = plot(hSpeciesGroup{sIdx,axIdx},ThisResult.Time,ThisResult.Data(:,SampleIdx),...
             'Color',ThisColor,...
             'Tag','TraceLine',...
             'LineStyle',ThisLineStyle,...
@@ -228,12 +232,9 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
         %                 q75 = quantile(Results(resultIdx).Data(:,ColumnIdx),0.75,2);
         %                 q25 = quantile(Results(resultIdx).Data(:,ColumnIdx),0.25,2);
         
-        w0 = ThisResult.VpopWeights;
-        w0 = w0(w0>0); % filter out the zero weight simulations
-        if isempty(w0)
-            w0 = ones(1, size(ThisResult.Data,2)/length(ThisResult.SpeciesNames));
-        end
-        w0 = reshape(w0./sum(w0),[],1); % renormalization
+%         w0 = w0(w0>0); % filter out the zero weight simulations
+
+        
         
         %                 NT = size(Results(resultIdx).Data,1);
         %                 q50 = zeros(1,NT);
@@ -263,8 +264,8 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
         %                         'LineStyle',ThisLineStyle);
         %                     set(SE.patch,'FaceColor',SelectedItemColors(itemIdx,:));
         %                     set(SE.edge,'Color',SelectedItemColors(itemIdx,:),'LineWidth',2);
-        x = ThisResult.Data(:,ColumnIdx);
-        
+        x = ThisResult.Data(:,ColumnIdx); 
+        w0 = w0(w0>0);
         
         % NOTE: If hSpeciesGroup is not parented to an
         % axes, then this will pop up a new figure. Set to an

@@ -166,9 +166,14 @@ if ~isempty(ItemModels)
             break
         end
         % update waitbar
-        set(hWbar2, 'Name', sprintf('Simulating task %d of %d',ii,nRunItems))
-        uix.utility.CustomWaitbar(0,hWbar2,'');
-        options.WaitBar = hWbar2;
+        if isvalid(hWbar2)
+            set(hWbar2, 'Name', sprintf('Simulating task %d of %d',ii,nRunItems))
+
+            uix.utility.CustomWaitbar(0,hWbar2,'');
+            options.WaitBar = hWbar2;
+        else
+            break % interrupted
+        end
 
         % start simulations for virtual patients
         for jj=1:length(options.Pin)
@@ -193,7 +198,7 @@ if ~isempty(ItemModels)
                 StatusOK_array{ii,jj} = ThisStatusOK;
                 Messages{ii,jj} = ThisMessage;
                 if Cancelled
-                    break
+                    return
                 end
             end
         end
