@@ -536,16 +536,93 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         
     end %methods
     
+    
+    %% API methods - Helper
+    methods (Access=private)
+        function newObj = AddHelper(obj,FuncType,varargin)
+            ThisFcn = str2func(FuncType);
+            newObj = ThisFcn();
+            updateLastSavedTime(newObj);
+            
+            Type = regexprep(FuncType,'QSP\.','');
+            
+            if isprop(obj.Settings,Type)
+                AllNames = {obj.Settings.(Type).Name}; 
+            else
+                AllNames = {obj.(Type).Name};
+            end
+            
+            if isprop(newObj,'Session')
+                newObj.Session = obj;
+            end
+            
+            if isprop(newObj,'Settings')
+                newObj.Settings = obj.Settings;
+            end
+            
+            if nargin > 2
+                NewName = varargin{1};
+                if iscell(NewName)
+                    NewName = NewName{1};
+                end
+            else
+                switch Type
+                    case 'VirtualPopulationGenerationData'
+                        NewName = 'New Target Statistics';
+                    case 'VirtualPopulationData'
+                        NewName = 'New Acceptance Criteria';
+                    otherwise
+                        NewName = sprintf('New %s',Type);
+                end
+            end
+            
+            newObj.Name =  matlab.lang.makeUniqueStrings(NewName,AllNames);
+            
+            if isprop(obj.Settings,Type)
+                obj.Settings.(Type)(end+1) = newObj;
+            else
+                obj.(Type)(end+1) = newObj;
+            end
+        end %function
+    end %methods (private)
+    
+    
     %% API methods
     methods 
-        function taskObj = CreateTask(obj, varargin)
-            if nargin>1
-                taskObj = obj.Settings.AddTask(varargin);
-            else
-                taskObj = obj.Settings.AddTask();
-            end
-        end
+        function newObj = CreateTask(obj,varargin)
+            newObj = AddHelper(obj,'QSP.Task',varargin(:));
+        end %function
         
+        function newObj = CreateDataset(obj,varargin)
+            newObj = AddHelper(obj,'QSP.OptimizationData',varargin(:));
+        end %function
         
+        function newObj = CreateParameter(obj,varargin)
+            newObj = AddHelper(obj,'QSP.Parameters',varargin(:)); 
+        end %function
+        
+        function newObj = CreateOptimization(obj,varargin)
+            newObj = AddHelper(obj,'QSP.Optimization',varargin(:));
+        end %function
+        
+        function newObj = CreateAcceptanceCriteria(obj,varargin)
+            newObj = AddHelper(obj,'QSP.VirtualPopulationData',varargin(:));
+        end %function
+        
+        function newObj = CreateVCohortGen(obj,varargin)
+            newObj = AddHelper(obj,'QSP.CohortGeneration',varargin(:));
+        end %function
+        
+        function newObj = CreateTargetStatistics(obj,varargin)
+            newObj = AddHelper(obj,'QSP.VirtualPopulationGenerationData',varargin(:));        
+        end %function
+        
+        function newObj = CreateSimulation(obj,varargin)
+            newObj = AddHelper(obj,'QSP.Simulation',varargin(:));
+        end %function
+        
+        function newObj = CreateVPopGen(obj,varargin)
+            newObj = AddHelper(obj,'QSP.VirtualPopulationGeneration',varargin(:));
+        end %function
     end
 end %classdef

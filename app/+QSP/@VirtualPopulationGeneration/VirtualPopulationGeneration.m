@@ -75,6 +75,10 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
         SimFlag = [] % valid/invalid flag for simulation
     end
     
+    properties (Dependent=true)
+        TaskGroupItems
+        SpeciesDataMapping
+    end
     
     %% Constructor
     methods
@@ -715,6 +719,47 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
             validateattributes(Value,{'struct'},{});
             obj.PlotSettings = Value;
         end
+        
+        
+        function set.TaskGroupItems(obj,Value)
+            validateattributes(Value,{'cell'},{'size',[nan,2]});
+            
+            NewTaskGroup = QSP.TaskGroup.empty;
+            for idx = 1:size(Value,1)
+                NewTaskGroup(end+1) = QSP.TaskGroup(...
+                    'TaskName',Value{idx,1},...
+                    'GroupID',Value{idx,2}); %#ok<AGROW>
+            end
+            obj.Item = NewTaskGroup;
+        end
+        
+        function Value = get.TaskGroupItems(obj)
+            TaskNames = {obj.Item.TaskName};
+            GroupIDs = {obj.Item.GroupID};
+            
+            Value = [TaskNames(:) GroupIDs(:)];
+        end
+        
+        function set.SpeciesDataMapping(obj,Value)
+            validateattributes(Value,{'cell'},{'size',[nan,2]});
+            
+            NewSpeciesData = QSP.SpeciesData.empty;
+            for idx = 1:size(Value,1)
+                NewSpeciesData(end+1) = QSP.SpeciesData(...
+                    'SpeciesName',Value{idx,2},...
+                    'DataName',Value{idx,1},...
+                    'FunctionExpression','x'); %#ok<AGROW>
+            end
+            obj.SpeciesData = NewSpeciesData;
+        end
+        
+        function Value = get.SpeciesDataMapping(obj)
+            SpeciesNames = {obj.SpeciesData.SpeciesName};
+            DataNames = {obj.SpeciesData.DataName};
+            
+            Value = [DataNames(:) SpeciesNames(:)];
+        end
+        
     end %methods
     
 end %classdef

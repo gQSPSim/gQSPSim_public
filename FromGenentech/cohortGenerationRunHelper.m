@@ -634,7 +634,7 @@ if StatusOK && bProceed
 
     VpopHeader = [Names0; 'PWeight']';
 
-   if strcmp(obj.SaveInvalid, 'Save valid vpatients')
+   if strcmp(obj.SaveInvalid, 'valid') % 'Save valid vpatients'
         % filter out invalids
         Vpop = Vpop(isValid==1,:);
         isValid = true(size(Vpop,1),1);
@@ -1219,7 +1219,7 @@ if StatusOK && bProceed
 %     VpopHeader = [perturbParamNames; 'PWeight']';
     VpopHeader = [Names0; 'PWeight']';
 
-   if strcmp(obj.SaveInvalid, 'Save valid vpatients')
+   if strcmp(obj.SaveInvalid, 'valid') % 'Save valid vpatients'
         % filter out invalids
         Vpop = Vpop(isValid==1,:);
         isValid = true(size(Vpop,1),1);

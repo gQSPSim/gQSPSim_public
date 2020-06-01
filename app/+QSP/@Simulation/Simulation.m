@@ -55,6 +55,10 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         NullVPop = 'ModelDefault'
     end
     
+    properties (Dependent=true)
+        TaskVPopItems
+    end
+    
     %% Constructor
     methods
         function obj = Simulation(varargin)
@@ -458,6 +462,27 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         function set.PlotSettings(obj,Value)
             validateattributes(Value,{'struct'},{});
             obj.PlotSettings = Value;
+        end
+        
+        function set.TaskVPopItems(obj,Value)
+            validateattributes(Value,{'cell'},{'size',[nan,3]});
+            
+            NewTaskVPop = QSP.TaskVirtualPopulation.empty;
+            for idx = 1:size(Value,1)
+                NewTaskVPop(end+1) = QSP.TaskVirtualPopulation(...
+                    'TaskName',Value{idx,1},...
+                    'VPopName',Value{idx,2},...
+                    'Group',Value{idx,3}); %#ok<AGROW>
+            end
+            obj.Item = NewTaskVPop;
+        end
+        
+        function Value = get.TaskVPopItems(obj)
+            TaskNames = {obj.Item.TaskName};
+            VPopNames = {obj.Item.VPopName};
+            GroupIDs = {obj.Item.Group};
+            
+            Value = [TaskNames(:) VPopNames(:) GroupIDs(:)];
         end
     end %methods
     
