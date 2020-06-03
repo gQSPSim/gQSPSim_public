@@ -19,16 +19,20 @@ classdef gQSPSimTester < QSPViewer.App
         end
         
         function delete(obj)
+            % Restore warning states.
             for w = 1:numel(obj.originalWarningStates)                
                 warning(obj.originalWarningStates(w).state, obj.originalWarningStates(w).identifier);
             end
+            % Close all QSPApp instances.
             close all force
         end
         
-        function testCase = runSimulations(obj, testCase)
-            %assert(class(testCase)
+        function testCase = runSimulations(obj, testCase)            
             for i = 1:numel(obj.Session.Simulation)
                 simResultsFolder = string(obj.Session.Simulation(i).SimResultsFolderName);
+                % TODO: If we can't supress the saving of the file the keep
+                % this tmp directory. This enables us to clean after the
+                % test is run.
                 obj.Session.Simulation(i).SimResultsFolderName = 'tmp';
                 
                 [a, e] = obj.Session.Simulation(i).run;

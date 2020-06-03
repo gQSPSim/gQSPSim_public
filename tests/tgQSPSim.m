@@ -1,18 +1,19 @@
 classdef tgQSPSim < matlab.unittest.TestCase
     
     properties
-        rootDirectory string
+        testRootDirectory string
     end
     
     properties (TestParameter)
-        caseStudy = {"Sessions/CaseStudy_aPCSK9/aPCSK9_v7_MES_complete/CaseStudy2_aPCSK9.qsp.mat", ... 
-                     "Sessions/CaseStudy_TMDD/CaseStudy_TMDD_complete/CaseStudy1_TMDD.qsp.mat"};                 
+        %         caseStudy = {"Sessions/CaseStudy_aPCSK9/aPCSK9_v7_MES_complete/CaseStudy2_aPCSK9.qsp.mat", ...
+        %                      "Sessions/CaseStudy_TMDD/CaseStudy_TMDD_complete/CaseStudy1_TMDD.qsp.mat"};
+        %
+        caseStudy = {"baselines/aPCSK9_v7_MES_complete/CaseStudy2_aPCSK9.qsp.mat"};
     end
     
     methods(TestClassSetup)
         function foo(testCase)
-            % This gets called when pwd is 'tests' in the RootDirectory
-            testCase.rootDirectory = string(pwd) + "/..";
+            testCase.testRootDirectory = fileparts(mfilename('fullpath'));
         end
     end
     
@@ -21,9 +22,9 @@ classdef tgQSPSim < matlab.unittest.TestCase
         
     methods(Test)
         function tSimulations(testCase, caseStudy)
-            absolutePath = testCase.rootDirectory + "/" + caseStudy;
+            absolutePath = testCase.testRootDirectory + "/" + caseStudy;
             obj = gQSPSimTester(absolutePath);
-            testCase = obj.runSimulations(testCase);
+            obj.runSimulations(testCase);
             delete(obj);
         end
         
