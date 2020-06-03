@@ -5,9 +5,6 @@ classdef tgQSPSim < matlab.unittest.TestCase
     end
     
     properties (TestParameter)
-        %         caseStudy = {"Sessions/CaseStudy_aPCSK9/aPCSK9_v7_MES_complete/CaseStudy2_aPCSK9.qsp.mat", ...
-        %                      "Sessions/CaseStudy_TMDD/CaseStudy_TMDD_complete/CaseStudy1_TMDD.qsp.mat"};
-        %
         caseStudy = {"baselines/aPCSK9_v7_MES_complete/CaseStudy2_aPCSK9.qsp.mat"};
     end
     

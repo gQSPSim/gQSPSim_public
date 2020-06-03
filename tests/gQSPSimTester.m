@@ -6,7 +6,7 @@ classdef gQSPSimTester < QSPViewer.App
     methods
         function obj = gQSPSimTester(filename)            
             rootDirectory = fileparts(filename);
-            % Suppress some warnings.
+            % Suppress these warnings.
             obj.originalWarningStates(1) = warning('off', 'MATLAB:table:ModifiedAndSavedVarnames');
             obj.originalWarningStates(2) = warning('off', 'MATLAB:ui:javacomponent:FunctionToBeRemoved');
             
