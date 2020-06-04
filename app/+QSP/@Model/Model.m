@@ -179,7 +179,7 @@ classdef Model < QSP.abstract.BaseProps
             % Continue IF stale
             % Load project
             try
-%                fprintf('Loading %s\n', ProjectPath);                
+               fprintf('Loading %s\n', ProjectPath);    
                 AllModels = sbioloadproject(ProjectPath);
 %                fprintf('Success\n')
                 

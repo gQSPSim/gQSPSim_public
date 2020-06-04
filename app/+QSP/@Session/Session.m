@@ -58,7 +58,6 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         
         UseLogging = true
         LogFile = 'logfile.txt'
-        LogHandle = []
 
         RelativeResultsPathParts = {}
         RelativeUserDefinedFunctionsPathParts = {}
@@ -76,6 +75,8 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
     properties (Transient=true)        
         timerObj
         dbid = []
+        LogHandle = []
+        
     end
     
     properties % (NonCopyable=true) % Note: These properties need to be public for tree
@@ -659,7 +660,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
                         obj.GitRepo, thisFile, tmpFile));
                     
                     % check if this is a vpop
-                    if ismember(thisFile, unique({obj.Settings.VirtualPopulation.RelativeFilePath}) )
+                    if ismember(thisFile, unique({obj.Settings.VirtualPopulation.RelativeFilePath_new}) )
                         type = 'vpop';
                     else
                         type = '';
@@ -697,7 +698,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
             for ixObj = 1:length(objs)
                 m = objs(ixObj).ModelObj;
                 if ~isempty(m)
-                   sbprojFiles = [sbprojFiles, strrep( m.RelativeFilePath, [obj.RootDirectory filesep], '')];
+                   sbprojFiles = [sbprojFiles, strrep( m.RelativeFilePath_new, [obj.RootDirectory filesep], '')];
                 end
             end
             sbprojFiles = unique(sbprojFiles);
@@ -942,7 +943,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
             for ixObj = 1:length(objs)
                 m = objs(ixObj).ModelObj;
                 if ~isempty(m)
-                   allFiles = [allFiles, strrep( m.RelativeFilePath, [obj.RootDirectory filesep], '')];
+                   allFiles = [allFiles, strrep( m.RelativeFilePath_new, [obj.RootDirectory filesep], '')];
                 end
             end
             allFiles = unique(allFiles);
@@ -952,19 +953,19 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
             %% input files
             
             % virtual populations
-            files = [files, unique({obj.Settings.VirtualPopulation.RelativeFilePath})];
+            files = [files, unique({obj.Settings.VirtualPopulation.RelativeFilePath_new})];
             
             % parameters
-            files = [files, unique({obj.Settings.Parameters.RelativeFilePath})];
+            files = [files, unique({obj.Settings.Parameters.RelativeFilePath_new})];
             
             % data
-            files = [files, unique({obj.Settings.OptimizationData.RelativeFilePath})];
+            files = [files, unique({obj.Settings.OptimizationData.RelativeFilePath_new})];
             
             % acceptance criteria
-            files = [files, unique({obj.Settings.VirtualPopulationData.RelativeFilePath})];
+            files = [files, unique({obj.Settings.VirtualPopulationData.RelativeFilePath_new})];
             
             % target statistics
-            files = [files, unique({obj.Settings.VirtualPopulationGenerationData.RelativeFilePath})];
+            files = [files, unique({obj.Settings.VirtualPopulationGenerationData.RelativeFilePath_new})];
             
             % Session
             

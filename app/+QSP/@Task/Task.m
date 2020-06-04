@@ -202,6 +202,7 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             obj.MaxWallClockTime = ThisMaxWallClockTime; % override model defaults
             if ~ThisStatusOk
                 Message = sprintf('%s\n* Error loading model "%s" in "%s". %s\n',Message,obj.ModelName,obj.FilePath,ThisMessage);
+                return
             end            
             
 %             obj = thisObj;
