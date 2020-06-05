@@ -45,7 +45,6 @@ classdef ApplicationUI < matlab.apps.AppBase
         
         WindowButtonDownCallbacks = {};
         WindowButtonUpCallbacks = {};
-        WindowButtonMoveCallbacks = {};
     end
     
     properties (SetAccess = private, Dependent = true, AbortSet = true)
@@ -147,7 +146,6 @@ classdef ApplicationUI < matlab.apps.AppBase
             app.UIFigure.Name = 'UI Figure';
             app.UIFigure.WindowButtonUpFcn = @(h,e) app.ExecuteCallbackArray(app.WindowButtonUpCallbacks,h,e);
             app.UIFigure.WindowButtonDownFcn = @(h,e) app.ExecuteCallbackArray(app.WindowButtonDownCallbacks,h,e);
-            app.UIFigure.WindowButtonMotionFcn = @(h,e) app.ExecuteCallbackArray(app.WindowButtonMoveCallbacks,h,e);
 
             % Create FileMenu
             app.FileMenu = uimenu(app.UIFigure);
@@ -277,7 +275,6 @@ classdef ApplicationUI < matlab.apps.AppBase
             app.FlexGridLayout.getGridHandle();
             app.addWindowDownCallback(app.FlexGridLayout.getButtonDownCallback());
             app.addWindowUpCallback(app.FlexGridLayout.getButtonUpCallback());
-            app.addWindowMoveCallback(app.FlexGridLayout.getButtonMoveCallback());
 
             % Create SessionExplorerPanel
             app.SessionExplorerPanel = uipanel(app.FlexGridLayout.getGridHandle());
@@ -979,21 +976,7 @@ classdef ApplicationUI < matlab.apps.AppBase
                 app.WindowButtonDownCallbacks{i} = [];
             end
         end
-    end  
-    
-    function addWindowMoveCallback(app,functionHandle)
-        app.WindowButtonMoveCallbacks{end+1} = functionHandle;
-    end
-
-    function removeWindowMoveCallback(app,functionHandle)
-        %Need to use loop because == does not support function handles, need
-        %to use isequal
-        for i = 1:length(app.WindowButtonMoveCallbacks)
-            if isequal(app.WindowButtonMoveCallbacks{i},functionHandle)
-                app.WindowButtonMoveCallbacks{i} = [];
-            end
-        end
-    end  
+    end   
        
     end
     
@@ -1163,14 +1146,14 @@ classdef ApplicationUI < matlab.apps.AppBase
 	                app.ActivePane = QSPViewerNew.Application.SimulationPane(classInputs);	
                     app.ActivePane.attachNewSimulation(NodeData);
                 case 'QSP.Optimization'
-                    %app.ActivePane = QSPViewerNew.Application.OptimizationPane(app.GridLayout);
-                    disp("TODO: Create a QSPViewerNew.Application.OptimizationPane class to launch");
+                    app.ActivePane = QSPViewerNew.Application.OptimizationPane(classInputs);
+                    app.ActivePane.attachNewOptimization(NodeData);
                 case 'QSP.CohortGeneration'
-                    %app.ActivePane = QSPViewerNew.Application.CohortGenerationPane(app.GridLayout);
-                    disp("TODO: Create a QSPViewerNew.Application.CohortGenerationPane class to launch");
+                    app.ActivePane = QSPViewerNew.Application.CohortGenerationPane(classInputs);
+                    app.ActivePane.attachNewCohortGeneration(NodeData);
                 case 'QSP.VirtualPopulationGeneration'
-                    %app.ActivePane = QSPViewerNew.Application.VirtualPopulationGenerationPane(app.GridLayout);
-                    disp("TODO: Create a QSPViewerNew.Application.VirtualPopulationGenerationPane class to launch");
+                    app.ActivePane = QSPViewerNew.Application.VirtualPopulationGenerationPane(classInputs);
+                    app.ActivePane.attachNewVirtualPopulationGeneration(NodeData);
                 case 'QSP.VirtualPopulationGenerationData'
                     app.ActivePane = QSPViewerNew.Application.VirtualPopulationGenerationDataPane(classInputs);
                     app.ActivePane.attachNewVirtPopGenData(NodeData);
