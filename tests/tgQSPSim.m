@@ -5,7 +5,8 @@ classdef tgQSPSim < matlab.unittest.TestCase
     end
     
     properties (TestParameter)
-        caseStudy = {"baselines/aPCSK9_v7_MES_complete/CaseStudy2_aPCSK9.qsp.mat"};
+        caseStudy = {"baselines/aPCSK9_v7_MES_complete/CaseStudy2_aPCSK9.qsp.mat", ...
+                     "baselines/CaseStudy_TMDD_complete/CaseStudy1_TMDD.qsp.mat"};
     end
     
     methods(TestClassSetup)
