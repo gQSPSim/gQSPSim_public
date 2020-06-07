@@ -35,7 +35,10 @@ classdef gQSPSimTester < QSPViewer.App
                 % tests.
                 obj.Session.Simulation(i).SimResultsFolderName = 'tmp';
                                 
-                [~, ~, ~, actualResults] = obj.Session.Simulation(i).run;
+                [statusOK, Message, ~, actualResults] = obj.Session.Simulation(i).run;
+                
+                testCase.onFailure(Message);
+                testCase.verifyTrue(statusOK);
                 
                 for result_i = 1:numel(actualResults)
                     actual = actualResults{result_i};

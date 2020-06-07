@@ -277,13 +277,15 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
     %  Methods    
     methods
         
-        function [StatusOK,Message,vpopObj, V] = run(obj)
+        function [StatusOK,Message,vpopObj, varargout] = run(obj)
             
             % Unused for simulation
             vpopObj = QSP.VirtualPopulation.empty(0,1);
             
             % Invoke validate
             [StatusOK, Message] = validate(obj,false);
+            
+            varargout{1} = {};
             
             % Invoke helper
             if StatusOK
@@ -294,7 +296,7 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 end
                 
                 % Run helper
-                [ThisStatusOK,thisMessage,ResultFileNames,Cancelled, V] = simulationRunHelper(obj);
+                [ThisStatusOK,thisMessage,ResultFileNames,Cancelled, varargout] = simulationRunHelper(obj);
 
                 if ~ThisStatusOK && ~Cancelled
 %                     error('run: %s',Message);
