@@ -277,7 +277,7 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
     %  Methods    
     methods
         
-        function [StatusOK,Message,vpopObj] = run(obj)
+        function [StatusOK,Message,vpopObj, V] = run(obj)
             
             % Unused for simulation
             vpopObj = QSP.VirtualPopulation.empty(0,1);
@@ -294,7 +294,8 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 end
                 
                 % Run helper
-                [ThisStatusOK,thisMessage,ResultFileNames,Cancelled] = simulationRunHelper(obj);
+                [ThisStatusOK,thisMessage,ResultFileNames,Cancelled, V] = simulationRunHelper(obj);
+
                 if ~ThisStatusOK && ~Cancelled
 %                     error('run: %s',Message);
                     StatusOK = false;
