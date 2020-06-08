@@ -249,15 +249,33 @@ if ~isempty(ItemModels)
                 continue
             end
             
-            %%% Save results of each simulation in different files %%%%%%%%%%%%%%%%%%%%
-            SaveFlag = isempty(options.Pin{1}); % don't save if PIn is provided
+            % Update ResultFileNames
+            % Use the name of the file (even if we don't save to a file) as the "name" for these results.
+            % This is used in testing to identify the corresponding results in a baseline.
+            % For this purpose we don't need a Date/Time stamp. Consider removing it here and adding
+            % it in the SaveFlag block.            
+            if ~isempty(obj.Item(options.runIndices(ii)).Group)
+                grpStr = obj.Item(options.runIndices(ii)).Group;
+            else
+                grpStr = '';
+            end
+
+            ResultFileNames{ii} = ['Results - Sim = ' options.simName ...
+                ', Task = ' obj.Item(options.runIndices(ii)).TaskName ...
+                ' - Vpop = ' obj.Item(options.runIndices(ii)).VPopName ...
+                ' - Group = ' grpStr ...
+                ' - Date = ' datestr(now,'dd-mmm-yyyy_HH-MM-SS') '.mat'];
 
             % keep the VpopWeights for this group
             Results = Results_array{ii,jj};
             Results.VpopWeights = ItemModel.VpopWeights;
+            Results.FileNames = ResultFileNames{ii};
 
             % add results to output cell
             output{jj,ii} = Results;
+
+            %%% Save results of each simulation in different files %%%%%%%%%%%%%%%%%%%%
+            SaveFlag = isempty(options.Pin{1}); % don't save if PIn is provided
 
             SaveFilePath = fullfile(obj.Session.RootDirectory,obj.SimResultsFolderName);
             if ~exist(SaveFilePath,'dir')
@@ -269,17 +287,17 @@ if ~isempty(ItemModels)
             end
 
             if SaveFlag
-                % Update ResultFileNames
-                if ~isempty(obj.Item(options.runIndices(ii)).Group)
-                    grpStr = obj.Item(options.runIndices(ii)).Group;
-                else
-                    grpStr = '';
-                end
-                ResultFileNames{ii} = ['Results - Sim = ' options.simName ...
-                    ', Task = ' obj.Item(options.runIndices(ii)).TaskName ...
-                    ' - Vpop = ' obj.Item(options.runIndices(ii)).VPopName ...
-                    ' - Group = ' grpStr ...
-                    ' - Date = ' datestr(now,'dd-mmm-yyyy_HH-MM-SS') '.mat'];
+                % % Update ResultFileNames
+                % if ~isempty(obj.Item(options.runIndices(ii)).Group)
+                %     grpStr = obj.Item(options.runIndices(ii)).Group;
+                % else
+                %     grpStr = '';
+                % end
+                % ResultFileNames{ii} = ['Results - Sim = ' options.simName ...
+                %     ', Task = ' obj.Item(options.runIndices(ii)).TaskName ...
+                %     ' - Vpop = ' obj.Item(options.runIndices(ii)).VPopName ...
+                %     ' - Group = ' grpStr ...
+                %     ' - Date = ' datestr(now,'dd-mmm-yyyy_HH-MM-SS') '.mat'];
 
                 try
                     if isempty(VpopWeights)
