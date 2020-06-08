@@ -28,6 +28,7 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
         DatasetGroup
         AxesLegend
         AxesLegendChildren
+        OptimHeader
         
         DatasetPopupItems = {'-'}
         DatasetPopupItemsWithInvalid = {'-'}
@@ -46,7 +47,16 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
                 
         TaskPopupTableItems = {}
         GroupIDPopupTableItems = {}
-        SpeciesPopupTableItems = {} 
+        SpeciesPopupTableItems = {}
+        ThisProfileData = {}
+        
+        PlotSpeciesAsInvalidTable = cell(0,3)
+        PlotItemAsInvalidTable = cell(0,4)
+        
+        PlotSpeciesInvalidRowIndices = []
+        PlotItemInvalidRowIndices = []  
+        
+        DiagnosticHandle = [];
         
         DatasetHeader = {}
         PrunedDatasetHeader = {};
@@ -106,6 +116,28 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
         ParametersTableLabel            matlab.ui.control.Label
         ParametersTable                 matlab.ui.control.Table
         SeedSubLayout                   matlab.ui.container.GridLayout
+
+        %Elements for the visualization view
+        VisLayout                       matlab.ui.container.GridLayout
+        VisSpeciesDataTableLabel        matlab.ui.control.Label
+        VisSpeciesDataTable             matlab.ui.control.Table
+        VisOptimItemsTableLabel         matlab.ui.control.Label
+        VisOptimItemsTable              matlab.ui.control.Table
+        PanelMain                       matlab.ui.container.Panel     
+        VisInnerLayout                  matlab.ui.container.GridLayout  
+        VisProfilesTableLabel           matlab.ui.control.Label
+        VisProfilesTable                matlab.ui.control.Table 
+        VisParametersTableLabel         matlab.ui.control.Label
+        VisParametersTable              matlab.ui.control.Table
+        VisAddButton                    matlab.ui.control.Button
+        VisRemoveButton                 matlab.ui.control.Button
+        VisCopyButton                   matlab.ui.control.Button
+        VisSwapButton                   matlab.ui.control.Button
+        VisPencilMatButtonm             matlab.ui.control.Button
+        VisDataButton                   matlab.ui.control.Button
+        VisApplyButton                  matlab.ui.control.Button
+
+        
     end
         
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -260,6 +292,109 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
             obj.ParametersTable.Layout.Row = 5;
             obj.ParametersTable.Layout.Column = 1;
             obj.ParametersTable.ColumnEditable = false;
+            
+            %Elements for the visualization view
+            obj.VisLayout = uigridlayout(obj.getVisualizationGrid());
+            obj.VisLayout.Layout.Row = 2;
+            obj.VisLayout.Layout.Column = 1;
+            obj.VisLayout.ColumnWidth = {'1x'};
+            obj.VisLayout.RowHeight = {obj.LabelHeight,'1x',obj.LabelHeight,'1x','2x'};
+            obj.VisLayout.ColumnSpacing = 0;
+            obj.VisLayout.RowSpacing = 0;
+            obj.VisLayout.Padding = [0 0 0 0];
+            
+            obj.VisSpeciesDataTableLabel = uilabel(obj.VisLayout);
+            obj.VisSpeciesDataTableLabel.Text = 'Species-Data';
+            obj.VisSpeciesDataTableLabel.Layout.Row = 1;
+            obj.VisSpeciesDataTableLabel.Layout.Column = 1;
+            
+            obj.VisSpeciesDataTable = uitable(obj.VisLayout);
+            obj.VisSpeciesDataTable.Layout.Row = 2;
+            obj.VisSpeciesDataTable.Layout.Column = 1;
+            obj.VisSpeciesDataTable.ColumnEditable = false;
+            
+            obj.VisOptimItemsTableLabel = uilabel(obj.VisLayout);
+            obj.VisOptimItemsTableLabel.Text = 'Optimization Items';
+            obj.VisOptimItemsTableLabel.Layout.Row = 3;
+            obj.VisOptimItemsTableLabel.Layout.Column = 1;
+            
+            obj.VisOptimItemsTable = uitable(obj.VisLayout);
+            obj.VisOptimItemsTable.Layout.Row = 4;
+            obj.VisOptimItemsTable.Layout.Column = 1;
+            obj.VisOptimItemsTable.ColumnEditable = false;
+          
+            obj.PanelMain = uipanel('Parent',obj.VisLayout);
+            obj.PanelMain.Title = '';
+            obj.PanelMain.Layout.Row = 5;
+            obj.PanelMain.Layout.Column = 1;
+            
+            obj.VisInnerLayout = uigridlayout(obj.PanelMain);
+            obj.VisInnerLayout.ColumnWidth = {obj.ButtonWidth,'1x'};
+            obj.VisInnerLayout.RowHeight = {obj.LabelHeight,obj.ButtonHeight,obj.ButtonHeight,obj.ButtonHeight,'1x',obj.LabelHeight,obj.ButtonHeight,obj.ButtonHeight,obj.ButtonHeight,'1x',obj.ButtonHeight};
+            obj.VisInnerLayout.ColumnSpacing = 0;
+            obj.VisInnerLayout.RowSpacing = 0;
+            obj.VisInnerLayout.Padding = [0 0 0 0];
+
+            obj.VisProfilesTableLabel = uilabel(obj.VisInnerLayout);
+            obj.VisProfilesTableLabel.Text = 'Run Profiles';
+            obj.VisProfilesTableLabel.Layout.Row = 1;
+            obj.VisProfilesTableLabel.Layout.Column = [1,2];
+            
+            obj.VisProfilesTable = uitable(obj.VisInnerLayout);
+            obj.VisProfilesTable.Layout.Row = [2,5];
+            obj.VisProfilesTable.Layout.Column = 2;
+            obj.VisProfilesTable.ColumnEditable = false;
+            
+            obj.VisParametersTableLabel = uilabel(obj.VisInnerLayout);
+            obj.VisParametersTableLabel.Text = 'Parameters(Run=2)';
+            obj.VisParametersTableLabel.Layout.Row = 6;
+            obj.VisParametersTableLabel.Layout.Column = [1,2];
+            
+            obj.VisParametersTable = uitable(obj.VisInnerLayout);
+            obj.VisParametersTable.Layout.Row = [7,10];
+            obj.VisParametersTable.Layout.Column = 2;
+            obj.VisParametersTable.ColumnEditable = false;
+            
+            obj.VisAddButton = uibutton(obj.VisInnerLayout,'push');
+            obj.VisAddButton.Layout.Row = 2;
+            obj.VisAddButton.Layout.Column = 1;
+            obj.VisAddButton.Icon = QSPViewerNew.Resources.LoadResourcePath('add_24.png');
+            obj.VisAddButton.Text = '';
+
+            obj.VisRemoveButton = uibutton(obj.VisInnerLayout,'push');
+            obj.VisRemoveButton.Layout.Row = 3;
+            obj.VisRemoveButton.Layout.Column = 1;
+            obj.VisRemoveButton.Icon = QSPViewerNew.Resources.LoadResourcePath('delete_24.png');
+            obj.VisRemoveButton.Text = '';
+
+            obj.VisCopyButton = uibutton(obj.VisInnerLayout,'push');
+            obj.VisCopyButton.Layout.Row = 4;
+            obj.VisCopyButton.Layout.Column = 1;
+            obj.VisCopyButton.Icon = QSPViewerNew.Resources.LoadResourcePath('copy_24.png');
+            obj.VisCopyButton.Text = '';
+
+            obj.VisSwapButton = uibutton(obj.VisInnerLayout,'push');
+            obj.VisSwapButton.Layout.Row = 7;
+            obj.VisSwapButton.Layout.Column = 1;
+            obj.VisSwapButton.Icon = QSPViewerNew.Resources.LoadResourcePath('reset_24.png');
+            obj.VisSwapButton.Text = '';
+
+            obj.VisPencilMatButtonm = uibutton(obj.VisInnerLayout,'push');
+            obj.VisPencilMatButtonm.Layout.Row = 8;
+            obj.VisPencilMatButtonm.Layout.Column = 1;
+            obj.VisPencilMatButtonm.Icon = QSPViewerNew.Resources.LoadResourcePath('param_edit_24.png');
+            obj.VisPencilMatButtonm.Text = '';
+
+            obj.VisDataButton = uibutton(obj.VisInnerLayout,'push');
+            obj.VisDataButton.Layout.Row = 9;
+            obj.VisDataButton.Layout.Column = 1;
+            obj.VisDataButton.Icon = QSPViewerNew.Resources.LoadResourcePath('datatable_24.png');
+            obj.VisDataButton.Text = '';
+            
+            obj.VisApplyButton = uibutton(obj.VisInnerLayout,'push');
+            obj.VisApplyButton.Layout.Row = 11;
+            obj.VisApplyButton.Layout.Column = 2;
+            obj.VisApplyButton.Text = 'Apply';
             
         end
         
@@ -479,6 +614,89 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
             end
             obj.IsDirty = true;
         end
+        
+        %Callbacks for the Visualization View
+        
+        function onEditVisSpeciesTable(obj,h,e)
+            Indices = e.Indices;
+            RowIdx = Indices(1,1);
+            ColIdx = Indices(1,2);
+            
+            %Determine if the change was valid, if not, revert
+            if (ColIdx ==1 || ColIdx == 2) && ~any(strcmp(h.ColumnFormat{ColIdx},e.NewData))
+                e.NewData = e.PreviousData;
+            end
+            
+            %Determine Axes Value
+            if ColIdx ==1
+                AxesIdx = e.NewData;
+            else
+                AxesIdx = h.Data{1,RowIdx};
+            end
+                
+            %Update everything
+            if ~isempty(AxesIdx)
+                NewLineStyle = h.Data(2,RowIdx);
+                NewLegendValue = h.Data(5,RowIdx);
+                
+                setSpeciesLineStyles(obj.Optimization,RowIdx,NewLineStyle);
+                obj.Optimization.PlotSpeciesTable(RowIdx,ColIdx) = h.Data(RowIdx,ColIdx);
+                
+                
+            end
+        end
+        
+        function onEditPlotItemsTable(obj,h,e)
+            
+        end
+        
+        function onSelectionPlotItemsTable(obj,h,e)
+            
+        end
+        
+        function onEditProfileTable(obj,h,e)
+            
+        end
+        
+        function onSelectionProfileTable(obj,h,e)
+            
+        end
+        
+        function onVisAddButton(obj,h,e)
+            
+        end
+        
+        function onVisRemoveButton(obj,h,e)
+            
+        end
+        
+        function onVisCopyButton(obj,h,e)
+            
+        end
+        
+        function onEditParametersTable(obj,h,e)
+            
+        end
+            
+        function onVisSwapButton(obj,h,e)
+            
+        end
+        
+        function onVisPencilMatButton(obj,h,e)
+            
+        end
+        
+        function onVisDataButton(obj,h,e)
+            
+        end
+        
+        function onVisApplyButton(obj,h,e)
+            
+        end
+        
+        function onPlotItemsContextMenu(obj,h,e)
+            
+        end
 
     end
     
@@ -539,7 +757,14 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
                 obj.Optimization.bShowSD = obj.bShowSD;
             end
             
-          
+            obj.redrawVisContextMenus();
+            obj.redrawOptimItemsTable();
+            obj.redrawSpeciesDataTable();
+            obj.redrawProfileButtonGroup();
+            obj.redrawVisProfileTable();
+            obj.redrawVisParametersTable();
+            obj.redrawVisLineWidth();
+            obj.redrawPlots();
         end
         
         function UpdateBackendPlotSettings(obj)
@@ -767,17 +992,17 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
                     dobj = obj.TemporaryOptimization.Settings.OptimizationData(MatchIdx);
 
                     DestDatasetType = 'wide';
-                    [~,~,OptimHeader,OptimData] = importData(dobj,dobj.FilePath,DestDatasetType);
+                    [~,~,TempOptimHeader,OptimData] = importData(dobj,dobj.FilePath,DestDatasetType);
                 else
-                    OptimHeader = {};
+                    TempOptimHeader = {};
                     OptimData = {};
                 end
             else
-                OptimHeader = {};
+                TempOptimHeader = {};
                 OptimData = {};
             end
-            obj.DatasetHeader = OptimHeader;
-            obj.PrunedDatasetHeader = setdiff(OptimHeader,{'Time','Group'}); 
+            obj.DatasetHeader = TempOptimHeader;
+            obj.PrunedDatasetHeader = setdiff(TempOptimHeader,{'Time','Group'}); 
             obj.DatasetData = OptimData;
         end
 
@@ -968,6 +1193,458 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
             obj.SpeciesInitialTable.setData(Data)
             
         end
+        
+        %We draw using  'Optimization', not 'temporaryOptimization' for the visulization
+        %side
+        function redrawVisContextMenus(obj)
+            %TODO
+        end
+        
+        function redrawSpeciesDataTable(obj)
+            AxesOptions = getAxesOptions(obj);
+            if ~isempty(obj.Optimization)
+                
+                %Get all Task, Species, and Data Names
+                TaskNames = {obj.Optimization.Item.TaskName};
+                SpeciesNames = {obj.Optimization.SpeciesData.SpeciesName};
+                DataNames = {obj.Optimization.SpeciesData.DataName};
+                ValidSpeciesList = getSpeciesFromValidSelectedTasks(obj.Optimization.Settings,TaskNames);
+
+                %Determine all species that are invalid
+                InvalidIndices = false(size(SpeciesNames));
+                for idx = 1:numel(SpeciesNames)
+                    % Check if the species is missing
+                    MissingSpecies = ~ismember(SpeciesNames{idx},ValidSpeciesList);        
+                    MissingData = ~ismember(DataNames{idx},obj.OptimHeader);
+                    if MissingSpecies || MissingData
+                        InvalidIndices(idx) = true;
+                    end
+                end
+
+                %If the table is currently empty, fill it in for the first
+                %time
+                if isempty(obj.Optimization.PlotSpeciesTable)
+                    
+                    %Remove Invalid Species and Data
+                    if any(InvalidIndices)
+                        SpeciesNames(InvalidIndices) = [];
+                        DataNames(InvalidIndices) = [];
+                    end
+
+                    obj.Optimization.PlotSpeciesTable = cell(numel(SpeciesNames),5);
+                    obj.Optimization.PlotSpeciesTable(:,1) = {' '};
+                    
+                    %Fill in Second Column, Line Styles
+                    if ~isempty(obj.Optimization.SpeciesLineStyles(:))
+                        obj.Optimization.PlotSpeciesTable(:,2) = obj.Optimization.SpeciesLineStyles(:);
+                    else
+                        obj.Optimization.PlotSpeciesTable(:,2) = {'-'};
+                    end
+                    %Fill in third Column, Species Name
+                    obj.Optimization.PlotSpeciesTable(:,3) = SpeciesNames;
+                    
+                    %Fill in fourth Column, Data Names
+                    obj.Optimization.PlotSpeciesTable(:,4) = DataNames;
+                    
+                    %Fill in fifth Column, Species Names
+                    obj.Optimization.PlotSpeciesTable(:,5) = SpeciesNames;
+
+                    obj.PlotSpeciesAsInvalidTable = obj.Optimization.PlotSpeciesTable;
+                    obj.PlotSpeciesInvalidRowIndices = [];
+                else
+                    %The table has been filled in before. Simply fill in
+                    NewPlotTable = cell(numel(SpeciesNames),5);
+                    NewPlotTable(:,1) = {' '};
+                    NewPlotTable(:,2) = {'-'}; 
+                    NewPlotTable(:,3) = SpeciesNames;
+                    NewPlotTable(:,4) = DataNames;
+                    NewPlotTable(:,5) = SpeciesNames;
+
+                    % Adjust for changes from a previous session with a
+                    % different size.
+                    if size(obj.Optimization.PlotSpeciesTable,2) == 3
+                        obj.Optimization.PlotSpeciesTable(:,5) = obj.Optimization.PlotSpeciesTable(:,3);
+                        obj.Optimization.PlotSpeciesTable(:,4) = obj.Optimization.PlotSpeciesTable(:,3);
+                        obj.Optimization.PlotSpeciesTable(:,3) = obj.Optimization.PlotSpeciesTable(:,2);
+                        obj.Optimization.PlotSpeciesTable(:,2) = {'-'}; 
+                    elseif size(obj.Optimization.PlotSpeciesTable,2) == 4
+                        obj.Optimization.PlotSpeciesTable(:,5) = obj.Optimization.PlotSpeciesTable(:,3);
+                    end
+
+                    % Update Table
+                    KeyColumn = [3 4];
+                    [obj.Optimization.PlotSpeciesTable,obj.PlotSpeciesAsInvalidTable,obj.PlotSpeciesInvalidRowIndices] = QSPViewer.updateVisualizationTable(obj.Optimization.PlotSpeciesTable,NewPlotTable,InvalidIndices,KeyColumn);                     
+                    % Update line styles
+                    updateSpeciesLineStyles(obj.Optimization);
+                end
+                
+                NewColumnFormat = {AxesOptions',obj.Optimization.Settings.LineStyleMap,'char','char','char'};
+                NewData = obj.PlotSpeciesAsInvalidTable;
+            else
+                %If the backend is empty
+                NewColumnFormat = {AxesOptions','char','char','char','char'};
+                NewData = cell(0,5);
+            end
+            
+            %Finally, write this information to the actual table         
+            obj.VisSpeciesDataTable.ColumnEditable = [true,true,false,false,true];
+            obj.VisSpeciesDataTable.ColumnName = {'Plot','Style','Species','Data','Display'};
+            obj.VisSpeciesDataTable.ColumnFormat = NewColumnFormat;
+            obj.VisSpeciesDataTable.Data = NewData;
+        end
+        
+        function redrawOptimItemsTable(obj)
+            %We need to obtain OptimHeader and OptimData from the backend
+            if ~isempty(obj.Optimization) && ~isempty(obj.Optimization.DatasetName) && ~isempty(obj.Optimization.Settings.OptimizationData)
+                Names = {obj.Optimization.Settings.OptimizationData.Name};
+                MatchIdx = strcmpi(Names,obj.Optimization.DatasetName);
+
+                if any(MatchIdx)
+                    dObj = obj.Optimization.Settings.OptimizationData(MatchIdx);
+                    [~,~,TempOptimHeader,OptimData] = importData(dObj,dObj.FilePath,'wide');
+                else
+                    TempOptimHeader = {};
+                    OptimData = {};
+                end
+            else
+                TempOptimHeader = {};
+                OptimData = {};
+            end
+            obj.OptimHeader = TempOptimHeader;
+            
+            %Use OptimHeader and OptimData to obtain GroupIDs
+            if ~isempty(TempOptimHeader) && ~isempty(OptimData)
+                MatchIdx = strcmp(TempOptimHeader,obj.Optimization.GroupName);
+                GroupIDs = OptimData(:,MatchIdx);
+                if iscell(GroupIDs)
+                    GroupIDs = cell2mat(GroupIDs);
+                end
+                GroupIDs = unique(GroupIDs);
+                GroupIDs = cellfun(@(x)num2str(x),num2cell(GroupIDs),'UniformOutput',false);
+            else
+                GroupIDs = [];
+            end
+            
+            %We have the OptimHeader, OptimData, and GroupIDS. 
+            if ~isempty(obj.Optimization)
+
+                TaskNames = {obj.Optimization.Item.TaskName};
+                GroupIDNames = {obj.Optimization.Item.GroupID};
+                
+                InvalidIndices = false(size(TaskNames));
+                for idx = 1:numel(TaskNames)
+                    ThisTask = getValidSelectedTasks(obj.Optimization.Settings,TaskNames{idx});
+                    MissingGroup = ~ismember(GroupIDNames{idx},GroupIDs(:)');
+                    if isempty(ThisTask) || MissingGroup
+                        InvalidIndices(idx) = true;
+                    end
+                end
+
+                % If the table is empty
+                if isempty(obj.Optimization.PlotItemTable)
+
+                    if any(InvalidIndices)
+                        TaskNames(InvalidIndices) = [];
+                        GroupIDNames(InvalidIndices) = [];
+                    end
+
+                    obj.Optimization.PlotItemTable = cell(numel(TaskNames),5);
+                    obj.Optimization.PlotItemTable(:,1) = {false};
+                    obj.Optimization.PlotItemTable(:,3) = TaskNames;
+                    obj.Optimization.PlotItemTable(:,4) = GroupIDNames;
+                    obj.Optimization.PlotItemTable(:,5) = TaskNames;
+
+                    % Update the item colors
+                    ItemColors = getItemColors(obj.Optimization.Session,numel(TaskNames));
+                    obj.Optimization.PlotItemTable(:,2) = num2cell(ItemColors,2);        
+
+                    obj.PlotItemAsInvalidTable = obj.Optimization.PlotItemTable;
+                    obj.PlotItemInvalidRowIndices = [];
+                else
+                    NewPlotTable = cell(numel(TaskNames),5);
+                    NewPlotTable(:,1) = {false};
+                    NewPlotTable(:,3) = TaskNames;
+                    NewPlotTable(:,4) = GroupIDNames;
+                    NewPlotTable(:,5) = TaskNames;
+
+                    NewColors = getItemColors(obj.Optimization.Session,numel(TaskNames));
+                    NewPlotTable(:,2) = num2cell(NewColors,2);   
+
+                    if size(obj.Optimization.PlotItemTable,2) == 4
+                        obj.Optimization.PlotItemTable(:,5) = obj.Optimization.PlotItemTable(:,3);
+                    end
+
+                    % Update Table
+                    KeyColumn = [3 4];
+                    [obj.Optimization.PlotItemTable,obj.PlotItemAsInvalidTable,obj.PlotItemInvalidRowIndices] = QSPViewer.updateVisualizationTable(obj.Optimization.PlotItemTable,NewPlotTable,InvalidIndices,KeyColumn);        
+                end
+
+                % Update Colors column 
+                TableData = obj.PlotItemAsInvalidTable;
+                
+                %Fill the table with empty chars so only the color is
+                %displayed
+                TableData(:,2) =convertStringsToChars(strings(size(TableData(:,2),1),1));
+
+
+                % Set cell color
+                for index = 1:size(TableData,1)
+                    ThisColor = obj.Optimization.PlotItemTable{index,2};
+                    if ~isempty(ThisColor)
+                        if isnumeric(ThisColor)
+                            Style = uistyle('BackGroundColor',ThisColor);
+                            addStyle(obj.VisOptimItemsTable,Style,'cell',[index,2]);
+                        else
+                            warning('Error: invalid color')
+                        end
+                    end
+                end
+            else
+               %Empty table, just use an empty table
+                TableData = cell(0,5);
+            end
+            
+            %Finally, write this information to the actual table         
+            obj.VisOptimItemsTable.ColumnEditable = [true,false,false,false,true];
+            obj.VisOptimItemsTable.ColumnName = {'Include','Color','Task','Group','Display'};
+            obj.VisOptimItemsTable.ColumnFormat = {'logical','char','char','char','char'};
+            obj.VisOptimItemsTable.Data = (TableData);
+        end
+        
+        function redrawProfileButtonGroup(obj)
+
+            if ~isempty(obj.Optimization) && ~isempty(obj.Optimization.SelectedProfileRow) && 0 ~= obj.Optimization.SelectedProfileRow
+                %turn on buttons if we have a selected row 
+                obj.VisAddButton.Enable = true;
+                obj.VisRemoveButton.Enable = true;
+                obj.VisCopyButton.Enable = true;
+            else %If there is no selected row  
+                obj.VisAddButton.Enable = false;
+                obj.VisRemoveButton.Enable = false;
+                obj.VisCopyButton.Enable = false; 
+            end
+        end
+        
+        function redrawVisProfileTable(obj)
+            if ~isempty(obj.Optimization)
+                Names = {obj.Optimization.Settings.Parameters.Name};
+                MatchIdx = strcmpi(Names,obj.Optimization.RefParamName);
+
+                % construct the VPopname from the name of the optimization
+                VPopNames = {sprintf('Results - Optimization = %s -', obj.Optimization.Name)};
+
+                % Filter VPopNames list (only if name does not exist, not if invalid)
+                AllVPopNames = {obj.Optimization.Session.Settings.VirtualPopulation.Name};
+                MatchVPopIdx = false(1,numel(AllVPopNames));
+                
+                %For Every VPopName we have
+                for idx = 1:numel(VPopNames)
+                    %Only if the value is not empty
+                    if ~isempty(VPopNames{idx})
+                        %Flip all entries that match this expression to
+                        %true
+                        MatchVPopIdx = MatchVPopIdx | ~cellfun(@isempty,regexp(AllVPopNames,VPopNames{idx}));
+                    end
+                end
+                
+                %Index for the names that we have found are present. 
+                VPopNames = AllVPopNames(MatchVPopIdx);
+
+                if any(MatchIdx)
+                    pObj = obj.Optimization.Settings.Parameters(MatchIdx);    
+                    pObj_derivs = AllVPopNames(~cellfun(@isempty, strfind(AllVPopNames, obj.Optimization.RefParamName )));
+                    PlotParametersSourceOptions = vertcat('N/A',{pObj.Name},reshape(pObj_derivs,[],1), VPopNames(:));
+                else
+                    PlotParametersSourceOptions = vertcat('N/A',VPopNames(:));
+                end
+            else
+                PlotParametersSourceOptions = {'N/A'};
+            end
+
+            % History table
+            obj.ThisProfileData = {};
+            if ~isempty(obj.Optimization)
+                
+                TableData = horzcat(...
+                    num2cell(1:numel(obj.Optimization.PlotProfile))',...        
+                    {obj.Optimization.PlotProfile.Show}',...
+                    {obj.Optimization.PlotProfile.Source}',...
+                    {obj.Optimization.PlotProfile.Description}');
+
+                % Import the parmaters using helper
+                [IsSourceMatch,~,obj.ThisProfileData] = importParametersSourceHelper(obj);    
+                %For every row
+                for rowIdx = 1:size(TableData,1)
+                    %If the source does not match, italicize
+                    if ~IsSourceMatch(rowIdx)
+                        for colIdx = [1, 4]
+                            TableData{rowIdx,colIdx} = QSP.makeItalicized(TableData{rowIdx,colIdx});
+                        end
+                    end
+                end
+               
+                ColumnFormat = {'numeric','logical',PlotParametersSourceOptions(:)','char'};
+                ColumnEditable = [false,true,true,true];
+
+            else
+                TableData = cell(0,5);
+                ColumnFormat = {'numeric','logical','char','char'};
+                ColumnEditable = [false,true,false,true];
+            end
+            %Finally, write this information to the actual table         
+            obj.VisProfilesTable.ColumnEditable = ColumnEditable;
+            obj.VisProfilesTable.ColumnName = {'Run','Show','Source','Description'};
+            obj.VisProfilesTable.ColumnFormat = ColumnFormat;
+            obj.VisProfilesTable.Data = TableData;
+        end
+        
+        function redrawVisParametersTable(obj)
+            %If do not have currently selected profile
+            if isempty(obj.ThisProfileData)
+                [~,~,obj.ThisProfileData] = importParametersSourceHelper(obj);
+            end
+            
+            %Verify the dimensions of the input. This could vary between
+            %sessions
+            if size(obj.ThisProfileData,2)==3
+                %for every row of the ProfileData
+                for rowIdx = 1:size(obj.ThisProfileData,1)
+                    %If the 'Value' and 'Source Value' are not equal,
+                    %italicize
+                    if ~isequal(obj.ThisProfileData{rowIdx,2}, obj.ThisProfileData{rowIdx,3})
+                        obj.ThisProfileData{rowIdx,1} = QSP.makeItalicized(obj.ThisProfileData{rowIdx,1});
+                    end
+                end
+                TableData = obj.ThisProfileData;
+                LabelString = sprintf('Parameters (Run = %d)', obj.Optimization.SelectedProfileRow);
+            else
+                TableData = cell(0,3);
+                LabelString =  sprintf('Parameters');
+            end
+            %Finally, write this information to the actual table        
+            obj.VisParametersTable.ColumnEditable = [false,true,false];
+            obj.VisParametersTable.ColumnName = {'Parameter','Value','Source Value'};
+            obj.VisParametersTable.ColumnFormat = {'char','numeric','numeric'};
+            obj.VisParametersTable.Data = TableData;
+            obj.VisParametersTableLabel.Text = LabelString;
+        end
+        
+        function redrawVisLineWidth(obj)
+            %For every line, specify the line widht.
+            %If the line is from the selected row in the table, add 2
+            
+            if ~isempty(obj.Optimization)
+                %For every element in the SpeciesGroup (3 dimensional)
+                
+                for i=1:size(obj.SpeciesGroup,1)
+                    for j=1:size(obj.SpeciesGroup,2)
+                        for k=1:size(obj.SpeciesGroup,3)
+                            %If the element is a handle or vector of
+                            %handles
+                            
+                            if ~isempty(obj.SpeciesGroup{i,j,k}) && ishandle(obj.SpeciesGroup{i,j,k})
+                                Ch = obj.SpeciesGroup{i,j,k}.Children;
+                                Ch = flip(Ch);
+                                %Based on the QSP class, they use a single
+                                %dummy line, skip it
+                                
+                                if numel(Ch) > 1
+                                    %Use set syntax so we dont have to
+                                    %loop
+                                    
+                                    set(Ch(2:end),'LineWidth',obj.Optimization.PlotSettings(j).LineWidth);
+                                    %Only for the selectedLine, Bolden
+                                    
+                                    if (k==obj.Optimization.SelectedProfileRow)
+                                        set(Ch,'LineWidth',obj.Optimization.PlotSettings(j).LineWidth+2);
+                                    end
+                                end
+                            end 
+                        end 
+                    end 
+                end
+            end
+        end
+        
+        function [IsSourceMatch,IsRowEmpty,SelectedProfileData] = importParametersSourceHelper(obj)
+            
+            UniqueSourceNames = unique({obj.Optimization.PlotProfile.Source});
+            UniqueSourceData = cell(1,numel(UniqueSourceNames));
+            
+            % First import just the unique sources
+            for index = 1:numel(UniqueSourceNames)
+                % Import from QSP
+                [StatusOk,Message,SourceData] = importParametersSource(obj.Optimization,UniqueSourceNames{index});
+                if StatusOk
+                    [~,order] = sort(upper(SourceData(:,1)));
+                    UniqueSourceData{index} = SourceData(order,:);
+                else
+                    UniqueSourceData{index} = cell(0,2);
+                    uialert(obj.getUIFigure(),Message,'Parameter Import Failed');
+                end
+            end
+    
+            
+            % Determine for each row of the Profiles, if the source matches
+            % and if the row is emoty
+            
+            %preallocate
+            nProfiles = numel(obj.Optimization.PlotProfile);
+            IsSourceMatch = true(1,nProfiles);
+            IsRowEmpty = false(1,nProfiles);
+            
+            %for every row
+            for index = 1:nProfiles
+                ThisProfile = obj.Optimization.PlotProfile(index);
+                ThisProfileValues = ThisProfile.Values;
+                uIdx = ismember(UniqueSourceNames,ThisProfile.Source);
+                
+                %check if it matches
+                if ~isequal(ThisProfileValues,UniqueSourceData{uIdx})
+                    IsSourceMatch(index) = false;
+                end
+                
+                %check if it is empty
+                if isempty(UniqueSourceData{uIdx})
+                    IsRowEmpty(index) = true;
+                end
+            end
+            
+            %Only if we have a selected row
+            if ~isempty(obj.Optimization.SelectedProfileRow)
+                try
+                    SelectedProfile = obj.Optimization.PlotProfile(obj.Optimization.SelectedProfileRow);
+                    Success = true;
+                catch thisError
+                    warning(thisError.message);
+                    SelectedProfileData = [];
+                    Success = false;
+                end
+                
+                
+                if Success 
+                    
+                    uIdx = ismember(UniqueSourceNames,SelectedProfile.Source);
+                    SelectedProfileData = SelectedProfile.Values;
+                    if ~isempty(UniqueSourceData{uIdx})
+                        missingIndices = ~cellfun(@ischar, SelectedProfileData(:,1));
+                        SelectedProfileData(missingIndices,:) = [];
+                        [hMatch,MatchIdx] = ismember(SelectedProfileData(:,1), UniqueSourceData{uIdx}(:,1));
+                        SelectedProfileData(hMatch,3) = UniqueSourceData{uIdx}(MatchIdx(hMatch),end);
+                        [~,index] = sort(upper(SelectedProfileData(:,1)));
+                        SelectedProfileData = SelectedProfileData(index,:);
+                    end
+                end
+            else
+                SelectedProfileData = cell(0,3);
+            end
+            
+        end
+        
+        function redrawPlots(obj,varargin)
+            [obj.SpeciesGroup,obj.DatasetGroup,obj.AxesLegend,obj.AxesLegendChildren] = plotOptimization(obj.Optimization,obj.getPlotArray(),varargin);
+        end
+
     end
         
 end
