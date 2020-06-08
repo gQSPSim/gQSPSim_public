@@ -294,6 +294,15 @@ switch obj.AlgorithmName
         
     case 'ParticleSwarm'
         N = size(estParamData,1);
+        
+        if license('test','GADS_Toolbox') == 0
+            StatusOK = false;
+            ThisMessage = 'The particle swarm method is not available. Please install the Global Optimization Toolbox in order to use the particle swarm method.';
+            Message = sprintf('%s\n%s\n',Message,ThisMessage);
+            path(myPath);
+            return
+        end
+        
         try
             StatusOK = true;
             LB = estParamData(:,1);

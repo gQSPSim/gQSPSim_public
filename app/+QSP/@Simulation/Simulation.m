@@ -318,6 +318,20 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 
             end 
             
+            Message = strtrim(Message);
+            
+            
+            % Special handling for API
+            if nargout == 0
+               if StatusOK && isempty(Message) 
+                   disp('Simulation ran successfully')
+               elseif StatusOK && ~isempty(Message)
+                   warning(Message)
+               else
+                   error(Message)
+               end
+            end
+            
         end %function
         
         function updateSpeciesLineStyles(obj)

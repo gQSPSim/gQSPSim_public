@@ -593,36 +593,80 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
             newObj = AddHelper(obj,'QSP.Task',varargin(:));
         end %function
         
+        function thisObj = GetTask(obj,Name)
+            thisObj = obj.Settings.Task(strcmp({obj.Settings.Task.Name},Name));
+        end %function
+        
         function newObj = CreateDataset(obj,varargin)
             newObj = AddHelper(obj,'QSP.OptimizationData',varargin(:));
+        end %function
+        
+        function thisObj = GetDataset(obj,Name)
+            thisObj = obj.Settings.OptimizationData(strcmp({obj.Settings.OptimizationData.Name},Name));
         end %function
         
         function newObj = CreateParameter(obj,varargin)
             newObj = AddHelper(obj,'QSP.Parameters',varargin(:)); 
         end %function
         
+        function thisObj = GetParameter(obj,Name)
+            thisObj = obj.Settings.Parameters(strcmp({obj.Settings.Parameters.Name},Name));
+        end %function
+        
         function newObj = CreateOptimization(obj,varargin)
             newObj = AddHelper(obj,'QSP.Optimization',varargin(:));
+        end %function
+        
+        function thisObj = GetOptimization(obj,Name)
+            thisObj = obj.Optimization(strcmp({obj.Optimization.Name},Name));
         end %function
         
         function newObj = CreateAcceptanceCriteria(obj,varargin)
             newObj = AddHelper(obj,'QSP.VirtualPopulationData',varargin(:));
         end %function
         
+        function thisObj = GetAcceptanceCriteria(obj,Name)
+            thisObj = obj.VirtualPopulationData(strcmp({obj.VirtualPopulationData.Name},Name));
+        end %function
+        
+        function newObj = CreateVirtualPopulation(obj,varargin)
+            newObj = AddHelper(obj,'QSP.VirtualPopulation',varargin(:));
+        end %function
+        
+        function thisObj = GetVirtualPopulation(obj,Name)
+            thisObj = obj.Settings.VirtualPopulation(strcmp({obj.Settings.VirtualPopulation.Name},Name));
+        end %function
+        
         function newObj = CreateVCohortGen(obj,varargin)
             newObj = AddHelper(obj,'QSP.CohortGeneration',varargin(:));
+        end %function
+        
+        function thisObj = GetCohortGeneration(obj,Name)
+            thisObj = obj.CohortGeneration(strcmp({obj.CohortGeneration.Name},Name));
         end %function
         
         function newObj = CreateTargetStatistics(obj,varargin)
             newObj = AddHelper(obj,'QSP.VirtualPopulationGenerationData',varargin(:));        
         end %function
         
+        function thisObj = GetTargetStatistics(obj,Name)
+            thisObj = obj.Settings.VirtualPopulationGenerationData(strcmp({obj.Settings.VirtualPopulationGenerationData.Name},Name));
+        end %function
+        
         function newObj = CreateSimulation(obj,varargin)
             newObj = AddHelper(obj,'QSP.Simulation',varargin(:));
         end %function
         
+        function thisObj = GetSimulation(obj,Name)
+            thisObj = obj.Simulation(strcmp({obj.Simulation.Name},Name));
+        end %function
+        
         function newObj = CreateVPopGen(obj,varargin)
             newObj = AddHelper(obj,'QSP.VirtualPopulationGeneration',varargin(:));
+        end %function
+        
+        function thisObj = GetVirtualPopulationGeneration(obj,Name)
+            thisObj = obj.VirtualPopulationGeneration(strcmp({obj.VirtualPopulationGeneration.Name},Name));
         end %function
     end
 end %classdef
