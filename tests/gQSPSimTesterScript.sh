@@ -8,6 +8,7 @@ if [ $# != 1 ]
 		exit 0
 fi
 
-MATLABCMD="mw -using $1 matlab -r tests/testDriver"
+cd tests
+MATLABCMD="mw -using $1 matlab -r driver"
 
 ${MATLABCMD}
