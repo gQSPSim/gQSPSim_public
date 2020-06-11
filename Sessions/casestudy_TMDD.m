@@ -1,13 +1,13 @@
 % create new session
-session = QSP.Session();
+Session = QSP.Session();
 
 % configure session
-session.Name = 'CaseStudy1_TMDD';
-session.RootDirectory = 'C:\Users\agajjala\sandbox\P7470_Genentech_QSP_Github_API\Sessions\CaseStudy_TMDD_AG\CaseStudy_TMDD_blank';
-session.AutoSaveBeforeRun = true; 
+Session.Name = 'CaseStudy1_TMDD';
+Session.RootDirectory = 'C:\Users\agajjala\sandbox\P7470_Genentech_QSP_Github_API\Sessions\CaseStudy_TMDD_AG\CaseStudy_TMDD_blank';
+Session.AutoSaveBeforeRun = true; 
 
 % create task
-T1 = session.CreateTask('A_3.0 mpk');
+T1 = Session.CreateTask('A_3.0 mpk');
 
 % configure
 T1.SetProject('casestudy1_TMDD_template.sbproj');
@@ -24,16 +24,16 @@ T2.Name     = 'A_0.3 mpk';
 T2.AddDoses({'0.3 mg/kg'}); 
 
 % add dataset
-Dataset1 = session.CreateDataset('Data_mean');
+Dataset1 = Session.CreateDataset('Data_mean');
 Dataset1.RelativeFilePath   = 'Data_mean.xlsx'; 
 Dataset1.DatasetType        = 'wide';
 
 % add parameter
-Parameter1 = session.CreateParameter('Param_8');
+Parameter1 = Session.CreateParameter('Param_8');
 Parameter1.RelativeFilePath = 'Param_8.xlsx';
 
 % add optimization
-Optim1 = session.CreateOptimization('Optimization');
+Optim1 = Session.CreateOptimization('Optimization');
 Optim1.AlgorithmName    = 'ScatterSearch';
 Optim1.RefParamName     = 'Param_8';
 Optim1.DatasetName      = 'Data_mean';
@@ -58,11 +58,11 @@ Optim1.run()
 % Optim1.run()
 
 % acceptance criteria
-AC1 = session.CreateAcceptanceCriteria('AC_fixed_target');
+AC1 = Session.CreateAcceptanceCriteria('AC_fixed_target');
 AC1.RelativeFilePath = 'AC_vpop_fixed_target.xlsx';
 
 % cohort generation
-VCGen1 = session.CreateVCohortGen('Cohort_fixed_target_1000');
+VCGen1 = Session.CreateVCohortGen('Cohort_fixed_target_1000');
 VCGen1.VPopResultsFolderName        = 'CohortGenerationResults'; % TODO maybe rename property for simplicity?
 VCGen1.RefParamName                 = 'Param_8'; % TODO probably rename property
 VCGen1.DatasetName                  = 'AC_fixed_target'; % TODO probably rename property
@@ -83,11 +83,11 @@ VCGen1.SpeciesDataMapping = {...
 VCGen1.run()
 
 % target statistics
-TS1 = session.CreateTargetStatistics('Data_with_mean');
+TS1 = Session.CreateTargetStatistics('Data_with_mean');
 TS1.RelativeFilePath = 'Data_mean_vpop_gen.xlsx';
 
 % virtual population generation
-VPGen1 = session.CreateVPopGen('VP_mean_data');
+VPGen1 = Session.CreateVPopGen('VP_mean_data');
 VPGen1.VPopResultsFolderName        = 'VPopResults'; % TODO Rename property?
 VPGen1.VPopName                     = 'Cohort_fixed_target_1000'; % TODO rename property "CohortName"
 VPGen1.VpopGenDataName              = 'Data_with_mean'; % TODO rename to TargetStatisticsName; Data_with_mean or Data_mean
@@ -105,7 +105,7 @@ VPGen1.SpeciesDataMapping = {...
     };
 
 % run
-VPGen1.DatasetName = session.Settings.VirtualPopulation(1).Name; % AG: Added this but is it correct? Without this, it errors on Invalid dataset name specified for cohort
+VPGen1.DatasetName = Session.Settings.VirtualPopulation(1).Name; % AG: Added this but is it correct? Without this, it errors on Invalid dataset name specified for cohort
 VPGen1.run()
 
 % get name of the results produced from running the Vpop generation
@@ -136,7 +136,7 @@ T6.ActiveDoseNames  = {'10 mg/kg_3'};
 T6.OutputTimes      = 0:0.1:49;
 
 % create simulation
-Sim1 = session.CreateSimulation('Sim_Cohort_fixed_target_1000 VP');
+Sim1 = Session.CreateSimulation('Sim_Cohort_fixed_target_1000 VP');
 Sim1.DatasetName    = 'Data_mean';
 Sim1.GroupName      = 'Group';
 
@@ -151,11 +151,11 @@ Sim1.TaskVPopItems = {...
 Sim1.run()
 
 % supplementary figures
-Parameter2 = session.CreateParameter('Param_7');
+Parameter2 = Session.CreateParameter('Param_7');
 Parameter2.RelativeFilePath = 'Param_7.xlsx';
 	
 % acceptance criteria
-AC2 = session.CreateAcceptanceCriteria('AC_var_target');
+AC2 = Session.CreateAcceptanceCriteria('AC_var_target');
 AC2.RelativeFilePath = 'AC_vpop_var_target.xlsx';
 
 VCGen2              = VCGen1.Replicate();
