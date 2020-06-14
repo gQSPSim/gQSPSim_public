@@ -26,7 +26,7 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
     %   $Revision: 331 $  $Date: 2016-10-05 18:01:36 -0400 (Wed, 05 Oct 2016) $
     % ---------------------------------------------------------------------
     
-    %% Properties
+    % Properties
     properties
         Settings = QSP.Settings.empty(0,1)
         SimResultsFolderName = 'SimResults' 
@@ -44,7 +44,6 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         SelectedPlotLayout = '1x1'
         
         PlotSettings = repmat(struct(),1,12)
-
     end
     
     properties (SetAccess = 'private')
@@ -55,7 +54,7 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         NullVPop = 'ModelDefault'
     end
     
-    %% Constructor
+    % Constructor
     methods
         function obj = Simulation(varargin)
             % Simulation - Constructor for QSP.Simulation
@@ -102,7 +101,7 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         
     end %methods
     
-    %% Methods defined as abstract
+    % Methods defined as abstract
     methods
         
         function Summary = getSummary(obj)
@@ -275,16 +274,18 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
           
     end
     
-    %% Methods    
+    %  Methods    
     methods
         
-        function [StatusOK,Message,vpopObj] = run(obj)
+        function [StatusOK, Message, vpopObj, resultsArray] = run(obj)
             
             % Unused for simulation
             vpopObj = QSP.VirtualPopulation.empty(0,1);
             
             % Invoke validate
             [StatusOK, Message] = validate(obj,false);
+            
+            resultsArray{1} = {};
             
             % Invoke helper
             if StatusOK
@@ -295,7 +296,8 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 end
                 
                 % Run helper
-                [ThisStatusOK,thisMessage,ResultFileNames,Cancelled] = simulationRunHelper(obj);
+                [ThisStatusOK, thisMessage, ResultFileNames, Cancelled, resultsArray] = simulationRunHelper(obj);
+
                 if ~ThisStatusOK && ~Cancelled
 %                     error('run: %s',Message);
                     StatusOK = false;
@@ -407,7 +409,7 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
     end %methods
     
     
-    %% Set Methods
+    %  Set Methods
     methods
         
         function set.Settings(obj,Value)

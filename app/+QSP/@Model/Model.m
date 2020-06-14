@@ -185,6 +185,7 @@ classdef Model < QSP.abstract.BaseProps
             if StatusOk
                 models = struct2cell(AllModels);
                 AllModels = [models{:}];                
+
                 m1 = sbioselect(AllModels,'type','sbiomodel');
                 
                 if isempty(m1)
