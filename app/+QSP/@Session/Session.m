@@ -319,7 +319,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
                 'ExecutionMode','fixedRate',...
                 'BusyMode','drop',...
                 'Tag','QSPtimer',...
-                'Period',1*60,... % minutes
+                'Period',obj.AutoSaveFrequency*60,... % minutes
                 'StartDelay',1,...
                 'TimerFcn',@(h,e)onTimerCallback(obj,h,e));
             
@@ -590,12 +590,14 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         end %function
         
         function addExperimentToDB(obj, type, Name, time, ResultFileNames)
-            commit = git(sprintf('-C "%s" --git-dir="%s" rev-parse HEAD', obj.RootDirectory, fullfile(obj.RootDirectory,obj.GitRepo)));
+            rootDir = regexprep(obj.RootDirectory, '\\$', '');
+            
+            commit = git(sprintf('-C "%s" --git-dir="%s" rev-parse HEAD', rootDir, fullfile(rootDir,obj.GitRepo)));
             cmd = sprintf('INSERT INTO Experiments VALUES ("%s", "%s", "%s", %f)', ...
                 type, Name, commit, time);
 %             if isempty(obj.dbid)
-                system(sprintf('touch "%s"', fullfile(obj.RootDirectory, obj.experimentsDB)) );
-                obj.dbid = mksqlite('open', fullfile(obj.RootDirectory, obj.experimentsDB), 'rw');
+%                 system(sprintf('touch "%s"', fullfile(rootDir, obj.experimentsDB)) );
+                obj.dbid = mksqlite('open', fullfile(rootDir, obj.experimentsDB), 'rw');
 %                 obj.dbid = mksqlite('open', 'experiments.db3', 'rw');
                 
                 mksqlite(obj.dbid, 'create table if not exists EXPERIMENTS (Type TEXT, Item TEXT, GitCommit TEXT, Time INTEGER);')
@@ -625,10 +627,12 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
             
             gitFiles = obj.GitFiles;
             
-            if ~exist(fullfile(obj.RootDirectory, obj.GitRepo), 'dir')
+            rootDir = regexprep(obj.RootDirectory, '\\$', '');
+            
+            if ~exist(fullfile(rootDir, obj.GitRepo), 'dir')
                 obj.Log('creating git repository')
                 [repoPath,repo,~] = fileparts(obj.GitRepo);
-                result = git(sprintf('init "%s"', fullfile(obj.RootDirectory, fullfile(repoPath,repo))));
+                result = git(sprintf('init "%s"', fullfile(rootDir, fullfile(repoPath,repo))));
 %                 if ~isempty(result)
 %                     warning(result)
 %                 end                
@@ -636,11 +640,11 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
                 
             % get all the changes for each of the model files
             fileChanges = git(sprintf('-C "%s" --git-dir="%s" diff --name-only', ...
-                obj.RootDirectory, obj.GitRepo));
+                rootDir, obj.GitRepo));
             fileChanges = strsplit(fileChanges,'\n');
             % add files
             for k=1:length(gitFiles)
-                result = git(sprintf('-C "%s" --git-dir="%s" add ''%s'' ', obj.RootDirectory, ...
+                result = git(sprintf('-C "%s" --git-dir="%s" add "%s" ', rootDir, ...
                      obj.GitRepo, gitFiles{k}));
                 if ~isempty(result)
                     warning(result)
@@ -656,7 +660,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
                 [~,~,ext] = fileparts(thisFile);
                 if strcmp(ext,'.xlsx')
                     tmpFile = [tempname '.xlsx'];
-                    tmpXlsx = git(sprintf('-C "%s" --git-dir="%s" show HEAD:"%s" > "%s" ', obj.RootDirectory, ...
+                    tmpXlsx = git(sprintf('-C "%s" --git-dir="%s" show HEAD:"%s" > "%s" ', rootDir, ...
                         obj.GitRepo, thisFile, tmpFile));
                     
                     % check if this is a vpop
@@ -668,9 +672,9 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
 
                     
                     if isempty(type)
-                        xlsMsg = xlsxDiff(fullfile(obj.RootDirectory, thisFile), tmpFile);
+                        xlsMsg = xlsxDiff(fullfile(rootDir, thisFile), tmpFile);
                     else
-                        xlsMsg = xlsxDiff(fullfile(obj.RootDirectory, thisFile), tmpFile, type);
+                        xlsMsg = xlsxDiff(fullfile(rootDir, thisFile), tmpFile, type);
                     end
                     
                     diffMsg = sprintf('%s\n%s\n%s\n', diffMsg, thisFile, xlsMsg);
@@ -682,7 +686,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
             
             % update files that were already added for now. would be better
             % if this were only the files that are currently in the session
-            result = git(sprintf('-C "%s" --git-dir="%s" add -u ', obj.RootDirectory, ...
+            result = git(sprintf('-C "%s" --git-dir="%s" add -u ', rootDir, ...
                 obj.GitRepo));
             if ~isempty(result)
                 warning(result)
@@ -698,7 +702,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
             for ixObj = 1:length(objs)
                 m = objs(ixObj).ModelObj;
                 if ~isempty(m)
-                   sbprojFiles = [sbprojFiles, strrep( m.RelativeFilePath_new, [obj.RootDirectory filesep], '')];
+                   sbprojFiles = [sbprojFiles, strrep( m.RelativeFilePath_new, [rootDir filesep], '')];
                 end
             end
             sbprojFiles = unique(sbprojFiles);
@@ -709,21 +713,19 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
                 tmpFile = [tempname '.sbproj'];
                 
                 git(sprintf('-C "%s" --git-dir="%s" show HEAD:"%s" > "%s"', ...
-                    obj.RootDirectory, obj.GitRepo, sbprojFiles{ixProj}, tmpFile ));
+                    rootDir, obj.GitRepo, sbprojFiles{ixProj}, tmpFile ));
                 m1 = sbioloadproject( tmpFile);
-                m2 = sbioloadproject( fullfile(obj.RootDirectory, sbprojFiles{ixProj}));
+                m2 = sbioloadproject( fullfile(rootDir, sbprojFiles{ixProj}));
                 evalc('thisMsg = sbprojDiff(m1.m1, m2.m1)'); % TODO handle case with multiple models
                 diffMsg = [diffMsg, thisMsg]; 
             end
             
             gitMessage = [fileChanges, diffMsg];
             
-            if isempty(gitMessage)
-                gitMessage = sprintf('Snapshot at %s', datestr(now));
-            end
-
-            result = git(sprintf('-C "%s" --git-dir="%s" commit -m "%s"', obj.RootDirectory, obj.GitRepo, ...
-                strjoin(gitMessage,'\r\n')));
+            gitMessage = sprintf('Snapshot at %s\r\n\r\n%s', datestr(now), strjoin(gitMessage,'\r\n'));
+          
+            result = git(sprintf('-C "%s" --git-dir="%s" commit -m "%s"', rootDir, obj.GitRepo, ...
+                gitMessage ));
 
             fprintf('[%s] Committed snapshot to git\n', datestr(now));
 
