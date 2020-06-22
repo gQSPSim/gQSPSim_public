@@ -742,10 +742,14 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
             SelNode = obj.h.SessionTree.SelectedNodes;
             
             % What is the data object?
-            ThisObj = SelNode.Value;
+            ThisObj = {SelNode.Value};
             
             % Confirm with user
-            Prompt = sprintf('Permanently delete "%s"?', SelNode.Name);
+            if length(SelNode) > 1
+                Prompt = sprintf('Permanently delete %d selected items?', length(SelNode));
+            else
+                Prompt = sprintf('Permanently delete "%s"?', SelNode.Name);
+            end
             Result = questdlg(Prompt,'Permanently Delete','Delete','Cancel','Cancel');
             if strcmpi(Result,'Delete')
                 
@@ -756,17 +760,24 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
                     delete(SelNode.Children);
                 else
                     % Delete the selected item
-                    MatchIdx = false(size(ThisSession.Deleted));
-                    for idx = 1:numel(ThisSession.Deleted)
-                        MatchIdx(idx) = ThisSession.Deleted(idx)==ThisObj;
-                    end
+                    selectedTree = SelNode(1).Tree;
+                    parent = SelNode(1).Parent;
+                    
+                    for idxObj = 1:length(ThisObj)
+                        MatchIdx = false(size(ThisSession.Deleted));    
+                        for idx = 1:numel(ThisSession.Deleted)
+                            MatchIdx(idx) = ThisSession.Deleted(idx)==ThisObj{idxObj};
+                        end
+                        ThisSession.Deleted( MatchIdx ) = [];                  
                     % Remove from deleted items in the session
-                    ThisSession.Deleted( MatchIdx ) = [];
                     % Select parent before deletion, so we don't deselect
                     % the session
-                    SelNode.Tree.SelectedNodes = SelNode.Parent;
-                    % Now delete tree node
-                    delete(SelNode);
+                    
+%                         SelNode(idxObj).Tree.SelectedNodes(idxObj) = SelNode(idxObj).Parent;
+                        % Now delete tree node
+                        delete(SelNode(idxObj));
+                    end                    
+                    selectedTree.SelectedNodes = parent;
                 end
                 
                 % Mark the current session dirty

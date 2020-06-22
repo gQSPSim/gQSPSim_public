@@ -725,7 +725,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
             result = git(sprintf('-C "%s" --git-dir="%s" commit -m "%s"', obj.RootDirectory, obj.GitRepo, ...
                 strjoin(gitMessage,'\r\n')));
 
-            fprintf('[%s] Committed snapshot to git\n', datestr(now));
+            fprintf('[%s] Committed snapshot to git (%0.2f s)\n', datestr(now), toc);
 
             % TODO version control qsp session as well
 
@@ -853,8 +853,14 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
             end
             
             % remove UDF from the path
+            
             p = path;
-            subdirs = genpath(fullfile(obj.RootDirectory, obj.RelativeUserDefinedFunctionsPath_new));
+            try
+                subdirs = genpath(fullfile(obj.RootDirectory, obj.RelativeUserDefinedFunctionsPath_new));
+            catch err
+                warning('Unable to remove UDF from path\n%s', err.message)
+                return
+            end
             if isempty(subdirs)
                 return
             end
@@ -1029,13 +1035,13 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
             end
         end           
         
-        function sObj = getCohortGenItem(obj, Name)
-            MatchIdx = strcmp(Name, {obj.CohortGeneration.Name});
+        function sObj = getDataItem(obj, Name)
+            MatchIdx = strcmp(Name, {obj.Settings.OptimizationData.Name});
             sObj = [];
             if any(MatchIdx)
-                sObj = obj.CohortGeneration(MatchIdx);
+                sObj = obj.Settings.OptimizationData(MatchIdx);
             else
-                warning('Cohort generation %s not found in session', Name)
+                warning('Optimization Data %s not found in session', Name)
             end            
         end
         

@@ -204,11 +204,11 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
         else
             ThisMarkerStyle = 'none';
         end
-        
-        MAX_LINES = 200;
+        N = size(ThisResult.Data,2)/length(ThisResult.SpeciesNames);
+        MAX_LINES = min(200, N) ;
         w0 = ThisResult.VpopWeights;
         if isempty(w0)
-            w0 = ones(1, size(ThisResult.Data,2)/length(ThisResult.SpeciesNames));
+            w0 = ones(1, N);
         end
         w0 = reshape(w0./sum(w0),[],1); % renormalization
         

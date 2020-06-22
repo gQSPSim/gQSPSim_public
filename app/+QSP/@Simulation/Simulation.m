@@ -277,6 +277,8 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 obj.Item(index).MATFileName = [];
             end
         end
+        
+     
           
     end
     
@@ -500,4 +502,17 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         end
     end %methods
     
+    methods (Static)
+        function value = ExtractSpeciesData(Results, Species)
+                        
+            for k=1:length(Results)
+            
+                idxCol = find( strcmp(Results(k).Data.SpeciesNames, Species));
+                NS = length(Results(k).Data.SpeciesNames);
+                value(:,k) = Results(k).Data.Data(:, idxCol:NS:end);
+                
+            end                      
+                
+        end
+    end       
 end %classdef
