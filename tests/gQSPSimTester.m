@@ -70,7 +70,7 @@ classdef gQSPSimTester < QSPViewer.App
             end
         end
         
-        function runOptimizations(obj)
+        function runOptimizations(obj, tastCase)
             for i = 1:numel(obj.Session.Optimization)
                 [a, e] = obj.Session.Optimization(i);
             end
