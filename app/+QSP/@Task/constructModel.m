@@ -47,7 +47,7 @@ end % if
 
 % inactivate reactions (if specified)
 % turn on all reactions
-reactions = sbioselect(model,  'Reaction', obj.ReactionNames,'Type', 'reaction');
+reactions = sbioselect(model, 'Type', 'reaction');
 set(reactions,'Active',true);
 if ~isempty(obj.InactiveReactionNames)
     % turn off inactive reactions
