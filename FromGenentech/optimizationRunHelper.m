@@ -556,6 +556,11 @@ end
         tempStatusOK = true;
         tempMessage = '';
         
+        if nargout>1
+            varargout{1} = tempStatusOK;
+            varargout{2} = tempMessage;
+        end
+        
 %         inputStr = '(species,data,simTime,dataTime,allData,ID,Grp,currID,currGrp)';
         logInds = reshape( paramObj.logInds, [], 1);
         
