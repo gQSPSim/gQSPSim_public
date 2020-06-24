@@ -313,7 +313,7 @@ switch obj.AlgorithmName
         
         catch err
             StatusOK = false;
-            warning('Encountered error in particle swarm optimization')
+            warning('Encountered error in scatter search')
             Message = sprintf('%s\n%s\n',Message,err.message);
             path(myPath);
             return
