@@ -182,7 +182,8 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
         % Overloaded methods for file session operations
         createNewSession(obj,Session)
         StatusOk = saveSessionToFile(obj,FilePath,idx)
-        StatusOk = loadSessionFromFile(obj,FilePath)
+        StatusOk = loadSessionFromFile(obj, FilePath, interactiveTF)        
+       
         StatusOk = closeSession(obj,idx)
         
         % To add a session to the tree
