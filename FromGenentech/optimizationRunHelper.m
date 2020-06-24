@@ -303,11 +303,21 @@ end
 %% Call optimization program
 switch obj.AlgorithmName
     case 'ScatterSearch'
-        if obj.Session.UseParallel
-            [VpopParams,StatusOK,ThisMessage] = run_ss_par(@(est_p) objectiveFun(est_p,paramObj,ItemModels,Groups,IDs,Time,optimData,weights,dataNames,obj),estParamData);
-        else
-            [VpopParams,StatusOK,ThisMessage] = run_ss_ser(@(est_p) objectiveFun(est_p,paramObj,ItemModels,Groups,IDs,Time,optimData,weights,dataNames,obj),estParamData);
-        end
+        
+        try
+            if obj.Session.UseParallel
+                [VpopParams,StatusOK,ThisMessage] = run_ss_par(@(est_p) objectiveFun(est_p,paramObj,ItemModels,Groups,IDs,Time,optimData,weights,dataNames,obj),estParamData);
+            else
+                [VpopParams,StatusOK,ThisMessage] = run_ss_ser(@(est_p) objectiveFun(est_p,paramObj,ItemModels,Groups,IDs,Time,optimData,weights,dataNames,obj),estParamData);
+            end
+        
+        catch err
+            StatusOK = false;
+            warning('Encountered error in particle swarm optimization')
+            Message = sprintf('%s\n%s\n',Message,err.message);
+            path(myPath);
+            return
+        end    
         
         Message = sprintf('%s\n%s\n',Message,ThisMessage);
         
