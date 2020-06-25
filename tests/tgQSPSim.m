@@ -28,9 +28,9 @@ classdef tgQSPSim < matlab.unittest.TestCase
         
         function tOptimizations(testCase, caseStudy)
             absolutePath = testCase.testRootDirectory + "/" + caseStudy;
-           tester = gQSPSimTester(absolutePath); % make this a testParameter TODO
-           [a, e] = tester.Session.Optimization(1).run;
-           testCase.verifyTrue(a);
+            tester = gQSPSimTester(absolutePath);
+            tester.runOptimizations(testCase);
+            delete(tester);
         end
     end
     

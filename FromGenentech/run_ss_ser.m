@@ -1,4 +1,4 @@
-function [VpopParams,varargout] = run_ss(objective_handle,estParamData)
+function [VpopParams,varargout] = run_ss_ser(objective_handle,estParamData)
 % run Scatter Search algorithm
 % VpopParams is a matrix of patients and varying parameter values
 % patients run along the rows, parameters along the columns
