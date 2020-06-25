@@ -22,11 +22,19 @@ classdef ViewPane < handle
         Focus = '';
         HasVisualization
         PlotSettings = QSP.PlotSettings.empty(1,0)
-        bShowTraces  = cell.empty(1,0);
-        bShowQuantiles = cell.empty(1,0);
-        bShowMean = cell.empty(1,0); 
-        bShowMedian = cell.empty(1,0);
-        bShowSD = cell.empty(1,0);
+        AxesLegend
+        AxesLegendChildren
+        SpeciesGroup
+    end
+    
+    properties (SetAccess=protected)
+       bShowTraces = [];
+       bShowQuantiles = [];
+       bShowMean = [];
+       bShowMedian = [];
+       bShowSD = [];
+       PlotArray = matlab.ui.control.UIAxes.empty(12,0);
+       VisDirty = false;
     end
   
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -66,8 +74,6 @@ classdef ViewPane < handle
         PlotInteractionGrid matlab.ui.container.GridLayout
         PlotDropDown        matlab.ui.control.DropDown
         YScaleMenu  = matlab.ui.control.UIAxes.empty(1,0);
-        
-        PlotArray = matlab.ui.control.UIAxes.empty(12,0);
         
         ContextMenuArray = matlab.ui.control.UIAxes.empty(1,0);
         YLinearMenu = matlab.ui.container.Menu.empty(1,0);
@@ -111,7 +117,8 @@ classdef ViewPane < handle
         Font = 'default';
         HeaderHeight = 20;
         RowSpacing = 0;
-        LabelLength = 200;
+        LabelLength = 100;
+        LabelHeight = 30;
         NameProportion = '3x';
         DescriptionProportion = '5x';
         RemoveInvalidButtonWidth = 100;
@@ -483,10 +490,8 @@ classdef ViewPane < handle
                     currentPlot.YLim = str2double(strsplit(QSP.PlotSettings.DefaultCustomYLim));
                     currentPlot.YLimMode = QSP.PlotSettings.DefaultYLimMode;
                     
-                    %Plot settings
-                    %TODO Discuss changes between uiaxes and axes 
-                    %obj.PlotSettings(plotIndex) = QSP.PlotSettings(currentPlot);
-                    %obj.PlotSettings(plotIndex).Title = sprintf('Plot %d',plotIndex);
+                    obj.PlotSettings(plotIndex) = QSP.PlotSettings(currentPlot);
+                    obj.PlotSettings(plotIndex).Title = sprintf('Plot %d',plotIndex);
                     
                     %Add the context menus. 
                     %create context menu object;
@@ -520,41 +525,40 @@ classdef ViewPane < handle
                     obj.SaveFullMenu(plotIndex).Tag = 'ExportAllAxes';
                     obj.SaveFullMenu(plotIndex).MenuSelectedFcn = @(h,e) obj.onAxisContextMenu(h,e);
                     
-                    %By default, use no extras %TODO
-                    obj.bShowTraces{plotIndex} = 'off'; % default off
-                    obj.bShowQuantiles{plotIndex} = 'off'; % default on
-                    obj.bShowMean{plotIndex} = 'off'; % default on
-                    obj.bShowMedian{plotIndex} = 'off'; % default off
-                    obj.bShowSD{plotIndex} = 'off'; % default off
+                    obj.bShowTraces(plotIndex) = 0; % default off
+                    obj.bShowQuantiles(plotIndex) = 0; % default on
+                    obj.bShowMean(plotIndex)= 1; % default on
+                    obj.bShowMedian(plotIndex) = 1; % default off
+                    obj.bShowSD(plotIndex) = 0; % default off
                     
                     obj.TracesMenu(plotIndex) = uimenu(obj.ContextMenuArray(plotIndex));
                     obj.TracesMenu(plotIndex).Label = 'Show Traces';
-                    obj.TracesMenu(plotIndex).Checked = obj.bShowTraces{plotIndex};
+                    obj.TracesMenu(plotIndex).Checked = obj.bShowTraces(plotIndex);
                     obj.TracesMenu(plotIndex).Separator = 'on';
                     obj.TracesMenu(plotIndex).Tag = 'ShowTraces';
                     obj.TracesMenu(plotIndex).MenuSelectedFcn = @(h,e) obj.onAxisContextMenu(h,e);
                     
                     obj.QuantilesMenu(plotIndex) = uimenu(obj.ContextMenuArray(plotIndex));
                     obj.QuantilesMenu(plotIndex).Label = 'Show Upper/Lower Quantiles';
-                    obj.QuantilesMenu(plotIndex).Checked = obj.bShowQuantiles{plotIndex};
+                    obj.QuantilesMenu(plotIndex).Checked = obj.bShowQuantiles(plotIndex);
                     obj.QuantilesMenu(plotIndex).Tag = 'ShowQuantiles';
                     obj.QuantilesMenu(plotIndex).MenuSelectedFcn = @(h,e) obj.onAxisContextMenu(h,e);
                     
                     obj.MeanMenu(plotIndex) = uimenu(obj.ContextMenuArray(plotIndex));
                     obj.MeanMenu(plotIndex).Label = 'Show Mean (Weighted)';
-                    obj.MeanMenu(plotIndex).Checked = obj.bShowMean{plotIndex};
+                    obj.MeanMenu(plotIndex).Checked = obj.bShowMean(plotIndex);
                     obj.MeanMenu(plotIndex).Tag = 'ShowMean';
                     obj.MeanMenu(plotIndex).MenuSelectedFcn = @(h,e) obj.onAxisContextMenu(h,e);
                     
                     obj.MedianMenu(plotIndex) = uimenu(obj.ContextMenuArray(plotIndex));
                     obj.MedianMenu(plotIndex).Label = 'Show Median (Weighted)';
-                    obj.MedianMenu(plotIndex).Checked = obj.bShowMedian{plotIndex};
+                    obj.MedianMenu(plotIndex).Checked = obj.bShowMedian(plotIndex);
                     obj.MedianMenu(plotIndex).Tag = 'ShowMedian';
                     obj.MedianMenu(plotIndex).MenuSelectedFcn = @(h,e) obj.onAxisContextMenu(h,e);
                     
                     obj.StandardDeviationMenu(plotIndex) = uimenu(obj.ContextMenuArray(plotIndex));
                     obj.StandardDeviationMenu(plotIndex).Label = 'Show Standard Deviation (Weighted)';
-                    obj.StandardDeviationMenu(plotIndex).Checked = obj.bShowSD{plotIndex};
+                    obj.StandardDeviationMenu(plotIndex).Checked = obj.bShowSD(plotIndex);
                     obj.StandardDeviationMenu(plotIndex).Tag = 'ShowSD';
                     obj.StandardDeviationMenu(plotIndex).MenuSelectedFcn = @(h,e) obj.onAxisContextMenu(h,e);
                end
@@ -570,8 +574,11 @@ classdef ViewPane < handle
     methods(Access = private)
         
         function onNavigation(obj,keyword)
+            Figure = ancestor(obj.OuterGrid,'figure');
+            Figure.Pointer = 'watch';
             obj.Focus = keyword;
             obj.refocus;
+            Figure.Pointer = 'arrow';
         end
         
         function onRemoveInvalid(obj)
@@ -634,21 +641,155 @@ classdef ViewPane < handle
         
         function onAxisContextMenu(obj,h,~)
             %Determine what plot we are working with
-            plotIndex = str2double(erase('plot',h.Parent.Tag));
-            plot = obj.PlotArray(plotIndex);
-            %TODO: We dont have a way to test these yet because we have no
-            %data to show yet
+            
+            plotIndex = str2double(erase(ancestor(h,'uicontextmenu').Tag,'plot'));
+            CurrentPlot = obj.PlotArray(plotIndex);
             %Determine what our action should be
             switch h.Tag
                 case 'YScaleLinear'
+                    obj.YLinearMenu(plotIndex).Checked = 'on';
+                    obj.YLogMenu(plotIndex).Checked = 'off';
+                    set(CurrentPlot,'YScale','linear');  
                 case 'YScaleLog'
+                    obj.YLinearMenu(plotIndex).Checked = 'off';
+                    obj.YLogMenu(plotIndex).Checked = 'on';
+                    set(CurrentPlot,'YScale','log');  
                 case 'ExportSingleAxes'
-                case 'ExportAllAxes'
+                    Spec = {...
+                        '*.png','PNG';
+                        '*.tif;*.tiff','TIFF';...
+                        '*.eps','EPS';...
+                        '*.fig','MATLAB Figure';...
+                        };
+                    Title = 'Save as';
+                    SaveFilePath = pwd; 
+                    [SaveFileName,SavePathName] = uiputfile(Spec,Title,SaveFilePath);
+                    if ~isequal(SaveFileName,0)
+                        
+                        hFigure = ancestor(h,'figure');
+                        set(hFigure,'pointer','watch');
+                        drawnow limitrate
+                        
+                        SaveFilePath = fullfile(SavePathName,SaveFileName);
+                        
+                        % Call helper to copy axes, format, and print
+                        printAxesHelper(obj,CurrentPlot,SaveFilePath,obj.PlotSettings(plotIndex))                        
+                        
+                        set(hFigure,'pointer','arrow');
+                        
+                    end
+                case 'ExportAllAxes'  
+                    Spec = {...
+                        '*.png','PNG';
+                        '*.tif;*.tiff','TIFF';...
+                        '*.eps','EPS';...
+                        '*.fig','MATLAB Figure'...
+                        };
+                    Title = 'Save as';
+                    SaveFilePath = pwd; %obj.LastPath;
+                    [SaveFileName,SavePathName] = uiputfile(Spec,Title,SaveFilePath);
+                    if ~isequal(SaveFileName,0)
+                        
+                        hFigure = ancestor(h,'figure');
+                        set(hFigure,'pointer','watch');
+                        drawnow;
+                        
+                        % Print using option
+                        [~,~,FileExt] = fileparts(SaveFileName);
+                        
+                        % Get children and remove not-shown axes
+                        Ch = flip(get(obj.PlottingGrid,'Children'));
+                        
+                        switch obj.SelectedPlotLayout
+                            case '1x1'
+                                Ch = Ch(1);
+                            case '1x2'     
+                                Ch = Ch(1:2);
+                            case '2x1'     
+                                Ch = Ch(1:2);
+                            case '2x2'
+                                Ch = Ch(1:4);
+                            case '3x2'
+                                Ch = Ch(1:6);
+                            case '3x3'
+                                Ch = Ch(1:9);
+                            case '3x4'
+                                Ch = Ch(1:12);
+                        end
+                        
+                        for index = 1:numel(Ch)
+                            
+                            % Append _# to file name
+                            [~,BaseSaveFileName] = fileparts(SaveFileName);
+                            SaveFilePath = fullfile(SavePathName,[BaseSaveFileName,'_',num2str(index),FileExt]);
+                            
+                            ThisAxes = get(Ch(index),'Children');
+                            
+                            % Check if the plot has children
+                            TheseChildren = get(ThisAxes,'Children');     
+                            if ~isempty(TheseChildren) && iscell(TheseChildren) 
+                                HasVisibleItem = true(1,numel(TheseChildren));
+                                for chIdx = 1:numel(TheseChildren)
+                                    
+                                    ThisGroup = TheseChildren{chIdx};
+                                    ThisGroupChildren = get(ThisGroup,'Children');
+                                    if ~iscell(ThisGroupChildren)
+                                        ThisGroupChildren = {ThisGroupChildren};
+                                    end
+                                    if ~isempty(ThisGroupChildren)
+                                        HasVisibleItem(chIdx) = any(strcmpi(get(vertcat(ThisGroupChildren{:}),'Visible'),'on') &...
+                                            ~strcmpi(get(vertcat(ThisGroupChildren{:}),'Tag'),'DummyLine'));
+                                    else
+                                        HasVisibleItem(chIdx) = false;
+                                    end
+                                    
+                                    
+                                end
+                                % Filter to only allow export of plots that
+                                % have children (at least one visible item
+                                % that is not a dummyline)
+                                TheseChildren = TheseChildren(HasVisibleItem);
+                            end
+                            
+                            if ~isempty(TheseChildren)
+                                % Call helper to copy axes and format
+                                printAxesHelper(obj,ThisAxes,SaveFilePath,obj.PlotSettings(index))                            
+                            end
+                          
+                        end % for
+                        
+                        set(hFigure,'pointer','arrow');
+                    end
                 case 'ShowTraces'
+                    obj.bShowTraces(plotIndex) = ~obj.bShowTraces(plotIndex);
+                    h.Checked = obj.bShowTraces(plotIndex);
                 case 'ShowQuantiles'
+                    obj.bShowQuantiles(plotIndex) = ~obj.bShowQuantiles(plotIndex);
+                    h.Checked = obj.bShowQuantiles(plotIndex);
                 case 'ShowMean'
+                    obj.bShowMean(plotIndex) = ~obj.bShowMean(plotIndex);
+                    h.Checked = obj.bShowMean(plotIndex);                   
                 case 'ShowMedian'
+                    obj.bShowMedian(plotIndex) = ~obj.bShowMedian(plotIndex);
+                    h.Checked = obj.bShowMedian(plotIndex);
                 case 'ShowSD'
+                    obj.bShowSD(plotIndex) = ~obj.bShowSD(plotIndex);
+                    h.Checked = obj.bShowSD(plotIndex);
+            end
+            
+            % Update the display
+            obj.drawVisualization();
+            ThisTag = h.Tag;
+            if strcmp(ThisTag,'ShowTraces') || strcmp(ThisTag,'ShowQuantiles') || strcmp(ThisTag,'ShowMean') || strcmp(ThisTag,'ShowMedian') || strcmp(ThisTag,'ShowSD')
+                if any(strcmpi(class(obj),{'QSPViewerNew.Application.SimulationPane','QSPViewerNew.Application.CohortGenerationPane','QSPViewerNew.Application.VirtualPopulationGenerationPane'}))
+                    [UpdatedAxesLegend,UpdatedAxesLegendChildren] = updatePlots(...
+                        obj.Simulation,obj.PlotArray,obj.SpeciesGroup,obj. DatasetGroup,...
+                        'AxIndices',plotIndex);
+                    obj.AxesLegend(plotIndex) = UpdatedAxesLegend(plotIndex);
+                    obj.AxesLegendChildren(plotIndex) = UpdatedAxesLegendChildren(plotIndex);
+                else
+                    %TODO obj.plotData();
+                end
             end
         end
         
@@ -725,6 +866,9 @@ classdef ViewPane < handle
                         obj.CurrentPane.Visible = 'off';
                         obj.CurrentPane = obj.VisualizationPanel;
                         obj.drawVisualization();
+                        obj.updateLines();
+                        obj.updateLegends();
+                        obj.UpdateBackendPlotSettings();
                         obj.CurrentPane.Visible = 'on';
                         
                         %Disable all external buttons and other views
@@ -812,7 +956,6 @@ classdef ViewPane < handle
             if obj.HasVisualization
                 obj.ParentApp.removeWindowDownCallback(obj.VisualizationGrid.getButtonDownCallback());
                 obj.ParentApp.removeWindowUpCallback(obj.VisualizationGrid.getButtonUpCallback());
-                obj.ParentApp.removeWindowMoveCallback(obj.VisualizationGrid.getButtonMoveCallback());
             end
             
             %hide this pane
@@ -828,7 +971,6 @@ classdef ViewPane < handle
             if obj.HasVisualization
                 obj.ParentApp.addWindowDownCallback(obj.VisualizationGrid.getButtonDownCallback());
                 obj.ParentApp.addWindowUpCallback(obj.VisualizationGrid.getButtonUpCallback());
-                obj.ParentApp.addWindowMoveCallback(obj.VisualizationGrid.getButtonMoveCallback());
             end
             obj.OuterGrid.Parent = obj.Parent;
         end
@@ -877,19 +1019,104 @@ classdef ViewPane < handle
         end
         
         function updateLines(obj)
+            %SpeciesGroup is the cell array to store all of the 
+            % Iterate through each axes and turn on SelectedProfileRow
+            if isfield(obj,'SpeciesGroup') && ~isempty(obj.SpeciesGroup)
+                BackEndPlotSettings = obj.getBackEndPlotSettings();
+                for axIndex = 1:size(obj.SpeciesGroup,2)
+                    MeanLineWidth = BackEndPlotSettings(axIndex).MeanLineWidth;
+                    MedianLineWidth = BackEndPlotSettings(axIndex).MedianLineWidth;
+                    StandardDevLineWidth = BackEndPlotSettings(axIndex).StandardDevLineWidth;
+                    BoundaryLineWidth = BackEndPlotSettings(axIndex).BoundaryLineWidth;
+                    LineWidth = BackEndPlotSettings(axIndex).LineWidth;
+                    
+                    hPlots = obj.SpeciesGroup(:,axIndex,:);
+                    if iscell(hPlots)
+                        hPlots = horzcat(hPlots{:});
+                    end
+                    hPlots(~ishandle(hPlots)) = [];
+                    if ~isempty(hPlots) && isa(hPlots,'matlab.graphics.primitive.Group')
+                        hPlots = vertcat(hPlots.Children);
+                        hPlots(~ishandle(hPlots)) = [];
+                    end         
+                    ThisTag = get(hPlots,'Tag');
+                    IsMeanLine = strcmpi(ThisTag,'MeanLine');
+                    IsMedianLine = strcmpi(ThisTag,'MedianLine');
+                    IsStandardDevLine = strcmpi(ThisTag,'WeightedSD');
+                    IsBoundaryLine = strcmpi(ThisTag,'BoundaryLine');
+                    if ~isempty(hPlots)
+                        set(hPlots(IsMeanLine),...
+                            'LineWidth',MeanLineWidth);
+                        set(hPlots(IsMedianLine),...
+                            'LineWidth',MedianLineWidth);
+                        set(hPlots(IsStandardDevLine),...
+                            'LineWidth',StandardDevLineWidth);
+                        set(hPlots(IsBoundaryLine),...
+                            'LineWidth',BoundaryLineWidth);
+                        set(hPlots(~IsMeanLine & ~IsMedianLine & ~IsStandardDevLine & ~IsBoundaryLine),...
+                            'LineWidth',LineWidth);
+                    end
+                end
+            end
             
-            %Iterate through all the lines and update the information
-            %if obj.HasSpeciesGroup && isempty
-                %TODO: This method is only used by some windows that are
-                %not complete yet. No way to test until we actually have
-                %those widnows
-            %end
+            % Dataset line
+            if isfield(obj,'DatasetGroup') && ~isempty(obj.h.DatasetGroup)
+                BackEndPlotSettings = obj.getBackEndPlotSettings();
+                for axIndex = 1:size(obj.DatasetGroup,2)
+                    
+                    DataSymbolSize = BackEndPlotSettings(axIndex).DataSymbolSize;
+                    
+                    hPlots = obj.DatasetGroup(:,axIndex);
+                    if iscell(hPlots)
+                        hPlots = horzcat(hPlots{:});
+                    end
+                    hPlots(~ishandle(hPlots)) = [];
+                    if ~isempty(hPlots) && isa(hPlots,'matlab.graphics.primitive.Group')
+                        hPlots = vertcat(hPlots.Children);
+                        hPlots(~ishandle(hPlots)) = [];
+                    end
+                    ThisTag = get(hPlots,'Tag');
+                    IsDummyLine = strcmpi(ThisTag,'DummyLine');
+                    if ~isempty(hPlots)
+                        set(hPlots(~IsDummyLine),...
+                            'MarkerSize',DataSymbolSize);
+                    end
+                end
+            end
+            
         end
         
         function updateLegends(obj)
-            %Same thing as updateLines
-            %TODO 
+            if isfield(obj,'AxesLegend') && ~isempty(obj.h.AxesLegend)
+                BackEndPlotSettings = obj.getBackEndPlotSettings();
+                for axIndex = 1:numel(obj.Data.PlotSettings)
+                    if ~isempty(obj.h.AxesLegend{axIndex}) && ishandle(obj.h.AxesLegend{axIndex})
+                        % Visible, Location
+                        obj.AxesLegend{axIndex}.Visible = BackEndPlotSettings(axIndex).LegendVisibility;
+                        obj.AxesLegend{axIndex}.Location = BackEndPlotSettings(axIndex).LegendLocation;
+                        obj.AxesLegend{axIndex}.FontSize = BackEndPlotSettings(axIndex).LegendFontSize;
+                        obj.AxesLegend{axIndex}.FontWeight = BackEndPlotSettings(axIndex).LegendFontWeight;
+                        
+                        % FontSize, FontWeight
+                        if isfield(obj,'AxesLegendChildren') && ~isempty(obj.AxesLegendChildren)
+                            
+                            ch = obj.AxesLegendChildren{axIndex};
+                            if all(ishandle(ch))
+                                for cIndex = 1:numel(ch)
+                                    if isprop(ch(cIndex),'FontSize')
+                                        ch(cIndex).FontSize = obj.Data.PlotSettings(axIndex).LegendFontSize;
+                                    end
+                                    if isprop(ch(cIndex),'FontWeight')
+                                        ch(cIndex).FontWeight = obj.Data.PlotSettings(axIndex).LegendFontWeight;
+                                    end
+                                end 
+                            end 
+                        end
+                    end 
+                end
+            end 
         end
+        
     end
 
     methods(Access = public)
@@ -921,6 +1148,27 @@ classdef ViewPane < handle
             Value = vertcat({' '},Value);
             
         end 
+        
+        function setPlotSettings(obj,index,fields,Values)
+            %The backened cannot handle on/off switch state
+            %Change all on/off switch state to chars
+           for fieldIndex = 1:numel(fields)
+               if isa(Values{fieldIndex},'matlab.lang.OnOffSwitchState')
+                   Values{fieldIndex} = char(Values{fieldIndex});
+               end
+           end
+               
+            set(obj.PlotSettings(index),fields,Values);
+        end
+        
+        function Value = getPlotSettings(obj)
+            Value = obj.PlotSettings;
+        end
+
+        function Value = getPlotArray(obj)
+            Value = obj.PlotArray;
+        end
+        
     end
     
     methods(Abstract)
