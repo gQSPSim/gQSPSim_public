@@ -29,11 +29,11 @@ R2019b Test:
     script:
         - ./tests/gQSPSimTesterScript.sh /Applications/MATLAB_R2019b.app
 
-# R2020a Test:
-#     stage: test
-#     tags:
-#         - maci64
-#     script:
-#         - ./gQSPSimTesterScript.sh /Applications/MATLAB_R2020a.app
+R2020a Test:
+    stage: test
+    tags:
+        - maci64
+    script:
+        - ./tests/gQSPSimTesterScript.sh /Applications/MATLAB_R2020a.app
 
 
