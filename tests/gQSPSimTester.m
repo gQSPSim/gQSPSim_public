@@ -70,47 +70,53 @@ classdef gQSPSimTester < QSPViewer.App
             end
         end
         
-        function runOptimizations(obj, tastCase)           
+        function runOptimizations(obj, testCase)
             for i = 1:1 %numel(obj.Session.Optimization)
                 resultsFolder = string(obj.Session.Optimization(i).OptimResultsFolderName);
                 % TODO: If we can't supress the saving of the file keep this tmp directory. 
                 % This enables us to cleanup after the test is run and keep results for failed 
                 % tests.
                 obj.Session.Optimization(i).OptimResultsFolderName = 'tmp';
+                rng('default');
                                 
                 [statusOK, Message, ~, actualResults] = obj.Session.Optimization(i).run;
                 
-                testCase.onFailure(Message);
+                
+                %testCase.onFailure(Message);
                 testCase.verifyTrue(statusOK);
-                if false
-                    for result_i = 1:numel(actualResults)
-                        actual = actualResults{result_i};
-                        
-                        % optimize getting this directory listing. We don't have to do it everytime.
-                        baselines = dir(obj.Session.RootDirectory + "/" + resultsFolder);
-                        baselineNames = string({baselines.name});                    
-                        
-                        actualResultsName = string(actual.FileNames); %Get the name we are looking for from the actual Results.                    
-                        currentFile = actualResultsName.extractBefore("Date = ");
-                        
-                        expectedEntryTF = baselineNames.contains(currentFile);
-                        expectedFile = baselines(expectedEntryTF);
-                        if numel(expectedFile) > 1
-                            warning("Found two possible baselines. Using first one found.");
-                        end
-                        expected = load(expectedFile(1).folder + "/" + expectedFile(1).name);
-                        
-                        % Remove the names field for struct comparison purposes
-                        actual = rmfield(actual, 'FileNames');
-                        
-                        testCase.verifyEqual(actual, expected.Results, 'RelTol', 1e-3, 'AbsTol', 1e-4);
-                        
-                        % Cleanup TODO. If the test failed move the generated
-                        % data to a failed directory to aid debugging. Else we
-                        % delete the generated file.
-                        % delete(actualName);
-                    end    
-                end            
+                
+                for result_i = 1:numel(actualResults)
+                    actual = actualResults(result_i);
+                    
+                    actual.Results = cell2table(actual.Results(2:end,:), 'VariableNames', matlab.lang.makeValidName(actual.Results(1,:)));
+                    
+                    % optimize getting this directory listing. We don't have to do it everytime.
+                    baselines = dir(obj.Session.RootDirectory + "/" + resultsFolder);
+                    baselineNames = string({baselines.name});                    
+                    
+                    actualResultsName = string(actual.FileNames); %Get the name we are looking for from the actual Results.                    
+                    currentFile = actualResultsName.extractBefore("Date = ");
+                    
+                    expectedEntryTF = baselineNames.contains(currentFile);
+                    expectedFile = baselines(expectedEntryTF);
+                    if numel(expectedFile) > 1
+                        warning("Found two possible baselines. Using first one found.");
+                    end
+                    expected = readtable(expectedFile(1).folder + "/" + expectedFile(1).name);
+                    %expected = load(expectedFile(1).folder + "/" + expectedFile(1).name);
+                    
+                    % Remove the names field for struct comparison purposes
+                    actual = rmfield(actual, 'FileNames');
+                    
+                    expected.Properties.VariableDescriptions = {};
+                    
+                    testCase.verifyEqual(actual.Results, expected, 'RelTol', 1e-3, 'AbsTol', 1e-4);
+                    
+                    % Cleanup TODO. If the test failed move the generated
+                    % data to a failed directory to aid debugging. Else we
+                    % delete the generated file.
+                    % delete(actualName);
+                end    
             end
         end
     end
