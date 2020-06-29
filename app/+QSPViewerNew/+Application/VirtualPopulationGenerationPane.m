@@ -23,6 +23,9 @@ classdef VirtualPopulationGenerationPane < QSPViewerNew.Application.ViewPane
     end
     
     properties (Access=private)
+        GroupIDs = {};
+        UniqueDataVals = {};
+        
         DatasetPopupItems = {'-'}
         DatasetPopupItemsWithInvalid = {'-'}
         
@@ -95,6 +98,14 @@ classdef VirtualPopulationGenerationPane < QSPViewerNew.Application.ViewPane
         TableLayout                     matlab.ui.container.GridLayout
         VirtualItemsTable               QSPViewerNew.Widgets.AddRemoveTable
         SpeciesDataTable                QSPViewerNew.Widgets.AddRemoveTable
+        
+        %Visual display components     
+        VisLayout                       matlab.ui.container.GridLayout
+        VisSpeciesDataTableLabel        matlab.ui.control.Label
+        VisSpeciesDataTable             matlab.ui.control.Table
+        VisVirtPopItemsTableLabel       matlab.ui.control.Label
+        VisVirtPopItemsTable            matlab.ui.control.Table
+        
     end
         
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -200,6 +211,40 @@ classdef VirtualPopulationGenerationPane < QSPViewerNew.Application.ViewPane
             
             obj.VirtualItemsTable = QSPViewerNew.Widgets.AddRemoveTable(obj.TableLayout,1,1,"Virtual Population Items");
             obj.SpeciesDataTable = QSPViewerNew.Widgets.AddRemoveTable(obj.TableLayout,1,2,"Species-Data Mapping");
+            
+            %Visualize elements
+            obj.VisLayout = uigridlayout(obj.getVisualizationGrid());
+            obj.VisLayout.Layout.Row = 2;
+            obj.VisLayout.Layout.Column = 1;
+            obj.VisLayout.ColumnWidth = {'1x'};
+            obj.VisLayout.RowHeight = {obj.LabelHeight,'1x',obj.LabelHeight,'1x'};
+            obj.VisLayout.ColumnSpacing = 0;
+            obj.VisLayout.RowSpacing = 0;
+            obj.VisLayout.Padding = [0 0 0 0];
+            
+            obj.VisSpeciesDataTableLabel = uilabel(obj.VisLayout);
+            obj.VisSpeciesDataTableLabel.Text = 'Species-Data';
+            obj.VisSpeciesDataTableLabel.Layout.Row = 1;
+            obj.VisSpeciesDataTableLabel.Layout.Column = 1;
+            
+            obj.VisSpeciesDataTable = uitable(obj.VisLayout);
+            obj.VisSpeciesDataTable.Layout.Row = 2;
+            obj.VisSpeciesDataTable.Layout.Column = 1;
+            obj.VisSpeciesDataTable.ColumnEditable = false;
+             obj.VisSpeciesDataTable.CellEditCallback = @obj.onEditSpeciesTable;
+            
+            
+            obj.VisVirtPopItemsTableLabel = uilabel(obj.VisLayout);
+            obj.VisVirtPopItemsTableLabel.Text = 'Virtual Population Items';
+            obj.VisVirtPopItemsTableLabel.Layout.Row = 3;
+            obj.VisVirtPopItemsTableLabel.Layout.Column = 1;
+            
+            obj.VisVirtPopItemsTable = uitable(obj.VisLayout);
+            obj.VisVirtPopItemsTable.Layout.Row = 4;
+            obj.VisVirtPopItemsTable.Layout.Column = 1;
+            obj.VisVirtPopItemsTable.ColumnEditable = false;
+            obj.VisVirtPopItemsTable.CellEditCallback = @obj.onEditVirtualPopTable;
+            obj.VisVirtPopItemsTable.CellSelectionCallback = @obj.onSelectVirtualPopTable;
         end
         
         function createListenersAndCallbacks(obj)
@@ -326,7 +371,7 @@ classdef VirtualPopulationGenerationPane < QSPViewerNew.Application.ViewPane
         end
         
         function onNewSpeciesDataTable(obj)
-            if ~isempty(vObj.SpeciesPopupTableItems) && ~isempty(vObj.DatasetDataColumn)
+            if ~isempty(obj.SpeciesPopupTableItems) && ~isempty(obj.DatasetDataColumn)
                 NewSpeciesData = QSP.SpeciesData;
                 NewSpeciesData.SpeciesName = obj.SpeciesPopupTableItems{1};
                 NewSpeciesData.DataName = obj.DatasetDataColumn{1};
@@ -357,6 +402,22 @@ classdef VirtualPopulationGenerationPane < QSPViewerNew.Application.ViewPane
             obj.IsDirty = true;
         end 
         
+        function onEditSpeciesTable(obj)
+            
+        end
+        
+        function onEditVirtualPopTable(obj)
+            
+        end
+        
+        function onSelectVirtualPopTable(obj)
+            
+        end
+        
+        function onContextMenu(obj)
+            
+        end
+        
     end
     
     methods (Access = public) 
@@ -371,7 +432,10 @@ classdef VirtualPopulationGenerationPane < QSPViewerNew.Application.ViewPane
         
         function attachNewVirtualPopulationGeneration(obj,NewVirtualPopulationGeneration)
             obj.VirtualPopulationGeneration = NewVirtualPopulationGeneration;
+            obj.VirtualPopulationGeneration.PlotSettings = getSummary(obj.getPlotSettings());
             obj.TemporaryVirtualPopulationGeneration = copy(obj.VirtualPopulationGeneration);
+            
+            
             for index = 1:obj.MaxNumPlots
                Summary = obj.VirtualPopulationGeneration.PlotSettings(index);
                % If Summary is empty (i.e., new node), then use
@@ -417,31 +481,11 @@ classdef VirtualPopulationGenerationPane < QSPViewerNew.Application.ViewPane
                 obj.VirtualPopulationGeneration.bShowSD = obj.bShowSD;
             end
             
-% %             TODO Codee taken from a edit field callback. IT makes no sense
-% %              TypeCol = find(strcmp(VPopHeader,'Type'));
-% % 
-% %             obj.bShowTraces(1:obj.MaxNumPlots) = false; % default off
-% %             obj.bShowQuantiles(1:obj.MaxNumPlots) = true; % default on
-% %             obj.bShowMean(1:obj.MaxNumPlots) = true; % default on
-% %             obj.bShowMedian(1:obj.MaxNumPlots) = false; % default off
-% %             obj.bShowSD(1:obj.MaxNumPlots) = false; % default off, unless Type = MEAN_STD
-% % 
-% %             if ~isempty(TypeCol)
-% %                 ThisType = VPopData(:,TypeCol);
-% %                 if any(strcmp(ThisType,'MEAN_STD')) % If MEAN_STD, then show SD
-% %                     obj.bShowSD(1:obj.MaxNumPlots) = true;
-% %                 end
-% %             end
-% % 
-% %             Update context menu - since defaults are the same, okay to use first
-% %             value and assign to rest
-% %             set(obj.h.ContextMenuTraces,'Checked',uix.utility.tf2onoff(obj.bShowTraces(1)));
-% %             set(obj.h.ContextMenuQuantiles,'Checked',uix.utility.tf2onoff(obj.bShowQuantiles(1)));
-% %             set(obj.h.ContextMenuMean,'Checked',uix.utility.tf2onoff(obj.bShowMean(1)));
-% %             set(obj.h.ContextMenuMedian,'Checked',uix.utility.tf2onoff(obj.bShowMedian(1)));
-% %             set(obj.h.ContextMenuSD,'Checked',uix.utility.tf2onoff(obj.bShowSD(1)));
-
-            
+            obj.redrawSpeciesTable();
+            obj.redrawVirtualPopTable();
+            obj.redrawContextMenu();
+            [obj.SpeciesGroup,obj.DatasetGroup,obj.AxesLegend,obj.AxesLegendChildren] = ...
+                plotVirtualPopulationGeneration(obj.VirtualPopulationGeneration,obj.PlotArray);
           
         end
         
@@ -623,18 +667,18 @@ classdef VirtualPopulationGenerationPane < QSPViewerNew.Application.ViewPane
 
             if ~isempty(obj.TemporaryVirtualPopulationGeneration) && ~isempty(obj.DatasetHeader) && ~isempty(obj.DatasetData)
                 MatchIdx = strcmp(obj.DatasetHeader,obj.TemporaryVirtualPopulationGeneration.GroupName);
-                GroupIDs = obj.DatasetData(:,MatchIdx);
-                if iscell(GroupIDs)
+                TempGroupIDs = obj.DatasetData(:,MatchIdx);
+                if iscell(TempGroupIDs)
                     try
-                        GroupIDs = cell2mat(GroupIDs);
+                        TempGroupIDs = cell2mat(TempGroupIDs);
                     catch
                         uialert(obj.getUIFigure,'Invalid group ID column selected. Only numeric values are allowed','Warning')
                         return
                     end
 
                 end
-                GroupIDs = unique(GroupIDs);
-                obj.GroupIDPopupTableItems = cellfun(@(x)num2str(x),num2cell(GroupIDs),'UniformOutput',false);
+                TempGroupIDs = unique(TempGroupIDs);
+                obj.GroupIDPopupTableItems = cellfun(@(x)num2str(x),num2cell(TempGroupIDs),'UniformOutput',false);
             else
                 obj.GroupIDPopupTableItems = {};
             end
@@ -695,7 +739,7 @@ classdef VirtualPopulationGenerationPane < QSPViewerNew.Application.ViewPane
                 
             if ~isempty(obj.TemporaryVirtualPopulationGeneration)
                 TaskNames = {obj.TemporaryVirtualPopulationGeneration.Item.TaskName};
-                GroupIDs = {obj.TemporaryVirtualPopulationGeneration.Item.GroupID};
+                TempGroupIDs = {obj.TemporaryVirtualPopulationGeneration.Item.GroupID};
                 RunToSteadyState = false(size(TaskNames));
 
                 for index = 1:numel(TaskNames)
@@ -705,7 +749,7 @@ classdef VirtualPopulationGenerationPane < QSPViewerNew.Application.ViewPane
                     end
                 end
                 
-                Data = [TaskNames(:) GroupIDs(:) num2cell(RunToSteadyState(:))];
+                Data = [TaskNames(:) TempGroupIDs(:) num2cell(RunToSteadyState(:))];
                 if ~isempty(Data)
                     for index = 1:numel(TaskNames)
                         ThisTask = getValidSelectedTasks(obj.TemporaryVirtualPopulationGeneration.Settings,TaskNames{index});
@@ -714,7 +758,7 @@ classdef VirtualPopulationGenerationPane < QSPViewerNew.Application.ViewPane
                             Data{index,1} = QSP.makeInvalid(Data{index,1});
                         end
                     end
-                    MatchIdx = find(~ismember(GroupIDs(:),obj.GroupIDPopupTableItems(:)));
+                    MatchIdx = find(~ismember(TempGroupIDs(:),obj.GroupIDPopupTableItems(:)));
                     for index = 1:numel(MatchIdx)
                         Data{MatchIdx(index),2} = QSP.makeInvalid(Data{MatchIdx(index),2});
                     end
@@ -725,12 +769,12 @@ classdef VirtualPopulationGenerationPane < QSPViewerNew.Application.ViewPane
             
             if ~isempty(obj.TemporaryVirtualPopulationGeneration) && ~isempty(obj.DatasetHeader) && ~isempty(obj.DatasetData)
                 MatchIdx = strcmp(obj.DatasetHeader,obj.TemporaryVirtualPopulationGeneration.GroupName);
-                GroupIDs = obj.DatasetData(:,MatchIdx);
-                if iscell(GroupIDs)
-                    GroupIDs = cell2mat(GroupIDs);        
+                TempGroupIDs = obj.DatasetData(:,MatchIdx);
+                if iscell(TempGroupIDs)
+                    TempGroupIDs = cell2mat(TempGroupIDs);        
                 end    
-                GroupIDs = unique(GroupIDs);
-                obj.GroupIDPopupTableItems = cellfun(@(x)num2str(x),num2cell(GroupIDs),'UniformOutput',false);
+                TempGroupIDs = unique(TempGroupIDs);
+                obj.GroupIDPopupTableItems = cellfun(@(x)num2str(x),num2cell(TempGroupIDs),'UniformOutput',false);
             else
                 obj.GroupIDPopupTableItems = {};
             end
@@ -780,6 +824,240 @@ classdef VirtualPopulationGenerationPane < QSPViewerNew.Application.ViewPane
             obj.SpeciesDataTable.setName({'Data (y)','Species (x)','# Tasks per Species','y=f(x)'}');
             obj.SpeciesDataTable.setFormat({obj.DatasetDataColumn(:)',obj.SpeciesPopupTableItems(:)','numeric','char'})
             obj.SpeciesDataTable.setData(Data);
+        end
+        
+        
+        %Visualization redraw
+        function reimport(obj)
+             if ~isempty(obj.VirtualPopulationGeneration) && ~isempty(obj.VirtualPopulationGeneration.DatasetName) && ~isempty(obj.VirtualPopulationGeneration.Settings.VirtualPopulationGenerationData)
+                Names = {obj.VirtualPopulationGeneration.Settings.VirtualPopulationGenerationData.Name};
+                MatchIdx = strcmpi(Names,obj.VirtualPopulationGeneration.VpopGenDataName);
+                
+                if any(MatchIdx)
+                    vpopObj = obj.VirtualPopulationGeneration.Settings.VirtualPopulationGenerationData(MatchIdx);
+                    
+                    [~,~,VpopHeader,VpopData] = importData(vpopObj,vpopObj.FilePath);
+                else
+                    VpopHeader = {};
+                    VpopData = {};
+                end
+            else
+                VpopHeader = {};
+                VpopData = {};
+             end
+            
+            % Get unique values from Data Column
+            MatchIdx = strcmpi(VpopHeader,'Species');
+            if any(MatchIdx)
+                TempUniqueDataVals = unique(VpopData(:,MatchIdx));
+            else
+                TempUniqueDataVals = {};
+            end
+            obj.UniqueDataVals = TempUniqueDataVals;
+            % Get the GroupID column
+            if ~isempty(VpopHeader) && ~isempty(VpopData)
+                MatchIdx = strcmp(VpopHeader,obj.VirtualPopulationGeneration.GroupName);
+                TempGroupIDs = VpopData(:,MatchIdx);
+                if iscell(TempGroupIDs)
+                    TempGroupIDs = cell2mat(TempGroupIDs);
+                end
+                TempGroupIDs = unique(TempGroupIDs);
+                TempGroupIDs = cellfun(@(x)num2str(x),num2cell(TempGroupIDs),'UniformOutput',false);
+            else
+                TempGroupIDs = [];
+            end
+            
+            obj.GroupIDs = TempGroupIDs;
+        end
+        
+        function redrawSpeciesTable(obj)
+
+            if ~isempty(obj.VirtualPopulationGeneration)
+                
+                % Get the raw TaskNames, GroupIDNames
+                TaskNames = {obj.VirtualPopulationGeneration.Item.TaskName};
+                GroupIDNames = {obj.VirtualPopulationGeneration.Item.GroupID};
+                
+                InvalidIndices = false(size(TaskNames));
+                for idx = 1:numel(TaskNames)
+                    % Check if the task is valid
+                    ThisTask = getValidSelectedTasks(obj.VirtualPopulationGeneration.Settings,TaskNames{idx});
+                    MissingGroup = ~ismember(GroupIDNames{idx},obj.GroupIDs(:)');
+                    if isempty(ThisTask) || MissingGroup
+                        InvalidIndices(idx) = true;
+                    end
+                end
+                
+                % If empty, populate
+                if isempty(obj.VirtualPopulationGeneration.PlotItemTable)
+                    
+                    if any(InvalidIndices)
+                        % remove an invalid items
+                        TaskNames(InvalidIndices) = [];
+                        GroupIDNames(InvalidIndices) = [];
+                    end
+                    
+                    obj.VirtualPopulationGeneration.PlotItemTable = cell(numel(TaskNames),5);
+                    obj.VirtualPopulationGeneration.PlotItemTable(:,1) = {false};
+                    obj.VirtualPopulationGeneration.PlotItemTable(:,3) = TaskNames;
+                    obj.VirtualPopulationGeneration.PlotItemTable(:,4) = GroupIDNames;
+                    obj.VirtualPopulationGeneration.PlotItemTable(:,5) = TaskNames;
+                    
+                    % Update the item colors
+                    ItemColors = getItemColors(obj.VirtualPopulationGeneration.Session,numel(TaskNames));
+                    obj.VirtualPopulationGeneration.PlotItemTable(:,2) = num2cell(ItemColors,2);
+                    
+                    obj.PlotItemAsInvalidTable = obj.VirtualPopulationGeneration.PlotItemTable;
+                    obj.PlotItemInvalidRowIndices = [];
+                else
+                    NewPlotTable = cell(numel(TaskNames),5);
+                    NewPlotTable(:,1) = {false};
+                    NewPlotTable(:,3) = TaskNames;
+                    NewPlotTable(:,4) = GroupIDNames;
+                    NewPlotTable(:,5) = TaskNames;
+                    
+                    NewColors = getItemColors(obj.VirtualPopulationGeneration.Session,numel(TaskNames));
+                    NewPlotTable(:,2) = num2cell(NewColors,2);
+                    
+                    if size(obj.VirtualPopulationGeneration.PlotItemTable,2) == 4
+                        obj.VirtualPopulationGeneration.PlotItemTable(:,5) = obj.VirtualPopulationGeneration.PlotItemTable(:,3);
+                    end
+                    
+                    % Update Table
+                    KeyColumn = [3 4];
+                    [obj.VirtualPopulationGeneration.PlotItemTable,obj.PlotItemAsInvalidTable,obj.PlotItemInvalidRowIndices] = QSPViewer.updateVisualizationTable(obj.VirtualPopulationGeneration.PlotItemTable,NewPlotTable,InvalidIndices,KeyColumn);
+                end
+                
+                % Check for invalid files
+                ResultsDir = fullfile(obj.VirtualPopulationGeneration.Session.RootDirectory,obj.VirtualPopulationGeneration.VPopResultsFolderName);
+                if exist(fullfile(ResultsDir,obj.VirtualPopulationGeneration.ExcelResultFileName),'file') == 2
+                    FlagIsInvalidResultFile = false; % Exists, not invalid
+                else
+                    FlagIsInvalidResultFile = true;
+                end
+                
+                % Only make the "valids" missing. Leave the invalids as is
+                TableData = obj.PlotItemAsInvalidTable;
+                if ~isempty(TableData)
+                    for index = 1:size(obj.VirtualPopulationGeneration.PlotItemTable,1)
+                        % If results file is missing and it's not already an invalid
+                        % row, then mark as missing
+                        if FlagIsInvalidResultFile && any(~ismember(obj.PlotItemInvalidRowIndices,index))
+                            TableData{index,3} = QSP.makeItalicized(TableData{index,3});
+                            TableData{index,4} = QSP.makeItalicized(TableData{index,4});
+                        end 
+                    end 
+                end 
+                
+                % Update Colors column
+                TableData(:,2) = repmat({''},size(TableData,1),1);
+                
+                %Fill in items information and edit limitations
+                obj.VisSpeciesDataTable.Data = TableData;
+                obj.VisSpeciesDataTable.ColumnName = {'Include','Color','Task','Group','Display'};
+                obj.VisSpeciesDataTable.ColumnFormat = {'logical','char','char','char','char'};
+                obj.VisSpeciesDataTable.ColumnEditable = [true,false,false,false,true];
+                
+                %Fill in the colors of the table
+                for index = 1:size(TableData,1)
+                    ThisColor = obj.VirtualPopulationGeneration.PlotItemTable{index,2};
+                    if ~isempty(ThisColor)
+                        addStyle(obj.VisSpeciesDataTable,uistyle('BackgroundColor',ThisColor),'cell',[index,2])
+                    end
+                end
+            else         
+                %Fill in items information and edit limitations
+                obj.VisSpeciesDataTable.Data = cell(0,5);
+                obj.VisSpeciesDataTable.ColumnName = {'Include','Color','Task','Group','Display'};
+                obj.VisSpeciesDataTable.ColumnFormat = {'logical','char','char','char','char'};
+                obj.VisSpeciesDataTable.ColumnEditable = [true,false,false,false,true];
+            end
+        end
+        
+        function redrawVirtualPopTable(obj)
+            
+            AxesOptions = obj.getAxesOptions();
+            if ~isempty(obj.VirtualPopulationGeneration)
+                % Get the raw SpeciesNames, DataNames
+                TaskNames = {obj.VirtualPopulationGeneration.Item.TaskName};
+                SpeciesNames = {obj.VirtualPopulationGeneration.SpeciesData.SpeciesName};
+                DataNames = {obj.VirtualPopulationGeneration.SpeciesData.DataName};
+                
+                % Get the list of all active species from all valid selected tasks
+                ValidSpeciesList = getSpeciesFromValidSelectedTasks(obj.VirtualPopulationGeneration.Settings,TaskNames);
+                
+                InvalidIndices = false(size(SpeciesNames));
+                for idx = 1:numel(SpeciesNames)
+                    % Check if the species is missing
+                    MissingSpecies = ~ismember(SpeciesNames{idx},ValidSpeciesList);
+                    MissingData = ~ismember(DataNames{idx},obj.UniqueDataVals);
+                    if MissingSpecies || MissingData
+                        InvalidIndices(idx) = true;
+                    end
+                end
+                
+                if isempty(obj.VirtualPopulationGeneration.PlotSpeciesTable)
+                    
+                    if any(InvalidIndices)
+                        % Then, prune
+                        SpeciesNames(InvalidIndices) = [];
+                        DataNames(InvalidIndices) = [];
+                    end
+                    
+                    % If empty, populate, but first update line styles
+                    obj.VirtualPopulationGenerationData.PlotSpeciesTable = cell(numel(SpeciesNames),5);
+                    updateSpeciesLineStyles(obj.VirtualPopulationGeneration);
+                    
+                    obj.VirtualPopulationGeneration.PlotSpeciesTable(:,1) = {' '};
+                    obj.VirtualPopulationGeneration.PlotSpeciesTable(:,2) = obj.VirtualPopulationGeneration.SpeciesLineStyles(:);
+                    obj.VirtualPopulationGeneration.PlotSpeciesTable(:,3) = SpeciesNames;
+                    obj.VirtualPopulationGeneration.PlotSpeciesTable(:,4) = DataNames;
+                    obj.VirtualPopulationGeneration.PlotSpeciesTable(:,5) = SpeciesNames;
+                    
+                    obj.PlotSpeciesAsInvalidTable = obj.VirtualPopulationGeneration.PlotSpeciesTable;
+                    obj.PlotSpeciesInvalidRowIndices = [];
+                else
+                    NewPlotTable = cell(numel(SpeciesNames),5);
+                    NewPlotTable(:,1) = {' '};
+                    NewPlotTable(:,2) = {'-'}; 
+                    NewPlotTable(:,3) = SpeciesNames;
+                    NewPlotTable(:,4) = DataNames;
+                    NewPlotTable(:,5) = SpeciesNames;
+                    
+                    % Adjust size if from an old saved session
+                    if size(obj.VirtualPopulationGeneration.PlotSpeciesTable,2) == 3
+                        obj.VirtualPopulationGeneration.PlotSpeciesTable(:,5) = obj.VirtualPopulationGeneration.PlotSpeciesTable(:,3);
+                        obj.VirtualPopulationGeneration.PlotSpeciesTable(:,4) = obj.VirtualPopulationGeneration.PlotSpeciesTable(:,3);
+                        obj.VirtualPopulationGeneration.PlotSpeciesTable(:,3) = obj.VirtualPopulationGeneration.PlotSpeciesTable(:,2);
+                        obj.VirtualPopulationGeneration.PlotSpeciesTable(:,2) = {'-'}; 
+                    elseif size(obj.VirtualPopulationGeneration.PlotSpeciesTable,2) == 4
+                        obj.VirtualPopulationGeneration.PlotSpeciesTable(:,5) = obj.VirtualPopulationGeneration.PlotSpeciesTable(:,3);
+                    end
+                    
+                    % Update Table
+                    KeyColumn = [3 4];
+                    [obj.VirtualPopulationGeneration.PlotSpeciesTable,obj.PlotSpeciesAsInvalidTable,obj.PlotSpeciesInvalidRowIndices] = QSPViewer.updateVisualizationTable(obj.VirtualPopulationGeneration.PlotSpeciesTable,NewPlotTable,InvalidIndices,KeyColumn);
+                    % Update line styles
+                    updateSpeciesLineStyles(obj.VirtualPopulationGeneration);
+                end
+                
+                % Species table
+                
+                obj.VisVirtPopItemsTable.Data = obj.PlotSpeciesAsInvalidTable;
+                obj.VisVirtPopItemsTable.ColumnName = {'Plot','Style','Species','Data','Display'};
+                obj.VisVirtPopItemsTable.ColumnFormat = {AxesOptions',obj.VirtualPopulationGeneration.Settings.LineStyleMap,'char','char','char'};
+                obj.VisVirtPopItemsTable.ColumnEditable = [true,true,false,false,true];
+            else
+                
+                obj.VisVirtPopItemsTable.Data = cell(0,5);
+                obj.VisVirtPopItemsTable.ColumnName = {'Plot','Style','Species','Data','Display'};
+                obj.VisVirtPopItemsTable.ColumnFormat = {AxesOptions','char','char','char','char'};
+                obj.VisVirtPopItemsTable.ColumnEditable = [true,true,false,false,true];
+            end
+        end
+        
+        function redrawContextMenu(obj)
+            %TODO Need to figure out the uisetcolor situation
         end
         
     end
