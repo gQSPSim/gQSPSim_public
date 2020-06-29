@@ -312,6 +312,7 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
             obj.VisSpeciesDataTable.Layout.Row = 2;
             obj.VisSpeciesDataTable.Layout.Column = 1;
             obj.VisSpeciesDataTable.ColumnEditable = false;
+            obj.VisSpeciesDataTable.CellEditCallback = @obj.onEditVisSpeciesTable;
             
             obj.VisOptimItemsTableLabel = uilabel(obj.VisLayout);
             obj.VisOptimItemsTableLabel.Text = 'Optimization Items';
@@ -322,6 +323,8 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
             obj.VisOptimItemsTable.Layout.Row = 4;
             obj.VisOptimItemsTable.Layout.Column = 1;
             obj.VisOptimItemsTable.ColumnEditable = false;
+            obj.VisOptimItemsTable.CellEditCallback = @obj.onEditPlotItemsTable;
+            obj.VisOptimItemsTable.CellSelectionCallback = @obj.onSelectionPlotItemsTable;
           
             obj.PanelMain = uipanel('Parent',obj.VisLayout);
             obj.PanelMain.Title = '';
@@ -344,6 +347,8 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
             obj.VisProfilesTable.Layout.Row = [2,5];
             obj.VisProfilesTable.Layout.Column = 2;
             obj.VisProfilesTable.ColumnEditable = false;
+            obj.VisProfilesTable.CellEditCallback = @obj.onEditProfileTable;
+            obj.VisProfilesTable.CellSelectionCallback = @obj.onSelectionProfileTable;
             
             obj.VisParametersTableLabel = uilabel(obj.VisInnerLayout);
             obj.VisParametersTableLabel.Text = 'Parameters(Run=2)';
@@ -354,47 +359,55 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
             obj.VisParametersTable.Layout.Row = [7,10];
             obj.VisParametersTable.Layout.Column = 2;
             obj.VisParametersTable.ColumnEditable = false;
+            obj.VisParametersTable.CellEditCallback = @obj.onEditParametersTable;
             
             obj.VisAddButton = uibutton(obj.VisInnerLayout,'push');
             obj.VisAddButton.Layout.Row = 2;
             obj.VisAddButton.Layout.Column = 1;
             obj.VisAddButton.Icon = QSPViewerNew.Resources.LoadResourcePath('add_24.png');
             obj.VisAddButton.Text = '';
+            obj.VisAddButton.ButtonPushedFcn = @obj.onVisAddButton;
 
             obj.VisRemoveButton = uibutton(obj.VisInnerLayout,'push');
             obj.VisRemoveButton.Layout.Row = 3;
             obj.VisRemoveButton.Layout.Column = 1;
             obj.VisRemoveButton.Icon = QSPViewerNew.Resources.LoadResourcePath('delete_24.png');
             obj.VisRemoveButton.Text = '';
+            obj.VisRemoveButton.ButtonPushedFcn = @obj.onVisRemoveButton;
 
             obj.VisCopyButton = uibutton(obj.VisInnerLayout,'push');
             obj.VisCopyButton.Layout.Row = 4;
             obj.VisCopyButton.Layout.Column = 1;
             obj.VisCopyButton.Icon = QSPViewerNew.Resources.LoadResourcePath('copy_24.png');
             obj.VisCopyButton.Text = '';
+            obj.VisCopyButton.ButtonPushedFcn = @obj.onVisCopyButton;
 
             obj.VisSwapButton = uibutton(obj.VisInnerLayout,'push');
             obj.VisSwapButton.Layout.Row = 7;
             obj.VisSwapButton.Layout.Column = 1;
             obj.VisSwapButton.Icon = QSPViewerNew.Resources.LoadResourcePath('reset_24.png');
             obj.VisSwapButton.Text = '';
+            obj.VisSwapButton.ButtonPushedFcn = @obj.onVisSwapButton;
 
             obj.VisPencilMatButtonm = uibutton(obj.VisInnerLayout,'push');
             obj.VisPencilMatButtonm.Layout.Row = 8;
             obj.VisPencilMatButtonm.Layout.Column = 1;
             obj.VisPencilMatButtonm.Icon = QSPViewerNew.Resources.LoadResourcePath('param_edit_24.png');
             obj.VisPencilMatButtonm.Text = '';
+            obj.VisPencilMatButtonm.ButtonPushedFcn = @obj.onVisPencilMatButton;
 
             obj.VisDataButton = uibutton(obj.VisInnerLayout,'push');
             obj.VisDataButton.Layout.Row = 9;
             obj.VisDataButton.Layout.Column = 1;
             obj.VisDataButton.Icon = QSPViewerNew.Resources.LoadResourcePath('datatable_24.png');
             obj.VisDataButton.Text = '';
+            obj.VisDataButton.ButtonPushedFcn = @obj.onVisDataButton;
             
             obj.VisApplyButton = uibutton(obj.VisInnerLayout,'push');
             obj.VisApplyButton.Layout.Row = 11;
             obj.VisApplyButton.Layout.Column = 2;
             obj.VisApplyButton.Text = 'Apply';
+            obj.VisApplyButton.ButtonPushedFcn = @obj.onVisApplyButton;
             
         end
         
@@ -618,83 +631,484 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
         %Callbacks for the Visualization View
         
         function onEditVisSpeciesTable(obj,h,e)
-            Indices = e.Indices;
-            RowIdx = Indices(1,1);
-            ColIdx = Indices(1,2);
             
-            %Determine if the change was valid, if not, revert
-            if (ColIdx ==1 || ColIdx == 2) && ~any(strcmp(h.ColumnFormat{ColIdx},e.NewData))
-                e.NewData = e.PreviousData;
+            RowIdx = e.Indices(1);
+            ColIdx = e.Indices(2);
+            
+            newAxIdx = str2double(h.Data{RowIdx,1});
+            if isnan(newAxIdx)
+                newAxIdx = [];
             end
             
-            %Determine Axes Value
-            if ColIdx ==1
-                AxesIdx = e.NewData;
-            else
-                AxesIdx = h.Data{1,RowIdx};
+            switch ColIdx
+                case 1
+                    %The axis was changed
+                    
+                    if any(strcmp(h.ColumnFormat{ColIdx},e.NewData))
+                        %The new value was already in the dropdown, so we can
+                        %continue
+                        
+                        newAxisIndex = str2double(e.NewData);
+                        oldAxisIndex = find(~cellfun(@isempty,obj.SpeciesGroup(RowIdx,:)),1,'first');
+                        obj.Optimization.PlotSpeciesTable(RowIdx,ColIdx) = h.Data(RowIdx,ColIdx);
+                        
+                        % If originally not plotted
+                        if isempty(oldAxisIndex) && ~isempty(newAxisIndex)
+                            obj.SpeciesGroup(RowIdx,newAxisIndex,:) = obj.SpeciesGroup(RowIdx,1,:);
+                            obj.DatasetGroup(RowIdx,newAxisIndex) = obj.DatasetGroup(RowIdx,1);
+                            % Parent
+                            set([obj.SpeciesGroup{RowIdx,newAxisIndex,:}],'Parent',obj.PlotArray(newAxisIndex));
+                            set([obj.DatasetGroup{RowIdx,newAxisIndex}],'Parent',obj.PlotArray(newAxisIndex));
+                        elseif ~isempty(oldAxisIndex) && isempty(newAxisIndex)
+                            obj.SpeciesGroup(RowIdx,1,:) = obj.SpeciesGroup(RowIdx,oldAxisIndex,:);
+                            obj.DatasetGroup(RowIdx,1) = obj.DatasetGroup(RowIdx,oldAxisIndex);
+                            % Un-parent
+                            set([obj.SpeciesGroup{RowIdx,1,:}],'Parent',matlab.graphics.GraphicsPlaceholder.empty());
+                            set([obj.DatasetGroup{RowIdx,1}],'Parent',matlab.graphics.GraphicsPlaceholder.empty());
+                            if oldAxisIndex ~= 1
+                                ThisSize = size(obj.SpeciesGroup(RowIdx,oldAxisIndex,:));
+                                obj.SpeciesGroup(RowIdx,oldAxisIndex,:) = cell(ThisSize);
+                                obj.DatasetGroup{RowIdx,oldAxisIndex} = [];
+                            end
+                        elseif ~isempty(oldAxisIndex) && ~isempty(newAxisIndex)
+                            obj.SpeciesGroup(RowIdx,newAxisIndex,:) = obj.SpeciesGroup(RowIdx,oldAxisIndex,:);
+                            obj.DatasetGroup(RowIdx,newAxisIndex) = obj.DatasetGroup(RowIdx,oldAxisIndex);
+                            % Re-parent
+                            set([obj.SpeciesGroup{RowIdx,newAxisIndex,:}],'Parent',obj.PlotArray(newAxisIndex));
+                            set([obj.DatasetGroup{RowIdx,newAxisIndex}],'Parent',obj.PlotArray(newAxisIndex));
+                            if oldAxisIndex ~= newAxisIndex
+                                ThisSize = size(obj.SpeciesGroup(RowIdx,oldAxisIndex,:));
+                                obj.SpeciesGroup(RowIdx,oldAxisIndex,:) = cell(ThisSize);
+                                obj.DatasetGroup{RowIdx,oldAxisIndex} = [];
+                            end
+                        end
+                        
+                        updateLines(obj);
+                        AxIndices = [oldAxisIndex,newAxisIndex];
+                        AxIndices(isnan(AxIndices)) = [];
+                        % Redraw legend
+                        [UpdatedAxesLegend,UpdatedAxesLegendChildren] = updatePlots(...
+                            obj.Optimization,obj.PlotArray,obj.SpeciesGroup,obj.DatasetGroup,...
+                            'AxIndices',AxIndices);
+                        obj.AxesLegend(AxIndices) = UpdatedAxesLegend(AxIndices);
+                        obj.AxesLegendChildren(AxIndices) = UpdatedAxesLegendChildren(AxIndices);
+                        
+                    else
+                        h.Data{e.Indices(1),e.Indices(2)} = e.PreviousData;
+                    end
+                    
+                case 2
+                    %the Line style was changed
+                    
+                    if any(strcmp(h.ColumnFormat{ColIdx},e.NewData))
+                        %The new value was already in the dropdown, so we can
+                        %continue
+                        
+                        obj.Optimization.PlotSpeciesTable(RowIdx,ColIdx) = h.Data(RowIdx,ColIdx);
+                        NewLineStyle = h.Data{RowIdx,2};
+                        setSpeciesLineStyles(obj.Optimization,RowIdx,NewLineStyle);
+                        
+                        for RowIdx = 1:size(obj.Optimization.PlotSpeciesTable,1)
+                            axIdx = str2double(obj.Optimization.PlotSpeciesTable{RowIdx,1});
+                            if ~isnan(axIdx)
+                                Ch = get(obj.SpeciesGroup{RowIdx,axIdx},'Children');
+                                HasLineStyle = isprop(Ch,'LineStyle');
+                                set(Ch(HasLineStyle),'LineStyle',obj.Optimization.PlotSpeciesTable{RowIdx,2});
+                            end
+                        end
+                        AxIndices = newAxIdx;
+                        if isempty(AxIndices)
+                            AxIndices = 1:numel(obj.PlotArray);
+                        end
+                        % Redraw legend
+                        [UpdatedAxesLegend,UpdatedAxesLegendChildren] = updatePlots(...
+                            obj.Optimization,obj.PlotArray,obj.SpeciesGroup,obj.DatasetGroup,...
+                            'AxIndices',AxIndices);
+                        obj.AxesLegend(AxIndices) = UpdatedAxesLegend(AxIndices);
+                        obj.AxesLegendChildren(AxIndices) = UpdatedAxesLegendChildren(AxIndices);
+                        
+                    else
+                        h.Data{e.Indices(1),e.Indices(2)} = e.PreviousData;
+                    end
+                    
+                    
+                case 5
+                    %the display name was changed
+                    obj.Optimization.PlotSpeciesTable(RowIdx,ColIdx) = h.Data(RowIdx,ColIdx);
+                    
+                    AxIndices = newAxIdx;
+                    if isempty(AxIndices)
+                        AxIndices = 1:numel(obj.PlotArray);
+                    end
+                    % Redraw legend
+                    [UpdatedAxesLegend,UpdatedAxesLegendChildren] = updatePlots(...
+                        obj.Optimization,obj.PlotArray,obj.SpeciesGroup,obj.DatasetGroup,...
+                        'AxIndices',AxIndices);
+                    obj.AxesLegend(AxIndices) = UpdatedAxesLegend(AxIndices);
+                    obj.AxesLegendChildren(AxIndices) = UpdatedAxesLegendChildren(AxIndices);
             end
-                
-            %Update everything
-            if ~isempty(AxesIdx)
-                NewLineStyle = h.Data(2,RowIdx);
-                NewLegendValue = h.Data(5,RowIdx);
-                
-                setSpeciesLineStyles(obj.Optimization,RowIdx,NewLineStyle);
-                obj.Optimization.PlotSpeciesTable(RowIdx,ColIdx) = h.Data(RowIdx,ColIdx);
-                
-                
-            end
+            
+            obj.VisDirty = true; %Same as notify(obj,'MarkDirty') in old implementation
         end
         
         function onEditPlotItemsTable(obj,h,e)
+            rowIdx = e.Indices(1);
+            colIdx = e.Indices(2);
             
+            obj.Optimization.PlotItemTable(rowIdx,colIdx) = h.Data(rowIdx,colIdx);
+            
+            switch colIdx
+                case 5
+                    [obj.AxesLegend,obj.AxesLegendChildren] = obj.Optimization.updatePlots(obj.PlotArray,obj.SpeciesGroup,obj.DatasetGroup);
+                case 1
+                    obj.Optimization.updatePlots(obj.PlotArray,obj.SpeciesGroup,obj.DatasetGroup,...
+                        'RedrawLegend',false);
+            end
+            obj.VisDirty = true; %Same as notify(obj,'MarkDirty') in old implementation
         end
         
-        function onSelectionPlotItemsTable(obj,h,e)
+        function onSelectionPlotItemsTable(obj,~,e)
+            obj.SelectedRow = e.Indices(1);
             
+            obj.VisDirty = true; %Same as notify(obj,'MarkDirty') in old implementation
         end
         
         function onEditProfileTable(obj,h,e)
             
+                set(obj.getUIFigure,'pointer','watch');
+                RowIdx = e.Indices(1);
+                ColIdx = e.Indices(2); 
+
+                if ~isempty(RowIdx)
+                    ThisProfile = obj.Optimization.PlotProfile(RowIdx);
+                    switch ColIdx
+                        case 2
+                            % Show
+                            ThisProfile.Show = h.Data{RowIdx,ColIdx};
+                            
+                            % Update the view
+                            obj.redrawVisEverything();
+                            
+                            % Don't overwrite the output
+                            obj.Optimization.updatePlots(obj.PlotArray,obj.SpeciesGroup,obj.DatasetGroup,...
+                                'RedrawLegend',false);
+                        case 3
+                            % Source
+                            % Re-import the source values for
+                            % ThisProfile.Source (before changing)
+                            
+                            if any(strcmp(h.ColumnFormat{colIdx},e.NewData))
+                                ThisSourceData = {};
+                                if ~isempty(ThisProfile.Source) && ~any(strcmpi(ThisProfile.Source,{'','N/A'}))
+                                    [~,~,ThisSourceData] = importParametersSource(obj.Optimization,ThisProfile.Source);
+                                end
+                                
+                                % Get the name of the new source
+                                NewSource = h.Data{RowIdx,ColIdx};
+                                
+                                % First check if values have been changed. If so,
+                                % then alert the user
+                                if ~isempty(ThisSourceData)
+                                    Result = 'Yes';
+                                    [~,ix1] = sort(ThisProfile.Values(:,1));
+                                    [~,ix2] = sort(ThisSourceData(:,1));
+                                    
+                                    if ~isequal(ThisProfile.Values(ix1,2), ThisSourceData(ix2,2)) && ...
+                                            ~any(strcmpi(ThisProfile.Source,{'','N/A'})) && ~any(strcmpi(NewSource,{'','N/A'}))
+                                        
+                                        % Has the source changed?
+                                        if ~strcmpi(ThisProfile.Source,NewSource)
+                                            % Confirm with user
+                                            Prompt = 'ChangUIFing the source will clear overriden source parameters. Do you want to continue?';
+                                        else
+                                            % Source did not change but reset the parameter values
+                                            Prompt = 'This action will clear overriden source parameters. Do you want to continue? Press Cancel to save.';
+                                        end
+                                        Result = uiconfirm(obj.getUIFigure,Prompt,'Continue?','Option',{'Yes','Cancel'},'DefaultOption','Cancel');
+                                    end
+                                    
+                                end
+                                % Set the source and values
+                                if isempty(NewSource) || any(strcmpi(NewSource,{'','N/A'}))
+                                    ThisProfile.Source = '';
+                                    ThisProfile.Values = cell(0,2);
+                                elseif isempty(ThisSourceData) || strcmpi(Result,'Yes')
+                                    obj = obj.Optimization;
+                                    Names = {obj.Optimization.Settings.Parameters.Name};
+                                    MatchIdx = strcmpi(Names,obj.Optimization.RefParamName);
+                                    if any(MatchIdx)
+                                        pObj = obj.Optimization.Settings.Parameters(MatchIdx);
+                                        importData(pObj,pObj.FilePath);
+                                    else
+                                        warning('Could not find match for specified parameter file')
+                                    end
+                                    
+                                    
+                                    % Get NewSource Data
+                                    NewSourceData = {};
+                                    if ~isempty(NewSource) && ~any(strcmpi(NewSource,{'','N/A'}))
+                                        [StatusOk,Message,NewSourceData] = importParametersSource(obj.Optimization,NewSource);
+                                        if ~StatusOk
+                                            uialert(obj.getUIFigure,Message,'Cannot import');
+                                        end
+                                    end
+                                    
+                                    ThisProfile.Source = NewSource;
+                                    [~,index] = sort(upper(NewSourceData(:,1)));
+                                    ThisProfile.Values = NewSourceData(index,:);
+                                end
+                                
+                                % Update the view
+                                updateVisualizationView(obj);
+                            end
+                            
+                        case 4
+                            % Description
+                            ThisProfile.Description = h.Data{RowIdx,ColIdx};
+                            
+                            % Update the view
+                            obj.redrawVisEverything();
+                    end %switch
+                end %if
+                
+                obj.VisDirty = true; %Same as notify(obj,'MarkDirty') in old implementation
+                set(obj.getUIFigure,'pointer','arrow');
+
         end
         
-        function onSelectionProfileTable(obj,h,e)
+        function onSelectionProfileTable(obj,~,e)     
+            obj.Optimization.SelectedProfileRow = e.Indices(1);
+            obj.redrawVisParametersTable();
+            obj.redrawVisProfileTable();
             
+            
+            obj.VisDirty = true; %Same as notify(obj,'MarkDirty') in old implementation 
+        end
+       
+        function onVisAddButton(obj,~,~)
+            if ~isempty(obj.Optimization.SelectedProfileRow)
+                obj.Optimization.PlotProfile(end+1) = QSP.Profile;
+                obj.Optimization.SelectedProfileRow = numel(obj.Optimization.PlotProfile);
+
+                obj.redrawVisEverything();
+                obj.VisDirty = true; %Same as notify(obj,'MarkDirty') in old implementation 
+            end
         end
         
-        function onVisAddButton(obj,h,e)
-            
+        function onVisRemoveButton(obj,~,~)
+            if ~isempty(obj.Optimization.SelectedProfileRow)
+                if numel(obj.Optimization.PlotProfile) > 1
+                    obj.Optimization.PlotProfile(Indices) = [];
+                else
+                    obj.Optimization.PlotProfile = QSP.Profile.empty(0,1);
+                end
+                if size(obj.SpeciesGroup,3) >=Indices
+                    delete([obj.SpeciesGroup{:,:,Indices}]); % remove objects
+                    obj.SpeciesGroup(:,:,Indices) = []; % remove group
+                end
+                
+                obj.Optimization.SelectedProfileRow = [];
+                % Update the view
+                updateVisualizationView(vObj);
+                obj.VisDirty = true; %Same as notify(obj,'MarkDirty') in old implementation
+            end
         end
         
-        function onVisRemoveButton(obj,h,e)
-            
-        end
-        
-        function onVisCopyButton(obj,h,e)
-            
+        function onVisCopyButton(obj,~,~)
+            if ~isempty(obj.Optimization.SelectedProfileRow)
+                obj.Optimization.PlotProfile(end+1) = QSP.Profile;
+                obj.Optimization.PlotProfile(end).Source = obj.Optimization.PlotProfile(Indices).Source;
+                obj.Optimization.PlotProfile(end).Description = obj.Optimization.PlotProfile(Indices).Description;
+                obj.Optimization.PlotProfile(end).Show = obj.Optimization.PlotProfile(Indices).Show;
+                obj.Optimization.PlotProfile(end).Values = obj.Optimization.PlotProfile(Indices).Values;
+                obj.Optimization.SelectedProfileRow = numel(obj.Optimization.PlotProfile);
+                % Update the view
+                updateVisualizationView(vObj);
+                obj.VisDirty = true; %Same as notify(obj,'MarkDirty') in old implementation
+            end
         end
         
         function onEditParametersTable(obj,h,e)
+            set(obj.getUIFigure,'pointer','watch');
+            obj.VisApplyButton.Enable = 'off';
+            RowIdx = e.Indices(1);
+            ColIdx = e.Indices(2);
             
+            if ~isempty(obj.Optimization.SelectedProfileRow) && ~isempty(h.Data{RowIdx,ColIdx})
+                ThisProfile = obj.Optimization.PlotProfile(obj.Optimization.SelectedProfileRow);
+                if ischar(h.Data{RowIdx,ColIdx})
+                    ThisProfile.Values(RowIdx,ColIdx) = {str2double(h.Data{RowIdx,ColIdx})};
+                else
+                    ThisProfile.Values(RowIdx,ColIdx) = h.Data(RowIdx,ColIdx);
+                end
+                
+            else
+                uierror(obj.getUIFigure,'Invalid value specified for parameter. Values must be numeric','Invalid value');
+            end
+            % Update the view
+            updateVisualizationView(obj);
+            
+            obj.VisDirty = true; %Same as notify(obj,'MarkDirty') in old implementation
+            set(obj.getUIFigure,'pointer','arrow');
+            obj.VisApplyButton.Enable = 'on';
         end
             
-        function onVisSwapButton(obj,h,e)
+        function onVisSwapButton(obj,~,~)
+            set(obj.getUIFigure,'pointer','watch');
+           
+            ThisProfile = obj.Optimization.PlotProfile(obj.Optimization.SelectedProfileRow);
+            
+            Prompt = 'This action will clear overriden source parameters. Do you want to continue? Press Cancel to save.';
+            Result = uiconfirm(obj.getUIFigure,Prompt,'Continue?','Option',{'Yes','Cancel'},'DefaultOption','Cancel');
+            
+            if strcmpi(Result,'Yes')
+                Names = {obj.Optimization.Settings.Parameters.Name};
+                MatchIdx = strcmpi(Names,obj.Optimization.RefParamName);
+                if any(MatchIdx)
+                    pObj = obj.Optimization.Settings.Parameters(MatchIdx);
+                    importData(pObj,pObj.FilePath);
+                else
+                    warning('Could not find match for specified parameter file')
+                end
+
+                ThisSourceData = {};
+                if ~isempty(ThisProfile.Source) && ~any(strcmpi(ThisProfile.Source,{'','N/A'}))
+                    [~,~,ThisSourceData] = importParametersSource(obj.Optimization,ThisProfile.Source);
+                end  
+                [~,index] = sort(upper(ThisSourceData(:,1)));
+                ThisProfile.Values = ThisSourceData(index,:);
+           end
+           % Update the view
+           updateVisualizationView(obj);
+
+           set(obj.getUIFigure,'pointer','arrow');
+           obj.VisDirty = true; %Same as notify(obj,'MarkDirty') in old implementation
+        end
+        
+        function onVisPencilMatButton(obj,~,~)
+            Question = 'Save Parameter set as?';
+            DefaultAnswer = sprintf('%s - %s', obj.Optimization.RefParamName,datestr(now,'dd-mmm-yyyy_HH-MM-SS'));
+            Answer = obj.dialogPopupHelper(Question,DefaultAnswer);
+            
+            if ~isempty(Answer)
+                AllParameters = obj.Optimization.Settings.Parameters;
+                AllParameterNames = get(AllParameters,'Name');
+                AllParameterFilePaths = get(AllParameters,'FilePath');
+                
+                % Append the source with the postfix appender
+                ThisProfile = obj.Optimization.PlotProfile(obj.Optimization.SelectedProfileRow);
+                ThisParameterName = matlab.lang.makeValidName(strtrim(Answer{1}));
+                
+                % get the parameter that was used to run this
+                % optimization
+                pObj = obj.Optimization.Settings.getParametersWithName(obj.Optimization.RefParamName);
+
+                ThisFilePath = fullfile(fileparts(pObj.FilePath), [ThisParameterName '.xlsx']);
+                
+                if isempty(ThisParameterName) || any(strcmpi(ThisParameterName,AllParameterNames)) || ...
+                        any(strcmpi(ThisFilePath,AllParameterFilePaths))
+                    Message = 'Please provide a valid, unique virtual population name.';
+                    Title = 'Invalid name';
+                    hDlg = errordlg(Message,Title,'modal');
+                    uiwait(hDlg);
+                else
+                    
+                    % Create a new parameter set 
+                    parameterObj = QSP.Parameters;
+                    parameterObj.Session = obj.Optimization.Session;
+                    parameterObj.Name = ThisParameterName;                    
+                    parameterObj.FilePath = ThisFilePath;                 
+                    
+                    ThisProfile = obj.Optimization.PlotProfile(obj.Optimization.SelectedProfileRow);
+                    
+                    Values = ThisProfile.Values(~cellfun(@isempty, ThisProfile.Values(:,2)), :)'; % Take first 2 rows and transpose
+                    
+                    
+                    [StatusOk,~,Header,Data] = importData(pObj, pObj.FilePath);
+                    if StatusOk
+                        idP0 = strcmpi(Header,'P0_1');
+                        idName = strcmpi(Header,'Name');
+                        [~,ix] = ismember(Data(:,idName), Values(1,:));
+                        Data(:,idP0) = Values(2,ix);
+                        xlwrite(parameterObj.FilePath,[Header; Data]); 
+                        
+                    end
+        
+                    % Update last saved time
+                    updateLastSavedTime(parameterObj);
+                    % Validate
+                    validate(parameterObj,false);
+                    
+                    % Call the callback
+                    evt.InteractionType = sprintf('Updated %s',class(parameterObj));
+                    evt.Data = parameterObj;
+                    obj.callCallback(evt);           
+                    
+                    % Update the view
+                    updateVisualizationView(obj);
+                end
+            end
+        end
+        
+        function onVisDataButton(obj,~,~)
+            DefaultAnswer = datestr(now,'dd-mmm-yyyy_HH-MM-SS');
+            Answer = obj.dialogPopupHelper('Save Virtual Population as?',DefaultAnswer);
+            
+            if ~isempty(Answer)
+                AllVPops = obj.Optimization.Settings.VirtualPopulation;
+                AllVPopNames = get(AllVPops,'Name');
+                AllVPopFilePaths = get(AllVPops,'FilePath');
+                
+                % Append the source with the postfix appender
+                ThisProfile = obj.Optimization.PlotProfile(obj.Optimization.SelectedProfileRow);
+                ThisVPopName = matlab.lang.makeValidName(strtrim(Answer{1}));
+                ThisVPopName = sprintf('%s - %s',ThisProfile.Source,ThisVPopName);
+                
+                ThisFilePath = fullfile(obj.Optimization.Session.RootDirectory, obj.Optimization.OptimResultsFolderName,[ThisVPopName '.xlsx']);
+                
+                if isempty(ThisVPopName) || any(strcmpi(ThisVPopName,AllVPopNames)) || ...
+                        any(strcmpi(ThisFilePath,AllVPopFilePaths))
+                    Message = 'Please provide a valid, unique virtual population name.';
+                    Title = 'Invalid name';
+                    hDlg = errordlg(Message,Title,'modal');
+                    uiwait(hDlg);
+                else
+                    
+                    % Create a new virtual population
+                    vpopObj = QSP.VirtualPopulation;
+                    vpopObj.Session = obj.Optimization.Session;
+                    vpopObj.Name = ThisVPopName;                    
+                    vpopObj.FilePath = ThisFilePath;                 
+                    
+                    ThisProfile = obj.Optimization.PlotProfile(obj.Optimization.SelectedProfileRow);
+                    
+                    Values = ThisProfile.Values(~cellfun(@isempty, ThisProfile.Values(:,2)), :)'; % Take first 2 rows and transpose
+                    
+                    xlwrite(vpopObj.FilePath,Values); 
+
+                    % Update last saved time
+                    updateLastSavedTime(vpopObj);
+                    % Validate
+                    validate(vpopObj,false);
+                    
+                    % Call the callback
+                    evt.InteractionType = sprintf('Updated %s',class(vpopObj));
+                    evt.Data = vpopObj;
+                    obj.callCallback(evt);           
+                    
+                    % Update the view
+                    updateVisualizationView(obj);
+                end
+            end
             
         end
         
-        function onVisPencilMatButton(obj,h,e)
-            
+        function onVisApplyButton(obj,~,~)
+            obj.redrawPlots();
+            obj.redrawVisEverything();
         end
         
-        function onVisDataButton(obj,h,e)
-            
-        end
-        
-        function onVisApplyButton(obj,h,e)
-            
-        end
-        
-        function onPlotItemsContextMenu(obj,h,e)
+        function onPlotItemsContextMenu(obj,~,~)
             
         end
 
@@ -712,7 +1126,10 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
         
         function attachNewOptimization(obj,NewOptimization)
             obj.Optimization = NewOptimization;
+            obj.Optimization.PlotSettings = getSummary(obj.getPlotSettings());
             obj.TemporaryOptimization = copy(obj.Optimization);
+            
+            
             for index = 1:obj.MaxNumPlots
                Summary = obj.Optimization.PlotSettings(index);
                % If Summary is empty (i.e., new node), then use
@@ -1196,6 +1613,18 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
         
         %We draw using  'Optimization', not 'temporaryOptimization' for the visulization
         %side
+        
+        function redrawVisEverything(obj)
+            obj.redrawVisContextMenus();
+            obj.redrawSpeciesDataTable();
+            obj.redrawOptimItemsTable();
+            obj.redrawProfileButtonGroup();
+            obj.redrawVisProfileTable();
+            obj.redrawVisParametersTable();
+            obj.redrawVisLineWidth();
+            
+        end
+        
         function redrawVisContextMenus(obj)
             %TODO
         end
@@ -1530,7 +1959,7 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
         end
         
         function redrawVisLineWidth(obj)
-            %For every line, specify the line widht.
+            %For every line, specify the line width.
             %If the line is from the selected row in the table, add 2
             
             if ~isempty(obj.Optimization)
@@ -1643,6 +2072,13 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
         
         function redrawPlots(obj,varargin)
             [obj.SpeciesGroup,obj.DatasetGroup,obj.AxesLegend,obj.AxesLegendChildren] = plotOptimization(obj.Optimization,obj.getPlotArray(),varargin);
+        end
+        
+        function Value = dialogPopupHelper(obj,Question,DefaultValue)
+            TemporaryPanel = QSPViewerNew.Widgets.InputDlgCustom(obj.getUIFigure(),Question,DefaultValue);
+            TemporaryPanel.wait();
+            Value = TemporaryPanel.getValue();
+            delete(TemporaryPanel);
         end
 
     end
