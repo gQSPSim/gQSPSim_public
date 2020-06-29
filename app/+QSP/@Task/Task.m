@@ -204,7 +204,7 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             
             [ThisStatusOk,ThisMessage] = importModel(obj,obj.FilePath,obj.ModelName);
             obj.MaxWallClockTime = ThisMaxWallClockTime; % override model defaults
-            if ~ThisStatusOk
+            if ~ThisStatusOk || isempty(obj.ModelObj) % NOTE: isempty(obj.ModelObj) check may need to be moved into importModel
                 Message = sprintf('%s\n* Error loading model "%s" in "%s". %s\n',Message,obj.ModelName,obj.FilePath,ThisMessage);
             end            
             

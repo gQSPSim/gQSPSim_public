@@ -146,6 +146,9 @@ classdef Parameters < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             [Header,Data,StatusOk,Message] = xlread(DataFilePath);
             if ~StatusOk
                 return
+            elseif ~isempty(Message)
+                StatusOk = false;
+                return;
             end
 
 %             catch ME

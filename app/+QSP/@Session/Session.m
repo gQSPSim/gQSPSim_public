@@ -629,11 +629,11 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
             thisObj = obj.VirtualPopulationData(strcmp({obj.VirtualPopulationData.Name},Name));
         end %function
         
-        function newObj = CreateVirtualPopulation(obj,varargin)
+        function newObj = CreateVirtualSubjects(obj,varargin)
             newObj = AddHelper(obj,'QSP.VirtualPopulation',varargin(:));
         end %function
         
-        function thisObj = GetVirtualPopulation(obj,Name)
+        function thisObj = GetVirtualSubjects(obj,Name)
             thisObj = obj.Settings.VirtualPopulation(strcmp({obj.Settings.VirtualPopulation.Name},Name));
         end %function
         

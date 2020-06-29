@@ -492,8 +492,16 @@ function [ItemModel, StatusOK, Message] = constructVpopItem(taskObj, vpopObj, gr
 %             vpopTable = cell2mat(raw(2:end,:));
 %         end
         
-        [params, vpopTable, StatusOK, Message] = xlread(vpopObj.FilePath);
-        vpopTable = cell2mat(vpopTable);
+%         [params, vpopTable, StatusOK, Message] = xlread(vpopObj.FilePath);
+%         vpopTable = cell2mat(vpopTable);
+        
+        vpopTable = readtable(vpopObj.FilePath,'PreserveVariableNames',true);
+        params = vpopTable.Properties.VariableNames;
+        StatusOK = true;
+        Message = '';
+        vpopTable = table2array(vpopTable);
+        
+        
         if ~StatusOK
             return
         end

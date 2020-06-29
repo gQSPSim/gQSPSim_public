@@ -415,7 +415,7 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 % Check Species (Mapping)
                 if any(SpeciesMappingIndex == 0)
                     BadValues = {obj.SpeciesData(SpeciesMappingIndex==0).SpeciesName};
-                    ThisMessage = sprintf('Invalid species: %s',uix.utility.cellstr2dlmstr(BadValues,','));
+                    ThisMessage = sprintf('Invalid species name: %s',uix.utility.cellstr2dlmstr(BadValues,','));
                     StatusOK = false;
                     Message = sprintf('%s\n* %s\n',Message,ThisMessage);
                 end
@@ -423,7 +423,7 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                  % Check Data (Mapping)
                 if any(DataMappingIndex == 0)
                     BadValues = {obj.SpeciesData(DataMappingIndex==0).DataName};
-                    ThisMessage = sprintf('Invalid species: %s',uix.utility.cellstr2dlmstr(BadValues,','));
+                    ThisMessage = sprintf('Invalid data name: %s',uix.utility.cellstr2dlmstr(BadValues,','));
                     StatusOK = false;
                     Message = sprintf('%s\n* %s\n',Message,ThisMessage);
                 else

@@ -107,7 +107,7 @@ classdef VirtualPopulationGenerationData < QSP.abstract.BaseProps & uix.mixin.Ha
             Message = '';
             
             try
-                Table = readtable(DataFilePath);                
+                Table = readtable(DataFilePath);
             catch ME
                 Table = table;
                 StatusOk = false;
