@@ -16,6 +16,7 @@ classdef gQSPSimTester < QSPViewer.App
             obj.Session.RootDirectory = char(rootDirectory);
             obj.Session.UseParallel = false;
             obj.Session.AutoSaveBeforeRun = false;
+            obj.Session.addUDF();
         end
         
         function delete(obj)

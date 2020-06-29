@@ -21,6 +21,7 @@ classdef tgQSPSim < matlab.unittest.TestCase
     methods(Test)
         function tSimulations(testCase, caseStudy)
             absolutePath = testCase.testRootDirectory + "/" + caseStudy;
+            absolutePath = convertStringsToChars(absolutePath);
             obj = gQSPSimTester(absolutePath);
             obj.runSimulations(testCase);
             delete(obj);
