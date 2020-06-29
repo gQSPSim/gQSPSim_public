@@ -9,7 +9,7 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
     %
     % Auth/Revision:
     %   Max Tracy
-    %
+%     %
     %  6/1/20
     % ---------------------------------------------------------------------
     
@@ -410,7 +410,7 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
             %Determine if the change was valid
             if iscell(h.ColumnFormat{e.Indices(2)}) && any(strcmp(h.ColumnFormat{e.Indices(2)},e.NewData))
                 %The new value was already in the dropdown, so we can
-                %contiue
+                %continue
                 obj.SelectedSpecies = e.Indices;
                 ThisData = get(h,'Data');
                 Indices = e.Indices;
@@ -700,7 +700,10 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
         
         function attachNewSimulation(obj,NewSimulation)
             obj.Simulation = NewSimulation;
+            obj.Simulation.PlotSettings = getSummary(obj.getPlotSettings());
             obj.TemporarySimulation = copy(obj.Simulation);
+           
+            
             for index = 1:obj.MaxNumPlots
                Summary = obj.Simulation.PlotSettings(index);
                % If Summary is empty (i.e., new node), then use
