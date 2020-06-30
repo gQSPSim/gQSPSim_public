@@ -45,7 +45,7 @@ for index = 1:numel(hAxes)
     %     XLimMode{index} = get(hAxes(index),'XLimMode');
     %     YLimMode{index} = get(hAxes(index),'YLimMode');
     cla(hAxes(index));
-    xr = get(hAxes(index),'xruler');
+    xr = get(hAxes(index),'XAxis');
     xr.TickLabelRotation = 0;
     
     legend(hAxes(index),'off')
@@ -637,7 +637,8 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
     
     overlays = [ublb_lines; acc_lines; rej_lines];
     if ~isempty(overlays)
-        uistack(overlays,'top');
+        %uistack is not supported using uiaxes. 
+        %uistack(overlays,'top');
     end
     
 end %for
