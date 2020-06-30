@@ -2,6 +2,7 @@
 % Want to put all testing infrastructure in this one directory
 % however we want to run tests from the root gQSPSim directory.
 currentPWD = pwd;
+genericError = '';
 cd ..
 
 % Add gQSPSim to the path.
@@ -16,15 +17,17 @@ disp('NOTE: Only running simulation tests.')
 try
     results = runtests('tgQSPSim/tSimulations');
 catch e
-    warning(e.message)
-    exit(1)
+    genericError = e.message;
 end
 
-if any([results.Failed])
+cd(currentPWD);
+
+if any([results.Failed]) || ~isempty(genericError)
     warning('Some errors encountered. See log file for details.');
-    cd(currentPWD);
+    if ~isempty(genericError)
+        warning(genericError);
+    end
     exit(1)
 else
-    cd(currentPWD);
     exit
 end
