@@ -15,7 +15,7 @@ addpath(genpath('tests'));
 disp('NOTE: Only running simulation tests.')
 
 try
-    results = runtests('tgQSPSim/tSimulations');
+    results = runtests('tgQSPSim', 'ProcedureName', 'tSimulations');
 catch e
     results.Failed = true;
     genericError = e.message;
