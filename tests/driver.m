@@ -10,9 +10,9 @@ DefinePaths;
 % available on the path.
 addpath(genpath('tests'));
 
-results = runtests('tests');
+disp('NOTE: Only running simulation tests.')
 
+results = runtests('tgQSPSim/tSimulations');
 if any([results.Failed])
     error('Some errors encountered. See log file for details.');
 end
-
