@@ -17,12 +17,13 @@ disp('NOTE: Only running simulation tests.')
 try
     results = runtests('tgQSPSim/tSimulations');
 catch e
+    results.Failed = true;
     genericError = e.message;
 end
 
 cd(currentPWD);
 
-if any([results.Failed]) || ~isempty(genericError)
+if any([results.Failed])
     warning('Some errors encountered. See log file for details.');
     if ~isempty(genericError)
         warning(genericError);
