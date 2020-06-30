@@ -12,7 +12,11 @@ addpath(genpath('tests'));
 
 disp('NOTE: Only running simulation tests.')
 
-results = runtests('tgQSPSim/tSimulations');
-if any([results.Failed])
-    error('Some errors encountered. See log file for details.');
+try
+    results = runtests('tgQSPSim/tSimulations');
+    if any([results.Failed])
+        error('Some errors encountered. See log file for details.');
+    end
+catch e
+    error(e.message)
 end
