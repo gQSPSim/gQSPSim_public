@@ -605,10 +605,12 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             end
         end %function 
         
-        function [StatusOK,Message,vpopObj] = run(obj)
+        function [StatusOK, Message, vpopObj, resultsArray] = run(obj)
             
             % Invoke validate
             [StatusOK, Message] = validate(obj,false);
+
+            resultsArray{1} = {};
             
             % Invoke helper
             if StatusOK
@@ -628,7 +630,14 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 end
                 
                 % Run helper
-                [StatusOK,Message,ResultsFileNames,VPopNames] = optimizationRunHelper(obj);
+                [StatusOK,Message,ResultsFileNames,VPopNames, resultsArray] = optimizationRunHelper(obj);
+                
+                % TODO pax: must make a standard for results at this level.
+                results.Results = resultsArray;
+                results.FileNames = ResultsFileNames;
+                
+                resultsArray = results;
+                
                 % Update MATFileName in the simulation items
                 obj.ExcelResultFileName = ResultsFileNames;
                 obj.VPopName = VPopNames;
