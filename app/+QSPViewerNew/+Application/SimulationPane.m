@@ -748,28 +748,38 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
                 obj.Simulation.bShowSD = obj.bShowSD;
             end
             
-            %Set Context Menus;
-            obj.PlotItemsTableContextMenu = uicontextmenu(ancestor(obj.SimulationEditGrid,'figure'));
-            obj.PlotItemsTableMenu = uimenu(obj.PlotItemsTableContextMenu);
-            obj.PlotItemsTableMenu.Label = 'Set Color';
-            obj.PlotItemsTableMenu.Tag = 'PlotItemsCM';
-            obj.PlotItemsTableMenu.MenuSelectedFcn = @(h,e)onPlotItemsTableContextMenu(obj,h,e);
-            obj.SimulationItemsTable.ContextMenu = obj.PlotItemsTableContextMenu;
-            
-            obj.PlotGroupTableContextMenu = uicontextmenu(ancestor(obj.SimulationEditGrid,'figure'));
-            obj.PlotGroupTableMenu = uimenu(obj.PlotGroupTableContextMenu);
-            obj.PlotGroupTableMenu.Label = 'Set Color';
-            obj.PlotGroupTableMenu.Tag = 'PlotGroupCM';
-            obj.PlotGroupTableMenu.MenuSelectedFcn = @(h,e)onPlotItemsTableContextMenu(obj,h,e);
-            obj.GroupTable.ContextMenu =  obj.PlotGroupTableContextMenu;
             % Create context menu
-            
+            obj.updateCM();
             obj.updateSpeciesTable();
             obj.updateSimItemsTable();
             [OptimHeader,OptimData] = updateDataTable(obj);
             obj.updateGroupTable(OptimHeader,OptimData);
             [obj.SpeciesGroup,obj.DatasetGroup,obj.AxesLegend,obj.AxesLegendChildren] = ...
              plotSimulation(obj.Simulation,obj.getPlotArray());
+        end
+        
+        function refreshVisualization(obj,axIndex)
+                        
+            %Set flags for determing what to display
+            if ~isempty(obj.Simulation)
+                obj.Simulation.bShowTraces = obj.bShowTraces;
+                obj.Simulation.bShowQuantiles = obj.bShowQuantiles;
+                obj.Simulation.bShowMean = obj.bShowMean;
+                obj.Simulation.bShowMedian = obj.bShowMedian;
+                obj.Simulation.bShowSD = obj.bShowSD;
+            end
+            
+            obj.updateCM();
+            obj.updateSpeciesTable();
+            obj.updateSimItemsTable();
+            [OptimHeader,OptimData] = updateDataTable(obj);
+            obj.updateGroupTable(OptimHeader,OptimData);
+            [UpdatedAxesLegend,UpdatedAxesLegendChildren] = updatePlots(...
+                obj.Simulation,obj.PlotArray,obj.SpeciesGroup,obj.DatasetGroup,...
+                'AxIndices',axIndex);
+            obj.AxesLegend(axIndex) = UpdatedAxesLegend(axIndex);
+            obj.AxesLegendChildren(axIndex) = UpdatedAxesLegendChildren(axIndex);   
+
         end
         
         function UpdateBackendPlotSettings(obj)
@@ -860,6 +870,25 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
     end
     
     methods (Access = private)
+        
+        function updateCM(obj)
+             %Set Context Menus;
+            obj.PlotItemsTableContextMenu = uicontextmenu(ancestor(obj.SimulationEditGrid,'figure'));
+            obj.PlotItemsTableMenu = uimenu(obj.PlotItemsTableContextMenu);
+            obj.PlotItemsTableMenu.Label = 'Set Color';
+            obj.PlotItemsTableMenu.Tag = 'PlotItemsCM';
+            obj.PlotItemsTableMenu.MenuSelectedFcn = @(h,e)onPlotItemsTableContextMenu(obj,h,e);
+            obj.SimulationItemsTable.ContextMenu = obj.PlotItemsTableContextMenu;
+            
+            obj.PlotGroupTableContextMenu = uicontextmenu(ancestor(obj.SimulationEditGrid,'figure'));
+            obj.PlotGroupTableMenu = uimenu(obj.PlotGroupTableContextMenu);
+            obj.PlotGroupTableMenu.Label = 'Set Color';
+            obj.PlotGroupTableMenu.Tag = 'PlotGroupCM';
+            obj.PlotGroupTableMenu.MenuSelectedFcn = @(h,e)onPlotItemsTableContextMenu(obj,h,e);
+            obj.GroupTable.ContextMenu =  obj.PlotGroupTableContextMenu;
+            % Create context menu
+        end
+        
         
         function updateDataset(obj)
             OptimHeader = {};
