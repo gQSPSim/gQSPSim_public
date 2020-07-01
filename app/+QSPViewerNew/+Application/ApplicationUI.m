@@ -959,7 +959,7 @@ classdef ApplicationUI < matlab.apps.AppBase
         %to use isequal
         for i = 1:length(app.WindowButtonDownCallbacks)
             if isequal(app.WindowButtonDownCallbacks{i},functionHandle)
-                app.WindowButtonDownCallbacks{i} = {};
+                app.WindowButtonDownCallbacks(i) = [];
             end
         end
     end
@@ -973,7 +973,7 @@ classdef ApplicationUI < matlab.apps.AppBase
         %to use isequal
         for i = 1:length(app.WindowButtonUpCallbacks)
             if isequal(app.WindowButtonDownCallbacks{i},functionHandle)
-                app.WindowButtonDownCallbacks{i} = {};
+                app.WindowButtonDownCallbacks(i) = [];
             end
         end
     end   
