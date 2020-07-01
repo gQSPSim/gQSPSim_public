@@ -182,8 +182,10 @@ H.edge(2)=plot(x,uE,'-','color',edgeColor,'linewidth',boundarylinewidth,'parent'
 
 
 %Now replace the line (this avoids having to bugger about with z coordinates)
-uistack(H.meanLine,'top')
-uistack(H.medianLine,'top')
+
+% uistack not supported in uifigure(s). 6/30/20
+%uistack(H.meanLine,'top') 
+%uistack(H.medianLine,'top')
 
 
 if ~holdStatus, hold(parent,'off'), end

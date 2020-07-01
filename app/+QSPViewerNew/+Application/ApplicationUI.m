@@ -157,7 +157,6 @@ classdef ApplicationUI < matlab.apps.AppBase
             app.NewCtrlNMenu.Accelerator = 'N';
             app.NewCtrlNMenu.MenuSelectedFcn = @app.onNew;
             
-
             % Create OpenCtrl0Menu
             app.OpenCtrl0Menu = uimenu(app.FileMenu);
             app.OpenCtrl0Menu.Text = 'Open...';
@@ -200,7 +199,6 @@ classdef ApplicationUI < matlab.apps.AppBase
             % Create AddNewItemMenu
             app.AddNewItemMenu = uimenu(app.QSPMenu);
             app.AddNewItemMenu.Text = 'Add New Item';
-            
 
             % Create DatasetMenu
             app.DatasetMenu = uimenu(app.AddNewItemMenu);
@@ -236,6 +234,7 @@ classdef ApplicationUI < matlab.apps.AppBase
             app.SimulationMenu = uimenu(app.AddNewItemMenu);
             app.SimulationMenu.Text = 'Simulation';
             app.SimulationMenu.MenuSelectedFcn = @(h,e) app.onAddItem('Simulation');
+
             % Create OptimizationMenu
             app.OptimizationMenu = uimenu(app.AddNewItemMenu);
             app.OptimizationMenu.Text = 'Optimization';
