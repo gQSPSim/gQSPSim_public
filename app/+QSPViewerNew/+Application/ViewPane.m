@@ -871,9 +871,10 @@ classdef ViewPane < handle
                     
                     bandPlotLB = [obj.PlotSettings.BandplotLowerQuantile];
                     bandPlotUB = [obj.PlotSettings.BandplotUpperQuantile];
-                    [StatusOk,NewSettings] = CustomizePlots(...
-                        'Settings',obj.PlotSettings);                    
-                    if StatusOk
+                    %[StatusOk,NewSettings] = CustomizePlots(...
+                    %    'Settings',obj.PlotSettings);     
+                    %TODO turn on when you have a new ui for the settings
+                    if false
                         replot = false;
                         if any([NewSettings.BandplotLowerQuantile] ~= bandPlotLB | ...
                             [NewSettings.BandplotUpperQuantile] ~= bandPlotUB)
