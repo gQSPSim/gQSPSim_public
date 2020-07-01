@@ -452,9 +452,11 @@ classdef ViewPane < handle
                for plotIndex = 1:obj.MaxNumPlots
                     obj.PlotArray(plotIndex) = uiaxes('Parent',obj.EmptyParent);
                     currentPlot = obj.PlotArray(plotIndex);
-                    disableDefaultInteractivity(currentPlot)
+                    disableDefaultInteractivity(currentPlot);
                     obj.PlotArray(plotIndex).Tag = ['plot',num2str(plotIndex)];
                     currentPlot.Toolbar.Visible = 'off';
+                    set(currentPlot,'Interactions',[]);
+                    enableDefaultInteractivity(currentPlot);
 
                     %Title
                     currentPlot.Title.String = sprintf('Plot %d',plotIndex);
@@ -763,34 +765,25 @@ classdef ViewPane < handle
                 case 'ShowTraces'
                     obj.bShowTraces(plotIndex) = ~obj.bShowTraces(plotIndex);
                     h.Checked = obj.bShowTraces(plotIndex);
+                    obj.refreshVisualization(plotIndex);
                 case 'ShowQuantiles'
                     obj.bShowQuantiles(plotIndex) = ~obj.bShowQuantiles(plotIndex);
                     h.Checked = obj.bShowQuantiles(plotIndex);
+                    obj.refreshVisualization(plotIndex);
                 case 'ShowMean'
                     obj.bShowMean(plotIndex) = ~obj.bShowMean(plotIndex);
-                    h.Checked = obj.bShowMean(plotIndex);                   
+                    h.Checked = obj.bShowMean(plotIndex);         
+                    obj.refreshVisualization(plotIndex);
                 case 'ShowMedian'
                     obj.bShowMedian(plotIndex) = ~obj.bShowMedian(plotIndex);
                     h.Checked = obj.bShowMedian(plotIndex);
+                    obj.refreshVisualization(plotIndex);
                 case 'ShowSD'
                     obj.bShowSD(plotIndex) = ~obj.bShowSD(plotIndex);
                     h.Checked = obj.bShowSD(plotIndex);
+                    obj.refreshVisualization(plotIndex);
             end
-            
-            % Update the display
-            obj.drawVisualization();
-            ThisTag = h.Tag;
-            if strcmp(ThisTag,'ShowTraces') || strcmp(ThisTag,'ShowQuantiles') || strcmp(ThisTag,'ShowMean') || strcmp(ThisTag,'ShowMedian') || strcmp(ThisTag,'ShowSD')
-                if any(strcmpi(class(obj),{'QSPViewerNew.Application.SimulationPane','QSPViewerNew.Application.CohortGenerationPane','QSPViewerNew.Application.VirtualPopulationGenerationPane'}))
-                    [UpdatedAxesLegend,UpdatedAxesLegendChildren] = updatePlots(...
-                        obj.Simulation,obj.PlotArray,obj.SpeciesGroup,obj. DatasetGroup,...
-                        'AxIndices',plotIndex);
-                    obj.AxesLegend(plotIndex) = UpdatedAxesLegend(plotIndex);
-                    obj.AxesLegendChildren(plotIndex) = UpdatedAxesLegendChildren(plotIndex);
-                else
-                    %TODO obj.plotData();
-                end
-            end
+                      
         end
         
     end
@@ -819,7 +812,7 @@ classdef ViewPane < handle
                         obj.SummaryButton.Enable = 'on';
                         obj.EditButton.Enable = 'on';
                         if obj.HasVisualization
-                             obj.toggleButtonsInteraction({'on','on','on','on','on','on','on','on','on'});
+                             obj.toggleButtonsInteraction({'on','on','on','on','on','off','off','off','off'});
                         end
                     end
                 case 'Edit'
@@ -836,7 +829,7 @@ classdef ViewPane < handle
                         obj.SummaryButton.Enable = 'off';
                         obj.EditButton.Enable = 'off';
                         if obj.HasVisualization
-                            obj.toggleButtonsInteraction({'off','off','off','off','off','off','off','off','off'});
+                            obj.toggleButtonsInteraction({'on','on','on','on','on','off','off','off','off'});
                         end
                     end
                 case 'Run'
@@ -858,7 +851,7 @@ classdef ViewPane < handle
                     obj.SummaryButton.Enable = 'on';
                     obj.EditButton.Enable = 'on';
                     if obj.HasVisualization
-                         obj.toggleButtonsInteraction({'on','on','on','on','on','on','on','on','on'});
+                         obj.toggleButtonsInteraction({'on','on','on','on','on','off','off','off','off'});
                     end
                 case 'Visualize'
                     if strcmp(obj.VisualizationPanel.Visible,'off')
@@ -875,35 +868,63 @@ classdef ViewPane < handle
                         obj.toggleButtonsInteraction({'on','on','on','on','on','on','on','on','on'});
                     end
                 case 'Settings'
-                    disp("TODO :Launch Settings Window");
+                    
+                    bandPlotLB = [obj.PlotSettings.BandplotLowerQuantile];
+                    bandPlotUB = [obj.PlotSettings.BandplotUpperQuantile];
+                    [StatusOk,NewSettings] = CustomizePlots(...
+                        'Settings',obj.PlotSettings);                    
+                    if StatusOk
+                        replot = false;
+                        if any([NewSettings.BandplotLowerQuantile] ~= bandPlotLB | ...
+                            [NewSettings.BandplotUpperQuantile] ~= bandPlotUB)
+                                replot = true;
+                        end
+                        
+                        obj.PlotSettings = NewSettings;
+                        
+                        if replot
+                            obj.drawVisualization();
+                        else
+                            obj.refreshVisualization();
+                        end
+                      
+                    end
                 case 'ZoomIn'
                     obj.toggleButtonsInteraction({'on','on','on','on','on','on','on','on','on'});
                     if obj.ZoomInButton.Value
                         obj.toggleVisButtonsState([1,0,0,0]);
+                        set(obj.PlotArray,'Interactions',[regionZoomInteraction zoomInteraction]);
                     else
+                        set(obj.PlotArray,'Interactions',[]);
                         obj.toggleVisButtonsState([0,0,0,0]);
                     end
                 case 'ZoomOut'
                     obj.toggleButtonsInteraction({'on','on','on','on','on','on','on','on','on'});
                     if obj.ZoomOutButton.Value
                         obj.toggleVisButtonsState([0,1,0,0]);
+                        set(obj.PlotArray,'Interactions',zoomInteraction);
                     else
                         obj.toggleVisButtonsState([0,0,0,0]);
+                        set(obj.PlotArray,'Interactions',[]);
                     end
                     
                 case 'Pan'
                     obj.toggleButtonsInteraction({'on','on','on','on','on','on','on','on','on'});
                     if obj.PanButton.Value
                         obj.toggleVisButtonsState([0,0,1,0]);
+                        set(obj.PlotArray,'Interactions',panInteraction);
                     else
                         obj.toggleVisButtonsState([0,0,0,0]);
+                        set(obj.PlotArray,'Interactions',[]);
                     end
                 case 'Explore'
                     obj.toggleButtonsInteraction({'on','on','on','on','on','on','on','on','on'});
                     if obj.ExploreButton.Value
                         obj.toggleVisButtonsState([0,0,0,1]);
+                        set(obj.PlotArray,'Interactions',[dataTipInteraction]);
                     else
                         obj.toggleVisButtonsState([0,0,0,0]);
+                        set(obj.PlotArray,'Interactions',[]);
                     end
             end 
         end
@@ -996,7 +1017,6 @@ classdef ViewPane < handle
             %For all plots that will not be shown, set their parent to an
             %empty object
             for plotIndex = str2double(Rows)*str2double(Columns)+1:obj.MaxNumPlots
-                obj.PlotArray(plotIndex).ContextMenu = [];
                 obj.PlotArray(plotIndex).Parent = obj.EmptyParent;
             end
             
@@ -1015,7 +1035,6 @@ classdef ViewPane < handle
             obj.PlottingGrid.RowHeight = RowsInput;
             obj.PlottingGrid.ColumnWidth = ColumnsInput;
             obj.PlottingGrid.Visible = 'on';
-            drawnow();
         end
         
         function updateLines(obj)
