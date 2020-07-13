@@ -1,6 +1,10 @@
 function [Results, nFailedSims] = parBlock(taskObj, Names, Values, times, DataSize, NS, options, q )   
 
-N = size(Values,1);
+if ~isempty(Values)
+    N = size(Values,1);
+else
+    N = 1; % model default
+end    
 
 parResults = cell(1,N);
 nFailedSims = zeros(1,N);
