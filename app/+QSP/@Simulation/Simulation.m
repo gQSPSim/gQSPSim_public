@@ -26,7 +26,7 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
     %   $Revision: 331 $  $Date: 2016-10-05 18:01:36 -0400 (Wed, 05 Oct 2016) $
     % ---------------------------------------------------------------------
     
-    %% Properties
+    % Properties
     properties
         Settings = QSP.Settings.empty(0,1)
         
@@ -60,7 +60,7 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         NullVPop = 'ModelDefault'
     end
     
-    %% Constructor
+    % Constructor
     methods
         function obj = Simulation(varargin)
             % Simulation - Constructor for QSP.Simulation
@@ -107,7 +107,7 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         
     end %methods
     
-    %% Methods defined as abstract
+    % Methods defined as abstract
     methods
         
         function Summary = getSummary(obj)
@@ -376,8 +376,13 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                     TaskLastSavedTime = ThisTask.LastSavedTime;
                     
                     % SimBiology Project file from Task
-                    FileInfo = dir(ThisTask.FilePath);                    
-                    TaskProjectLastSavedTime = FileInfo.datenum;
+                    FileInfo = dir(ThisTask.FilePath);  
+                    if ~isempty(FileInfo)
+                        TaskProjectLastSavedTime = FileInfo.datenum;
+                    else
+                        TaskProjectLastSavedTime = 0;
+                    end
+                        
                     
                     % VPop object (item) and file
                     if ~isempty(ThisVPop) % Guard for NullVPop
@@ -431,7 +436,7 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
     end %methods
     
     
-    %% Set Methods
+    %  Set Methods
     methods
         
         function set.Settings(obj,Value)
