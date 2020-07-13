@@ -807,48 +807,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
             obj.ColorMap2 = Value;
         end
         
-        function files = get.GitFiles(obj)
-            allFiles = {};
-
-            % session
-            allFiles = [allFiles, obj.SessionName];
-            
-            % model files
-            files = {};
-            objs = obj.Settings.Task;
-            for ixObj = 1:length(objs)
-                m = objs(ixObj).ModelObj;
-                if ~isempty(m)
-                   allFiles = [allFiles, strrep( m.RelativeFilePath_new, [obj.RootDirectory filesep], '')];
-                end
-            end
-            allFiles = unique(allFiles);
-            
-            files = allFiles;
-            
-            %% input files
-            
-            % virtual populations
-            files = [files, unique({obj.Settings.VirtualPopulation.RelativeFilePath_new})];
-            
-            % parameters
-            files = [files, unique({obj.Settings.Parameters.RelativeFilePath_new})];
-            
-            % data
-            files = [files, unique({obj.Settings.OptimizationData.RelativeFilePath_new})];
-            
-            % acceptance criteria
-            files = [files, unique({obj.Settings.VirtualPopulationData.RelativeFilePath_new})];
-            
-            % target statistics
-            files = [files, unique({obj.Settings.VirtualPopulationGenerationData.RelativeFilePath_new})];
-            
-            % Session
-            
-            % remove . for empty items
-            files = setdiff(files, {'.','./','.\'});
-            
-        end
+       
         
     end %methods
     
