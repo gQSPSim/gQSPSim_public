@@ -24,10 +24,7 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
     
     properties (Access=private)
         SelectedRow =0;
-        SpeciesGroup
-        DatasetGroup
-        AxesLegend
-        AxesLegendChildren
+
         OptimHeader
         
         DatasetPopupItems = {'-'}
@@ -69,6 +66,9 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
         RNGSeed = 100
         
         ObjectiveFunctions = {'defaultObj'}
+        
+        StaleFlag
+        ValidFlag
     end
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -137,6 +137,8 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
         VisDataButton                   matlab.ui.control.Button
         VisApplyButton                  matlab.ui.control.Button
 
+        PlotItemsTableContextMenu
+        PlotItemsTableMenu
         
     end
         
@@ -787,7 +789,7 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
                             ThisProfile.Show = h.Data{RowIdx,ColIdx};
                             
                             % Update the view
-                            obj.redrawVisEverything();
+                            obj.refreshVisualization();
                             
                             % Don't overwrite the output
                             obj.Optimization.updatePlots(obj.PlotArray,obj.SpeciesGroup,obj.DatasetGroup,...
@@ -797,7 +799,7 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
                             % Re-import the source values for
                             % ThisProfile.Source (before changing)
                             
-                            if any(strcmp(h.ColumnFormat{colIdx},e.NewData))
+                            if any(strcmp(h.ColumnFormat{ColIdx},e.NewData))
                                 ThisSourceData = {};
                                 if ~isempty(ThisProfile.Source) && ~any(strcmpi(ThisProfile.Source,{'','N/A'}))
                                     [~,~,ThisSourceData] = importParametersSource(obj.Optimization,ThisProfile.Source);
@@ -833,11 +835,11 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
                                     ThisProfile.Source = '';
                                     ThisProfile.Values = cell(0,2);
                                 elseif isempty(ThisSourceData) || strcmpi(Result,'Yes')
-                                    obj = obj.Optimization;
-                                    Names = {obj.Optimization.Settings.Parameters.Name};
-                                    MatchIdx = strcmpi(Names,obj.Optimization.RefParamName);
+                                    tempObj = obj.Optimization;
+                                    Names = {tempObj.Settings.Parameters.Name};
+                                    MatchIdx = strcmpi(Names,tempObj.RefParamName);
                                     if any(MatchIdx)
-                                        pObj = obj.Optimization.Settings.Parameters(MatchIdx);
+                                        pObj = tempObj.Settings.Parameters(MatchIdx);
                                         importData(pObj,pObj.FilePath);
                                     else
                                         warning('Could not find match for specified parameter file')
@@ -859,7 +861,7 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
                                 end
                                 
                                 % Update the view
-                                updateVisualizationView(obj);
+                                obj.refreshVisualization(obj);
                             end
                             
                         case 4
@@ -867,7 +869,7 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
                             ThisProfile.Description = h.Data{RowIdx,ColIdx};
                             
                             % Update the view
-                            obj.redrawVisEverything();
+                            obj.refreshVisualization();
                     end %switch
                 end %if
                 
@@ -996,8 +998,7 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
                 AllParameterFilePaths = get(AllParameters,'FilePath');
                 
                 % Append the source with the postfix appender
-                ThisProfile = obj.Optimization.PlotProfile(obj.Optimization.SelectedProfileRow);
-                ThisParameterName = matlab.lang.makeValidName(strtrim(Answer{1}));
+                ThisParameterName = matlab.lang.makeValidName(strtrim(Answer));
                 
                 % get the parameter that was used to run this
                 % optimization
@@ -1108,8 +1109,8 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
             obj.redrawVisEverything();
         end
         
-        function onPlotItemsContextMenu(obj,~,~)
-            
+        function onPlotItemsContextMenu(~,~,~)
+            %TODO when uisetcolor is supported or a workaround
         end
 
     end
@@ -1148,9 +1149,11 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
         end
         
         function runModel(obj)
-            [StatusOK,Message,~] = run(obj.Optimization);
+            [StatusOK,Message,vpopObj] = run(obj.Optimization);
             if ~StatusOK
                 uialert(obj.getUIFigure,Message,'Run Failed');
+            else
+                obj.notifyOfChange(vpopObj);
             end
         end
         
@@ -1162,7 +1165,7 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
             %Determine if the values are valid
             if ~isempty(obj.Optimization)
                 % Check what items are stale or invalid
-                [~,~] = getStaleItemIndices(obj.Optimization);  
+                [obj.StaleFlag,obj.ValidFlag] = getStaleItemIndices(obj.Optimization);  
             end
             
             %Set flags for determing what to display
@@ -1184,9 +1187,30 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
             obj.redrawPlots();
         end
         
+        function refreshVisualization(obj,~)
+            
+            %Set flags for determing what to display
+            if ~isempty(obj.Optimization)
+                obj.Optimization.bShowTraces = obj.bShowTraces;
+                obj.Optimization.bShowQuantiles = obj.bShowQuantiles;
+                obj.Optimization.bShowMean = obj.bShowMean;
+                obj.Optimization.bShowMedian = obj.bShowMedian;
+                obj.Optimization.bShowSD = obj.bShowSD;
+            end
+            obj.redrawVisContextMenus();
+            obj.redrawOptimItemsTable();
+            obj.redrawSpeciesDataTable();
+            obj.redrawProfileButtonGroup();
+            obj.redrawVisProfileTable();
+            obj.redrawVisParametersTable();
+            obj.redrawVisLineWidth();
+            obj.redrawPlots();
+        end
+        
         function UpdateBackendPlotSettings(obj)
             obj.Optimization.PlotSettings = getSummary(obj.getPlotSettings());
         end
+        
         
     end
        
@@ -1230,8 +1254,26 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
             
         end
         
-        function saveVisualizationView(obj)
-            %TODO
+        function removeInvalidVisualization(obj)
+            if ~isempty(obj.PlotSpeciesInvalidRowIndices)
+                obj.Optimization.PlotSpeciesTable(obj.PlotSpeciesInvalidRowIndices,:) = [];
+                obj.PlotSpeciesAsInvalidTable(obj.PlotSpeciesInvalidRowIndices,:) = [];
+                obj.PlotSpeciesInvalidRowIndices = [];
+            end
+            
+            if ~isempty(obj.PlotItemInvalidRowIndices)
+                obj.Optimization.PlotItemTable(obj.PlotItemInvalidRowIndices,:) = [];
+                obj.PlotItemAsInvalidTable(obj.PlotSpeciesInvalidRowIndices,:) = [];
+                obj.PlotItemInvalidRowIndices = [];
+            end
+            
+            % Update
+            obj.redrawVisContextMenus();
+            obj.redrawOptimItemsTable();
+            obj.redrawSpeciesDataTable();
+            obj.redrawProfileButtonGroup();
+            obj.redrawVisProfileTable();
+            obj.redrawVisParametersTable();
         end
         
         function deleteTemporary(obj)
@@ -1274,6 +1316,15 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
                 Message = sprintf('%s\nDuplicate names are not allowed.\n', Message);
                 StatusOK = false;
             end
+        end
+        
+        function [ValidTF] = isValid(obj)
+            [~,Valid] = getStaleItemIndices(obj.Optimization);
+            ValidTF = all(Valid);
+        end
+        
+        function BackEnd = getBackEnd(obj)
+            BackEnd = obj.Optimization;
         end
     end
     
@@ -1505,13 +1556,16 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
                 end    
                 GroupIDs = unique(GroupIDs);
                 obj.GroupIDPopupTableItems = cellfun(@(x)num2str(x),num2cell(GroupIDs),'UniformOutput',false);
+                obj.OptimizationTable.setFormat({obj.TaskPopupTableItems(:)',obj.GroupIDPopupTableItems(:)','char'});
+                obj.OptimizationTable.setEditable([true true false]);
             else
+                obj.OptimizationTable.setFormat({'char','char','char'});
+                obj.OptimizationTable.setEditable([false false false]);
                 obj.GroupIDPopupTableItems = {};
             end
             
             obj.OptimizationTable.setEditable([true true false]);
             obj.OptimizationTable.setName({'Task','Group','Run To Steady State'});
-            obj.OptimizationTable.setFormat({obj.TaskPopupTableItems(:)',obj.GroupIDPopupTableItems(:)','char'});
             obj.OptimizationTable.setData(Data)
         end
         
@@ -1573,9 +1627,24 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
                 Data = {};
             end
             
-            obj.SpeciesDataTable.setEditable([true true false true true]);
+            EditTF = [true true false true true];
+            if isempty(obj.PrunedDatasetHeader)
+                ColumnA = 'char';
+                EditTF(1) = false;
+            else
+                ColumnA = obj.PrunedDatasetHeader(:)';
+            end
+            
+            if isempty(obj.SpeciesPopupTableItems)
+                ColumnB = 'char';
+                EditTF(2) = false;
+            else
+                ColumnB = obj.SpeciesPopupTableItems(:)';
+            end
+                
+            obj.SpeciesDataTable.setEditable(EditTF);
             obj.SpeciesDataTable.setName({'Data (y)','Species (x)','# Tasks per Species','y=f(x)','ObjectiveFcn'});
-            obj.SpeciesDataTable.setFormat({obj.PrunedDatasetHeader(:)',obj.SpeciesPopupTableItems(:)','numeric','char',obj.ObjectiveFunctions(:)'});
+            obj.SpeciesDataTable.setFormat({ColumnA,ColumnB,'numeric','char',obj.ObjectiveFunctions(:)'});
             obj.SpeciesDataTable.setData(Data)
         end
         
@@ -1604,9 +1673,24 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
                 Data = {};
             end
             
-            obj.SpeciesInitialTable.setEditable([true true true]);
+            EditTF = [true true true];
+            if isempty(obj.PrunedDatasetHeader)
+                ColumnA = 'char';
+                EditTF(1) = false;
+            else
+                ColumnA = obj.SpeciesPopupTableItems(:)';
+            end
+            
+            if isempty(obj.SpeciesPopupTableItems)
+                ColumnB = 'char';
+                EditTF(2) = false;
+            else
+                ColumnB = obj.PrunedDatasetHeader(:)';
+            end
+            
+            obj.SpeciesInitialTable.setEditable(EditTF);
             obj.SpeciesInitialTable.setName({'Species (y)','Data (x)','y=f(x)'});
-            obj.SpeciesInitialTable.setFormat({obj.SpeciesPopupTableItems(:)',obj.PrunedDatasetHeader(:)','char'});
+            obj.SpeciesInitialTable.setFormat({ColumnA,ColumnB,'char'});
             obj.SpeciesInitialTable.setData(Data)
             
         end
@@ -1626,7 +1710,13 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
         end
         
         function redrawVisContextMenus(obj)
-            %TODO
+             %Set Context Menus;
+            obj.PlotItemsTableContextMenu = uicontextmenu(ancestor(obj.EditLayout,'figure'));
+            obj.PlotItemsTableMenu = uimenu(obj.PlotItemsTableContextMenu);
+            obj.PlotItemsTableMenu.Label = 'Set Color';
+            obj.PlotItemsTableMenu.Tag = 'PlotItemsCM';
+            obj.PlotItemsTableMenu.MenuSelectedFcn = @(h,e)onPlotItemsContextMenu(obj,h,e);
+            obj.VisOptimItemsTable.ContextMenu = obj.PlotItemsTableContextMenu;
         end
         
         function redrawSpeciesDataTable(obj)
