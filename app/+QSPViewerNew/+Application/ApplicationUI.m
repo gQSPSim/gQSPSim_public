@@ -254,12 +254,12 @@ classdef ApplicationUI < matlab.apps.AppBase
             % Create DeleteSelectedItemMenu
             app.DeleteSelectedItemMenu = uimenu(app.QSPMenu);
             app.DeleteSelectedItemMenu.Text = 'Delete Selected Item';
-            app.DeleteSelectedItemMenu.MenuSelectedFcn =@(h,e) app.onAddItem('OptimizationData');
+            app.DeleteSelectedItemMenu.MenuSelectedFcn =@(h,e) app.onDeleteSelectedItem();
 
             % Create RestoreSelectedItemMenu
             app.RestoreSelectedItemMenu = uimenu(app.QSPMenu);
             app.RestoreSelectedItemMenu.Text = 'Restore Selected Item';
-            app.RestoreSelectedItemMenu.MenuSelectedFcn =@(h,e) app.onAddItem('OptimizationData');
+            app.RestoreSelectedItemMenu.MenuSelectedFcn =@(h,e) app.onRestoreSelectedItem();
 
             % Create HelpMenu
             app.HelpMenu = uimenu(app.UIFigure);
@@ -378,10 +378,10 @@ classdef ApplicationUI < matlab.apps.AppBase
                 Data = AllData(idx);
 
                 % What type of object is this?
-                Type = class(Data);
+                TypeTemp = class(Data);
 
                 % Switch on object type for the icon
-                switch Type
+                switch TypeTemp
 
                     case 'QSP.Session'
 
@@ -527,7 +527,7 @@ classdef ApplicationUI < matlab.apps.AppBase
 
                         % Skip this node
                         warning('QSPViewer:App:createTree:UnhandledType',...
-                            'Unhandled object type for tree: %s. Skipping.', Type);
+                            'Unhandled object type for tree: %s. Skipping.', TypeTemp);
                         continue
 
                 end %switch
@@ -594,11 +594,14 @@ classdef ApplicationUI < matlab.apps.AppBase
         end
         
         function onDeleteSelectedItem(app,~,~)
-            disp("TODO: Delete Selected");
+            gco(app.UIFigure)
+            CurrentNode = app.TreeRoot.SelectedNodes;
+            app.DeleteNode(CurrentNode,app.SelectedSession)
         end
         
         function onRestoreSelectedItem(app,~,~)
-            disp("TODO: Restore Selected");
+            CurrentNode = app.TreeRoot.SelectedNodes;
+            app.RestoreNode(CurrentNode,app.SelectedSession)
         end
         
         function onExit(app,~,~)
@@ -606,7 +609,17 @@ classdef ApplicationUI < matlab.apps.AppBase
         end
         
         function onAbout(app,~,~)
-            disp("TODO: About Selected")
+           Message = {'gQSPsim version 1.0', ...
+               '', ...
+               'http://www.github.com/feigelman/gQSPsim', ...
+               '', ...
+               'Authors:', ...
+               '', ...
+               'Justin Feigelman (feigelman.justin@gene.com)', ...
+               'Iraj Hosseini (hosseini.iraj@gene.com)', ...
+               'Anita Gajjala (agajjala@mathworks.com)'};
+           uialert(app.UIFigure,Message,'About','Icon','');
+
         end
         
         function onTreeSelectionChanged(app,handle,event)
@@ -726,8 +739,9 @@ classdef ApplicationUI < matlab.apps.AppBase
             app.refresh();
         end
         
-        function onDuplicateItem(app,h,e)
-            disp("TODO: Duplicate This item")
+        function onDuplicateItem(app,~,~)
+            CurrentNode = app.TreeRoot.SelectedNodes;
+            app.DuplicateNode(CurrentNode,app.SelectedSession)
         end
         
         function ExecuteCallbackArray(~,functionArray,h,e)
@@ -939,15 +953,33 @@ classdef ApplicationUI < matlab.apps.AppBase
        app.QSPMenu.Enable = 'on';
     end
 
-    function changeInBackEnd(app,newSession)
-       %1.Replace the current Session with the newSession
-       app.Sessions(app.SelectedSessionIdx) = newSession;
-
-       %2. It must update the tree to reflect all the new values from
-       %the session
-       app.updateTreeData(app.TreeRoot.Children(app.SelectedSessionIdx),newSession,'Session')
-
-       app.refresh();
+    function changeInBackEnd(app,newObject)
+        
+      switch class(newObject)
+          
+          %We have a new backend object to attach to the tree.
+          case 'QSP.Session'
+              %1.Replace the current Session with the newSession
+              app.Sessions(app.SelectedSessionIdx) = newObject;
+              
+              %2. It must update the tree to reflect all the new values from
+              %the session
+              app.updateTreeData(app.TreeRoot.Children(app.SelectedSessionIdx),newObject,'Session')
+              
+              app.refresh();
+          case 'QSP.VirtualPopulation'
+              NewVirtualPopulation = newObject;
+              for idx = 1:numel(NewVirtualPopulation)
+                  app.onAddItem(NewVirtualPopulation(idx))
+              end
+          case 'QSP.Parameters'
+              NewParameters = newObject;
+              for idx = 1:numel(NewParameters)
+                  app.onAddItem(NewParameters(idx))
+              end
+          otherwise 
+              error('QSP object is not supported for adding to tree')
+      end
     end
 
     function addWindowDownCallback(app,functionHandle)
@@ -960,6 +992,7 @@ classdef ApplicationUI < matlab.apps.AppBase
         for i = 1:length(app.WindowButtonDownCallbacks)
             if isequal(app.WindowButtonDownCallbacks{i},functionHandle)
                 app.WindowButtonDownCallbacks(i) = [];
+                break
             end
         end
     end
@@ -972,8 +1005,9 @@ classdef ApplicationUI < matlab.apps.AppBase
         %Need to use loop because == does not support function handles, need
         %to use isequal
         for i = 1:length(app.WindowButtonUpCallbacks)
-            if isequal(app.WindowButtonDownCallbacks{i},functionHandle)
-                app.WindowButtonDownCallbacks(i) = [];
+            if isequal(app.WindowButtonUpCallbacks{i},functionHandle)
+                app.WindowButtonUpCallbacks(i) = [];
+                break
             end
         end
     end   
@@ -1196,6 +1230,8 @@ classdef ApplicationUI < matlab.apps.AppBase
                     app.ActivePane.attachNewVirtPopGenData(NodeData);
                 case 'QSPViewerNew.Application.SimulationPane'
                     app.ActivePane.attachNewSimulation(NodeData);
+                case 'QSPViewerNew.Application.CohortGenerationPane'
+                    app.ActivePane.attachNewCohortGeneration(NodeData);
             end
             
             app.ActivePane.showThisPane();
@@ -1289,7 +1325,51 @@ classdef ApplicationUI < matlab.apps.AppBase
                 SelNode.Text = SelNode.NodeData.Name;
             end
         end
-       
+        
+        function RestoreNode(app,Node,Session)
+
+        end
+        
+        function DuplicateNode(app,Node,Session)
+            
+        end
+        
+        function DeleteNode(app,Node,Session)
+
+            % What type of item?
+            PackageContents = strsplit(class(Node.NodeData),'.');
+            ItemType = PackageContents{end};
+            
+            % Where is the Deleted Items node?
+            hDeletedNode = Session.TreeNode.Children(3);
+            
+            % What are the data object and its parent?
+            ThisObj = Node.NodeData;
+            ParentObj = Node.Parent.NodeData;
+            
+            % Move the object from its parent to deleted
+            Session.Deleted(end+1) = ThisObj;
+            ParentObj.(ItemType)( ParentObj.(ItemType)==ThisObj ) = [];
+            Node.Parent = hDeletedNode;
+            app.TreeRoot.SelectedNodes = Node;
+            % Change context menu
+            Node.UIContextMenu = app.TreeMenu.Leaf.Deleted;
+            
+            app.SelectedSessionIdx = []; % switch to summary view
+            
+            hDeletedNode.expand();
+            
+            % Mark the current session dirty
+            app.markDirty();
+                        
+            % Update the display
+            app.refresh();
+            
+        end
+        
+        function permDelete(Node,Session)
+            
+        end
     end
     
     % %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %%
@@ -1305,7 +1385,7 @@ classdef ApplicationUI < matlab.apps.AppBase
             end
         end
         
-       function hNode = i_addNode(Parent, Data, Name, Icon, CMenu, PaneType, Tooltip)
+       function hNode = i_addNode(Parent, Data, Name, Icon, CMenu, PaneType, ~)
         % Create the node
         hNode = uitreenode(...
             'Parent', Parent,...
