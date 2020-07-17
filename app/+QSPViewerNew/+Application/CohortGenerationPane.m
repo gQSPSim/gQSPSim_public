@@ -22,12 +22,10 @@ classdef CohortGenerationPane < QSPViewerNew.Application.ViewPane
         IsDirty = false
     end
     
-    properties (Access=private)
+    properties (Access = private)
+        SelectedRow = 0;
         SaveValues = {'Save all virtual subjects', 'Save valid virtual subjects'};
-        SpeciesGroup = {};
-        DatasetGroup = {};
-        AxesLegend = {};
-        AxesLegendChildren = {};
+
         
         DatasetPopupItems = {'-'}
         DatasetPopupItemsWithInvalid = {'-'}
@@ -64,6 +62,9 @@ classdef CohortGenerationPane < QSPViewerNew.Application.ViewPane
         
         ShowTraces = true;
         ShowSEBar = false;
+        
+        StaleFlag
+        ValidFlag
     end
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -126,6 +127,9 @@ classdef CohortGenerationPane < QSPViewerNew.Application.ViewPane
         VisInvalidCheckBox              matlab.ui.control.CheckBox
         VisVirtCohortItemsTableLabel    matlab.ui.control.Label
         VisVirtCohortItemsTable         matlab.ui.control.Table
+        
+        PlotItemsTableContextMenu
+        PlotItemsTableMenu
         
     end
     
@@ -570,33 +574,248 @@ classdef CohortGenerationPane < QSPViewerNew.Application.ViewPane
         
         %Visualization panel
         
-        function onEditPlotType(obj,h,e)
-            
+        function onParameterButton(obj,~,~)
+            if ~isempty(obj.CohortGeneration.VPopName)
+
+                vpopFile = fullfile(obj.CohortGeneration.FilePath, obj.CohortGeneration.VPopResultsFolderName, obj.CohortGeneration.ExcelResultFileName);                
+                try
+                    Raw = readtable(vpopFile);
+                    ParamNames = Raw.Properties.VariableNames;
+                    Raw = [ParamNames;table2cell(Raw)];                    
+                catch err
+                    warning('Could not open vpop xlsx file.')
+                    disp(err)
+                    return
+                end
+                
+                % Get the parameter values (everything but the header)
+                if size(Raw,1) > 1
+                    ParamValues = cell2mat(Raw(2:end,:));                    
+                else
+                    ParamValues = [];
+                end
+                    
+                
+                % filter invalids if checked
+                if ~obj.VisInvalidCheckBox.Value && ismember('PWeight', ParamNames)
+                    ParamValues = ParamValues( ParamValues(:, strcmp(ParamNames,'PWeight')) > 0, :);
+                end
+                
+                ParamValues = ParamValues(:,~ismember(ParamNames,{'PWeight','Groups'}));
+                ParamNames = ParamNames(~ismember(ParamNames,{'PWeight','Groups'}));
+                
+                MatchIdx = find(strcmp(obj.CohortGeneration.RefParamName,{obj.CohortGeneration.Settings.Parameters.Name}));
+                
+                LB = [];
+                UB = [];                
+                if ~isempty(MatchIdx)
+                    try
+                        Raw = readtable(obj.CohortGeneration.Settings.Parameters(MatchIdx).FilePath);
+                        LB = Raw.LB;
+                        UB = Raw.UB;
+                    catch err
+                        warning('Could not open parameters xlsx file or LB and/or UB column headers are missing. Setting lower and upper bounds to empty.')
+                        disp(err)                       
+                    end
+                end
+                
+                
+                %Create the popup panel
+                nAxes = length(ParamNames);
+                ParentFigure = obj.getUIFigure;
+                PlotPopup = QSPViewerNew.Widgets.HistPlotLayoutCustom(ParentFigure,nAxes);
+                nCols = PlotPopup.getWidth();
+                nRows = round(nAxes/nCols);
+                scrollingPanel = PlotPopup.getPlotGrid();
+                
+                %fill the grid with axes
+                for k=1:nAxes
+                    ax=uiaxes(scrollingPanel);
+                    %Fill in the left to right
+                    ax.Layout.Column = mod(k-1,nCols)+1;
+                    ax.Layout.Row = floor((k-1)/nRows)+2;
+                    histogram(ax, ParamValues(:,k))
+                    if k <= length(LB)
+                        h2(1)=line(ax,LB(k)*ones(1,2), get(ax,'YLim'));
+                        h2(2)=line(ax,UB(k)*ones(1,2), get(ax,'YLim'));
+                        set(h2,'LineStyle','--','Color','r')
+                    end
+                    title(ax, ParamNames{k}, 'Interpreter', 'none', 'FontSize', 20)
+                    set(ax, 'TitleFontWeight', 'bold', 'FontSize', 20 )
+                    if strcmpi(Raw.Scale(k), 'log')
+                        set(ax,'XScale', 'log')
+                    end
+                end          
+                PlotPopup.wait();
+                PlotPopup.delete();
+
+            end
         end
         
         function onEditSpeciesTable(obj,h,e)
             
+            RowIdx = e.Indices(1,1);
+            ColIdx = e.Indices(1,2);
+            
+            if strcmpi(obj.CohortGeneration.PlotType,'Diagnostic')
+                %In diagnostic Mode, just redraw all the plots
+                
+                if (ColIdx==1 || ColIdx == 2) && any(strcmp(h.ColumnFormat{ColIdx},e.NewData))
+                    obj.CohortGeneration.PlotSpeciesTable(RowIdx,ColIdx) =e.NewData(RowIdx,ColIdx);
+                    obj.drawVisualization();
+                else
+                    %revert, entry not valid
+                    h.Data{e.Indices(1),e.Indices(2)} = e.PreviousData;
+                end
+            else
+                switch ColIdx
+                    case 1
+                        sIdx = RowIdx;
+                        OldAxIdx = str2double(e.PreviousData);
+                        NewAxIdx = str2double(e.NewData);
+                        
+                        %Determine if change was valid
+                        if any(strcmp(h.ColumnFormat{ColIdx},e.NewData))
+                            %Update backend
+                            obj.CohortGeneration.PlotSpeciesTable(RowIdx,ColIdx) = h.Data(RowIdx,ColIdx);
+                            
+                            % If originally not plotted
+                            if isempty(OldAxIdx) && ~isempty(NewAxIdx)
+                                obj.SpeciesGroup{sIdx,NewAxIdx} = obj.SpeciesGroup{sIdx,1};
+                                obj.DatasetGroup{sIdx,NewAxIdx} = obj.DatasetGroup{sIdx,1};
+                                % Parent
+                                obj.SpeciesGroup{sIdx,NewAxIdx}.Parent = obj.PlotArray(NewAxIdx);
+                                obj.DatasetGroup{sIdx,NewAxIdx}.Parent = obj.PlotArray(NewAxIdx);
+                                
+                            elseif ~isempty(OldAxIdx) && isempty(NewAxIdx)
+                                obj.SpeciesGroup{sIdx,1} = obj.SpeciesGroup{sIdx,OldAxIdx};
+                                obj.DatasetGroup{sIdx,1} = obj.DatasetGroup{sIdx,OldAxIdx};
+                                % Un-parent
+                                obj.SpeciesGroup{sIdx,1}.Parent = matlab.graphics.GraphicsPlaceholder.empty();
+                                obj.DatasetGroup{sIdx,1}.Parent = matlab.graphics.GraphicsPlaceholder.empty();
+                                if OldAxIdx ~= 1
+                                    obj.SpeciesGroup{sIdx,OldAxIdx} = [];
+                                    obj.DatasetGroup{sIdx,OldAxIdx} = [];
+                                end
+                                
+                            elseif ~isempty(OldAxIdx) && ~isempty(NewAxIdx)
+                                obj.SpeciesGroup{sIdx,NewAxIdx} = obj.SpeciesGroup{sIdx,OldAxIdx};
+                                obj.DatasetGroup{sIdx,NewAxIdx} = obj.DatasetGroup{sIdx,OldAxIdx};
+                                % Re-parent
+                                obj.SpeciesGroup{sIdx,NewAxIdx}.Parent = obj.PlotArray(NewAxIdx);
+                                obj.DatasetGroup{sIdx,NewAxIdx}.Parent = obj.PlotArray(NewAxIdx);
+                                if OldAxIdx ~= NewAxIdx
+                                    obj.SpeciesGroup{sIdx,OldAxIdx} = [];
+                                    obj.DatasetGroup{sIdx,OldAxIdx} = [];
+                                end
+                                
+                            end
+                            
+                            % Update lines (line widths, marker sizes)
+                            obj.updateLines();
+                            
+                            AxIndices = [OldAxIdx,NewAxIdx];
+                            AxIndices(isnan(AxIndices)) = [];
+                            
+                            % Redraw legend
+                            [UpdatedAxesLegend,UpdatedAxesLegendChildren] = updatePlots(...
+                                obj.CohortGeneration,obj.PlotArray,obj.SpeciesGroup,obj.DatasetGroup,...
+                                'AxIndices',AxIndices);
+                            obj.AxesLegend(AxIndices) = UpdatedAxesLegend(AxIndices);
+                            obj.AxesLegendChildren(AxIndices) = UpdatedAxesLegendChildren(AxIndices);
+                        else
+                           %revert, entry not valid
+                            h.Data{e.Indices(1),e.Indices(2)} = e.PreviousData;
+                        end
+                        
+                    case 2
+                        %Determine if change was valid
+                        if any(strcmp(h.ColumnFormat{ColIdx},e.NewData))
+                            
+                            %Update backend
+                            obj.CohortGeneration.PlotSpeciesTable(RowIdx,ColIdx) = h.Data(RowIdx,ColIdx);
+                            
+                            %Set line style
+                            NewLineStyle = h.Data{RowIdx,2};
+                            setSpeciesLineStyles(obj.CohortGeneration,RowIdx,NewLineStyle);
+                            
+                            
+                            AxIndices = str2double(h.Data{RowIdx,1});
+                            if isempty(AxIndices)
+                                AxIndices = 1:numel(obj.PlotArray);
+                            end
+                            
+                            % Redraw legend
+                            [UpdatedAxesLegend,UpdatedAxesLegendChildren] = updatePlots(...
+                                obj.CohortGeneration,obj.PlotArray,obj.SpeciesGroup,obj.DatasetGroup,...
+                                'AxIndices',AxIndices);
+                            obj.AxesLegend(AxIndices) = UpdatedAxesLegend(AxIndices);
+                            obj.AxesLegendChildren(AxIndices) = UpdatedAxesLegendChildren(AxIndices);
+                            
+                        else
+                            %revert, entry not valid
+                            h.Data{e.Indices(1),e.Indices(2)} = e.PreviousData;
+                        end
+                        
+                    case 5
+                        %update backend
+                        obj.CohortGeneration.PlotSpeciesTable(RowIdx,ColIdx) = h.Data(RowIdx,ColIdx);
+                        
+                        AxIndices = str2double(h.Data{RowIdx,1});
+                        if isempty(AxIndices)
+                            AxIndices = 1:numel(obj.PlotArray);
+                        end
+                        
+                        % Redraw legend
+                        [UpdatedAxesLegend,UpdatedAxesLegendChildren] = updatePlots(...
+                            obj.CohortGeneration,obj.PlotArray,obj.SpeciesGroup,obj.DatasetGroup,...
+                            'AxIndices',AxIndices);
+                        obj.AxesLegend(AxIndices) = UpdatedAxesLegend(AxIndices);
+                        obj.AxesLegendChildren(AxIndices) = UpdatedAxesLegendChildren(AxIndices);
+                end
+            end
         end
         
         function onEditVirtualCohortTable(obj,h,e)
             
+            %update the backend table
+            obj.CohortGeneration.PlotItemTable(e.Indices(1),e.Indices(2)) = h.Data(e.Indices(1),e.Indices(2));
+             
+            if strcmpi(obj.CohortGeneration.PlotType,'Diagnostic')
+                obj.drawVisualization();
+            else
+                switch e.Indices(2)
+                    %Only save the legends if they were edited
+                    case 1
+                        updatePlots(obj.CohortGeneration,obj.PlotArray,obj.SpeciesGroup,obj.DatasetGroup,'RedrawLegend',false);
+                    case 5
+                        [obj.AxesLegend,obj.AxesLegendChildren] = updatePlots(obj.CohortGeneration,obj.PlotArray,obj.SpeciesGroup,obj.DatasetGroup);
+                end
+            end
         end
         
-        function onSelectionVirtualCohortTable(obj,h,e)
-            
+        function onSelectionVirtualCohortTable(obj,~,e)
+            obj.SelectedRow =e.Indices(1);
         end
         
-        function onEditInvalidCheckBox(obj,h,e)
-            
+        function onEditInvalidCheckBox(obj,h,~)
+            obj.CohortGeneration.ShowInvalidVirtualPatients = h.Value;
+            if strcmpi(obj.CohortGeneration.PlotType,'Diagnostic')
+                obj.drawVisualization();
+            else
+                [obj.AxesLegend,obj.AxesLegendChildren] = updatePlots(obj.CohortGeneration,obj.PlotArray,obj.SpeciesGroup,obj.DatasetGroup);
+            end
         end
         
-        function onParameterButton(obj,h,e)
+        function onEditPlotType(obj,~,e)
+            obj.CohortGeneration.PlotType = e.NewValue.Tag;
             
+            % Update the view
+            obj.drawVisualization();
         end
         
-        
-        function onContextMenu(obj,h,e)
-            
+        function onContextMenu(~,~,~)
+            %TODO when uisetcolor is supported or a workaround
         end
         
     end
@@ -636,9 +855,11 @@ classdef CohortGenerationPane < QSPViewerNew.Application.ViewPane
         end
         
         function runModel(obj)
-            [StatusOK,Message,~] = run(obj.CohortGeneration);
+            [StatusOK,Message,vpopobj] = run(obj.CohortGeneration);
             if ~StatusOK
                 uialert(obj.getUIFigure,Message,'Run Failed');
+            else
+                obj.notifyOfChange(vpopobj);
             end
         end
         
@@ -650,8 +871,7 @@ classdef CohortGenerationPane < QSPViewerNew.Application.ViewPane
             %Determine if the values are valid
             if ~isempty(obj.CohortGeneration)
                 % Check what items are stale or invalid
-                [StaleFlag,ValidFlag] = getStaleItemIndices(obj.CohortGeneration);
-                InvalidItemIndices = ~ValidFlag;
+                [obj.StaleFlag,obj.ValidFlag] = getStaleItemIndices(obj.CohortGeneration);
             end
             
             %Set flags for determing what to display
@@ -676,9 +896,32 @@ classdef CohortGenerationPane < QSPViewerNew.Application.ViewPane
                 plotCohortGeneration(obj.CohortGeneration,obj.PlotArray);
         end
         
+        function refreshVisualization(obj,axIndex)
+            if ~isempty(obj.CohortGeneration)
+                obj.CohortGeneration.bShowTraces = obj.bShowTraces;
+                obj.CohortGeneration.bShowQuantiles = obj.bShowQuantiles;
+                obj.CohortGeneration.bShowMean = obj.bShowMean;
+                obj.CohortGeneration.bShowMedian = obj.bShowMedian;
+                obj.CohortGeneration.bShowSD = obj.bShowSD;
+            end
+            
+            obj.reimport();
+            obj.redrawPlotType();
+            obj.redrawSpeciesTable();
+            obj.redrawVirtualCohortTable();
+            obj.redrawInvalidCheckBox();
+            obj.redrawContextMenu();
+            [UpdatedAxesLegend,UpdatedAxesLegendChildren] = updatePlots(...
+                obj.CohortGeneration,obj.PlotArray,obj.SpeciesGroup,obj.DatasetGroup,...
+                'AxIndices',axIndex);
+            obj.AxesLegend(axIndex) = UpdatedAxesLegend(axIndex);
+            obj.AxesLegendChildren(axIndex) = UpdatedAxesLegendChildren(axIndex);
+        end
+        
         function UpdateBackendPlotSettings(obj)
             obj.CohortGeneration.PlotSettings = getSummary(obj.getPlotSettings());
         end
+        
         
     end
     
@@ -722,8 +965,30 @@ classdef CohortGenerationPane < QSPViewerNew.Application.ViewPane
             
         end
         
-        function saveVisualizationView(obj)
-            disp("You shouldve saved the layout")
+        function removeInvalidVisualization(obj)
+            % Remove invalid indices
+            if ~isempty(obj.PlotSpeciesInvalidRowIndices)
+                obj.CohortGeneration.PlotSpeciesTable(obj.PlotSpeciesInvalidRowIndices,:) = [];
+                obj.PlotSpeciesAsInvalidTable(obj.PlotSpeciesInvalidRowIndices,:) = [];
+                obj.PlotSpeciesInvalidRowIndices = [];
+            end
+            
+            if ~isempty(obj.PlotItemInvalidRowIndices)
+                obj.CohortGeneration.PlotItemTable(obj.PlotItemInvalidRowIndices,:) = [];
+                obj.PlotItemAsInvalidTable(obj.PlotSpeciesInvalidRowIndices,:) = [];
+                obj.PlotItemInvalidRowIndices = [];
+            end
+            
+            % reset the cached simulation results
+            obj.CohortGeneration.SimResults = {};
+            
+            % Update
+            obj.reimport();
+            obj.redrawPlotType();
+            obj.redrawSpeciesTable();
+            obj.redrawVirtualCohortTable();
+            obj.redrawInvalidCheckBox();
+            obj.redrawContextMenu();
         end
         
         function deleteTemporary(obj)
@@ -770,6 +1035,15 @@ classdef CohortGenerationPane < QSPViewerNew.Application.ViewPane
                 Message = sprintf('%s\nDuplicate names are not allowed.\n', Message);
                 StatusOK = false;
             end
+        end
+        
+        function [ValidTF] = isValid(obj)
+            [~,Valid] = getStaleItemIndices(obj.CohortGeneration);
+            ValidTF = all(Valid);
+        end
+        
+        function BackEnd = getBackEnd(obj)
+            BackEnd = obj.CohortGeneration;
         end
     end
     
@@ -909,7 +1183,12 @@ classdef CohortGenerationPane < QSPViewerNew.Application.ViewPane
         
         function redrawSavePref(obj)
             obj.SavePrefDropDown.Items = obj.SaveValues;
-            obj.SavePrefDropDown.Value =  obj.TemporaryCohortGeneration.SaveInvalid;
+            if any(contains(obj.SaveValues,obj.TemporaryCohortGeneration.SaveInvalid))
+                obj.SavePrefDropDown.Value =  obj.TemporaryCohortGeneration.SaveInvalid;
+            else
+                obj.SavePrefDropDown.Value =obj.SaveValues{1};
+            end
+            
         end
         
         function redrawSearchMethod(obj)
@@ -1165,7 +1444,6 @@ classdef CohortGenerationPane < QSPViewerNew.Application.ViewPane
             
             if ~isempty(obj.CohortGeneration)
                 % Get the raw SpeciesNames, DataNames
-                AxesOptions = obj.getAxesOptions();
                 TaskNames = {obj.CohortGeneration.Item.TaskName};
                 SpeciesNames = {obj.CohortGeneration.SpeciesData.SpeciesName};
                 [~,order] = sort(upper(SpeciesNames));
@@ -1233,11 +1511,15 @@ classdef CohortGenerationPane < QSPViewerNew.Application.ViewPane
                     % Update line styles
                     obj.CohortGeneration.updateSpeciesLineStyles();
                 end
+                AxesOptions = obj.getAxesOptions();
+                
                 obj.VisSpeciesDataTable.Data = obj.PlotSpeciesAsInvalidTable;
                 obj.VisSpeciesDataTable.ColumnName = {'Plot','Style','Species','Data','Display'};
                 obj.VisSpeciesDataTable.ColumnFormat = {AxesOptions',obj.CohortGeneration.Settings.LineStyleMap,'char','char','char'};
                 obj.VisSpeciesDataTable.ColumnEditable =[true,true,false,false,true];
             else
+                AxesOptions = obj.getAxesOptions();
+                
                 obj.VisSpeciesDataTable.Data = obj.PlotSpeciesAsInvalidTable;
                 obj.VisSpeciesDataTable.ColumnName = {'Plot','Style','Species','Data','Display'};
                 obj.VisSpeciesDataTable.ColumnFormat = {AxesOptions','char','char','char','char'};
@@ -1355,7 +1637,13 @@ classdef CohortGenerationPane < QSPViewerNew.Application.ViewPane
         end
         
         function redrawContextMenu(obj)
-            %TODO When you figure out color situation
+            %Set Context Menus;
+            obj.PlotItemsTableContextMenu = uicontextmenu(ancestor(obj.EditLayout,'figure'));
+            obj.PlotItemsTableMenu = uimenu(obj.PlotItemsTableContextMenu);
+            obj.PlotItemsTableMenu.Label = 'Set Color';
+            obj.PlotItemsTableMenu.Tag = 'PlotItemsCM';
+            obj.PlotItemsTableMenu.MenuSelectedFcn = @(h,e)onContextMenu(obj,h,e);
+            obj.VisVirtCohortItemsTable.ContextMenu = obj.onContextMenu;
         end
         
     end
