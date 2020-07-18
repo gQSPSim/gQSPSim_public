@@ -68,6 +68,8 @@ for grpIdx = 1:length(unqGroups) %nItems
                 'Names', Names, ...
                 'Values', Values, ...
                 'OutputTimes', OutputTimes{grpIdx});
+            
+  
 
             if ~StatusOK
                 return

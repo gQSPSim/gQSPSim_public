@@ -7,6 +7,7 @@ Data = {};
 try
     data = readtable(filepath);
 catch error
+    StatusOK = false;
     Message = error.message;
     return
 end
@@ -24,6 +25,7 @@ end
 try
 Data = table2cell(data);
 catch error
+    StatusOK = false;
     warning(error.message)
 end
     
