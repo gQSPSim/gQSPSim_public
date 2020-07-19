@@ -911,11 +911,15 @@ classdef CohortGenerationPane < QSPViewerNew.Application.ViewPane
             obj.redrawVirtualCohortTable();
             obj.redrawInvalidCheckBox();
             obj.redrawContextMenu();
-            [UpdatedAxesLegend,UpdatedAxesLegendChildren] = updatePlots(...
-                obj.CohortGeneration,obj.PlotArray,obj.SpeciesGroup,obj.DatasetGroup,...
-                'AxIndices',axIndex);
-            obj.AxesLegend(axIndex) = UpdatedAxesLegend(axIndex);
-            obj.AxesLegendChildren(axIndex) = UpdatedAxesLegendChildren(axIndex);
+            
+            if ~isempty(axIndex)
+                [UpdatedAxesLegend,UpdatedAxesLegendChildren] = updatePlots(...
+                    obj.CohortGeneration,obj.PlotArray,obj.SpeciesGroup,obj.DatasetGroup,...
+                    'AxIndices',axIndex);
+                obj.AxesLegend(axIndex) = UpdatedAxesLegend(axIndex);
+                obj.AxesLegendChildren(axIndex) = UpdatedAxesLegendChildren(axIndex);
+            end
+           
         end
         
         function UpdateBackendPlotSettings(obj)
