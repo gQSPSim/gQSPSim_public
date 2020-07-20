@@ -44,15 +44,13 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
         PlotGroupInvalidRowIndices = []
         
         SelectedRow =0;
-        SpeciesGroup
-        DatasetGroup
-        AxesLegend
-        AxesLegendChildren
         
         SelectedGroup
         SelectedData
         SelectedSimItem
         SelectedSpecies
+        StaleFlag
+        ValidFlag
     end
     
     % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -408,7 +406,7 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
             end
             
             %Determine if the change was valid
-            if iscell(h.ColumnFormat{e.Indices(2)}) && any(strcmp(h.ColumnFormat{e.Indices(2)},e.NewData))
+            if e.Indices(2)==4  || iscell(h.ColumnFormat{e.Indices(2)}) && any(strcmp(h.ColumnFormat{e.Indices(2)},e.NewData))
                 %The new value was already in the dropdown, so we can
                 %continue
                 obj.SelectedSpecies = e.Indices;
@@ -449,11 +447,11 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
                         % Display Name
                         AxIndices = NewAxIdx;
                         if isempty(AxIndices)
-                            AxIndices = 1:numel(obj.plotArray());
+                            AxIndices = 1:numel(obj.getPlotArray());
                         end
                         % Redraw legend
                         [UpdatedAxesLegend,UpdatedAxesLegendChildren] = updatePlots(...
-                            obj.Simulation,obj.plotArray(),obj.SpeciesGroup,obj.DatasetGroup,...
+                            obj.Simulation,obj.getPlotArray(),obj.SpeciesGroup,obj.DatasetGroup,...
                             'AxIndices',AxIndices);
                         obj.AxesLegend(AxIndices) = UpdatedAxesLegend(AxIndices);
                         obj.AxesLegendChildren(AxIndices) = UpdatedAxesLegendChildren(AxIndices);
@@ -668,7 +666,7 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
             
             if ColIdx == 4
                 % Display name      
-                [obj.AxesLegend,obj.AxesLegendChildren] = updatePlots(obj.Simulation,obj.PlotArrayIndicies,obj.SpeciesGroup,obj.DatasetGroup);
+                [obj.AxesLegend,obj.AxesLegendChildren] = updatePlots(obj.Simulation,obj.PlotArray,obj.SpeciesGroup,obj.DatasetGroup);
                 
             elseif ColIdx == 1
                 % Include
@@ -685,6 +683,10 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
         function onGroupTableSelect(obj,~,e)
             obj.SelectedGroup = e.Indices;
         end
+        
+         function onPlotItemsTableContextMenu(~,~,~)
+             %TODO when uisetcolor is supported or a workaround 
+         end
         
     end
     
@@ -736,7 +738,7 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
             %Determine if the values are valid
             if ~isempty(obj.Simulation)
                 % Check what items are stale or invalid
-                [~,ValidFlag] = getStaleItemIndices(obj.Simulation);
+                [obj.StaleFlag,obj.ValidFlag] = getStaleItemIndices(obj.Simulation);
             end
             
             %Set flags for determing what to display
@@ -748,28 +750,41 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
                 obj.Simulation.bShowSD = obj.bShowSD;
             end
             
-            %Set Context Menus;
-            obj.PlotItemsTableContextMenu = uicontextmenu(ancestor(obj.SimulationEditGrid,'figure'));
-            obj.PlotItemsTableMenu = uimenu(obj.PlotItemsTableContextMenu);
-            obj.PlotItemsTableMenu.Label = 'Set Color';
-            obj.PlotItemsTableMenu.Tag = 'PlotItemsCM';
-            obj.PlotItemsTableMenu.MenuSelectedFcn = @(h,e)onPlotItemsTableContextMenu(obj,h,e);
-            obj.SimulationItemsTable.ContextMenu = obj.PlotItemsTableContextMenu;
-            
-            obj.PlotGroupTableContextMenu = uicontextmenu(ancestor(obj.SimulationEditGrid,'figure'));
-            obj.PlotGroupTableMenu = uimenu(obj.PlotGroupTableContextMenu);
-            obj.PlotGroupTableMenu.Label = 'Set Color';
-            obj.PlotGroupTableMenu.Tag = 'PlotGroupCM';
-            obj.PlotGroupTableMenu.MenuSelectedFcn = @(h,e)onPlotItemsTableContextMenu(obj,h,e);
-            obj.GroupTable.ContextMenu =  obj.PlotGroupTableContextMenu;
             % Create context menu
-            
+            obj.updateCM();
             obj.updateSpeciesTable();
             obj.updateSimItemsTable();
             [OptimHeader,OptimData] = updateDataTable(obj);
             obj.updateGroupTable(OptimHeader,OptimData);
             [obj.SpeciesGroup,obj.DatasetGroup,obj.AxesLegend,obj.AxesLegendChildren] = ...
              plotSimulation(obj.Simulation,obj.getPlotArray());
+        end
+        
+        function refreshVisualization(obj,axIndex)
+                        
+            %Set flags for determing what to display
+            if ~isempty(obj.Simulation)
+                obj.Simulation.bShowTraces = obj.bShowTraces;
+                obj.Simulation.bShowQuantiles = obj.bShowQuantiles;
+                obj.Simulation.bShowMean = obj.bShowMean;
+                obj.Simulation.bShowMedian = obj.bShowMedian;
+                obj.Simulation.bShowSD = obj.bShowSD;
+            end
+            
+            obj.updateCM();
+            obj.updateSpeciesTable();
+            obj.updateSimItemsTable();
+            [OptimHeader,OptimData] = updateDataTable(obj);
+            obj.updateGroupTable(OptimHeader,OptimData);
+            
+            if ~isempty(axIndex)
+                [UpdatedAxesLegend,UpdatedAxesLegendChildren] = updatePlots(...
+                    obj.Simulation,obj.PlotArray,obj.SpeciesGroup,obj.DatasetGroup,...
+                    'AxIndices',axIndex);
+                obj.AxesLegend(axIndex) = UpdatedAxesLegend(axIndex);
+                obj.AxesLegendChildren(axIndex) = UpdatedAxesLegendChildren(axIndex);
+            end
+
         end
         
         function UpdateBackendPlotSettings(obj)
@@ -818,8 +833,38 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
             
         end
         
-        function saveVisualizationView(obj)
-            %TODO
+        function removeInvalidVisualization(obj)
+            % Remove invalid indices
+            if ~isempty(obj.PlotSpeciesInvalidRowIndices)
+                obj.Simulation.PlotSpeciesTable(obj.PlotSpeciesInvalidRowIndices,:) = [];
+                obj.PlotSpeciesAsInvalidTable(obj.PlotSpeciesInvalidRowIndices) = [];
+                obj.PlotSpeciesInvalidRowIndices = [];
+            end
+            
+            if ~isempty(obj.PlotItemInvalidRowIndices)
+                obj.Simulation.PlotItemTable(obj.PlotItemInvalidRowIndices,:) = [];
+                obj.PlotItemAsInvalidTable(obj.PlotItemInvalidRowIndices,:) = [];
+                obj.PlotItemInvalidRowIndices = [];
+            end
+            
+            if ~isempty(obj.PlotDataInvalidRowIndices)
+                obj.Simulation.PlotDataTable(obj.PlotDataInvalidRowIndices,:) = [];
+                obj.PlotDataAsInvalidTable(obj.PlotDataInvalidRowIndices,:) = [];
+                obj.PlotDataInvalidRowIndices = [];
+            end
+            
+            if ~isempty(obj.PlotGroupInvalidRowIndices)
+                obj.Simulation.PlotGroupTable(obj.PlotGroupInvalidRowIndices,:) = [];
+                obj.PlotGroupAsInvalidTable(obj.PlotGroupInvalidRowIndices,:) = [];
+                obj.PlotGroupInvalidRowIndices = [];
+            end
+            
+            % Update
+            obj.updateCM();
+            obj.updateSpeciesTable();
+            obj.updateSimItemsTable();
+            [OptimHeader,OptimData] = obj.updateDataTable();
+            obj.updateGroupTable(OptimHeader,OptimData);
         end
            
         function deleteTemporary(obj)
@@ -857,9 +902,36 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
                 StatusOK = false;
             end
         end
+        
+        function [ValidTF] = isValid(obj)
+            [~,Valid] = getStaleItemIndices(obj.Simulation);
+            ValidTF = all(Valid);
+        end
+        
+        function BackEnd = getBackEnd(obj)
+            BackEnd = obj.Simulation;
+        end
     end
     
     methods (Access = private)
+        
+        function updateCM(obj)
+             %Set Context Menus;
+            obj.PlotItemsTableContextMenu = uicontextmenu(ancestor(obj.SimulationEditGrid,'figure'));
+            obj.PlotItemsTableMenu = uimenu(obj.PlotItemsTableContextMenu);
+            obj.PlotItemsTableMenu.Label = 'Set Color';
+            obj.PlotItemsTableMenu.Tag = 'PlotItemsCM';
+            obj.PlotItemsTableMenu.MenuSelectedFcn = @(h,e)onPlotItemsTableContextMenu(obj,h,e);
+            obj.SimulationItemsTable.ContextMenu = obj.PlotItemsTableContextMenu;
+            
+            obj.PlotGroupTableContextMenu = uicontextmenu(ancestor(obj.SimulationEditGrid,'figure'));
+            obj.PlotGroupTableMenu = uimenu(obj.PlotGroupTableContextMenu);
+            obj.PlotGroupTableMenu.Label = 'Set Color';
+            obj.PlotGroupTableMenu.Tag = 'PlotGroupCM';
+            obj.PlotGroupTableMenu.MenuSelectedFcn = @(h,e)onPlotItemsTableContextMenu(obj,h,e);
+            obj.GroupTable.ContextMenu =  obj.PlotGroupTableContextMenu;
+            % Create context menu
+        end
         
         function updateDataset(obj)
             OptimHeader = {};
@@ -1080,8 +1152,8 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
         
         function updateSimItemsTable(obj)
             if ~isempty(obj.Simulation)
-                [StaleFlag,ValidFlag] = getStaleItemIndices(obj.Simulation);
-                InvalidItemIndices = ~ValidFlag;    
+                [obj.StaleFlag,obj.ValidFlag] = getStaleItemIndices(obj.Simulation);
+                InvalidItemIndices = ~obj.ValidFlag;    
                 TaskNames = {obj.Simulation.Item.TaskName};
                 VPopNames = {obj.Simulation.Item.VPopName};
                 Groups    = {obj.Simulation.Item.Group};
@@ -1160,7 +1232,7 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
 
                 % Update Colors column
                 % Items table
-                if any(StaleFlag)
+                if any(obj.StaleFlag)
                     ThisLabel = 'Simulation Items (Items are not up-to-date)';
                 else
                     ThisLabel = 'Simulation Items';
