@@ -1042,8 +1042,8 @@ classdef ViewPane < handle
             
             %For 1 to the number of plots to show, add them in order
             PlotCount = 1;
-            for RowIndex = 1:str2double(Rows)
-                for ColumnIndex = 1:str2double(Columns)
+            for ColumnIndex = 1:str2double(Columns)
+                for RowIndex = 1:str2double(Rows)
                     obj.PlotArray(PlotCount).Parent = obj.PlottingGrid;
                     obj.PlotArray(PlotCount).ContextMenu =  obj.ContextMenuArray(PlotCount);
                     obj.PlotArray(PlotCount).Layout.Row = RowIndex;
