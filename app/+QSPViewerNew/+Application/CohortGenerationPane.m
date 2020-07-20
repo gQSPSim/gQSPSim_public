@@ -1647,7 +1647,7 @@ classdef CohortGenerationPane < QSPViewerNew.Application.ViewPane
             obj.PlotItemsTableMenu.Label = 'Set Color';
             obj.PlotItemsTableMenu.Tag = 'PlotItemsCM';
             obj.PlotItemsTableMenu.MenuSelectedFcn = @(h,e)onContextMenu(obj,h,e);
-            obj.VisVirtCohortItemsTable.ContextMenu = obj.onContextMenu;
+            obj.VisVirtCohortItemsTable.ContextMenu = obj.PlotItemsTableContextMenu;
         end
         
     end
