@@ -17,9 +17,6 @@ classdef InputDlgCustom < QSPViewerNew.Widgets.ModalPopup
         Parent
 
     end
-    properties (Access = public)
-        ButtonPressed 
-    end
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Constructor and destructor
