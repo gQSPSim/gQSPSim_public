@@ -100,13 +100,13 @@ classdef ViewPane < handle
         WidgetPadding = [0,0,0,0];
         WidgetWidthSpacing = 5; 
         WidgetHeightSpacing = 5; 
-        PanelPadding = [0,0,0,0];
+        PanelPadding = [5,5,5,0];
         PanelWidthSpacing = 5; 
         PanelHeightSpacing = 5; 
         SubPanelPadding = [5,5,5,5];
         SubPanelWidthSpacing = 5; 
         SubPanelHeightSpacing = 5; 
-        OuterGridPadding = [0,0,0,0];
+        OuterGridPadding = [5,5,5,0];
         OuterGridColumnSpacing = 0;
         OuterGridRowSpacing = 0;
         ButtonWidth = 30;
@@ -132,6 +132,7 @@ classdef ViewPane < handle
         SmallLabel = 80;
         MaxNumPlots = 12
         PlotLayoutOptions = {'1x1','1x2','2x1','2x2','3x2','3x3','3x4'}
+        DescriptionSize = 200;
     end
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -455,7 +456,6 @@ classdef ViewPane < handle
                     currentPlot = obj.PlotArray(plotIndex);
                     disableDefaultInteractivity(currentPlot);
                     obj.PlotArray(plotIndex).Tag = ['plot',num2str(plotIndex)];
-                    currentPlot.Toolbar.Visible = 'off';
                     set(currentPlot,'Interactions',[]);
                     enableDefaultInteractivity(currentPlot);
 
@@ -900,29 +900,42 @@ classdef ViewPane < handle
                     obj.toggleButtonsInteraction({'on','on','on','on','on','on','on','on','on'});
                     if obj.ZoomInButton.Value
                         obj.toggleVisButtonsState([1,0,0,0]);
-                        set(obj.PlotArray,'Interactions',[regionZoomInteraction zoomInteraction]);
+                        for idx = 1:numel(obj.PlotArray)
+                            matlab.graphics.interaction.webmodes.toggleMode(obj.PlotArray(idx),'zoom','on')
+                        end
                     else
                         set(obj.PlotArray,'Interactions',[]);
                         obj.toggleVisButtonsState([0,0,0,0]);
+                        for idx = 1:numel(obj.PlotArray)
+                            matlab.graphics.interaction.webmodes.toggleMode(obj.PlotArray(idx),'zoom','off')
+                        end
                     end
                 case 'ZoomOut'
                     obj.toggleButtonsInteraction({'on','on','on','on','on','on','on','on','on'});
                     if obj.ZoomOutButton.Value
                         obj.toggleVisButtonsState([0,1,0,0]);
-                        set(obj.PlotArray,'Interactions',zoomInteraction);
+                        for idx = 1:numel(obj.PlotArray)
+                            matlab.graphics.interaction.webmodes.toggleMode(obj.PlotArray(idx),'zoomout','on')
+                        end
                     else
                         obj.toggleVisButtonsState([0,0,0,0]);
-                        set(obj.PlotArray,'Interactions',[]);
+                        for idx = 1:numel(obj.PlotArray)
+                            matlab.graphics.interaction.webmodes.toggleMode(obj.PlotArray(idx),'zoomout','off')
+                        end
                     end
                     
                 case 'Pan'
                     obj.toggleButtonsInteraction({'on','on','on','on','on','on','on','on','on'});
                     if obj.PanButton.Value
                         obj.toggleVisButtonsState([0,0,1,0]);
-                        set(obj.PlotArray,'Interactions',panInteraction);
+                        for idx = 1:numel(obj.PlotArray)
+                            matlab.graphics.interaction.webmodes.toggleMode(obj.PlotArray(idx),'pan','on')
+                        end
                     else
                         obj.toggleVisButtonsState([0,0,0,0]);
-                        set(obj.PlotArray,'Interactions',[]);
+                        for idx = 1:numel(obj.PlotArray)
+                            matlab.graphics.interaction.webmodes.toggleMode(obj.PlotArray(idx),'pan','off')
+                        end
                     end
                 case 'Explore'
                     obj.toggleButtonsInteraction({'on','on','on','on','on','on','on','on','on'});
