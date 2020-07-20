@@ -31,6 +31,7 @@ classdef SessionPane < QSPViewerNew.Application.ViewPane
         UDFSelectorListener
         AutoSaveFolderSelectListener
     end
+    
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Graphical Components
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -144,7 +145,7 @@ classdef SessionPane < QSPViewerNew.Application.ViewPane
             
             %AutsaveSubOptionsGrid
             obj.AutoSaveOptionsGrid = uigridlayout(obj.AutoSaveGrid);
-            obj.AutoSaveOptionsGrid.ColumnWidth = {obj.LabelLength,obj.LabelLength,obj.LabelLength};
+            obj.AutoSaveOptionsGrid.ColumnWidth = {obj.DescriptionSize,obj.DescriptionSize,obj.LabelLength};
             obj.AutoSaveOptionsGrid.RowHeight = {obj.WidgetHeight,obj.WidgetHeight,'1x'};  
             obj.AutoSaveOptionsGrid.Padding = obj.WidgetPadding;
             obj.AutoSaveOptionsGrid.ColumnSpacing = obj.WidgetHeightSpacing;
@@ -160,7 +161,7 @@ classdef SessionPane < QSPViewerNew.Application.ViewPane
             
             %AutoSave periodically Checkbox
             obj.AutoSaveBeforeRun = uicheckbox(obj.AutoSaveOptionsGrid);
-            obj.AutoSaveBeforeRun.Text = 'Autosave Before Run';
+            obj.AutoSaveBeforeRun.Text = 'Before Run';
             obj.AutoSaveBeforeRun.Layout.Row = 2;
             obj.AutoSaveBeforeRun.Layout.Column = 1;
             
@@ -226,11 +227,13 @@ classdef SessionPane < QSPViewerNew.Application.ViewPane
         
         function onParallelCheckbox(obj,newValue)
             obj.TemporarySession.UseParallel = newValue;
+            obj.updateEnabled();
             obj.IsDirty = true;
         end
         
         function onAutosaveTimerCheckbox(obj,newValue)
-            obj.TemporarySession.UseParallel = newValue;
+            obj.TemporarySession.UseAutoSaveTimer = newValue;
+            obj.updateEnabled();
             obj.IsDirty = true;
         end
         
@@ -275,11 +278,18 @@ classdef SessionPane < QSPViewerNew.Application.ViewPane
             value = obj.IsDirty;
         end
         
+        function updateEnabled(obj)
+            %Update the 'Enable' Property of items
+            obj.UseParallelToolboxDropDown.Enable = obj.TemporarySession.UseParallel;
+            obj.AutoSaveFreqEdit.Enable = obj.TemporarySession.UseAutoSaveTimer;
+            
+        end
+        
     end
        
     methods(Access = public)
         
-        function NotifyOfChangeInName(obj,value,previousName,newName);
+        function NotifyOfChangeInName(obj,value)
             obj.TemporarySession.Name = value;
             obj.IsDirty = true;
         end
@@ -350,13 +360,14 @@ classdef SessionPane < QSPViewerNew.Application.ViewPane
                obj.UseParallelToolboxCheckBox.Value = obj.TemporarySession.UseParallel;
                obj.UseParallelToolboxDropDown.Enable = 'on';
                obj.UseParallelToolboxCheckBox.Enable = 'on';
+               obj.updateEnabled();
             else
                obj.UseParallelToolboxDropDown.Items = {};
                obj.UseParallelToolboxCheckBox.Value = 0;
                obj.UseParallelToolboxDropDown.Enable = 'off';
                obj.UseParallelToolboxCheckBox.Enable = 'off';
             end
-            
+                    
             obj.IsDirty = false;
             
         end
