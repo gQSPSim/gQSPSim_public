@@ -685,7 +685,6 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
                             end
                         end
                         
-                        updateLines(obj);
                         AxIndices = [oldAxisIndex,newAxisIndex];
                         AxIndices(isnan(AxIndices)) = [];
                         % Redraw legend
@@ -694,6 +693,8 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
                             'AxIndices',AxIndices);
                         obj.AxesLegend(AxIndices) = UpdatedAxesLegend(AxIndices);
                         obj.AxesLegendChildren(AxIndices) = UpdatedAxesLegendChildren(AxIndices);
+                        obj.updateLines();
+                        obj.updateLegends();
                         
                     else
                         h.Data{e.Indices(1),e.Indices(2)} = e.PreviousData;
@@ -880,38 +881,37 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
         
         function onSelectionProfileTable(obj,~,e)     
             obj.Optimization.SelectedProfileRow = e.Indices(1);
-            obj.redrawVisParametersTable();
             obj.redrawVisProfileTable();
-            
-            
+            obj.redrawVisParametersTable();
+            obj.redrawProfileButtonGroup();
             obj.VisDirty = true; %Same as notify(obj,'MarkDirty') in old implementation 
+            
         end
        
         function onVisAddButton(obj,~,~)
-            if ~isempty(obj.Optimization.SelectedProfileRow)
                 obj.Optimization.PlotProfile(end+1) = QSP.Profile;
                 obj.Optimization.SelectedProfileRow = numel(obj.Optimization.PlotProfile);
 
                 obj.redrawVisEverything();
                 obj.VisDirty = true; %Same as notify(obj,'MarkDirty') in old implementation 
-            end
         end
         
         function onVisRemoveButton(obj,~,~)
+
             if ~isempty(obj.Optimization.SelectedProfileRow)
                 if numel(obj.Optimization.PlotProfile) > 1
-                    obj.Optimization.PlotProfile(Indices) = [];
+                    obj.Optimization.PlotProfile(obj.Optimization.SelectedProfileRow) = [];
                 else
                     obj.Optimization.PlotProfile = QSP.Profile.empty(0,1);
                 end
-                if size(obj.SpeciesGroup,3) >=Indices
-                    delete([obj.SpeciesGroup{:,:,Indices}]); % remove objects
-                    obj.SpeciesGroup(:,:,Indices) = []; % remove group
+                if size(obj.SpeciesGroup,3) >=obj.Optimization.SelectedProfileRow
+                    delete([obj.SpeciesGroup{:,:,obj.Optimization.SelectedProfileRow}]); % remove objects
+                    obj.SpeciesGroup(:,:,obj.Optimization.SelectedProfileRow) = []; % remove group
                 end
                 
                 obj.Optimization.SelectedProfileRow = [];
                 % Update the view
-                updateVisualizationView(vObj);
+                obj.redrawVisEverything();
                 obj.VisDirty = true; %Same as notify(obj,'MarkDirty') in old implementation
             end
         end
@@ -919,13 +919,15 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
         function onVisCopyButton(obj,~,~)
             if ~isempty(obj.Optimization.SelectedProfileRow)
                 obj.Optimization.PlotProfile(end+1) = QSP.Profile;
-                obj.Optimization.PlotProfile(end).Source = obj.Optimization.PlotProfile(Indices).Source;
-                obj.Optimization.PlotProfile(end).Description = obj.Optimization.PlotProfile(Indices).Description;
-                obj.Optimization.PlotProfile(end).Show = obj.Optimization.PlotProfile(Indices).Show;
-                obj.Optimization.PlotProfile(end).Values = obj.Optimization.PlotProfile(Indices).Values;
+                obj.Optimization.PlotProfile(end).Source = obj.Optimization.PlotProfile(obj.Optimization.SelectedProfileRow).Source;
+                obj.Optimization.PlotProfile(end).Description = obj.Optimization.PlotProfile(obj.Optimization.SelectedProfileRow).Description;
+                obj.Optimization.PlotProfile(end).Show = obj.Optimization.PlotProfile(obj.Optimization.SelectedProfileRow).Show;
+                obj.Optimization.PlotProfile(end).Values = obj.Optimization.PlotProfile(obj.Optimization.SelectedProfileRow).Values;
                 obj.Optimization.SelectedProfileRow = numel(obj.Optimization.PlotProfile);
                 % Update the view
-                updateVisualizationView(vObj);
+                obj.redrawVisProfileTable();
+                obj.redrawVisParametersTable();
+                obj.redrawProfileButtonGroup();
                 obj.VisDirty = true; %Same as notify(obj,'MarkDirty') in old implementation
             end
         end
@@ -948,7 +950,7 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
                 uierror(obj.getUIFigure,'Invalid value specified for parameter. Values must be numeric','Invalid value');
             end
             % Update the view
-            updateVisualizationView(obj);
+            obj.redrawVisEverything();
             
             obj.VisDirty = true; %Same as notify(obj,'MarkDirty') in old implementation
             set(obj.getUIFigure,'pointer','arrow');
@@ -981,7 +983,7 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
                 ThisProfile.Values = ThisSourceData(index,:);
            end
            % Update the view
-           updateVisualizationView(obj);
+           obj.redrawVisEverything();
 
            set(obj.getUIFigure,'pointer','arrow');
            obj.VisDirty = true; %Same as notify(obj,'MarkDirty') in old implementation
