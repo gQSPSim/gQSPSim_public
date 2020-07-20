@@ -759,6 +759,12 @@ classdef ApplicationUI < matlab.apps.AppBase
         end    
          
         function onAddItem(app,thisSession,itemType)
+            if isempty(thisSession)
+                thisSession = app.SelectedSession;
+            end
+            
+            %itemType can be a QSP item or just the type as a char
+            % This enables adding a blank or complete item to the tree
             if ischar(itemType)
                 ThisObj = QSP.(itemType)();
             elseif isobject(itemType)
@@ -1227,12 +1233,12 @@ classdef ApplicationUI < matlab.apps.AppBase
                 case 'QSP.VirtualPopulation'
                     NewVirtualPopulation = newObject;
                     for idx = 1:numel(NewVirtualPopulation)
-                        app.onAddItem([],NewVirtualPopulation(idx))
+                        app.onAddItem(NewVirtualPopulation(idx).Session,NewVirtualPopulation(idx))
                     end
                 case 'QSP.Parameters'
                     NewParameters = newObject;
                     for idx = 1:numel(NewParameters)
-                        app.onAddItem([],NewParameters(idx))
+                        app.onAddItem(NewParameters(idx).Session,NewParameters(idx))
                     end
                 otherwise
                     error('QSP object is not supported for adding to tree')
