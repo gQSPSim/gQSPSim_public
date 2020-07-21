@@ -862,11 +862,12 @@ classdef ViewPane < handle
                         %If the Visualize window is not already shown
                         obj.CurrentPane.Visible = 'off';
                         obj.CurrentPane = obj.VisualizationPanel;
+                        drawnow
+                        obj.CurrentPane.Visible = 'on';
                         obj.drawVisualization();
                         obj.updateLines();
                         obj.updateLegends();
                         obj.UpdateBackendPlotSettings();
-                        obj.CurrentPane.Visible = 'on';
                         
                         %Disable all external buttons and other views
                         obj.toggleButtonsInteraction({'on','on','on','on','on','on','on','on','on'});
