@@ -632,8 +632,8 @@ classdef CohortGenerationPane < QSPViewerNew.Application.ViewPane
                 for k=1:nAxes
                     ax=uiaxes(scrollingPanel);
                     %Fill in the left to right
-                    ax.Layout.Column = mod(k-1,nCols)+1;
-                    ax.Layout.Row = floor((k-1)/nRows)+2;
+                    ax.Layout.Column = floor((k-1)/nRows)+1; 
+                    ax.Layout.Row = mod(k-1,nCols)+2;
                     histogram(ax, ParamValues(:,k))
                     if k <= length(LB)
                         h2(1)=line(ax,LB(k)*ones(1,2), get(ax,'YLim'));
