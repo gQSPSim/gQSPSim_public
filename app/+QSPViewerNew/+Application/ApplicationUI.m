@@ -838,7 +838,13 @@ classdef ApplicationUI < matlab.apps.AppBase
             app.markDirty(thisSession);
             
             % Update the display
-            app.refresh();
+            app.updateTreeNames();
+            
+            %Update the file menu
+            app.updateFileMenu();
+            
+            %Update the title of the application
+            app.updateAppTitle();
         end
         
         function onDuplicateItem(app,activeSession,activeNode)

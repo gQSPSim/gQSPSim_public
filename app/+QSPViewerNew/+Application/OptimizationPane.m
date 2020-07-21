@@ -1032,23 +1032,17 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
                         idP0 = strcmpi(Header,'P0_1');
                         idName = strcmpi(Header,'Name');
                         [~,ix] = ismember(Data(:,idName), Values(1,:));
-                        Data(:,idP0) = Values(2,ix);
-                        xlwrite(parameterObj.FilePath,[Header; Data]); 
-                        
+                        Data(:,idP0) = Values(2,ix); 
+                        writecell([Header; Data],parameterObj.FilePath);
                     end
-        
+                    
                     % Update last saved time
                     updateLastSavedTime(parameterObj);
+                    
                     % Validate
                     validate(parameterObj,false);
                     
-                    % Call the callback
-                    evt.InteractionType = sprintf('Updated %s',class(parameterObj));
-                    evt.Data = parameterObj;
-                    obj.callCallback(evt);           
-                    
-                    % Update the view
-                    updateVisualizationView(obj);
+                    obj.notifyOfChange(parameterObj);
                 end
             end
         end
@@ -1064,7 +1058,11 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
                 
                 % Append the source with the postfix appender
                 ThisProfile = obj.Optimization.PlotProfile(obj.Optimization.SelectedProfileRow);
-                ThisVPopName = matlab.lang.makeValidName(strtrim(Answer{1}));
+                if iscell(Answer)
+                    Answer = Answer{1};
+                end
+                
+                ThisVPopName = matlab.lang.makeValidName(strtrim(Answer));
                 ThisVPopName = sprintf('%s - %s',ThisProfile.Source,ThisVPopName);
                 
                 ThisFilePath = fullfile(obj.Optimization.Session.RootDirectory, obj.Optimization.OptimResultsFolderName,[ThisVPopName '.xlsx']);
@@ -1086,21 +1084,15 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
                     ThisProfile = obj.Optimization.PlotProfile(obj.Optimization.SelectedProfileRow);
                     
                     Values = ThisProfile.Values(~cellfun(@isempty, ThisProfile.Values(:,2)), :)'; % Take first 2 rows and transpose
-                    
-                    xlwrite(vpopObj.FilePath,Values); 
+                    writecell(Values,vpopObj.FilePath);
 
                     % Update last saved time
                     updateLastSavedTime(vpopObj);
+                    
                     % Validate
                     validate(vpopObj,false);
                     
-                    % Call the callback
-                    evt.InteractionType = sprintf('Updated %s',class(vpopObj));
-                    evt.Data = vpopObj;
-                    obj.callCallback(evt);           
-                    
-                    % Update the view
-                    updateVisualizationView(obj);
+                    obj.notifyOfChange(vpopObj);
                 end
             end
             
