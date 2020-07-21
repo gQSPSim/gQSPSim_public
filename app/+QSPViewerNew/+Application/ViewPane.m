@@ -301,6 +301,7 @@ classdef ViewPane < handle
            obj.RemoveButton.Layout.Column = 2;
            obj.RemoveButton.Text = 'Remove Invalid';
            obj.RemoveButton.Tag = 'Remove';
+           obj.RemoveButton.Tooltip = 'Remove Invalid Entries';
            obj.RemoveButton.ButtonPushedFcn = @(~,~) obj.onRemoveInvalid();
            
            obj.SaveButton = uibutton(obj.EditButtonLayout,'push');
@@ -308,6 +309,7 @@ classdef ViewPane < handle
            obj.SaveButton.Layout.Column = 3;
            obj.SaveButton.Text = 'OK';
            obj.SaveButton.Tag = 'Save';
+           obj.SaveButton.Tooltip = 'Apply and Save Changes to Selection';
            obj.SaveButton.ButtonPushedFcn = @(~,~) obj.onSave();
            
            obj.CancelButton = uibutton(obj.EditButtonLayout,'push');
@@ -315,6 +317,7 @@ classdef ViewPane < handle
            obj.CancelButton.Layout.Column = 4;
            obj.CancelButton.Text = 'Cancel';
            obj.CancelButton.Tag = 'Cancel';
+           obj.CancelButton.Tooltip = 'Close without Saving';
            obj.CancelButton.ButtonPushedFcn = @(~,~) obj.onCancel();
            
            obj.ButtonsLayout = uigridlayout(obj.OuterGrid);
@@ -448,6 +451,7 @@ classdef ViewPane < handle
                obj.RemoveButton.Layout.Column = 1;
                obj.RemoveButton.Text = 'Remove Invalid';
                obj.RemoveButton.Tag = 'Remove Invalid Visualization';
+               obj.RemoveButton.Tooltip = 'Remove Invalid Visualization';
                obj.RemoveButton.ButtonPushedFcn = @(~,~) obj.onRemoveInvalidVisualization();
                
                %Create all plot objects

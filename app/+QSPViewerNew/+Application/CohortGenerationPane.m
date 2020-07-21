@@ -318,12 +318,14 @@ classdef CohortGenerationPane < QSPViewerNew.Application.ViewPane
             obj.VisNormalButton = uiradiobutton(obj.VisButtonGroup);
             obj.VisNormalButton.Text = 'Normal';
             obj.VisNormalButton.Tag = 'Normal';
+            obj.VisNormalButton.Tooltip = 'Plot Type: Normal';
             obj.VisNormalButton.Value = true;
             obj.VisNormalButton.Position = [14 46 100 22];
             
             obj.VisDiagnosticButton = uiradiobutton(obj.VisButtonGroup);
             obj.VisDiagnosticButton.Text = 'Diagnostic';
             obj.VisDiagnosticButton.Tag = 'Diagnostic';
+            obj.VisDiagnosticButton.Tooltip = 'Plot Type: Diagnostic';
             obj.VisDiagnosticButton.Value = false;
             obj.VisDiagnosticButton.Position = [14 15 100 22];
             
@@ -331,6 +333,7 @@ classdef CohortGenerationPane < QSPViewerNew.Application.ViewPane
             obj.VisParamatersDiagnosticButton.Layout.Row = 2;
             obj.VisParamatersDiagnosticButton.Layout.Column = 1;
             obj.VisParamatersDiagnosticButton.Text = 'Parameter Distribution Diagnostics';
+            obj.VisParamatersDiagnosticButton.Tooltip = 'Plot Parameter Distribution Diagnostics';
             obj.VisParamatersDiagnosticButton.ButtonPushedFcn = @obj.onParameterButton;
             
             obj.VisSpeciesDataTableLabel = uilabel(obj.VisLayout);

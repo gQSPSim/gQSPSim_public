@@ -368,6 +368,7 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
             obj.VisAddButton.Layout.Column = 1;
             obj.VisAddButton.Icon = QSPViewerNew.Resources.LoadResourcePath('add_24.png');
             obj.VisAddButton.Text = '';
+            obj.VisAddButton.Tooltip = 'Add new row';
             obj.VisAddButton.ButtonPushedFcn = @obj.onVisAddButton;
 
             obj.VisRemoveButton = uibutton(obj.VisInnerLayout,'push');
@@ -375,6 +376,7 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
             obj.VisRemoveButton.Layout.Column = 1;
             obj.VisRemoveButton.Icon = QSPViewerNew.Resources.LoadResourcePath('delete_24.png');
             obj.VisRemoveButton.Text = '';
+            obj.VisRemoveButton.Tooltip = 'Delete the highlighted row';
             obj.VisRemoveButton.ButtonPushedFcn = @obj.onVisRemoveButton;
 
             obj.VisCopyButton = uibutton(obj.VisInnerLayout,'push');
@@ -382,6 +384,7 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
             obj.VisCopyButton.Layout.Column = 1;
             obj.VisCopyButton.Icon = QSPViewerNew.Resources.LoadResourcePath('copy_24.png');
             obj.VisCopyButton.Text = '';
+            obj.VisCopyButton.Tooltip = 'Duplicate the highlighted row';
             obj.VisCopyButton.ButtonPushedFcn = @obj.onVisCopyButton;
 
             obj.VisSwapButton = uibutton(obj.VisInnerLayout,'push');
@@ -389,6 +392,7 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
             obj.VisSwapButton.Layout.Column = 1;
             obj.VisSwapButton.Icon = QSPViewerNew.Resources.LoadResourcePath('reset_24.png');
             obj.VisSwapButton.Text = '';
+            obj.VisSwapButton.Tooltip = 'Reset to original values';
             obj.VisSwapButton.ButtonPushedFcn = @obj.onVisSwapButton;
 
             obj.VisPencilMatButtonm = uibutton(obj.VisInnerLayout,'push');
@@ -396,6 +400,7 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
             obj.VisPencilMatButtonm.Layout.Column = 1;
             obj.VisPencilMatButtonm.Icon = QSPViewerNew.Resources.LoadResourcePath('param_edit_24.png');
             obj.VisPencilMatButtonm.Text = '';
+            obj.VisPencilMatButtonm.Tooltip = 'Save as Parameters set';
             obj.VisPencilMatButtonm.ButtonPushedFcn = @obj.onVisPencilMatButton;
 
             obj.VisDataButton = uibutton(obj.VisInnerLayout,'push');
@@ -403,6 +408,7 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
             obj.VisDataButton.Layout.Column = 1;
             obj.VisDataButton.Icon = QSPViewerNew.Resources.LoadResourcePath('datatable_24.png');
             obj.VisDataButton.Text = '';
+            obj.VisDataButton.Tooltip = 'Save as Vpop';
             obj.VisDataButton.ButtonPushedFcn = @obj.onVisDataButton;
             
             obj.VisApplyButton = uibutton(obj.VisInnerLayout,'push');
