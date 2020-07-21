@@ -46,8 +46,7 @@ classdef InputDlgCustom < QSPViewerNew.Widgets.ModalPopup
             Xstart = (Parentfigure.Position(3)-Width)/2;
             Ystart = (Parentfigure.Position(4)-Height)/2;
             obj.PanelQuest.Position = [Xstart,Ystart,Width,Height];
-            %obj.PanelQuest.Position = [Parentfigure.Position(3)*.25,Parentfigure.Position(4)*.25,Parentfigure.Position(3)*.5,Parentfigure.Position(4)*.5];
-
+            
             %Create Button 
             obj.PanelQuestGrid = uigridlayout(obj.PanelQuest);
             obj.PanelQuestGrid.ColumnWidth = {'1x',200,80,80,'1x'};
