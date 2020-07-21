@@ -1704,10 +1704,10 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
             obj.redrawVisContextMenus();
             obj.redrawSpeciesDataTable();
             obj.redrawOptimItemsTable();
-            obj.redrawProfileButtonGroup();
             obj.redrawVisProfileTable();
             obj.redrawVisParametersTable();
             obj.redrawVisLineWidth();
+            obj.redrawProfileButtonGroup();
             
         end
         
@@ -1944,6 +1944,19 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
                 obj.VisRemoveButton.Enable = false;
                 obj.VisCopyButton.Enable = false; 
             end
+            
+            if isempty(obj.VisParametersTable.Data)
+                obj.VisPencilMatButtonm.Enable = false;
+                obj.VisDataButton.Enable = false;
+                obj.VisApplyButton.Enable = false;
+                obj.VisSwapButton.Enable = false;
+            else
+                obj.VisPencilMatButtonm.Enable = true;
+                obj.VisDataButton.Enable = true;
+                obj.VisApplyButton.Enable = true;
+                obj.VisSwapButton.Enable = true;
+                
+            end
         end
         
         function redrawVisProfileTable(obj)
@@ -1994,20 +2007,13 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
 
                 % Import the parmaters using helper
                 [IsSourceMatch,~,obj.ThisProfileData] = importParametersSourceHelper(obj);    
-                %For every row
-                for rowIdx = 1:size(TableData,1)
-                    %If the source does not match, italicize
-                    if ~IsSourceMatch(rowIdx)
-                        for colIdx = [1, 4]
-                            TableData{rowIdx,colIdx} = QSP.makeItalicized(TableData{rowIdx,colIdx});
-                        end
-                    end
-                end
-               
+
                 ColumnFormat = {'numeric','logical',PlotParametersSourceOptions(:)','char'};
                 ColumnEditable = [false,true,true,true];
 
             else
+                %No italicized items for empty table
+                IsSourceMatch = [];
                 TableData = cell(0,5);
                 ColumnFormat = {'numeric','logical','char','char'};
                 ColumnEditable = [false,true,false,true];
@@ -2017,6 +2023,17 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
             obj.VisProfilesTable.ColumnName = {'Run','Show','Source','Description'};
             obj.VisProfilesTable.ColumnFormat = ColumnFormat;
             obj.VisProfilesTable.Data = TableData;
+            removeStyle(obj.VisProfilesTable);
+            %italicize items that do not match   
+            
+            for rowIdx = 1:size(TableData,1)
+                %If the source does not match, italicize
+                if ~IsSourceMatch(rowIdx)
+                    Style = uistyle('FontAngle','italic','HorizontalAlignment','left');
+                    addStyle(obj.VisProfilesTable,Style,'cell',[rowIdx,1]);
+                    addStyle(obj.VisProfilesTable,Style,'cell',[rowIdx,4]);
+                end
+            end
         end
         
         function redrawVisParametersTable(obj)
@@ -2028,26 +2045,28 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
             %Verify the dimensions of the input. This could vary between
             %sessions
             if size(obj.ThisProfileData,2)==3
-                %for every row of the ProfileData
-                for rowIdx = 1:size(obj.ThisProfileData,1)
-                    %If the 'Value' and 'Source Value' are not equal,
-                    %italicize
-                    if ~isequal(obj.ThisProfileData{rowIdx,2}, obj.ThisProfileData{rowIdx,3})
-                        obj.ThisProfileData{rowIdx,1} = QSP.makeItalicized(obj.ThisProfileData{rowIdx,1});
-                    end
-                end
                 TableData = obj.ThisProfileData;
                 LabelString = sprintf('Parameters (Run = %d)', obj.Optimization.SelectedProfileRow);
             else
                 TableData = cell(0,3);
                 LabelString =  sprintf('Parameters');
             end
+            
             %Finally, write this information to the actual table        
             obj.VisParametersTable.ColumnEditable = [false,true,false];
             obj.VisParametersTable.ColumnName = {'Parameter','Value','Source Value'};
             obj.VisParametersTable.ColumnFormat = {'char','numeric','numeric'};
             obj.VisParametersTable.Data = TableData;
             obj.VisParametersTableLabel.Text = LabelString;
+            removeStyle(obj.VisParametersTable);
+            
+            %italicize entries that dont match
+            for rowIdx = 1:size(TableData,1)
+                if ~isequal(TableData{rowIdx,2}, TableData{rowIdx,3})
+                    Style = uistyle('FontAngle','italic','HorizontalAlignment','left');
+                    addStyle(obj.VisParametersTable,Style,'row',rowIdx);
+                end
+            end
         end
         
         function redrawVisLineWidth(obj)
