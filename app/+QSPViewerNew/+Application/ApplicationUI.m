@@ -38,7 +38,6 @@ classdef ApplicationUI < matlab.apps.AppBase
         IsConstructed = false;
         Type
         TypeStr
-        
         WindowButtonDownCallbacks = {};
         WindowButtonUpCallbacks = {};
     end
@@ -140,7 +139,7 @@ classdef ApplicationUI < matlab.apps.AppBase
         
         function create(app)
             %for reference in callbacks
-            % Create UIFigure and hide until all components are created
+            %Create UIFigure and hide until all components are created
             app.UIFigure = uifigure('Visible', 'off');
             app.UIFigure.Position = [100 100 1005 864];
             app.UIFigure.Name = 'UI Figure';
@@ -157,7 +156,6 @@ classdef ApplicationUI < matlab.apps.AppBase
             app.NewCtrlNMenu.Text = 'New...';
             app.NewCtrlNMenu.Accelerator = 'N';
             app.NewCtrlNMenu.MenuSelectedFcn = @app.onNew;
-            
             
             % Create OpenCtrl0Menu
             app.OpenCtrl0Menu = uimenu(app.FileMenu);
@@ -201,7 +199,6 @@ classdef ApplicationUI < matlab.apps.AppBase
             % Create AddNewItemMenu
             app.AddNewItemMenu = uimenu(app.QSPMenu);
             app.AddNewItemMenu.Text = 'Add New Item';
-            
             
             % Create DatasetMenu
             app.DatasetMenu = uimenu(app.AddNewItemMenu);
@@ -297,17 +294,17 @@ classdef ApplicationUI < matlab.apps.AppBase
             app.UIFigure.Visible = 'on';
         end
         
-        function createTree(app, Parent, AllData)
+        function createTree(app, parent, allData)
             % Nodes that take children have the type of child as a string in the UserData
             % property. Nodes that are children and are movable have [] in UserData.
             % Get short name to call this function recursively
             thisFcn = @(Parent,Data) createTree(app, Parent, Data);
             
             % Loop on objects
-            for idx = 1:numel(AllData)
+            for idx = 1:numel(allData)
                 
                 % Get current object
-                Data = AllData(idx);
+                Data = allData(idx);
                 
                 % What type of object is this?
                 TypeTemp = class(Data);
@@ -318,7 +315,7 @@ classdef ApplicationUI < matlab.apps.AppBase
                     case 'QSP.Session'
                         
                         % Session node
-                        hSession = app.createNode(Parent, Data, ...
+                        hSession = app.createNode(parent, Data, ...
                             'Session', QSPViewerNew.Resources.LoadResourcePath('folder_24.png'),...
                             'Session', [], 'Session');
                         Data.TreeNode = hSession; %Store node in the object for cross-ref
@@ -411,61 +408,61 @@ classdef ApplicationUI < matlab.apps.AppBase
                         
                     case 'QSP.OptimizationData'
                         
-                        hNode = app.createNode(Parent, Data, Data.Name, QSPViewerNew.Resources.LoadResourcePath('datatable_24.png'),...
+                        hNode = app.createNode(parent, Data, Data.Name, QSPViewerNew.Resources.LoadResourcePath('datatable_24.png'),...
                             'Dataset', [], '');
                         Data.TreeNode = hNode; %Store node in the object for cross-ref
                         
                     case 'QSP.Parameters'
                         
-                        hNode = app.createNode(Parent, Data, Data.Name, QSPViewerNew.Resources.LoadResourcePath('param_edit_24.png'),...
+                        hNode = app.createNode(parent, Data, Data.Name, QSPViewerNew.Resources.LoadResourcePath('param_edit_24.png'),...
                             'Parameter', [], '');
                         Data.TreeNode = hNode; %Store node in the object for cross-ref
                         
                     case 'QSP.Task'
                         
-                        hNode = app.createNode(Parent, Data, Data.Name, QSPViewerNew.Resources.LoadResourcePath('flask2.png'),...
+                        hNode = app.createNode(parent, Data, Data.Name, QSPViewerNew.Resources.LoadResourcePath('flask2.png'),...
                             'Task', [], '');
                         Data.TreeNode = hNode; %Store node in the object for cross-ref
                         
                     case 'QSP.VirtualPopulation'
                         
-                        hNode = app.createNode(Parent, Data, Data.Name, QSPViewerNew.Resources.LoadResourcePath('stickman3.png'),...
+                        hNode = app.createNode(parent, Data, Data.Name, QSPViewerNew.Resources.LoadResourcePath('stickman3.png'),...
                             'Virtual Subject(s)', [], '');
                         Data.TreeNode = hNode; %Store node in the object for cross-ref
                         
                         
                     case 'QSP.VirtualPopulationData'
                         
-                        hNode = app.createNode(Parent, Data, Data.Name, QSPViewerNew.Resources.LoadResourcePath('acceptance_criteria.png'),...
+                        hNode = app.createNode(parent, Data, Data.Name, QSPViewerNew.Resources.LoadResourcePath('acceptance_criteria.png'),...
                             'Acceptance Criteria', [], '');
                         Data.TreeNode = hNode; %Store node in the object for cross-ref
                         
                     case 'QSP.Simulation'
                         
-                        hNode = app.createNode(Parent, Data, Data.Name, QSPViewerNew.Resources.LoadResourcePath('simbio_24.png'),...
+                        hNode = app.createNode(parent, Data, Data.Name, QSPViewerNew.Resources.LoadResourcePath('simbio_24.png'),...
                             'Simulation', [], '');
                         Data.TreeNode = hNode; %Store node in the object for cross-ref
                         
                     case 'QSP.Optimization'
                         
-                        hNode = app.createNode(Parent, Data, Data.Name, QSPViewerNew.Resources.LoadResourcePath('optim_24.png'),...
+                        hNode = app.createNode(parent, Data, Data.Name, QSPViewerNew.Resources.LoadResourcePath('optim_24.png'),...
                             'Optimization', [], '');
                         Data.TreeNode = hNode; %Store node in the object for cross-ref
                         
                     case 'QSP.CohortGeneration'
                         
-                        hNode = app.createNode(Parent, Data, Data.Name, QSPViewerNew.Resources.LoadResourcePath('stickman-3.png'),...
+                        hNode = app.createNode(parent, Data, Data.Name, QSPViewerNew.Resources.LoadResourcePath('stickman-3.png'),...
                             'Cohort Generation', [], '');
                         Data.TreeNode = hNode; %Store node in the object for cross-ref
                         
                     case 'QSP.VirtualPopulationGeneration'
                         
-                        hNode = app.createNode(Parent, Data, Data.Name, QSPViewerNew.Resources.LoadResourcePath('stickman-3-color.png'),...
+                        hNode = app.createNode(parent, Data, Data.Name, QSPViewerNew.Resources.LoadResourcePath('stickman-3-color.png'),...
                             'Virtual Population Generation', [], '');
                         Data.TreeNode = hNode; %Store node in the object for cross-ref
                         
                     case 'QSP.VirtualPopulationGenerationData'
-                        hNode = app.createNode(Parent, Data, Data.Name, QSPViewerNew.Resources.LoadResourcePath('target_stats.png'),...
+                        hNode = app.createNode(parent, Data, Data.Name, QSPViewerNew.Resources.LoadResourcePath('target_stats.png'),...
                             'Target Statistics', [], '');
                         Data.TreeNode = hNode; %Store node in the object for cross-ref
                         
@@ -478,14 +475,13 @@ classdef ApplicationUI < matlab.apps.AppBase
                         
                 end %switch
                 
-                if isa(Parent,'matlab.ui.container.TreeNode') && strcmp(Parent.Text,'Deleted Items')
+                if isa(parent,'matlab.ui.container.TreeNode') && strcmp(parent.Text,'Deleted Items')
                     app.createContextMenu(hNode,'Deleted')
                 end
             end %for
         end %function
         
         function createContextMenu(app,Node,Type)
-            
             %Determine if this ContextMenu is from QSP
             ItemTypes = {
                 'Dataset',                          'OptimizationData'
@@ -526,6 +522,7 @@ classdef ApplicationUI < matlab.apps.AppBase
                 end
             else
                 switch Type
+                    
                     %For a session Node
                     case 'Session'
                         CM = uicontextmenu('Parent',app.UIFigure);
@@ -565,6 +562,8 @@ classdef ApplicationUI < matlab.apps.AppBase
                             'MenuSelectedFcn', @(h,e) app.onEmptyDeletedItems(h.Parent.UserData,h.Parent.UserData.Parent.Parent.NodeData,false));
                 end
             end
+            
+            %Attach menu to widgets and attach widget to context menu
             Node.ContextMenu = CM;
             CM.UserData = Node;
         end
@@ -580,7 +579,7 @@ classdef ApplicationUI < matlab.apps.AppBase
            if ~isempty(CMenu)
                app.createContextMenu(hNode,CMenu);
            end
-       end %function
+       end 
         
     end
     
@@ -606,7 +605,6 @@ classdef ApplicationUI < matlab.apps.AppBase
             outputType = class(FileName);
             
             %Determine if the output was invalid
-            
             switch outputType
                 case 'double'
                     %The user canceled. Do Nothing
@@ -628,7 +626,8 @@ classdef ApplicationUI < matlab.apps.AppBase
         
         function onClose(app,activeSession)
             if ~isempty(activeSession)
-                %Need to find the session
+                
+                %Need to find the session index
                 SessionIdx = find(strcmp(activeSession.SessionName,{app.Sessions.SessionName}));
             else
                 SessionIdx = app.SelectedSessionIdx;
@@ -643,7 +642,8 @@ classdef ApplicationUI < matlab.apps.AppBase
         
         function onSave(app,activeSession)
             if ~isempty(activeSession)
-                %Need to find the session
+                
+                %Need to find the session index
                 Idx = find(strcmp(activeSession.SessionName,{app.Sessions.SessionName}));
             else
                 Idx = app.SelectedSessionIdx;
@@ -657,7 +657,8 @@ classdef ApplicationUI < matlab.apps.AppBase
         
         function onSaveAs(app,activeSession)
             if ~isempty(activeSession)
-                %Need to find the session
+                
+                %Need to find the session index
                 Idx = find(strcmp(activeSession.Name,app.Sessions));
             else
                 Idx = app.SelectedSessionIdx;
@@ -721,12 +722,12 @@ classdef ApplicationUI < matlab.apps.AppBase
                'Iraj Hosseini (hosseini.iraj@gene.com)', ...
                'Anita Gajjala (agajjala@mathworks.com)'};
            uialert(app.UIFigure,Message,'About','Icon','');
-
         end
         
         function onTreeSelectionChanged(app,handle,event)
             app.UIFigure.Pointer = 'watch';
             drawnow limitrate;
+            
             %First we determine the session that is selected
             %We can select mutliple nodes at once. Therefore we need to consider if SelectedNodes is a vector
             SelectedNodes = event.SelectedNodes;
@@ -745,6 +746,7 @@ classdef ApplicationUI < matlab.apps.AppBase
                  if isempty(ThisSessionNode)
                     app.SelectedSessionIdx = [];
                  else
+                     
                     % update path to include drop the UDF for previous session
                     % and include the UDF for current session
                     app.SelectedSession.removeUDF();
@@ -776,7 +778,6 @@ classdef ApplicationUI < matlab.apps.AppBase
             
             % special case since vpop data has been renamed to acceptance
             % criteria
-            
             if strcmp(itemType, 'VirtualPopulationData')
                 ItemName = 'Acceptance Criteria';
             elseif strcmp(itemType, 'VirtualPopulationGenerationData')
@@ -788,9 +789,7 @@ classdef ApplicationUI < matlab.apps.AppBase
             else
                 ItemName = itemType;
             end
-            
-            % Get the session
-            
+                     
             % Where does the item go?
             if isprop(thisSession,itemType)
                 ParentObj = thisSession;
@@ -818,6 +817,8 @@ classdef ApplicationUI < matlab.apps.AppBase
             DisallowedNames = {ParentObj.(itemType).Name};
             NewName = matlab.lang.makeUniqueStrings(NewName, DisallowedNames);
             ThisObj.Name = NewName;
+            
+            %Determine the session associated
             if isprop(ThisObj,'Settings')
                 ThisObj.Settings = thisSession.Settings;
             end
@@ -860,8 +861,8 @@ classdef ApplicationUI < matlab.apps.AppBase
             app.markDirty(activeSession);
         end
        
-        function onEmptyDeletedItems(app,activeSession,activeNode,deleteAll)
-            if deleteAll
+        function onEmptyDeletedItems(app,activeSession,activeNode,deleteAllTF)
+            if deleteAllTF
                 TreeRoots = app.SelectedSession.TreeNode.Children;
                 ChildTags = {TreeRoots.Tag};
                 Deleted = TreeRoots(strcmpi(ChildTags,'Deleted Items'));
@@ -887,13 +888,11 @@ classdef ApplicationUI < matlab.apps.AppBase
     methods (Access = private)
         
         function StatusTF = saveSession(app,sessionIdx,saveAsTF)
-            
             %Retrieve session info
             Session = app.Sessions(sessionIdx);
             IsSessionDirty = app.IsDirty(sessionIdx);
             OldSessionPath = app.SessionPaths{sessionIdx};
             StatusTF = false;
-            
             
             %Get a valid file location to start in
             ThisFile = OldSessionPath;
@@ -985,7 +984,6 @@ classdef ApplicationUI < matlab.apps.AppBase
             % Clear existing sessions if needed
             if ~app.AllowMultipleSessions
                 app.SessionPaths = cell.empty(0,1);
-                %Save? 
             end
             
             % Call subclass method to create storage for the new session
@@ -1223,7 +1221,8 @@ classdef ApplicationUI < matlab.apps.AppBase
         end
         
         function changeInBackEnd(app,newObject)
-            
+            %This function is for other classes to provide a new session to
+            %be added to session and corresponding tree
             switch class(newObject)
                 
                 %We have a new backend object to attach to the tree.
@@ -1251,6 +1250,10 @@ classdef ApplicationUI < matlab.apps.AppBase
             end
         end
         
+        %The following 4 functions are required because uiaxes in R2020a do
+        %not support buttonDown and buttonUp callbacks. Use these functions
+        %to add your callback to the list of callbacks executed on
+        %buttondown and buttonup.
         function addWindowDownCallback(app,functionHandle)
             app.WindowButtonDownCallbacks{end+1} = functionHandle;
         end
@@ -1289,7 +1292,7 @@ classdef ApplicationUI < matlab.apps.AppBase
     methods (Access = private)
         
         function markDirty(app,session)
-            %This function can take no Session, a session index, or a
+            %This function can take an empty Session, a session index, or a
             %session object
             
             if isempty(session)
@@ -1303,7 +1306,7 @@ classdef ApplicationUI < matlab.apps.AppBase
         end
         
         function markClean(app,session)
-            %This function can take no Session, a session index, or a
+            %This function can take an empty Session, a session index, or a
             %session object
             
             if isempty(session)
@@ -1408,8 +1411,8 @@ classdef ApplicationUI < matlab.apps.AppBase
         end
         
         function updateAppTitle(app)
-            % Update title bar
             
+            % Update title bar
             SelectionNotEmptyTF = ~isempty(app.SessionNames) && ~isempty(app.SelectedSessionIdx);
             SelectionIsDirtyTF = SelectionNotEmptyTF && any(app.IsDirty(app.SelectedSessionIdx));
             if SelectionNotEmptyTF
@@ -1429,7 +1432,8 @@ classdef ApplicationUI < matlab.apps.AppBase
         
         function updatePane(app)
             %Find the currently selected Node
-            NodeSelected = app.TreeRoot.SelectedNodes; %Nodes       
+            NodeSelected = app.TreeRoot.SelectedNodes;
+            
             %Determine if the Node will launch a Pane
             LaunchPaneTF = ~isempty(NodeSelected) && isempty(NodeSelected.UserData);
 
@@ -1697,7 +1701,6 @@ classdef ApplicationUI < matlab.apps.AppBase
         
         function duplicateNode(app,Node,~) 
 
-            
             % What type of item?
             ParentNode = Node.Parent;
             ItemType = ParentNode.Tag;
