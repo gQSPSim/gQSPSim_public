@@ -1338,6 +1338,47 @@ classdef ViewPane < handle
         showThisPane(obj);
         checkDirty(obj);
     end
+    
+    methods (Static)
+        
+         function [hThisLegend,hThisLegendChildren] = redrawLegend(hThisAxes,LegendItems,ThesePlotSettings)
+            
+             hThisLegend = [];
+             hThisLegendChildren = [];
+             
+             if ~isempty(LegendItems)
+                 try
+                     % Add legend
+                     [hThisLegend] = legend(hThisAxes,LegendItems,'FontSize',ThesePlotSettings.LegendFontSize,'FontWeight',ThesePlotSettings.LegendFontWeight);
+                     set(hThisLegend,...
+                         'EdgeColor','none',...
+                         'Visible',ThesePlotSettings.LegendVisibility,...
+                         'Location',ThesePlotSettings.LegendLocation,...
+                         'FontSize',ThesePlotSettings.LegendFontSize,...
+                         'FontWeight',ThesePlotSettings.LegendFontWeight);
+                 catch ME
+                     warning(ME.message)
+                 end
+             else
+                 Siblings = get(get(hThisAxes,'Parent'),'Children');
+                 IsLegend = strcmpi(get(Siblings,'Type'),'legend');
+                 
+                 if any(IsLegend)
+                     if isvalid(Siblings(IsLegend))
+                         delete(Siblings(IsLegend));
+                     end
+                 elseif ~isempty(hThisAxes.Legend)
+                     delete(hThisAxes.Legend)
+                 end
+                 
+                 hThisLegend = [];
+                 hThisLegendChildren = [];
+             end
+             
+        end %function
+        
+    end
+    
        
 end
 
