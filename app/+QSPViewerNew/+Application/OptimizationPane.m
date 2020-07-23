@@ -368,6 +368,7 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
             obj.VisAddButton.Layout.Column = 1;
             obj.VisAddButton.Icon = QSPViewerNew.Resources.LoadResourcePath('add_24.png');
             obj.VisAddButton.Text = '';
+            obj.VisAddButton.Tooltip = 'Add new row';
             obj.VisAddButton.ButtonPushedFcn = @obj.onVisAddButton;
 
             obj.VisRemoveButton = uibutton(obj.VisInnerLayout,'push');
@@ -375,6 +376,7 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
             obj.VisRemoveButton.Layout.Column = 1;
             obj.VisRemoveButton.Icon = QSPViewerNew.Resources.LoadResourcePath('delete_24.png');
             obj.VisRemoveButton.Text = '';
+            obj.VisRemoveButton.Tooltip = 'Delete the highlighted row';
             obj.VisRemoveButton.ButtonPushedFcn = @obj.onVisRemoveButton;
 
             obj.VisCopyButton = uibutton(obj.VisInnerLayout,'push');
@@ -382,6 +384,7 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
             obj.VisCopyButton.Layout.Column = 1;
             obj.VisCopyButton.Icon = QSPViewerNew.Resources.LoadResourcePath('copy_24.png');
             obj.VisCopyButton.Text = '';
+            obj.VisCopyButton.Tooltip = 'Duplicate the highlighted row';
             obj.VisCopyButton.ButtonPushedFcn = @obj.onVisCopyButton;
 
             obj.VisSwapButton = uibutton(obj.VisInnerLayout,'push');
@@ -389,6 +392,7 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
             obj.VisSwapButton.Layout.Column = 1;
             obj.VisSwapButton.Icon = QSPViewerNew.Resources.LoadResourcePath('reset_24.png');
             obj.VisSwapButton.Text = '';
+            obj.VisSwapButton.Tooltip = 'Reset to original values';
             obj.VisSwapButton.ButtonPushedFcn = @obj.onVisSwapButton;
 
             obj.VisPencilMatButtonm = uibutton(obj.VisInnerLayout,'push');
@@ -396,6 +400,7 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
             obj.VisPencilMatButtonm.Layout.Column = 1;
             obj.VisPencilMatButtonm.Icon = QSPViewerNew.Resources.LoadResourcePath('param_edit_24.png');
             obj.VisPencilMatButtonm.Text = '';
+            obj.VisPencilMatButtonm.Tooltip = 'Save as Parameters set';
             obj.VisPencilMatButtonm.ButtonPushedFcn = @obj.onVisPencilMatButton;
 
             obj.VisDataButton = uibutton(obj.VisInnerLayout,'push');
@@ -403,6 +408,7 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
             obj.VisDataButton.Layout.Column = 1;
             obj.VisDataButton.Icon = QSPViewerNew.Resources.LoadResourcePath('datatable_24.png');
             obj.VisDataButton.Text = '';
+            obj.VisDataButton.Tooltip = 'Save as Vpop';
             obj.VisDataButton.ButtonPushedFcn = @obj.onVisDataButton;
             
             obj.VisApplyButton = uibutton(obj.VisInnerLayout,'push');
@@ -685,7 +691,6 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
                             end
                         end
                         
-                        updateLines(obj);
                         AxIndices = [oldAxisIndex,newAxisIndex];
                         AxIndices(isnan(AxIndices)) = [];
                         % Redraw legend
@@ -694,6 +699,8 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
                             'AxIndices',AxIndices);
                         obj.AxesLegend(AxIndices) = UpdatedAxesLegend(AxIndices);
                         obj.AxesLegendChildren(AxIndices) = UpdatedAxesLegendChildren(AxIndices);
+                        obj.updateLines();
+                        obj.updateLegends();
                         
                     else
                         h.Data{e.Indices(1),e.Indices(2)} = e.PreviousData;
@@ -880,38 +887,37 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
         
         function onSelectionProfileTable(obj,~,e)     
             obj.Optimization.SelectedProfileRow = e.Indices(1);
-            obj.redrawVisParametersTable();
             obj.redrawVisProfileTable();
-            
-            
+            obj.redrawVisParametersTable();
+            obj.redrawProfileButtonGroup();
             obj.VisDirty = true; %Same as notify(obj,'MarkDirty') in old implementation 
+            
         end
        
         function onVisAddButton(obj,~,~)
-            if ~isempty(obj.Optimization.SelectedProfileRow)
                 obj.Optimization.PlotProfile(end+1) = QSP.Profile;
                 obj.Optimization.SelectedProfileRow = numel(obj.Optimization.PlotProfile);
 
                 obj.redrawVisEverything();
                 obj.VisDirty = true; %Same as notify(obj,'MarkDirty') in old implementation 
-            end
         end
         
         function onVisRemoveButton(obj,~,~)
+
             if ~isempty(obj.Optimization.SelectedProfileRow)
                 if numel(obj.Optimization.PlotProfile) > 1
-                    obj.Optimization.PlotProfile(Indices) = [];
+                    obj.Optimization.PlotProfile(obj.Optimization.SelectedProfileRow) = [];
                 else
                     obj.Optimization.PlotProfile = QSP.Profile.empty(0,1);
                 end
-                if size(obj.SpeciesGroup,3) >=Indices
-                    delete([obj.SpeciesGroup{:,:,Indices}]); % remove objects
-                    obj.SpeciesGroup(:,:,Indices) = []; % remove group
+                if size(obj.SpeciesGroup,3) >=obj.Optimization.SelectedProfileRow
+                    delete([obj.SpeciesGroup{:,:,obj.Optimization.SelectedProfileRow}]); % remove objects
+                    obj.SpeciesGroup(:,:,obj.Optimization.SelectedProfileRow) = []; % remove group
                 end
                 
                 obj.Optimization.SelectedProfileRow = [];
                 % Update the view
-                updateVisualizationView(vObj);
+                obj.redrawVisEverything();
                 obj.VisDirty = true; %Same as notify(obj,'MarkDirty') in old implementation
             end
         end
@@ -919,13 +925,15 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
         function onVisCopyButton(obj,~,~)
             if ~isempty(obj.Optimization.SelectedProfileRow)
                 obj.Optimization.PlotProfile(end+1) = QSP.Profile;
-                obj.Optimization.PlotProfile(end).Source = obj.Optimization.PlotProfile(Indices).Source;
-                obj.Optimization.PlotProfile(end).Description = obj.Optimization.PlotProfile(Indices).Description;
-                obj.Optimization.PlotProfile(end).Show = obj.Optimization.PlotProfile(Indices).Show;
-                obj.Optimization.PlotProfile(end).Values = obj.Optimization.PlotProfile(Indices).Values;
+                obj.Optimization.PlotProfile(end).Source = obj.Optimization.PlotProfile(obj.Optimization.SelectedProfileRow).Source;
+                obj.Optimization.PlotProfile(end).Description = obj.Optimization.PlotProfile(obj.Optimization.SelectedProfileRow).Description;
+                obj.Optimization.PlotProfile(end).Show = obj.Optimization.PlotProfile(obj.Optimization.SelectedProfileRow).Show;
+                obj.Optimization.PlotProfile(end).Values = obj.Optimization.PlotProfile(obj.Optimization.SelectedProfileRow).Values;
                 obj.Optimization.SelectedProfileRow = numel(obj.Optimization.PlotProfile);
                 % Update the view
-                updateVisualizationView(vObj);
+                obj.redrawVisProfileTable();
+                obj.redrawVisParametersTable();
+                obj.redrawProfileButtonGroup();
                 obj.VisDirty = true; %Same as notify(obj,'MarkDirty') in old implementation
             end
         end
@@ -948,7 +956,7 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
                 uierror(obj.getUIFigure,'Invalid value specified for parameter. Values must be numeric','Invalid value');
             end
             % Update the view
-            updateVisualizationView(obj);
+            obj.redrawVisEverything();
             
             obj.VisDirty = true; %Same as notify(obj,'MarkDirty') in old implementation
             set(obj.getUIFigure,'pointer','arrow');
@@ -981,7 +989,7 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
                 ThisProfile.Values = ThisSourceData(index,:);
            end
            % Update the view
-           updateVisualizationView(obj);
+           obj.redrawVisEverything();
 
            set(obj.getUIFigure,'pointer','arrow');
            obj.VisDirty = true; %Same as notify(obj,'MarkDirty') in old implementation
@@ -1030,23 +1038,17 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
                         idP0 = strcmpi(Header,'P0_1');
                         idName = strcmpi(Header,'Name');
                         [~,ix] = ismember(Data(:,idName), Values(1,:));
-                        Data(:,idP0) = Values(2,ix);
-                        xlwrite(parameterObj.FilePath,[Header; Data]); 
-                        
+                        Data(:,idP0) = Values(2,ix); 
+                        writecell([Header; Data],parameterObj.FilePath);
                     end
-        
+                    
                     % Update last saved time
                     updateLastSavedTime(parameterObj);
+                    
                     % Validate
                     validate(parameterObj,false);
                     
-                    % Call the callback
-                    evt.InteractionType = sprintf('Updated %s',class(parameterObj));
-                    evt.Data = parameterObj;
-                    obj.callCallback(evt);           
-                    
-                    % Update the view
-                    updateVisualizationView(obj);
+                    obj.notifyOfChange(parameterObj);
                 end
             end
         end
@@ -1062,7 +1064,11 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
                 
                 % Append the source with the postfix appender
                 ThisProfile = obj.Optimization.PlotProfile(obj.Optimization.SelectedProfileRow);
-                ThisVPopName = matlab.lang.makeValidName(strtrim(Answer{1}));
+                if iscell(Answer)
+                    Answer = Answer{1};
+                end
+                
+                ThisVPopName = matlab.lang.makeValidName(strtrim(Answer));
                 ThisVPopName = sprintf('%s - %s',ThisProfile.Source,ThisVPopName);
                 
                 ThisFilePath = fullfile(obj.Optimization.Session.RootDirectory, obj.Optimization.OptimResultsFolderName,[ThisVPopName '.xlsx']);
@@ -1084,21 +1090,15 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
                     ThisProfile = obj.Optimization.PlotProfile(obj.Optimization.SelectedProfileRow);
                     
                     Values = ThisProfile.Values(~cellfun(@isempty, ThisProfile.Values(:,2)), :)'; % Take first 2 rows and transpose
-                    
-                    xlwrite(vpopObj.FilePath,Values); 
+                    writecell(Values,vpopObj.FilePath);
 
                     % Update last saved time
                     updateLastSavedTime(vpopObj);
+                    
                     % Validate
                     validate(vpopObj,false);
                     
-                    % Call the callback
-                    evt.InteractionType = sprintf('Updated %s',class(vpopObj));
-                    evt.Data = vpopObj;
-                    obj.callCallback(evt);           
-                    
-                    % Update the view
-                    updateVisualizationView(obj);
+                    obj.notifyOfChange(vpopObj);
                 end
             end
             
@@ -1702,10 +1702,10 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
             obj.redrawVisContextMenus();
             obj.redrawSpeciesDataTable();
             obj.redrawOptimItemsTable();
-            obj.redrawProfileButtonGroup();
             obj.redrawVisProfileTable();
             obj.redrawVisParametersTable();
             obj.redrawVisLineWidth();
+            obj.redrawProfileButtonGroup();
             
         end
         
@@ -1942,6 +1942,19 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
                 obj.VisRemoveButton.Enable = false;
                 obj.VisCopyButton.Enable = false; 
             end
+            
+            if isempty(obj.VisParametersTable.Data)
+                obj.VisPencilMatButtonm.Enable = false;
+                obj.VisDataButton.Enable = false;
+                obj.VisApplyButton.Enable = false;
+                obj.VisSwapButton.Enable = false;
+            else
+                obj.VisPencilMatButtonm.Enable = true;
+                obj.VisDataButton.Enable = true;
+                obj.VisApplyButton.Enable = true;
+                obj.VisSwapButton.Enable = true;
+                
+            end
         end
         
         function redrawVisProfileTable(obj)
@@ -1992,20 +2005,13 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
 
                 % Import the parmaters using helper
                 [IsSourceMatch,~,obj.ThisProfileData] = importParametersSourceHelper(obj);    
-                %For every row
-                for rowIdx = 1:size(TableData,1)
-                    %If the source does not match, italicize
-                    if ~IsSourceMatch(rowIdx)
-                        for colIdx = [1, 4]
-                            TableData{rowIdx,colIdx} = QSP.makeItalicized(TableData{rowIdx,colIdx});
-                        end
-                    end
-                end
-               
+
                 ColumnFormat = {'numeric','logical',PlotParametersSourceOptions(:)','char'};
                 ColumnEditable = [false,true,true,true];
 
             else
+                %No italicized items for empty table
+                IsSourceMatch = [];
                 TableData = cell(0,5);
                 ColumnFormat = {'numeric','logical','char','char'};
                 ColumnEditable = [false,true,false,true];
@@ -2015,6 +2021,17 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
             obj.VisProfilesTable.ColumnName = {'Run','Show','Source','Description'};
             obj.VisProfilesTable.ColumnFormat = ColumnFormat;
             obj.VisProfilesTable.Data = TableData;
+            removeStyle(obj.VisProfilesTable);
+            %italicize items that do not match   
+            
+            for rowIdx = 1:size(TableData,1)
+                %If the source does not match, italicize
+                if ~IsSourceMatch(rowIdx)
+                    Style = uistyle('FontAngle','italic','HorizontalAlignment','left');
+                    addStyle(obj.VisProfilesTable,Style,'cell',[rowIdx,1]);
+                    addStyle(obj.VisProfilesTable,Style,'cell',[rowIdx,4]);
+                end
+            end
         end
         
         function redrawVisParametersTable(obj)
@@ -2026,26 +2043,28 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
             %Verify the dimensions of the input. This could vary between
             %sessions
             if size(obj.ThisProfileData,2)==3
-                %for every row of the ProfileData
-                for rowIdx = 1:size(obj.ThisProfileData,1)
-                    %If the 'Value' and 'Source Value' are not equal,
-                    %italicize
-                    if ~isequal(obj.ThisProfileData{rowIdx,2}, obj.ThisProfileData{rowIdx,3})
-                        obj.ThisProfileData{rowIdx,1} = QSP.makeItalicized(obj.ThisProfileData{rowIdx,1});
-                    end
-                end
                 TableData = obj.ThisProfileData;
                 LabelString = sprintf('Parameters (Run = %d)', obj.Optimization.SelectedProfileRow);
             else
                 TableData = cell(0,3);
                 LabelString =  sprintf('Parameters');
             end
+            
             %Finally, write this information to the actual table        
             obj.VisParametersTable.ColumnEditable = [false,true,false];
             obj.VisParametersTable.ColumnName = {'Parameter','Value','Source Value'};
             obj.VisParametersTable.ColumnFormat = {'char','numeric','numeric'};
             obj.VisParametersTable.Data = TableData;
             obj.VisParametersTableLabel.Text = LabelString;
+            removeStyle(obj.VisParametersTable);
+            
+            %italicize entries that dont match
+            for rowIdx = 1:size(TableData,1)
+                if ~isequal(TableData{rowIdx,2}, TableData{rowIdx,3})
+                    Style = uistyle('FontAngle','italic','HorizontalAlignment','left');
+                    addStyle(obj.VisParametersTable,Style,'row',rowIdx);
+                end
+            end
         end
         
         function redrawVisLineWidth(obj)

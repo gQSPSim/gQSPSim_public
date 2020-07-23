@@ -442,6 +442,7 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
                             'AxIndices',AxIndices);
                         obj.AxesLegend(AxIndices) = UpdatedAxesLegend(AxIndices);
                         obj.AxesLegendChildren(AxIndices) = UpdatedAxesLegendChildren(AxIndices);
+                        obj.updateLines();
 
                     elseif ColIdx == 4
                         % Display Name
@@ -455,6 +456,7 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
                             'AxIndices',AxIndices);
                         obj.AxesLegend(AxIndices) = UpdatedAxesLegend(AxIndices);
                         obj.AxesLegendChildren(AxIndices) = UpdatedAxesLegendChildren(AxIndices);
+                        obj.updateLines();
 
                     elseif ColIdx == 1
                         % Plot axes
@@ -494,6 +496,7 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
                             'AxIndices',AxIndices);
                         obj.AxesLegend(AxIndices) = UpdatedAxesLegend(AxIndices);
                         obj.AxesLegendChildren(AxIndices) = UpdatedAxesLegendChildren(AxIndices);
+                        obj.updateLegends();
                     end
                 end
             else

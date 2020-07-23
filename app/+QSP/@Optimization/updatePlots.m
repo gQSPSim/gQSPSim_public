@@ -254,6 +254,6 @@ for axIndex = AxIndices(:)'
             LegendItems = [];
         end
         
-        [hLegend{axIndex},hLegendChildren{axIndex}] = uix.abstract.CardViewPane.redrawLegend(hAxes(axIndex),LegendItems,obj.PlotSettings(axIndex));
+        [hLegend{axIndex},hLegendChildren{axIndex}] = QSPViewerNew.Application.ViewPane.redrawLegend(hAxes(axIndex),LegendItems,obj.PlotSettings(axIndex));
     end %if RedrawLegend
 end %for axIndex

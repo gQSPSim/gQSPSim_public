@@ -1234,8 +1234,8 @@ classdef VirtualPopulationGenerationPane < QSPViewerNew.Application.ViewPane
             obj.PlotItemsTableMenu = uimenu(obj.PlotItemsTableContextMenu);
             obj.PlotItemsTableMenu.Label = 'Set Color';
             obj.PlotItemsTableMenu.Tag = 'PlotItemsCM';
-            obj.PlotItemsTableMenu.MenuSelectedFcn = @(h,e)onPlotItemsContextMenu(obj,h,e);
-            obj.VisVirtPopItemsTable.ContextMenu = obj.onContextMenu;
+            obj.PlotItemsTableMenu.MenuSelectedFcn = @(h,e)onContextMenu(obj,h,e);
+            obj.VisVirtPopItemsTable.ContextMenu = obj.PlotItemsTableContextMenu; 
         end
         
     end

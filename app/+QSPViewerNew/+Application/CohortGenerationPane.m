@@ -318,12 +318,14 @@ classdef CohortGenerationPane < QSPViewerNew.Application.ViewPane
             obj.VisNormalButton = uiradiobutton(obj.VisButtonGroup);
             obj.VisNormalButton.Text = 'Normal';
             obj.VisNormalButton.Tag = 'Normal';
+            obj.VisNormalButton.Tooltip = 'Plot Type: Normal';
             obj.VisNormalButton.Value = true;
             obj.VisNormalButton.Position = [14 46 100 22];
             
             obj.VisDiagnosticButton = uiradiobutton(obj.VisButtonGroup);
             obj.VisDiagnosticButton.Text = 'Diagnostic';
             obj.VisDiagnosticButton.Tag = 'Diagnostic';
+            obj.VisDiagnosticButton.Tooltip = 'Plot Type: Diagnostic';
             obj.VisDiagnosticButton.Value = false;
             obj.VisDiagnosticButton.Position = [14 15 100 22];
             
@@ -331,6 +333,7 @@ classdef CohortGenerationPane < QSPViewerNew.Application.ViewPane
             obj.VisParamatersDiagnosticButton.Layout.Row = 2;
             obj.VisParamatersDiagnosticButton.Layout.Column = 1;
             obj.VisParamatersDiagnosticButton.Text = 'Parameter Distribution Diagnostics';
+            obj.VisParamatersDiagnosticButton.Tooltip = 'Plot Parameter Distribution Diagnostics';
             obj.VisParamatersDiagnosticButton.ButtonPushedFcn = @obj.onParameterButton;
             
             obj.VisSpeciesDataTableLabel = uilabel(obj.VisLayout);
@@ -632,8 +635,8 @@ classdef CohortGenerationPane < QSPViewerNew.Application.ViewPane
                 for k=1:nAxes
                     ax=uiaxes(scrollingPanel);
                     %Fill in the left to right
-                    ax.Layout.Column = mod(k-1,nCols)+1;
-                    ax.Layout.Row = floor((k-1)/nRows)+2;
+                    ax.Layout.Column = floor((k-1)/nRows)+1; 
+                    ax.Layout.Row = mod(k-1,nCols)+2;
                     histogram(ax, ParamValues(:,k))
                     if k <= length(LB)
                         h2(1)=line(ax,LB(k)*ones(1,2), get(ax,'YLim'));
@@ -1647,7 +1650,7 @@ classdef CohortGenerationPane < QSPViewerNew.Application.ViewPane
             obj.PlotItemsTableMenu.Label = 'Set Color';
             obj.PlotItemsTableMenu.Tag = 'PlotItemsCM';
             obj.PlotItemsTableMenu.MenuSelectedFcn = @(h,e)onContextMenu(obj,h,e);
-            obj.VisVirtCohortItemsTable.ContextMenu = obj.onContextMenu;
+            obj.VisVirtCohortItemsTable.ContextMenu = obj.PlotItemsTableContextMenu;
         end
         
     end
