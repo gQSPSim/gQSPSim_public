@@ -168,7 +168,7 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
     end
     
     properties(Constant)
-        Version = 'v1.0'
+        Version = 'v1.1'
     end
         
     %% Methods in separate files with custom permissions
@@ -369,7 +369,7 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
         end %function
                 
         function onHelpAbout(obj,h,e)
-           msgbox({'gQSPsim version 1.0', ...
+           msgbox({['gQSPsim version ', obj.Version], ...
                '', ...
                'http://www.github.com/feigelman/gQSPsim', ...
                '', ...
