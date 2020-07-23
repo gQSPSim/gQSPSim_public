@@ -576,7 +576,9 @@ classdef ApplicationUI < matlab.apps.AppBase
                'NodeData', Data,...
                'Text', Name,...
                'UserData',PaneType,...
-               'Icon',QSPViewerNew.Resources.LoadResourcePath(Icon));
+               'Icon',    Icon);
+               %'Icon',QSPViewerNew.Resources.LoadResourcePath(Icon));
+                
            if ~isempty(CMenu)
                app.createContextMenu(hNode,CMenu);
            end
