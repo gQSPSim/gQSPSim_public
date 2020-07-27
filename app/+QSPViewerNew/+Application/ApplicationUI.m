@@ -234,6 +234,7 @@ classdef ApplicationUI < matlab.apps.AppBase
             app.SimulationMenu = uimenu(app.AddNewItemMenu);
             app.SimulationMenu.Text = 'Simulation';
             app.SimulationMenu.MenuSelectedFcn = @(h,e) app.onAddItem([],'Simulation');
+
             % Create OptimizationMenu
             app.OptimizationMenu = uimenu(app.AddNewItemMenu);
             app.OptimizationMenu.Text = 'Optimization';

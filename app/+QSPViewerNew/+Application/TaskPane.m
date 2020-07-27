@@ -12,9 +12,9 @@ classdef TaskPane < QSPViewerNew.Application.ViewPane
     %  2/14/20
     % ---------------------------------------------------------------------
     
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Status of the UI properties
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     properties(Access = private)
         Task = QSP.Task.empty()
         TemporaryTask = QSP.Task.empty();
@@ -22,9 +22,9 @@ classdef TaskPane < QSPViewerNew.Application.ViewPane
         LastPath = pwd
     end
     
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Listeners
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+    % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     properties (Access = private)
         VariantstoActivateListener
         DosestoIncludeListener
@@ -34,9 +34,9 @@ classdef TaskPane < QSPViewerNew.Application.ViewPane
         ProjectFileListener
     end
     
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Graphical Components
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     properties(Access=private)
         OuterTaskGrid               matlab.ui.container.GridLayout
         ModelGrid                   matlab.ui.container.GridLayout
@@ -60,9 +60,9 @@ classdef TaskPane < QSPViewerNew.Application.ViewPane
         SpeciestoIncludeDoubleBox   QSPViewerNew.Widgets.DoubleSelectBox
     end
         
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Constructor and destructor
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     methods      
         
         function obj = TaskPane(varargin)
@@ -73,9 +73,9 @@ classdef TaskPane < QSPViewerNew.Application.ViewPane
         
     end
     
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Interacting with UI components
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     methods (Access = private)
         
         function create(obj)
@@ -210,9 +210,9 @@ classdef TaskPane < QSPViewerNew.Application.ViewPane
         
     end
     
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Callbacks
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     methods (Access = private)
         
         function onVariantstoActivate(obj,NewData)
@@ -421,9 +421,9 @@ classdef TaskPane < QSPViewerNew.Application.ViewPane
         function updateModelInfoUI(obj)
             %Draw the superclass Widgets values
             
-            %%For each Box, we must import the left and right list
+            % %For each Box, we must import the left and right list
             
-            %%
+            % %
             obj.VariantstoActivateDoubleBox.setLeftListBox(obj.TemporaryTask.VariantNames);
             obj.VariantstoActivateDoubleBox.setRightListBox(obj.TemporaryTask.ActiveVariantNames);
             
@@ -490,8 +490,6 @@ classdef TaskPane < QSPViewerNew.Application.ViewPane
             obj.RuntoSteadyStateCheckBox.Value = 0;
             obj.TimetoSteadyStateEdit.Enable = 'off';
         end
-        
     end
-        
 end
 
