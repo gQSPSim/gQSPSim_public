@@ -1,4 +1,4 @@
-classdef InputDlgCustom < handle
+classdef InputDlgCustom < QSPViewerNew.Widgets.ModalPopup
     % Custom dialog box to use instead of inputdlg used within uidlg;
     %----------------------------------------------------------------------
     % Copyright 2020 The MathWorks, Inc.
@@ -8,15 +8,14 @@ classdef InputDlgCustom < handle
     %   Revision: 1
     %   Date: 6/9/20
     properties (Access = private)
-        ButtonPressed = '';
         PanelQuest      matlab.ui.container.Panel
         PanelQuestGrid  matlab.ui.container.GridLayout
         YesButton       matlab.ui.control.Button
         CancelButton    matlab.ui.control.Button
         EditField       matlab.ui.control.EditField
         QuestionLabel   matlab.ui.control.Label
+        Parent
 
-  
     end
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -40,12 +39,17 @@ classdef InputDlgCustom < handle
     methods(Access = private)
         
         function create(obj,Parentfigure,Question,DefaultValue)  
+            obj.Parent = Parentfigure;
             obj.PanelQuest = uipanel(Parentfigure);
-            obj.PanelQuest.Position = [Parentfigure.Position(3)*.25,Parentfigure.Position(4)*.25,Parentfigure.Position(3)*.5,Parentfigure.Position(4)*.5];
-
+            Width = 450;
+            Height = 150;
+            Xstart = (Parentfigure.Position(3)-Width)/2;
+            Ystart = (Parentfigure.Position(4)-Height)/2;
+            obj.PanelQuest.Position = [Xstart,Ystart,Width,Height];
+            
             %Create Button 
             obj.PanelQuestGrid = uigridlayout(obj.PanelQuest);
-            obj.PanelQuestGrid.ColumnWidth = {'1x',150,80,80,'1x'};
+            obj.PanelQuestGrid.ColumnWidth = {'1x',200,80,80,'1x'};
             obj.PanelQuestGrid.RowHeight = {'1x',30,30,'1x'};
 
             %Yes Button
@@ -91,9 +95,12 @@ classdef InputDlgCustom < handle
     methods(Access = public)
     
         function wait(obj)
-            while isempty(obj.ButtonPressed)
-                pause(.5)
-            end
+            obj.turnModalOn(obj.Parent);
+            obj.YesButton.Enable = 'on';
+            obj.CancelButton.Enable = 'on';
+            obj.EditField.Enable = 'on';
+            waitfor(obj,'ButtonPressed');
+            obj.turnModalOff();
         end
         
         function outputValue = getValue(obj)
@@ -103,6 +110,8 @@ classdef InputDlgCustom < handle
                 outputValue = [];
             end
         end
+        
     end
+    
 end
 

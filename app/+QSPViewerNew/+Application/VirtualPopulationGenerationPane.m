@@ -23,6 +23,7 @@ classdef VirtualPopulationGenerationPane < QSPViewerNew.Application.ViewPane
     end
     
     properties (Access=private)
+
         GroupIDs = {};
         UniqueDataVals = {};
         
@@ -58,10 +59,10 @@ classdef VirtualPopulationGenerationPane < QSPViewerNew.Application.ViewPane
         ShowTraces = true;
         ShowSEBar = false;
         SelectedRow =0;
-        SpeciesGroup
-        DatasetGroup
-        AxesLegend
-        AxesLegendChildren
+
+        
+        StaleFlag
+        ValidFlag
     end
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -105,6 +106,9 @@ classdef VirtualPopulationGenerationPane < QSPViewerNew.Application.ViewPane
         VisSpeciesDataTable             matlab.ui.control.Table
         VisVirtPopItemsTableLabel       matlab.ui.control.Label
         VisVirtPopItemsTable            matlab.ui.control.Table
+        
+        PlotItemsTableContextMenu
+        PlotItemsTableMenu
         
     end
         
@@ -231,7 +235,7 @@ classdef VirtualPopulationGenerationPane < QSPViewerNew.Application.ViewPane
             obj.VisSpeciesDataTable.Layout.Row = 2;
             obj.VisSpeciesDataTable.Layout.Column = 1;
             obj.VisSpeciesDataTable.ColumnEditable = false;
-             obj.VisSpeciesDataTable.CellEditCallback = @obj.onEditSpeciesTable;
+            obj.VisSpeciesDataTable.CellEditCallback = @obj.onEditSpeciesTable;
             
             
             obj.VisVirtPopItemsTableLabel = uilabel(obj.VisLayout);
@@ -402,20 +406,135 @@ classdef VirtualPopulationGenerationPane < QSPViewerNew.Application.ViewPane
             obj.IsDirty = true;
         end 
         
-        function onEditSpeciesTable(obj)
-            
+        function onEditSpeciesTable(obj,h,e)
+            RowIdx = e.Indices(1,1);
+            ColIdx = e.Indices(1,2);
+            switch ColIdx
+                case 1
+                    sIdx = RowIdx;
+                    OldAxIdx = str2double(e.PreviousData);
+                    NewAxIdx = str2double(e.NewData);
+                    
+                    %Determine if change was valid
+                    if any(strcmp(h.ColumnFormat{ColIdx},e.NewData))
+                        %Update backend
+                        obj.VirtualPopulationGeneration.PlotSpeciesTable(RowIdx,ColIdx) = h.Data(RowIdx,ColIdx);
+                        
+                        % If originally not plotted
+                        if isempty(OldAxIdx) && ~isempty(NewAxIdx)
+                            obj.SpeciesGroup{sIdx,NewAxIdx} = obj.SpeciesGroup{sIdx,1};
+                            obj.DatasetGroup{sIdx,NewAxIdx} = obj.DatasetGroup{sIdx,1};
+                            % Parent
+                            obj.SpeciesGroup{sIdx,NewAxIdx}.Parent = obj.PlotArray(NewAxIdx);
+                            obj.DatasetGroup{sIdx,NewAxIdx}.Parent = obj.PlotArray(NewAxIdx);
+                            
+                        elseif ~isempty(OldAxIdx) && isempty(NewAxIdx)
+                            obj.SpeciesGroup{sIdx,1} = obj.SpeciesGroup{sIdx,OldAxIdx};
+                            obj.DatasetGroup{sIdx,1} = obj.DatasetGroup{sIdx,OldAxIdx};
+                            % Un-parent
+                            obj.SpeciesGroup{sIdx,1}.Parent = matlab.graphics.GraphicsPlaceholder.empty();
+                            obj.DatasetGroup{sIdx,1}.Parent = matlab.graphics.GraphicsPlaceholder.empty();
+                            if OldAxIdx ~= 1
+                                obj.SpeciesGroup{sIdx,OldAxIdx} = [];
+                                obj.DatasetGroup{sIdx,OldAxIdx} = [];
+                            end
+                            
+                        elseif ~isempty(OldAxIdx) && ~isempty(NewAxIdx)
+                            obj.SpeciesGroup{sIdx,NewAxIdx} = obj.SpeciesGroup{sIdx,OldAxIdx};
+                            obj.DatasetGroup{sIdx,NewAxIdx} = obj.DatasetGroup{sIdx,OldAxIdx};
+                            % Re-parent
+                            obj.SpeciesGroup{sIdx,NewAxIdx}.Parent = obj.PlotArray(NewAxIdx);
+                            obj.DatasetGroup{sIdx,NewAxIdx}.Parent = obj.PlotArray(NewAxIdx);
+                            if OldAxIdx ~= NewAxIdx
+                                obj.SpeciesGroup{sIdx,OldAxIdx} = [];
+                                obj.DatasetGroup{sIdx,OldAxIdx} = [];
+                            end
+                            
+                        end
+                        
+                        % Update lines (line widths, marker sizes)
+                        obj.updateLines();
+                        
+                        AxIndices = [OldAxIdx,NewAxIdx];
+                        AxIndices(isnan(AxIndices)) = [];
+                        
+                        % Redraw legend
+                        [UpdatedAxesLegend,UpdatedAxesLegendChildren] = updatePlots(...
+                            obj.VirtualPopulationGeneration,obj.PlotArray,obj.SpeciesGroup,obj.DatasetGroup,...
+                            'AxIndices',AxIndices);
+                        obj.AxesLegend(AxIndices) = UpdatedAxesLegend(AxIndices);
+                        obj.AxesLegendChildren(AxIndices) = UpdatedAxesLegendChildren(AxIndices);
+                    else
+                        %revert, entry not valid
+                        h.Data{e.Indices(1),e.Indices(2)} = e.PreviousData;
+                    end
+                    
+                case 2
+                    %Determine if change was valid
+                    if any(strcmp(h.ColumnFormat{ColIdx},e.NewData))
+                        
+                        %Update backend
+                        obj.VirtualPopulationGeneration.PlotSpeciesTable(RowIdx,ColIdx) = h.Data(RowIdx,ColIdx);
+                        
+                        %Set line style
+                        NewLineStyle = h.Data{RowIdx,2};
+                        setSpeciesLineStyles(obj.VirtualPopulationGeneration,RowIdx,NewLineStyle);
+                        
+                        
+                        AxIndices = str2double(h.Data{RowIdx,1});
+                        if isempty(AxIndices)
+                            AxIndices = 1:numel(obj.PlotArray);
+                        end
+                        
+                        % Redraw legend
+                        [UpdatedAxesLegend,UpdatedAxesLegendChildren] = updatePlots(...
+                            obj.VirtualPopulationGeneration,obj.PlotArray,obj.SpeciesGroup,obj.DatasetGroup,...
+                            'AxIndices',AxIndices);
+                        obj.AxesLegend(AxIndices) = UpdatedAxesLegend(AxIndices);
+                        obj.AxesLegendChildren(AxIndices) = UpdatedAxesLegendChildren(AxIndices);
+                        
+                    else
+                        %revert, entry not valid
+                        h.Data{e.Indices(1),e.Indices(2)} = e.PreviousData;
+                    end
+                    
+                case 5
+                    %update backend
+                    obj.VirtualPopulationGeneration.PlotSpeciesTable(RowIdx,ColIdx) = h.Data(RowIdx,ColIdx);
+                    
+                    AxIndices = str2double(h.Data{RowIdx,1});
+                    if isempty(AxIndices)
+                        AxIndices = 1:numel(obj.PlotArray);
+                    end
+                    
+                    % Redraw legend
+                    [UpdatedAxesLegend,UpdatedAxesLegendChildren] = updatePlots(...
+                        obj.VirtualPopulationGeneration,obj.PlotArray,obj.SpeciesGroup,obj.DatasetGroup,...
+                        'AxIndices',AxIndices);
+                    obj.AxesLegend(AxIndices) = UpdatedAxesLegend(AxIndices);
+                    obj.AxesLegendChildren(AxIndices) = UpdatedAxesLegendChildren(AxIndices);
+            end
         end
         
-        function onEditVirtualPopTable(obj)
+        function onEditVirtualPopTable(obj,h,e)
+            %update the backend table
+            obj.VirtualPopulationGeneration.PlotItemTable(e.Indices(1),e.Indices(2)) = h.Data(e.Indices(1),e.Indices(2));
             
+            switch e.Indices(2)
+                %Only save the legends if they were edited
+                case 1
+                    updatePlots(obj.VirtualPopulationGeneration,obj.PlotArray,obj.SpeciesGroup,obj.DatasetGroup,'RedrawLegend',false);
+                case 5
+                    [obj.AxesLegend,obj.AxesLegendChildren] = updatePlots(obj.VirtualPopulationGeneration,obj.PlotArray,obj.SpeciesGroup,obj.DatasetGroup);
+            end
         end
         
-        function onSelectVirtualPopTable(obj)
-            
+        function onSelectVirtualPopTable(obj,~,e)
+            obj.SelectedRow =e.Indices(1);
         end
         
-        function onContextMenu(obj)
-            
+        function onContextMenu(~,~,~)
+            %TODO when uisetcolor is supported or a workaround
         end
         
     end
@@ -454,9 +573,11 @@ classdef VirtualPopulationGenerationPane < QSPViewerNew.Application.ViewPane
         end
         
         function runModel(obj)
-            [StatusOK,Message,~] = run(obj.VirtualPopulationGeneration);
+            [StatusOK,Message,vpopobj] = run(obj.VirtualPopulationGeneration);
             if ~StatusOK
                 uialert(obj.getUIFigure,Message,'Run Failed');
+            else
+                obj.notifyOfChange(vpopobj);
             end
         end
         
@@ -468,8 +589,7 @@ classdef VirtualPopulationGenerationPane < QSPViewerNew.Application.ViewPane
             %Determine if the values are valid
             if ~isempty(obj.VirtualPopulationGeneration)
                 % Check what items are stale or invalid
-                [StaleFlag,ValidFlag] = getStaleItemIndices(obj.VirtualPopulationGeneration);
-                InvalidItemIndices = ~ValidFlag;    
+                [obj.StaleFlag,obj.ValidFlag] = getStaleItemIndices(obj.VirtualPopulationGeneration);
             end
             
             %Set flags for determing what to display
@@ -481,6 +601,7 @@ classdef VirtualPopulationGenerationPane < QSPViewerNew.Application.ViewPane
                 obj.VirtualPopulationGeneration.bShowSD = obj.bShowSD;
             end
             
+            obj.reimport();
             obj.redrawSpeciesTable();
             obj.redrawVirtualPopTable();
             obj.redrawContextMenu();
@@ -489,6 +610,30 @@ classdef VirtualPopulationGenerationPane < QSPViewerNew.Application.ViewPane
           
         end
         
+        function refreshVisualization(obj,axIndex)
+             %Set flags for determing what to display
+            if ~isempty(obj.VirtualPopulationGeneration)
+                obj.VirtualPopulationGeneration.bShowTraces = obj.bShowTraces;
+                obj.VirtualPopulationGeneration.bShowQuantiles = obj.bShowQuantiles;
+                obj.VirtualPopulationGeneration.bShowMean = obj.bShowMean;
+                obj.VirtualPopulationGeneration.bShowMedian = obj.bShowMedian;
+                obj.VirtualPopulationGeneration.bShowSD = obj.bShowSD;
+            end
+            
+            obj.reimport();
+            obj.redrawSpeciesTable();
+            obj.redrawVirtualPopTable();
+            obj.redrawContextMenu();
+            
+            if ~isempty(axIndex)
+                [UpdatedAxesLegend,UpdatedAxesLegendChildren] = updatePlots(...
+                    obj.VirtualPopulationGeneration,obj.PlotArray,obj.SpeciesGroup,obj.DatasetGroup,...
+                    'AxIndices',axIndex);
+                obj.AxesLegend(axIndex) = UpdatedAxesLegend(axIndex);
+                obj.AxesLegendChildren(axIndex) = UpdatedAxesLegendChildren(axIndex);
+            end
+        end
+            
         function UpdateBackendPlotSettings(obj)
             obj.VirtualPopulationGeneration.PlotSettings = getSummary(obj.getPlotSettings());
         end
@@ -535,8 +680,27 @@ classdef VirtualPopulationGenerationPane < QSPViewerNew.Application.ViewPane
             
         end
         
-        function saveVisualizationView(obj)
-            disp("You shouldve saved the layout")
+        function removeInvalidVisualization(obj)
+            if ~isempty(obj.PlotSpeciesInvalidRowIndices)
+                obj.VirtualPopulationGeneration.PlotSpeciesTable(obj.PlotSpeciesInvalidRowIndices,:) = [];
+                obj.PlotSpeciesAsInvalidTable(obj.PlotSpeciesInvalidRowIndices,:) = [];
+                obj.PlotSpeciesInvalidRowIndices = [];
+            end
+            
+            if ~isempty(obj.PlotItemInvalidRowIndices)
+                obj.VirtualPopulationGeneration.PlotItemTable(obj.PlotItemInvalidRowIndices,:) = [];
+                obj.PlotItemAsInvalidTable(obj.PlotSpeciesInvalidRowIndices,:) = [];
+                obj.PlotItemInvalidRowIndices = [];
+            end
+            
+            % reset the cached simulation results
+            obj.VirtualPopulationGeneration.SimResults = {};
+            
+            % Update
+            obj.reimport();
+            obj.redrawSpeciesTable();
+            obj.redrawVirtualPopTable();
+            obj.redrawContextMenu();
         end
         
         function deleteTemporary(obj)
@@ -575,6 +739,15 @@ classdef VirtualPopulationGenerationPane < QSPViewerNew.Application.ViewPane
                 Message = sprintf('%s\nDuplicate names are not allowed.\n', Message);
                 StatusOK = false;
             end
+        end
+        
+        function [ValidTF] = isValid(obj)
+            [~,Valid] = getStaleItemIndices(obj.VirtualPopulationGeneration);
+            ValidTF = all(Valid);
+        end
+        
+        function BackEnd = getBackEnd(obj)
+            BackEnd = obj.VirtualPopulationGeneration;
         end
         
     end
@@ -870,7 +1043,7 @@ classdef VirtualPopulationGenerationPane < QSPViewerNew.Application.ViewPane
             obj.GroupIDs = TempGroupIDs;
         end
         
-        function redrawSpeciesTable(obj)
+        function redrawVirtualPopTable(obj)
 
             if ~isempty(obj.VirtualPopulationGeneration)
                 
@@ -953,28 +1126,28 @@ classdef VirtualPopulationGenerationPane < QSPViewerNew.Application.ViewPane
                 TableData(:,2) = repmat({''},size(TableData,1),1);
                 
                 %Fill in items information and edit limitations
-                obj.VisSpeciesDataTable.Data = TableData;
-                obj.VisSpeciesDataTable.ColumnName = {'Include','Color','Task','Group','Display'};
-                obj.VisSpeciesDataTable.ColumnFormat = {'logical','char','char','char','char'};
-                obj.VisSpeciesDataTable.ColumnEditable = [true,false,false,false,true];
+                obj.VisVirtPopItemsTable.Data = TableData;
+                obj.VisVirtPopItemsTable.ColumnName = {'Include','Color','Task','Group','Display'};
+                obj.VisVirtPopItemsTable.ColumnFormat = {'logical','char','char','char','char'};
+                obj.VisVirtPopItemsTable.ColumnEditable = [true,false,false,false,true];
                 
                 %Fill in the colors of the table
                 for index = 1:size(TableData,1)
                     ThisColor = obj.VirtualPopulationGeneration.PlotItemTable{index,2};
                     if ~isempty(ThisColor)
-                        addStyle(obj.VisSpeciesDataTable,uistyle('BackgroundColor',ThisColor),'cell',[index,2])
+                        addStyle(obj.VisVirtPopItemsTable,uistyle('BackgroundColor',ThisColor),'cell',[index,2])
                     end
                 end
             else         
                 %Fill in items information and edit limitations
-                obj.VisSpeciesDataTable.Data = cell(0,5);
-                obj.VisSpeciesDataTable.ColumnName = {'Include','Color','Task','Group','Display'};
-                obj.VisSpeciesDataTable.ColumnFormat = {'logical','char','char','char','char'};
-                obj.VisSpeciesDataTable.ColumnEditable = [true,false,false,false,true];
+                obj.VisVirtPopItemsTable.Data = cell(0,5);
+                obj.VisVirtPopItemsTable.ColumnName = {'Include','Color','Task','Group','Display'};
+                obj.VisVirtPopItemsTable.ColumnFormat = {'logical','char','char','char','char'};
+                obj.VisVirtPopItemsTable.ColumnEditable = [true,false,false,false,true];
             end
         end
         
-        function redrawVirtualPopTable(obj)
+        function redrawSpeciesTable(obj)
             
             AxesOptions = obj.getAxesOptions();
             if ~isempty(obj.VirtualPopulationGeneration)
@@ -1043,21 +1216,26 @@ classdef VirtualPopulationGenerationPane < QSPViewerNew.Application.ViewPane
                 
                 % Species table
                 
-                obj.VisVirtPopItemsTable.Data = obj.PlotSpeciesAsInvalidTable;
-                obj.VisVirtPopItemsTable.ColumnName = {'Plot','Style','Species','Data','Display'};
-                obj.VisVirtPopItemsTable.ColumnFormat = {AxesOptions',obj.VirtualPopulationGeneration.Settings.LineStyleMap,'char','char','char'};
-                obj.VisVirtPopItemsTable.ColumnEditable = [true,true,false,false,true];
+                obj.VisSpeciesDataTable.Data = obj.PlotSpeciesAsInvalidTable;
+                obj.VisSpeciesDataTable.ColumnName = {'Plot','Style','Species','Data','Display'};
+                obj.VisSpeciesDataTable.ColumnFormat = {AxesOptions',obj.VirtualPopulationGeneration.Settings.LineStyleMap,'char','char','char'};
+                obj.VisSpeciesDataTable.ColumnEditable = [true,true,false,false,true];
             else
                 
-                obj.VisVirtPopItemsTable.Data = cell(0,5);
-                obj.VisVirtPopItemsTable.ColumnName = {'Plot','Style','Species','Data','Display'};
-                obj.VisVirtPopItemsTable.ColumnFormat = {AxesOptions','char','char','char','char'};
-                obj.VisVirtPopItemsTable.ColumnEditable = [true,true,false,false,true];
+                obj.VisSpeciesDataTable.Data = cell(0,5);
+                obj.VisSpeciesDataTable.ColumnName = {'Plot','Style','Species','Data','Display'};
+                obj.VisSpeciesDataTable.ColumnFormat = {AxesOptions','char','char','char','char'};
+                obj.VisSpeciesDataTable.ColumnEditable = [true,true,false,false,true];
             end
         end
         
         function redrawContextMenu(obj)
-            %TODO Need to figure out the uisetcolor situation
+            obj.PlotItemsTableContextMenu = uicontextmenu(ancestor(obj.EditLayout,'figure'));
+            obj.PlotItemsTableMenu = uimenu(obj.PlotItemsTableContextMenu);
+            obj.PlotItemsTableMenu.Label = 'Set Color';
+            obj.PlotItemsTableMenu.Tag = 'PlotItemsCM';
+            obj.PlotItemsTableMenu.MenuSelectedFcn = @(h,e)onContextMenu(obj,h,e);
+            obj.VisVirtPopItemsTable.ContextMenu = obj.PlotItemsTableContextMenu; 
         end
         
     end

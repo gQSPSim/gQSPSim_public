@@ -92,6 +92,7 @@ classdef AddRemoveTable < handle
             obj.AddButton.Layout.Column = 1;
             obj.AddButton.Icon = QSPViewerNew.Resources.LoadResourcePath('add_24.png');
             obj.AddButton.Text = '';
+            obj.AddButton.Tooltip = 'Add a new row';
             obj.AddButton.ButtonPushedFcn = @obj.onAddItem;
 
             %Add the remove item button
@@ -100,6 +101,7 @@ classdef AddRemoveTable < handle
             obj.RemoveButtonm.Layout.Column = 1;
             obj.RemoveButtonm.Icon = QSPViewerNew.Resources.LoadResourcePath('delete_24.png');
             obj.RemoveButtonm.Text = '';
+            obj.RemoveButtonm.Tooltip = 'Delete the highlighted row';
             obj.RemoveButtonm.ButtonPushedFcn = @obj.onRemoveItem;
             obj.refreshButtons();
         end

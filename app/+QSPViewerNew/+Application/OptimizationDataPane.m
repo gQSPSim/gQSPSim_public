@@ -215,7 +215,7 @@ classdef OptimizationDataPane < QSPViewerNew.Application.ViewPane
         function [StatusOK,Message] = checkForDuplicateNames(obj,StatusOK,Message)
             refObject = obj.OptimizationData.Session.Settings.OptimizationData;
             ixDup = find(strcmp( obj.TemporaryOptimizationData.Name, {refObject.Name}));
-            if ~isempty(ixDup) && (refObject(ixDup) ~= obj.TemporaryOptimizationData)
+            if ~isempty(ixDup) && (refObject(ixDup) ~= obj.OptimizationData)
                 Message = sprintf('%s\nDuplicate names are not allowed.\n', Message);
                 StatusOK = false;
             end
