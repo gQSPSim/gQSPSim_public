@@ -703,6 +703,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         function gitCommit(obj)
             
             gitFiles = obj.GitFiles;
+            tic
             
             rootDir = regexprep(obj.RootDirectory, '\\$', '');
             
