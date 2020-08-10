@@ -391,8 +391,13 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                     TaskLastSavedTime = ThisTask.LastSavedTime;
                     
                     % SimBiology Project file from Task
-                    FileInfo = dir(ThisTask.FilePath);                    
-                    TaskProjectLastSavedTime = FileInfo.datenum;
+                    FileInfo = dir(ThisTask.FilePath);  
+                    if ~isempty(FileInfo)
+                        TaskProjectLastSavedTime = FileInfo.datenum;
+                    else
+                        TaskProjectLastSavedTime = 0;
+                    end
+                        
                     
                     % VPop object (item) and file
                     if ~isempty(ThisVPop) % Guard for NullVPop

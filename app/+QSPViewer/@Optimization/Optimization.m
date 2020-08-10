@@ -117,8 +117,9 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
                     UniqueSourceData{index} = SourceData(order,:);
                 else
                     UniqueSourceData{index} = cell(0,2);
-                    hDlg = errordlg(Message,'Parameter Import Failed','modal');
-                    uiwait(hDlg);
+                    warning('Parameter Import Failed for %s', UniqueSourceNames{index})
+%                     hDlg = errordlg(Message,'Parameter Import Failed','modal');
+%                     uiwait(hDlg);
                 end
             end
             
