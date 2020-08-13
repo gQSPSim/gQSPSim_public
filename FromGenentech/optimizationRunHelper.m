@@ -247,6 +247,13 @@ for ii = 1:nItems
 
     % get the task obj from the settings obj
     tskInd = find(strcmp(obj.Item(ii).TaskName,{obj.Settings.Task.Name}));
+    if nnz(tskInd) ~= 1
+        StatusOK = false;
+        Message = 'Invalid task for optimization';
+        return
+    end
+    
+       
     tObj_i = obj.Settings.Task(tskInd);
     
     % Validate
