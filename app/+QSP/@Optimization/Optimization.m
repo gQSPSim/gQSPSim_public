@@ -57,6 +57,7 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         SelectedPlotLayout = '1x1'        
         
         PlotSettings = repmat(struct(),1,12)
+        
     end
     
     properties (SetAccess = 'private')
@@ -77,8 +78,10 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         Results = []; % cached results
     end
     
-    properties (Dependent)
+    properties (Dependent=true)
         OptimResultsFolderName_new
+        OptimizationItems
+        SpeciesDataMapping
     end
     
     %% Constructor
@@ -128,7 +131,7 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         function Summary = getSummary(obj)
             
             if ~isempty(obj.Item)
-                OptimizationItems = {};
+                TheseOptimizationItems = {};
                 % Check what items are stale or invalid
                 [StaleFlag,ValidFlag,InvalidMessages] = getStaleItemIndices(obj);
 
@@ -149,10 +152,10 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                     if index < numel(obj.Item)
                         ThisItem = sprintf('%s\n',ThisItem);
                     end
-                    OptimizationItems = [OptimizationItems; ThisItem]; %#ok<AGROW>
+                    TheseOptimizationItems = [TheseOptimizationItems; ThisItem]; %#ok<AGROW>
                 end
             else
-                OptimizationItems = {};
+                TheseOptimizationItems = {};
             end
 
             % Species-Data mapping
@@ -212,7 +215,7 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 'Optimization Algorithm',obj.AlgorithmName;
                 'Dataset',obj.DatasetName;
                 'Group Name',obj.GroupName;
-                'Items',OptimizationItems;
+                'Items',TheseOptimizationItems;
                 'Parameter File',obj.RefParamName;
                 'Parameters Used for Optimization',UsedParamNames;
                 'Fixed Parameters', UnusedParamNames;
@@ -364,7 +367,7 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                  
                 % Check Objective Fcn
                 if exist(obj.Session.ObjectiveFunctionsDirectory,'dir')
-                    FileList = dir(obj.Session.ObjectiveFunctionsDirectory);
+                    FileList = dir(fullfile(obj.Session.ObjectiveFunctionsDirectory,'*.m'));
                     IsDir = [FileList.isdir];
                     ObjectiveFcns = {FileList(~IsDir).name};
                     ObjectiveFcns = vertcat({'defaultObj'},ObjectiveFcns(:));
@@ -962,6 +965,46 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             validateattributes(Value,{'struct'},{});
             obj.PlotSettings = Value;
         end
+        
+        function set.OptimizationItems(obj,Value)
+            validateattributes(Value,{'cell'},{'size',[nan,2]});
+            
+            NewTaskGroup = QSP.TaskGroup.empty;
+            for idx = 1:size(Value,1)
+                NewTaskGroup(end+1) = QSP.TaskGroup(...
+                    'TaskName',Value{idx,1},...
+                    'GroupID',Value{idx,2}); %#ok<AGROW>
+            end
+            obj.Item = NewTaskGroup;
+        end
+        
+        function Value = get.OptimizationItems(obj)
+            TaskNames = {obj.Item.TaskName};
+            GroupIDs = {obj.Item.GroupID};
+            
+            Value = [TaskNames(:) GroupIDs(:)];
+        end
+        
+        function set.SpeciesDataMapping(obj,Value)
+            validateattributes(Value,{'cell'},{'size',[nan,2]});
+            
+            NewSpeciesData = QSP.SpeciesData.empty;
+            for idx = 1:size(Value,1)
+                NewSpeciesData(end+1) = QSP.SpeciesData(...
+                    'SpeciesName',Value{idx,2},...
+                    'DataName',Value{idx,1},...
+                    'FunctionExpression','x'); %#ok<AGROW>
+            end
+            obj.SpeciesData = NewSpeciesData;
+        end
+        
+        function Value = get.SpeciesDataMapping(obj)
+            SpeciesNames = {obj.SpeciesData.SpeciesName};
+            DataNames = {obj.SpeciesData.DataName};
+            
+            Value = [DataNames(:) SpeciesNames(:)];
+        end
+        
         
     end %methods
     

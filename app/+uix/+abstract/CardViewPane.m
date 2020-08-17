@@ -498,7 +498,11 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                         evt.Name = obj.Data.Name;
                         evt.NameChanged = ~isequal(NewName,PreviousName);
                         if evt.NameChanged
-                            obj.Data.Session.Log(sprintf('renamed %s to %s', PreviousName, NewName))
+                            if isa(obj.Data, 'QSP.Session')
+                                obj.Data.Log(sprintf('renamed %s %s to %s', class(obj.Data), PreviousName, NewName))
+                            else
+                                obj.Data.Session.Log(sprintf('renamed %s %s to %s', class(obj.Data), PreviousName, NewName))
+                            end
                         end
                         obj.callCallback(evt);
                         
