@@ -169,7 +169,7 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
     end
     
     properties(Constant)
-        Version = 'v1.0'
+        Version = 'v1.1'
         PluginsDir = fullfile( fileparts(fileparts(fileparts(fileparts(mfilename('fullpath'))))), 'plugins');
     end
         
