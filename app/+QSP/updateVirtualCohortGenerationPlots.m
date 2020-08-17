@@ -108,9 +108,6 @@ for axIndex = AxIndices(:)'
         
         % Get all Traces and Quantiles
         TheseChildren = ch(~IsDummyLine);
-        if isempty(TheseChildren)
-            continue
-        end
         
         ChildrenUserData = get(TheseChildren,'UserData');
         if iscell(ChildrenUserData)
@@ -385,6 +382,6 @@ for axIndex = AxIndices(:)'
             LegendItems = [];
         end
         
-        [hLegend{axIndex},hLegendChildren{axIndex}] = uix.abstract.CardViewPane.redrawLegend(hAxes(axIndex),LegendItems,obj.PlotSettings(axIndex));
+        [hLegend{axIndex},hLegendChildren{axIndex}] = QSPViewerNew.Application.ViewPane.redrawLegend(hAxes(axIndex),LegendItems,obj.PlotSettings(axIndex));
     end
 end

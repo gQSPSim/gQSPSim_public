@@ -10,12 +10,12 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
     % Auth/Revision:
     %   Max Tracy
     %
-    %  3/2/20
+    %  6/1/20
     % ---------------------------------------------------------------------
     
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Status of the UI properties
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     properties(Access = private)
         Simulation = QSP.Simulation.empty()
         TemporarySimulation = QSP.Simulation.empty()
@@ -44,18 +44,25 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
         PlotGroupInvalidRowIndices = []
         
         SelectedRow =0;
+        
+        SelectedGroup
+        SelectedData
+        SelectedSimItem
+        SelectedSpecies
+        StaleFlag
+        ValidFlag
     end
     
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Listeners
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+    % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     properties (Access = private)
         ResultFolderListener
     end
     
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Graphical Components
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     properties(Access=private)
         SimulationEditGrid          matlab.ui.container.GridLayout
         ResultFolderSelector        QSPViewerNew.Widgets.FolderSelector
@@ -81,11 +88,15 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
         DataTable                   matlab.ui.control.Table
         GroupLabel                  matlab.ui.control.Label
         GroupTable                  matlab.ui.control.Table
+        PlotItemsTableContextMenu
+        PlotGroupTableContextMenu
+        PlotItemsTableMenu
+        PlotGroupTableMenu
     end
         
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Constructor and destructor
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     methods      
         
         function obj = SimulationPane(varargin)
@@ -96,9 +107,9 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
         
     end
     
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Interacting with UI components
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     methods (Access = private)
         
         function create(obj)
@@ -172,7 +183,6 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
             obj.SimItemLabel.Layout.Row = 1;
             obj.SimItemLabel.Text = ' Simulation Items';
             
-            
             %Select Simulation Items
             obj.SimItemGrid = uigridlayout(obj.SimulationEditGrid);
             obj.SimItemGrid.ColumnWidth = {obj.ButtonWidth,'1x'};
@@ -191,7 +201,6 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
             obj.SimButtonGrid.Padding = [0,0,0,0];
             obj.SimButtonGrid.RowSpacing = 0;
             obj.SimButtonGrid.ColumnSpacing = 0;
-            
             
             % New Button
            obj.NewButton = uibutton(obj.SimButtonGrid,'push');
@@ -239,6 +248,7 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
            obj.SpeciesTable.Layout.Column = 1;
            obj.SpeciesTable.Data = {};
            obj.SpeciesTable.ColumnName = {'Plot','Style','Name', 'Display'};
+           obj.SpeciesTable.CellEditCallback = @(h,e) obj.onSpeciesTableEdit(h,e);
            
            %SimulationItems Label and Table;
            obj.SimulationItemsLabel = uilabel(obj.SimulationVisualizationGrid);
@@ -252,6 +262,7 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
            obj.SimulationItemsTable.Layout.Column = 1;
            obj.SimulationItemsTable.Data = {};
            obj.SimulationItemsTable.ColumnName = {'Include','Color','Task', 'Virtual Subject(s)','Group','Display'};
+           obj.SimulationItemsTable.CellEditCallback = @(h,e) obj.onSimItemsTableEdit(h,e);
            
            %Data Label and Table;
            obj.DataLabel = uilabel(obj.SimulationVisualizationGrid);
@@ -265,6 +276,7 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
            obj.DataTable.Layout.Column = 1;
            obj.DataTable.Data = {};
            obj.DataTable.ColumnName = {'Plot','Marker','Name', 'Display'};
+           obj.DataTable.CellEditCallback = @(h,e) obj.onDataTableEdit(h,e);
            
            %Group Label and Table;
            obj.GroupLabel = uilabel(obj.SimulationVisualizationGrid);
@@ -278,6 +290,7 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
            obj.GroupTable.Layout.Column = 1;
            obj.GroupTable.Data = {};
            obj.GroupTable.ColumnName = {'Include','Color','Name', 'Display'};
+           obj.GroupTable.CellEditCallback = @(h,e) obj.onGroupTableEdit(h,e);
         end
         
         function createListenersAndCallbacks(obj)
@@ -286,14 +299,14 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
         
     end
     
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Callbacks
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     methods (Access = private)
         
         function onRemoveSimItem(obj)
             DeleteIdx = obj.SelectedRow;
-            if DeleteIdx~= 0 & DeleteIdx <= numel(obj.TemporarySimulation.Item)
+            if DeleteIdx~= 0 && DeleteIdx <= numel(obj.TemporarySimulation.Item)
                  obj.TemporarySimulation.Item(DeleteIdx) = [];
             end
             obj.updateSimulationTable();
@@ -366,7 +379,6 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
                 end
                 obj.TemporarySimulation.Item(RowIdx).VPopName = eventData.NewData;                
             end
-            % Clear the MAT file name
             if HasChanged
                 obj.TemporarySimulation.Item(RowIdx).MATFileName = '';
             end
@@ -388,6 +400,297 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
             obj.IsDirty = true;
         end
         
+        function onSpeciesTableEdit(obj,h,e)
+            if iscell(h.ColumnFormat{e.Indices(2)}) && ~any(strcmp(h.ColumnFormat{e.Indices(2)},e.NewData))
+                h.Data{e.Indices(1),e.Indices(2)} = e.PreviousData;
+            end
+            
+            %Determine if the change was valid
+            if e.Indices(2)==4  || iscell(h.ColumnFormat{e.Indices(2)}) && any(strcmp(h.ColumnFormat{e.Indices(2)},e.NewData))
+                %The new value was already in the dropdown, so we can
+                %continue
+                obj.SelectedSpecies = e.Indices;
+                ThisData = get(h,'Data');
+                Indices = e.Indices;
+                RowIdx = Indices(1);
+                ColIdx = Indices(2);
+
+                NewAxIdx = str2double(ThisData{RowIdx,1});
+                if isnan(NewAxIdx)
+                    NewAxIdx = [];
+                end
+
+
+                if ~isequal(obj.Simulation.PlotSpeciesTable,[ThisData(:,1) ThisData(:,2) ThisData(:,3)]) || ...
+                        ColIdx == 1 || ColIdx == 2 || ColIdx == 4
+
+                    if ~isempty(RowIdx) && ColIdx == 2
+                        NewLineStyle = ThisData{RowIdx,2};
+                        setSpeciesLineStyles(obj.Simulation,RowIdx,NewLineStyle);
+                    end
+
+                    obj.Simulation.PlotSpeciesTable(RowIdx,ColIdx) = ThisData(RowIdx,ColIdx);
+
+                    if ColIdx == 2
+                        AxIndices = NewAxIdx;
+                        if isempty(AxIndices)
+                            AxIndices = 1:numel(obj.getPlotArray());
+                        end
+                        % Redraw legend
+                        [UpdatedAxesLegend,UpdatedAxesLegendChildren] = updatePlots(...
+                            obj.Simulation,obj.getPlotArray(),obj.SpeciesGroup,obj.DatasetGroup,...
+                            'AxIndices',AxIndices);
+                        obj.AxesLegend(AxIndices) = UpdatedAxesLegend(AxIndices);
+                        obj.AxesLegendChildren(AxIndices) = UpdatedAxesLegendChildren(AxIndices);
+                        obj.updateLines();
+
+                    elseif ColIdx == 4
+                        % Display Name
+                        AxIndices = NewAxIdx;
+                        if isempty(AxIndices)
+                            AxIndices = 1:numel(obj.getPlotArray());
+                        end
+                        % Redraw legend
+                        [UpdatedAxesLegend,UpdatedAxesLegendChildren] = updatePlots(...
+                            obj.Simulation,obj.getPlotArray(),obj.SpeciesGroup,obj.DatasetGroup,...
+                            'AxIndices',AxIndices);
+                        obj.AxesLegend(AxIndices) = UpdatedAxesLegend(AxIndices);
+                        obj.AxesLegendChildren(AxIndices) = UpdatedAxesLegendChildren(AxIndices);
+                        obj.updateLines();
+
+                    elseif ColIdx == 1
+                        % Plot axes
+                        sIdx = RowIdx;
+                        OldAxIdx = find(~cellfun(@isempty,obj.SpeciesGroup(sIdx,:)),1,'first');
+
+                        % If originally not plotted
+                        if isempty(OldAxIdx) && ~isempty(NewAxIdx)
+                            obj.SpeciesGroup{sIdx,NewAxIdx} = obj.SpeciesGroup{sIdx,1};
+                            % Parent
+                            obj.SpeciesGroup{sIdx,NewAxIdx}.Parent = obj.PlotArray(NewAxIdx);
+                        elseif ~isempty(OldAxIdx) && isempty(NewAxIdx)
+                            obj.SpeciesGroup{sIdx,1} = obj.SpeciesGroup{sIdx,OldAxIdx};
+                            % Un-parent
+                            obj.SpeciesGroup{sIdx,1}.Parent = matlab.graphics.GraphicsPlaceholder.empty();
+                            if OldAxIdx ~= 1
+                                obj.SpeciesGroup{sIdx,OldAxIdx} = [];
+                            end
+                        elseif ~isempty(OldAxIdx) && ~isempty(NewAxIdx)
+                            obj.SpeciesGroup{sIdx,NewAxIdx} = obj.SpeciesGroup{sIdx,OldAxIdx};
+                            % Re-parent
+                            obj.SpeciesGroup{sIdx,NewAxIdx}.Parent = obj.PlotArray(NewAxIdx);                        
+                            if OldAxIdx ~= NewAxIdx
+                                obj.SpeciesGroup{sIdx,OldAxIdx} = [];
+                            end
+                        end
+
+                        % Update lines (line widths, marker sizes)
+                        updateLines(obj);
+
+                        AxIndices = [OldAxIdx,NewAxIdx];
+                        AxIndices(isnan(AxIndices)) = [];
+
+                        % Redraw legend
+                        [UpdatedAxesLegend,UpdatedAxesLegendChildren] = updatePlots(...
+                            obj.Simulation,obj.PlotArray,obj.SpeciesGroup,obj.DatasetGroup,...
+                            'AxIndices',AxIndices);
+                        obj.AxesLegend(AxIndices) = UpdatedAxesLegend(AxIndices);
+                        obj.AxesLegendChildren(AxIndices) = UpdatedAxesLegendChildren(AxIndices);
+                        obj.updateLegends();
+                    end
+                end
+            else
+                %invalid value, revert information
+                h.Data{e.Indices(1),e.Indices(2)} = e.PreviousData;
+            end
+            %We need to save this configuration
+            obj.VisDirty = true; %Same as notify(obj,'MarkDirty') in old implementation
+        end
+        
+        function onSimItemsTableEdit(obj,h,e)
+            if iscell(h.ColumnFormat{e.Indices(2)}) && ~any(strcmp(h.ColumnFormat{e.Indices(2)},e.NewData))
+                %The new value was already in the dropdown, so we can
+                %continue
+                h.Data{e.Indices(1),e.Indices(2)} = e.PreviousData;
+            end
+            
+            % Temporarily disable column 1 to prevent quick clicking of
+            % 'Include'
+            OrigColumnEditable = get(h,'ColumnEditable');
+            ColumnEditable = OrigColumnEditable;
+            ColumnEditable(1) = false;
+            set(h,'ColumnEditable',ColumnEditable);
+            
+            ThisData = get(h,'Data');
+            obj.SelectedSpecies = e.Indices;
+            if isempty(e.Indices)
+                return;
+            end
+            obj.Simulation.PlotItemTable(obj.SelectedSpecies(1),obj.SelectedSpecies(2)) = ThisData(obj.SelectedSpecies(1),obj.SelectedSpecies(2));
+            
+            if obj.SelectedSpecies(1) == 6
+                % Display name                
+                [obj.PlotArray,obj.AxesLegendChildren] = updatePlots(obj.Simulation,obj.PlotArray,obj.SpeciesGroup,obj.DatasetGroup);
+                
+            elseif obj.SelectedSpecies(2) == 1
+                % Include
+                
+                % Don't overwrite the output
+                updatePlots(obj.Simulation,obj.PlotArray,obj.SpeciesGroup,obj.DatasetGroup,...
+                    'RedrawLegend',false);
+            end
+            
+            % Enable column 1
+            set(h,'ColumnEditable',OrigColumnEditable);
+            %We need to save this configuration
+            obj.VisDirty = true; %Same as notify(obj,'MarkDirty') in old implementation
+
+        end
+        
+        function onSimItemsTableSelect(obj,~,e)
+            obj.SelectedSimItem = e.Indices;
+        end
+        
+        function onDataTableEdit(obj,h,e)
+            if iscell(h.ColumnFormat{e.Indices(2)}) && ~any(strcmp(h.ColumnFormat{e.Indices(2)},e.NewData))
+                %The new value was already in the dropdown, so we can
+                %continue
+                h.Data{e.Indices(1),e.Indices(2)} = e.PreviousData;
+            end
+            
+            ThisData = get(h,'Data');
+            Indices = e.Indices;
+            if isempty(Indices)
+                return;
+            end
+            
+            RowIdx = Indices(1,1);
+            ColIdx = Indices(1,2);
+            
+            NewAxIdx = str2double(ThisData{RowIdx,1});
+            if isnan(NewAxIdx)
+                NewAxIdx = [];
+            end
+    
+            
+            obj.Simulation.PlotDataTable(RowIdx,ColIdx) = ThisData(RowIdx,ColIdx);
+            
+            if ColIdx == 4
+                % Display name
+                AxIndices = NewAxIdx;
+                if isempty(AxIndices)
+                    AxIndices = 1:numel(obj.PlotArray);
+                end
+                % Redraw legend
+                [UpdatedAxesLegend,~] = updatePlots(...
+                    obj.Simulation,obj.PlotArray,obj.SpeciesGroup,obj.DatasetGroup,...
+                    'AxIndices',AxIndices);
+                obj.AxesLegend(AxIndices) = UpdatedAxesLegend(AxIndices);
+
+            elseif ColIdx == 2
+                % Style
+                for dIdx = 1:size(obj.Simulation.PlotDataTable,1)
+                    axIdx = str2double(obj.Simulation.PlotDataTable{dIdx,1});
+                    if ~isnan(axIdx)
+                        Ch = get(obj.DatasetGroup{dIdx,axIdx},'Children');
+                        HasMarker = isprop(Ch,'Marker');
+                        set(Ch(HasMarker),'Marker',obj.Simulation.PlotDataTable{dIdx,2});
+                    end
+                end
+                
+                AxIndices = NewAxIdx;
+                if isempty(AxIndices)
+                    AxIndices = 1:numel(obj.PlotArray);
+                end
+                % Redraw legend
+                [UpdatedAxesLegend,~] = updatePlots(...
+                    obj.Simulation,obj.PlotArray,obj.SpeciesGroup,obj.DatasetGroup,...
+                    'AxIndices',AxIndices);
+                obj.AxesLegend(AxIndices) = UpdatedAxesLegend(AxIndices);
+                    
+            elseif ColIdx == 1
+                
+                dIdx = RowIdx;
+                OldAxIdx = find(~cellfun(@isempty,obj.DatasetGroup(dIdx,:)),1,'first');
+                
+                % If originally not plotted
+                if isempty(OldAxIdx) && ~isempty(NewAxIdx)
+                    obj.DatasetGroup{dIdx,NewAxIdx} = obj.DatasetGroup{dIdx,1};
+                    % Parent
+                    obj.DatasetGroup{dIdx,NewAxIdx}.Parent = obj.PlotArray(NewAxIdx);
+                elseif ~isempty(OldAxIdx) && isempty(NewAxIdx)
+                    obj.DatasetGroup{dIdx,1} = obj.DatasetGroup{dIdx,OldAxIdx};
+                    % Un-parent
+                    obj.DatasetGroup{dIdx,1}.Parent = matlab.graphics.GraphicsPlaceholder.empty();
+                    if OldAxIdx ~= 1
+                        obj.DatasetGroup{dIdx,OldAxIdx} = [];
+                    end
+                elseif ~isempty(OldAxIdx) && ~isempty(NewAxIdx)
+                    obj.DatasetGroup{dIdx,NewAxIdx} = obj.DatasetGroup{dIdx,OldAxIdx};
+                    % Re-parent
+                    obj.DatasetGroup{dIdx,NewAxIdx}.Parent = obj.PlotArray(NewAxIdx);
+                    if OldAxIdx ~= NewAxIdx
+                        obj.DatasetGroup{dIdx,OldAxIdx} = [];
+                    end
+                end
+                
+                AxIndices = [OldAxIdx,NewAxIdx];
+                AxIndices(isnan(AxIndices)) = [];
+                
+                % Redraw legend
+                [UpdatedAxesLegend,UpdatedAxesLegendChildren] = updatePlots(...
+                    obj.Simulation,obj.PlotArray,obj.SpeciesGroup,obj.DatasetGroup,...
+                    'AxIndices',AxIndices);
+                obj.AxesLegend(AxIndices) = UpdatedAxesLegend(AxIndices);
+                obj.AxesLegendChildren(AxIndices) = UpdatedAxesLegendChildren(AxIndices);
+
+            end
+            %We need to save this configuration
+            obj.VisDirty = true; %Same as notify(obj,'MarkDirty') in old implementation
+        end
+        
+        function onGroupTableEdit(obj,h,e)
+            if iscell(h.ColumnFormat{e.Indices(2)}) && ~any(strcmp(h.ColumnFormat{e.Indices(2)},e.NewData))
+                %The new value was already in the dropdown, so we can
+                %continue
+                h.Data{e.Indices(1),e.Indices(2)} = e.PreviousData;
+            end
+            
+            ThisData = get(h,'Data');
+            Indices = e.Indices;
+            if isempty(Indices)
+                return;
+            end
+            
+            RowIdx = Indices(1,1);
+            ColIdx = Indices(1,2);
+            
+            obj.Simulation.PlotGroupTable(RowIdx,ColIdx) = ThisData(RowIdx,ColIdx);
+            
+            if ColIdx == 4
+                % Display name      
+                [obj.AxesLegend,obj.AxesLegendChildren] = updatePlots(obj.Simulation,obj.PlotArray,obj.SpeciesGroup,obj.DatasetGroup);
+                
+            elseif ColIdx == 1
+                % Include
+                
+                % Don't overwrite the output
+                updatePlots(obj.Simulation,obj.PlotArray,obj.SpeciesGroup,obj.DatasetGroup,...
+                    'RedrawLegend',false);
+                
+            end
+            %We need to save this configuration
+            obj.VisDirty = true; %Same as notify(obj,'MarkDirty') in old implementation
+        end
+        
+        function onGroupTableSelect(obj,~,e)
+            obj.SelectedGroup = e.Indices;
+        end
+        
+         function onPlotItemsTableContextMenu(~,~,~)
+             %TODO when uisetcolor is supported or a workaround 
+         end
+        
     end
     
     methods (Access = public) 
@@ -402,7 +705,19 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
         
         function attachNewSimulation(obj,NewSimulation)
             obj.Simulation = NewSimulation;
+            obj.Simulation.PlotSettings = getSummary(obj.getPlotSettings());
             obj.TemporarySimulation = copy(obj.Simulation);
+           
+            
+            for index = 1:obj.MaxNumPlots
+               Summary = obj.Simulation.PlotSettings(index);
+               % If Summary is empty (i.e., new node), then use
+               % defaults
+               if isempty(fieldnames(Summary))
+                   Summary = QSP.PlotSettings.getDefaultSummary();
+               end
+               obj.setPlotSettings(index,fieldnames(Summary),struct2cell(Summary)');
+            end
             obj.draw();
             obj.IsDirty = false;
         end
@@ -418,10 +733,65 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
             end
         end
         
-        function drawVisualization(obj);
+        function drawVisualization(obj)
             
             %DropDown Update
             obj.updatePlotConfig(obj.Simulation.SelectedPlotLayout);
+            
+            %Determine if the values are valid
+            if ~isempty(obj.Simulation)
+                % Check what items are stale or invalid
+                [obj.StaleFlag,obj.ValidFlag] = getStaleItemIndices(obj.Simulation);
+            end
+            
+            %Set flags for determing what to display
+            if ~isempty(obj.Simulation)
+                obj.Simulation.bShowTraces = obj.bShowTraces;
+                obj.Simulation.bShowQuantiles = obj.bShowQuantiles;
+                obj.Simulation.bShowMean = obj.bShowMean;
+                obj.Simulation.bShowMedian = obj.bShowMedian;
+                obj.Simulation.bShowSD = obj.bShowSD;
+            end
+            
+            % Create context menu
+            obj.updateCM();
+            obj.updateSpeciesTable();
+            obj.updateSimItemsTable();
+            [OptimHeader,OptimData] = updateDataTable(obj);
+            obj.updateGroupTable(OptimHeader,OptimData);
+            [obj.SpeciesGroup,obj.DatasetGroup,obj.AxesLegend,obj.AxesLegendChildren] = ...
+             plotSimulation(obj.Simulation,obj.getPlotArray());
+        end
+        
+        function refreshVisualization(obj,axIndex)
+                        
+            %Set flags for determing what to display
+            if ~isempty(obj.Simulation)
+                obj.Simulation.bShowTraces = obj.bShowTraces;
+                obj.Simulation.bShowQuantiles = obj.bShowQuantiles;
+                obj.Simulation.bShowMean = obj.bShowMean;
+                obj.Simulation.bShowMedian = obj.bShowMedian;
+                obj.Simulation.bShowSD = obj.bShowSD;
+            end
+            
+            obj.updateCM();
+            obj.updateSpeciesTable();
+            obj.updateSimItemsTable();
+            [OptimHeader,OptimData] = updateDataTable(obj);
+            obj.updateGroupTable(OptimHeader,OptimData);
+            
+            if ~isempty(axIndex)
+                [UpdatedAxesLegend,UpdatedAxesLegendChildren] = updatePlots(...
+                    obj.Simulation,obj.PlotArray,obj.SpeciesGroup,obj.DatasetGroup,...
+                    'AxIndices',axIndex);
+                obj.AxesLegend(axIndex) = UpdatedAxesLegend(axIndex);
+                obj.AxesLegendChildren(axIndex) = UpdatedAxesLegendChildren(axIndex);
+            end
+
+        end
+        
+        function UpdateBackendPlotSettings(obj)
+            obj.Simulation.PlotSettings = getSummary(obj.getPlotSettings());
         end
         
     end
@@ -466,6 +836,40 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
             
         end
         
+        function removeInvalidVisualization(obj)
+            % Remove invalid indices
+            if ~isempty(obj.PlotSpeciesInvalidRowIndices)
+                obj.Simulation.PlotSpeciesTable(obj.PlotSpeciesInvalidRowIndices,:) = [];
+                obj.PlotSpeciesAsInvalidTable(obj.PlotSpeciesInvalidRowIndices) = [];
+                obj.PlotSpeciesInvalidRowIndices = [];
+            end
+            
+            if ~isempty(obj.PlotItemInvalidRowIndices)
+                obj.Simulation.PlotItemTable(obj.PlotItemInvalidRowIndices,:) = [];
+                obj.PlotItemAsInvalidTable(obj.PlotItemInvalidRowIndices,:) = [];
+                obj.PlotItemInvalidRowIndices = [];
+            end
+            
+            if ~isempty(obj.PlotDataInvalidRowIndices)
+                obj.Simulation.PlotDataTable(obj.PlotDataInvalidRowIndices,:) = [];
+                obj.PlotDataAsInvalidTable(obj.PlotDataInvalidRowIndices,:) = [];
+                obj.PlotDataInvalidRowIndices = [];
+            end
+            
+            if ~isempty(obj.PlotGroupInvalidRowIndices)
+                obj.Simulation.PlotGroupTable(obj.PlotGroupInvalidRowIndices,:) = [];
+                obj.PlotGroupAsInvalidTable(obj.PlotGroupInvalidRowIndices,:) = [];
+                obj.PlotGroupInvalidRowIndices = [];
+            end
+            
+            % Update
+            obj.updateCM();
+            obj.updateSpeciesTable();
+            obj.updateSimItemsTable();
+            [OptimHeader,OptimData] = obj.updateDataTable();
+            obj.updateGroupTable(OptimHeader,OptimData);
+        end
+           
         function deleteTemporary(obj)
             delete(obj.TemporarySimulation)
             obj.TemporarySimulation = copy(obj.Simulation);
@@ -501,9 +905,36 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
                 StatusOK = false;
             end
         end
+        
+        function [ValidTF] = isValid(obj)
+            [~,Valid] = getStaleItemIndices(obj.Simulation);
+            ValidTF = all(Valid);
+        end
+        
+        function BackEnd = getBackEnd(obj)
+            BackEnd = obj.Simulation;
+        end
     end
     
     methods (Access = private)
+        
+        function updateCM(obj)
+             %Set Context Menus;
+            obj.PlotItemsTableContextMenu = uicontextmenu(ancestor(obj.SimulationEditGrid,'figure'));
+            obj.PlotItemsTableMenu = uimenu(obj.PlotItemsTableContextMenu);
+            obj.PlotItemsTableMenu.Label = 'Set Color';
+            obj.PlotItemsTableMenu.Tag = 'PlotItemsCM';
+            obj.PlotItemsTableMenu.MenuSelectedFcn = @(h,e)onPlotItemsTableContextMenu(obj,h,e);
+            obj.SimulationItemsTable.ContextMenu = obj.PlotItemsTableContextMenu;
+            
+            obj.PlotGroupTableContextMenu = uicontextmenu(ancestor(obj.SimulationEditGrid,'figure'));
+            obj.PlotGroupTableMenu = uimenu(obj.PlotGroupTableContextMenu);
+            obj.PlotGroupTableMenu.Label = 'Set Color';
+            obj.PlotGroupTableMenu.Tag = 'PlotGroupCM';
+            obj.PlotGroupTableMenu.MenuSelectedFcn = @(h,e)onPlotItemsTableContextMenu(obj,h,e);
+            obj.GroupTable.ContextMenu =  obj.PlotGroupTableContextMenu;
+            % Create context menu
+        end
         
         function updateDataset(obj)
             OptimHeader = {};
@@ -598,7 +1029,7 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
                 obj.TaskPopupTableItems = 'char';
             end
 
-            %% Refresh VPopPopupTableItems
+            % % Refresh VPopPopupTableItems
             if ~isempty(obj.TemporarySimulation)
                 ValidItemVPops = getValidSelectedVPops(obj.TemporarySimulation.Settings,{obj.TemporarySimulation.Settings.VirtualPopulation.Name});    
                 if ~isempty(ValidItemVPops)
@@ -656,7 +1087,7 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
             obj.SimItemsTable.ColumnEditable = editableTF;
         end
         
-        function [columnFormat,editableTF] =replaceEmptyDropdowns(obj)
+        function [columnFormat,editableTF] = replaceEmptyDropdowns(obj)
             columnFormat = {obj.TaskPopupTableItems,obj.VPopPopupTableItems,'char','char'};
             editableTF = [true,true,true,true];
             if isempty(columnFormat{1})
@@ -669,7 +1100,319 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
             end
         end
         
-    end
+        function updateSpeciesTable(obj)
+            AxesOptions = obj.getAxesOptions();
+            if ~isempty(obj.Simulation)
+                ItemTaskNames = {obj.Simulation.Item.TaskName};
+                SpeciesNames = getSpeciesFromValidSelectedTasks(obj.Simulation.Settings,ItemTaskNames);
+                InvalidIndices = ~ismember(SpeciesNames,obj.Simulation.PlotSpeciesTable(:,3));
+
+                if isempty(obj.Simulation.PlotSpeciesTable)
+                    % If empty, populate, but first update line styles
+                    obj.Simulation.PlotSpeciesTable = cell(numel(SpeciesNames),4);
+                    updateSpeciesLineStyles(obj.Simulation);
+
+                    obj.Simulation.PlotSpeciesTable(:,1) = {' '};
+                    obj.Simulation.PlotSpeciesTable(:,2) = obj.Simulation.SpeciesLineStyles(:);
+                    obj.Simulation.PlotSpeciesTable(:,3) = SpeciesNames;
+                    obj.Simulation.PlotSpeciesTable(:,4) = SpeciesNames;
+
+                    obj.PlotSpeciesAsInvalidTable = obj.Simulation.PlotSpeciesTable;
+                    obj.PlotSpeciesInvalidRowIndices = [];
+                else
+                    NewPlotTable = cell(numel(SpeciesNames),4);
+                    NewPlotTable(:,1) = {' '};
+                    NewPlotTable(:,2) = {'-'}; 
+                    NewPlotTable(:,3) = SpeciesNames;
+                    NewPlotTable(:,4) = SpeciesNames;
+
+                    % Adjust size if from an old saved session
+                    if size(obj.Simulation.PlotSpeciesTable,2) == 2
+                        obj.Simulation.PlotSpeciesTable(:,3) = obj.Simulation.PlotSpeciesTable(:,2);
+                        obj.Simulation.PlotSpeciesTable(:,2) = {'-'}; 
+                    end
+                    if size(obj.Simulation.PlotSpeciesTable,2) == 3
+                        obj.Simulation.PlotSpeciesTable(:,4) = obj.Simulation.PlotSpeciesTable(:,3);
+                        obj.Simulation.PlotSpeciesTable(:,2) = {'-'};  
+                    end
+                    % Update Table
+                    KeyColumn = 3;
+                    [obj.Simulation.PlotSpeciesTable,obj.PlotSpeciesAsInvalidTable,obj.PlotSpeciesInvalidRowIndices] = QSPViewer.updateVisualizationTable(obj.Simulation.PlotSpeciesTable,NewPlotTable,InvalidIndices,KeyColumn);
+                    % Update line styles
+                    updateSpeciesLineStyles(obj.Simulation);
+                end
+                obj.SpeciesTable.Data = obj.PlotSpeciesAsInvalidTable;
+                obj.SpeciesTable.ColumnName = {'Plot','Style','Name','Display'};
+                obj.SpeciesTable.ColumnFormat = {AxesOptions',obj.Simulation.Settings.LineStyleMap,'char','char'};
+                obj.SpeciesTable.ColumnEditable = [true,true,false,true];
+            else
+                obj.SpeciesTable.Data = cell(0,4);
+                obj.SpeciesTable.ColumnName = {'Plot','Style','Name','Display'};
+                obj.SpeciesTable.ColumnFormat = {AxesOptions,'char','char','char'};
+                obj.SpeciesTable.ColumnEditable = [true,true,false,true];
+            end
+        end
         
+        function updateSimItemsTable(obj)
+            if ~isempty(obj.Simulation)
+                [obj.StaleFlag,obj.ValidFlag] = getStaleItemIndices(obj.Simulation);
+                InvalidItemIndices = ~obj.ValidFlag;    
+                TaskNames = {obj.Simulation.Item.TaskName};
+                VPopNames = {obj.Simulation.Item.VPopName};
+                Groups    = {obj.Simulation.Item.Group};
+                % If empty, populate
+                if isempty(obj.Simulation.PlotItemTable)
+
+                    if any(InvalidItemIndices)
+                        % Then, prune
+                        TaskNames(InvalidItemIndices) = [];
+                        VPopNames(InvalidItemIndices) = [];
+                    end
+
+                    obj.Simulation.PlotItemTable = cell(numel(TaskNames),6);
+                    obj.Simulation.PlotItemTable(:,1) = {false};
+                    obj.Simulation.PlotItemTable(:,3) = TaskNames;
+                    obj.Simulation.PlotItemTable(:,4) = VPopNames;
+                    obj.Simulation.PlotItemTable(:,5) = Groups;
+                    obj.Simulation.PlotItemTable(:,6) = cellfun(@(x,y)sprintf('%s - %s',x,y),TaskNames,VPopNames,'UniformOutput',false);
+
+                    % Update the item colors
+                    ItemColors = getItemColors(obj.Simulation.Session,numel(TaskNames));
+                    obj.Simulation.PlotItemTable(:,2) = num2cell(ItemColors,2);
+
+                    obj.PlotItemAsInvalidTable = obj.Simulation.PlotItemTable;
+                    obj.PlotItemInvalidRowIndices = [];
+                else
+                    NewPlotTable = cell(numel(TaskNames),4);
+                    NewPlotTable(:,1) = {false};
+                    NewPlotTable(:,3) = TaskNames;
+                    NewPlotTable(:,4) = VPopNames;
+                    NewPlotTable(:,5) = Groups;
+                    NewPlotTable(:,6) = cellfun(@(x,y)sprintf('%s - %s',x,y),TaskNames,VPopNames,'UniformOutput',false);
+
+                    NewColors = getItemColors(obj.Simulation.Session,numel(TaskNames));
+                    NewPlotTable(:,2) = num2cell(NewColors,2);   
+
+                    if size(obj.Simulation.PlotItemTable,2) == 5
+                        obj.Simulation.PlotItemTable(:,6) = cellfun(@(x,y)sprintf('%s - %s',x,y),obj.Simulation.PlotItemTable(:,3),obj.Simulation.PlotItemTable(:,4),'UniformOutput',false);
+                    end
+
+                    % Update Table
+                    KeyColumn = [3 4 5];
+                    [obj.Simulation.PlotItemTable,obj.PlotItemAsInvalidTable,obj.PlotItemInvalidRowIndices] = QSPViewer.updateVisualizationTable(obj.Simulation.PlotItemTable,NewPlotTable,InvalidItemIndices,KeyColumn);
+                end
+
+                % Check which results files are invalid
+                ResultsDir = fullfile(obj.Simulation.Session.RootDirectory,obj.Simulation.SimResultsFolderName);
+
+                % Only make the "valids" missing. Leave the invalids as is
+                TableData = obj.PlotItemAsInvalidTable;
+
+                if ~isempty(TableData)
+                    TaskNames = {obj.Simulation.Item.TaskName};
+                    VPopNames = {obj.Simulation.Item.VPopName};
+                    Groups = {obj.Simulation.Item.Group};
+
+                    for index = 1:size(obj.Simulation.PlotItemTable,1)
+                        % Check to see if this row is invalid. If it is not invalid,
+                        % check to see if we need to mark the corresponding file as missing
+                        if ~ismember(obj.PlotItemInvalidRowIndices,index)
+                            ThisTaskName = obj.Simulation.PlotItemTable{index,3};
+                            ThisVPopName = obj.Simulation.PlotItemTable{index,4};
+                            ThisGroup = obj.Simulation.PlotItemTable{index,5};
+                            MatchIdx = strcmp(ThisTaskName,TaskNames) & strcmp(ThisVPopName,VPopNames) & strcmp(ThisGroup, Groups);
+                            if any(MatchIdx)
+                                ThisFileName = obj.Simulation.Item(MatchIdx).MATFileName;
+                                % Mark results file as missing
+                                if ~isequal(exist(fullfile(ResultsDir,ThisFileName),'file'),2)
+                                    TableData{index,3} = QSP.makeItalicized(TableData{index,3});
+                                    TableData{index,4} = QSP.makeItalicized(TableData{index,4});
+                                end
+                            end %if
+                        end %if
+                    end %for
+                end %if
+
+                % Update Colors column
+                % Items table
+                if any(obj.StaleFlag)
+                    ThisLabel = 'Simulation Items (Items are not up-to-date)';
+                else
+                    ThisLabel = 'Simulation Items';
+                end
+                
+                %Remove colors from table.
+                for rowIndex = 1:1:size(obj.Simulation.PlotItemTable,1)
+                    TableData{rowIndex,2} = '';
+                end
+                
+                obj.SimulationItemsLabel.Text = ThisLabel;
+                obj.SimulationItemsTable.Data = TableData;
+                obj.SimulationItemsTable.ColumnName = {'Include','Color','Task','Virtual Subject(s)','Group','Display'};
+                obj.SimulationItemsTable.ColumnFormat = {'logical','char','char','char','numeric','char'};
+                obj.SimulationItemsTable.ColumnEditable = [true,false,false,false,false,true];
+                
+                % Set cell color
+                for index = 1:size(TableData,1)
+                    ThisColor = obj.Simulation.PlotItemTable{index,2};
+                    if ~isempty(ThisColor)
+                        Temp = uistyle('BackgroundColor',ThisColor);
+                        addStyle(obj.SimulationItemsTable,Temp,'cell',[index,2])
+                    end
+                end
+            else
+                obj.SimulationItemsTable.Data = cell(0,6);
+                obj.SimulationItemsTable.ColumnName = {'Include','Color','Task','Virtual Subject(s)','Group','Display'};
+                obj.SimulationItemsTable.ColumnFormat = {'logical','char','char','char','numeric','char'};
+                obj.SimulationItemsTable.ColumnEditable = [true,false,false,false,false,true];
+            end
+        end
+        
+        function [OptimHeader,OptimData] = updateDataTable(obj)
+            OptimHeader = {};
+            OptimData = {};
+            AxesOptions = obj.getAxesOptions();
+
+            % DatasetHeaderPopupItems corresponds to header in DatasetName
+            if ~isempty(obj.Simulation) && ~isempty(obj.Simulation.DatasetName)
+                Names = {obj.Simulation.Settings.OptimizationData.Name};
+                MatchIdx = strcmpi(Names,obj.Simulation.DatasetName);
+
+                if any(MatchIdx)
+                    dObj = obj.Simulation.Settings.OptimizationData(MatchIdx);
+
+                    DestDatasetType = 'wide';
+                    [StatusOk,~,OptimHeader,OptimData] = importData(dObj,dObj.FilePath,DestDatasetType);
+                    if StatusOk
+                        % Prune to remove Time, Group, etc.
+                        TempDatasetHeaderPopupItems = setdiff(OptimHeader,{'Time','Group'});
+                    else
+                        TempDatasetHeaderPopupItems = {};
+                    end
+                else
+                    TempDatasetHeaderPopupItems = {};
+                end
+
+                % Adjust size if from an old saved session
+                if size(obj.Simulation.PlotDataTable,2) == 2
+                    obj.Simulation.PlotDataTable(:,3) = obj.Simulation.PlotDataTable(:,2);
+                    obj.Simulation.PlotDataTable(:,2) = {'*'};  
+                end
+                if size(obj.Simulation.PlotDataTable,2) == 3
+                    obj.Simulation.PlotDataTable(:,4) = obj.Simulation.PlotDataTable(:,3);
+                end
+
+                InvalidIndices = ~ismember(TempDatasetHeaderPopupItems,obj.Simulation.PlotDataTable(:,3));
+
+                % If empty, populate
+                if isempty(obj.Simulation.PlotDataTable)
+                    obj.Simulation.PlotDataTable = cell(numel(TempDatasetHeaderPopupItems),4);
+                    obj.Simulation.PlotDataTable(:,1) = {' '};
+                    obj.Simulation.PlotDataTable(:,2) = {'*'}; 
+                    obj.Simulation.PlotDataTable(:,3) = TempDatasetHeaderPopupItems;
+                    obj.Simulation.PlotDataTable(:,4) = TempDatasetHeaderPopupItems;
+
+                    obj.PlotDataAsInvalidTable = obj.Simulation.PlotDataTable;
+                    obj.PlotDataInvalidRowIndices = [];
+                else
+                    NewPlotTable = cell(numel(TempDatasetHeaderPopupItems),4);
+                    NewPlotTable(:,1) = {' '};
+                    NewPlotTable(:,2) = {'*'};
+                    NewPlotTable(:,3) = TempDatasetHeaderPopupItems;
+                    NewPlotTable(:,4) = TempDatasetHeaderPopupItems;
+
+                    % Update Table
+                    KeyColumn = 3;
+                    [obj.Simulation.PlotDataTable,obj.PlotDataAsInvalidTable,obj.PlotDataInvalidRowIndices] = QSPViewer.updateVisualizationTable(obj.Simulation.PlotDataTable,NewPlotTable,InvalidIndices,KeyColumn);
+                end
+                
+                obj.DataTable.Data = obj.PlotDataAsInvalidTable;
+                obj.DataTable.ColumnName = {'Plot','Marker','Name','Display'};
+                obj.DataTable.ColumnFormat = {AxesOptions',obj.Simulation.Settings.LineMarkerMap,'char','char'};
+                obj.DataTable.ColumnEditable = [true,true,false,true];
+            else
+                % Dataset table
+                obj.DataTable.Data = cell(0,4);
+                obj.DataTable.ColumnName = {'Plot','Marker','Name','Display'};
+                obj.DataTable.ColumnFormat = {AxesOptions',obj.Simulation.Settings.LineMarkerMap,'char','char'};
+                obj.DataTable.ColumnEditable = [true,true,false,true];
+            end
+
+        end
+        
+        function updateGroupTable(obj,OptimHeader,OptimData)
+            if ~isempty(obj.Simulation) && ~isempty(OptimData)
+                MatchIdx = strcmp(OptimHeader,obj.Simulation.GroupName);
+                GroupIDs = OptimData(:,MatchIdx);
+                if iscell(GroupIDs)
+                    GroupIDs = cell2mat(GroupIDs);
+                end
+                GroupIDs = unique(GroupIDs);
+                GroupIDNames = cellfun(@(x)num2str(x),num2cell(GroupIDs),'UniformOutput',false);
+
+                InvalidIndices = ~ismember(GroupIDNames,obj.Simulation.PlotGroupTable(:,3));
+
+                % If empty, populate
+                if isempty(obj.Simulation.PlotGroupTable)
+                    obj.Simulation.PlotGroupTable = cell(numel(GroupIDNames),4);
+                    obj.Simulation.PlotGroupTable(:,1) = {false};
+                    obj.Simulation.PlotGroupTable(:,3) = GroupIDNames;
+                    obj.Simulation.PlotGroupTable(:,4) = GroupIDNames;
+
+                    % Update the group colors
+                    GroupColors = getGroupColors(obj.Simulation.Session,numel(GroupIDNames));
+                    obj.Simulation.PlotGroupTable(:,2) = num2cell(GroupColors,2);
+
+                    obj.PlotGroupAsInvalidTable = obj.Simulation.PlotGroupTable;
+                    obj.PlotGroupInvalidRowIndices = [];
+                else
+                    NewPlotTable = cell(numel(GroupIDNames),4);
+                    NewPlotTable(:,1) = {false};
+                    NewPlotTable(:,3) = GroupIDNames;
+                    NewPlotTable(:,4) = GroupIDNames;
+
+                    NewColors = getGroupColors(obj.Simulation.Session,numel(GroupIDNames));
+                    NewPlotTable(:,2) = num2cell(NewColors,2);   
+
+                    % Update Table
+                    KeyColumn = 3;
+                    [obj.Simulation.PlotGroupTable,obj.PlotGroupAsInvalidTable,obj.PlotGroupInvalidRowIndices] = QSPViewer.updateVisualizationTable(obj.Simulation.PlotGroupTable,NewPlotTable,InvalidIndices,KeyColumn);
+
+                end
+                
+                % Update Colors column
+                TableData = obj.PlotGroupAsInvalidTable;
+                %Remove color information from the cell
+                for rowIndex = 1:size(obj.Simulation.PlotGroupTable,1)
+                    TableData{rowIndex,2} = '';
+                end
+                
+                obj.GroupTable.Data = TableData;
+                obj.GroupTable.ColumnName ={'Include','Color','Name','Display'};
+                obj.GroupTable.ColumnFormat = {'logical','char','char','char'};
+                obj.GroupTable.ColumnEditable = [true,false,false,true];
+                % Set cell color
+                for index = 1:size(TableData,1)
+                    ThisColor = obj.Simulation.PlotGroupTable{index,2};
+                    if ~isempty(ThisColor)
+                        if ischar(ThisColor) %html string
+                            rgb = regexp(ThisColor, 'bgcolor="#(\w{2})(\w{2})(\w{2})', 'tokens');
+                            rgb = rgb{1};
+                            ThisColor = [hex2dec(rgb{1}), hex2dec(rgb{2}), hex2dec(rgb{3})]/255;
+                            
+                        end
+                        Temp = uistyle('BackgroundColor',ThisColor);
+                        addStyle(obj.GroupTable,Temp,'cell',[index,2])
+                    end
+                end
+
+            else
+                obj.GroupTable.Data = cell(0,4);
+                obj.GroupTable.ColumnName ={'Include','Color','Name','Display'};
+                obj.GroupTable.ColumnFormat = {'logical','char','char','char'};
+                obj.GroupTable.ColumnEditable = [true,false,false,true];
+            end
+        end
+    end
 end
 

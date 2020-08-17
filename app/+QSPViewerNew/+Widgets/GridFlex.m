@@ -66,9 +66,8 @@ classdef GridFlex < handle
             disableDefaultInteractivity(obj.InnerAxis);
             
             %Create function handles
-            obj.ButtonUpFunctionHandle = @(h,e) obj.buttonUpFcn();
+            obj.ButtonUpFunctionHandle = @(h,e) obj.buttonUpFcn(e.Source.CurrentPoint);
             obj.ButtonDownFunctionHandle = @(h,e) obj.buttonDownFcn(e.Source.CurrentPoint,e.Source.CurrentAxes);
-            obj.ButtonMoveFunctionHandle = @(h,e) obj.buttonMoveFcn(e.Source.CurrentPoint);
         end
        
     end
@@ -87,10 +86,9 @@ classdef GridFlex < handle
             end
         end
        
-        function buttonMoveFcn(obj,coordinates)
-            %When the user moves the barrier
+        function buttonUpFcn(obj,coordinates)
+            %When the user lifts their cursor
             if obj.ChangeModeTF
-                %Extract previous coordinates
                 ChangeInX = coordinates(1) - obj.PreviousX;
                 Length = obj.Parent.Position(3);
                 %Determine new values of window length
@@ -114,13 +112,9 @@ classdef GridFlex < handle
                 RightChar = [num2str(Right),'x'];
                 obj.OuterGrid.ColumnWidth = {LeftChar,20,RightChar};
                 obj.PreviousX = coordinates(1);
+                obj.ChangeModeTF = false;
                 drawnow();
             end
-        end
-
-        function buttonUpFcn(obj)
-            %When the user lifts their cursor
-            obj.ChangeModeTF = false;
         end
         
     end

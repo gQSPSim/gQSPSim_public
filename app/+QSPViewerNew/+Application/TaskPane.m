@@ -12,9 +12,9 @@ classdef TaskPane < QSPViewerNew.Application.ViewPane
     %  2/14/20
     % ---------------------------------------------------------------------
     
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Status of the UI properties
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     properties(Access = private)
         Task = QSP.Task.empty()
         TemporaryTask = QSP.Task.empty();
@@ -22,9 +22,9 @@ classdef TaskPane < QSPViewerNew.Application.ViewPane
         LastPath = pwd
     end
     
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Listeners
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+    % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     properties (Access = private)
         VariantstoActivateListener
         DosestoIncludeListener
@@ -34,9 +34,9 @@ classdef TaskPane < QSPViewerNew.Application.ViewPane
         ProjectFileListener
     end
     
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Graphical Components
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     properties(Access=private)
         OuterTaskGrid               matlab.ui.container.GridLayout
         ModelGrid                   matlab.ui.container.GridLayout
@@ -60,9 +60,9 @@ classdef TaskPane < QSPViewerNew.Application.ViewPane
         SpeciestoIncludeDoubleBox   QSPViewerNew.Widgets.DoubleSelectBox
     end
         
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Constructor and destructor
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     methods      
         
         function obj = TaskPane(varargin)
@@ -73,9 +73,9 @@ classdef TaskPane < QSPViewerNew.Application.ViewPane
         
     end
     
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Interacting with UI components
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     methods (Access = private)
         
         function create(obj)
@@ -147,7 +147,7 @@ classdef TaskPane < QSPViewerNew.Application.ViewPane
             obj.SettingsGrid.Padding = obj.WidgetPadding;
             obj.SettingsGrid.RowSpacing = obj.WidgetHeightSpacing;
             obj.SettingsGrid.ColumnSpacing = obj.WidgetWidthSpacing;
-            
+            obj.SettingsGrid.Scrollable = true;
             
             % Create OutputTimesEdit
             obj.OutputTimesEdit = uieditfield(obj.SettingsGrid, 'text');
@@ -210,9 +210,9 @@ classdef TaskPane < QSPViewerNew.Application.ViewPane
         
     end
     
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Callbacks
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     methods (Access = private)
         
         function onVariantstoActivate(obj,NewData)
@@ -257,7 +257,9 @@ classdef TaskPane < QSPViewerNew.Application.ViewPane
         
         function onRuntoSteadyStateCheckBox(obj,NewData)
             obj.TemporaryTask.RunToSteadyState = NewData;
+            obj.TimetoSteadyStateEdit.Enable = NewData;
             obj.IsDirty = true;
+            
         end
         
         function onProjectFileSelector(obj,NewData)
@@ -265,7 +267,7 @@ classdef TaskPane < QSPViewerNew.Application.ViewPane
                 obj.invalidProject();
                 obj.TemporaryTask.RelativeFilePath = NewData;
                 if exist(obj.TemporaryTask.FilePath,'file')==2
-                    obj.modelChange(obj.TemporaryTask.ModelName);
+                    obj.modelChange(obj.TemporaryTask.ModelName,true);
                     obj.ModelDropDown.Items = {obj.TemporaryTask.getModelList()};
                 end
                 obj.IsDirty = true;
@@ -274,7 +276,7 @@ classdef TaskPane < QSPViewerNew.Application.ViewPane
         
         function onModelDropDown(obj,NewValue)
             if ~strcmpi(NewValue,QSP.makeInvalid('-'))
-                obj.modelChange(NewValue);
+                obj.modelChange(NewValue,true);
                 obj.IsDirty = true;
             end
         end
@@ -306,7 +308,7 @@ classdef TaskPane < QSPViewerNew.Application.ViewPane
        
     methods (Access = public)
         
-        function NotifyOfChangeInName(obj,value,previousName,newName);
+        function NotifyOfChangeInName(obj,value)
             obj.TemporaryTask.Name = value;
             obj.IsDirty = true;
         end
@@ -350,7 +352,8 @@ classdef TaskPane < QSPViewerNew.Application.ViewPane
             obj.updateSummary(obj.TemporaryTask.getSummary());
             obj.ProjectFileSelector.setRelativePath(obj.TemporaryTask.RelativeFilePath);
             if exist(obj.TemporaryTask.FilePath,'file')==2
-                obj.modelChange(obj.TemporaryTask.ModelName)
+                
+                obj.modelChange(obj.TemporaryTask.ModelName,true)
                 obj.ProjectFileSelector.setRelativePath(obj.TemporaryTask.RelativeFilePath);
                 obj.ModelDropDown.Items = {obj.TemporaryTask.getModelList()};
             else
@@ -364,7 +367,7 @@ classdef TaskPane < QSPViewerNew.Application.ViewPane
             FlagRemoveInvalid = true;
             % Remove the invalid entries
             validate(obj.TemporaryTask,FlagRemoveInvalid);
-            obj.draw()
+            obj.updateModelInfoUI();
             obj.IsDirty = true;
         end
         
@@ -381,10 +384,12 @@ classdef TaskPane < QSPViewerNew.Application.ViewPane
     
     methods (Access = private)
         
-        function modelChange(obj,newName)
-            [StatusOK,Message] = importModel(obj.TemporaryTask,obj.TemporaryTask.FilePath,newName);
-            if ~StatusOK
-                uialert(obj.getUIFigure,'Error on Import',Message)
+        function modelChange(obj,newName,reimport)
+            if reimport
+                [StatusOK,Message] = importModel(obj.TemporaryTask,obj.TemporaryTask.FilePath,newName);
+                if ~StatusOK
+                    uialert(obj.getUIFigure,'Error on Import',Message)
+                end
             end
             
             if ~isempty(obj.TemporaryTask.ModelObj) && ~isempty(obj.TemporaryTask.ModelObj.mObj)
@@ -416,9 +421,9 @@ classdef TaskPane < QSPViewerNew.Application.ViewPane
         function updateModelInfoUI(obj)
             %Draw the superclass Widgets values
             
-            %%For each Box, we must import the left and right list
+            % %For each Box, we must import the left and right list
             
-            %%
+            % %
             obj.VariantstoActivateDoubleBox.setLeftListBox(obj.TemporaryTask.VariantNames);
             obj.VariantstoActivateDoubleBox.setRightListBox(obj.TemporaryTask.ActiveVariantNames);
             
@@ -485,8 +490,6 @@ classdef TaskPane < QSPViewerNew.Application.ViewPane
             obj.RuntoSteadyStateCheckBox.Value = 0;
             obj.TimetoSteadyStateEdit.Enable = 'off';
         end
-        
     end
-        
 end
 

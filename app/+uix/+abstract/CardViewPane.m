@@ -1669,18 +1669,7 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
              if ~isempty(LegendItems)
                  try
                      % Add legend
-                     [hThisLegend,hThisLegendChildren] = legend(hThisAxes,LegendItems);
-                     
-                     % Color, FontSize, FontWeight
-                     for cIndex = 1:numel(hThisLegendChildren)
-                         if isprop(hThisLegendChildren(cIndex),'FontSize')
-                             hThisLegendChildren(cIndex).FontSize = ThesePlotSettings.LegendFontSize;
-                         end
-                         if isprop(hThisLegendChildren(cIndex),'FontWeight')
-                             hThisLegendChildren(cIndex).FontWeight = ThesePlotSettings.LegendFontWeight;
-                         end
-                     end
-                     
+                     [hThisLegend] = legend(hThisAxes,LegendItems,'FontSize',ThesePlotSettings.LegendFontSize,'FontWeight',ThesePlotSettings.LegendFontWeight);
                      set(hThisLegend,...
                          'EdgeColor','none',...
                          'Visible',ThesePlotSettings.LegendVisibility,...
