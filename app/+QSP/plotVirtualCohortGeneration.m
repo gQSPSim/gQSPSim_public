@@ -392,17 +392,15 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
             if isempty(thisData)
                 continue
             end
+
+            % invalid lines
             
             % LIMIT NUMBER OF LINES PLOTTED
-            MAX_LINES = 200;
+            MAX_LINES = 200;            
             
-            ColumnIdx_invalid = ColumnIdx_invalid(discretesample(ones(size(ColumnIdx_invalid))/length(ColumnIdx_invalid), MAX_LINES));
-            
-            
-            
-            
-            % invalid lines
             if ~isempty(ColumnIdx_invalid)
+
+                ColumnIdx_invalid = ColumnIdx_invalid(discretesample(ones(size(ColumnIdx_invalid))/length(ColumnIdx_invalid), MAX_LINES));                
                 % Plot
                 hThis = plot(hSpeciesGroup{sIdx,axIdx},Results{itemIdx}.Time,thisData(:,ColumnIdx_invalid),...
                     'Color',[0.5,0.5,0.5],...

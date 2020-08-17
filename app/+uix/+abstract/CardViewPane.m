@@ -1156,6 +1156,14 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                        if isempty(fieldnames(Summary))
                            Summary = QSP.PlotSettings.getDefaultSummary();
                        end
+                       
+                       % convert to char for summary
+                       ixOnOff = find(structfun( @(s) isa(s, 'matlab.lang.OnOffSwitchState'), Summary ));
+                       summaryFields = fields(Summary);
+                       for k = 1:length(ixOnOff)
+                            Summary.(summaryFields{ixOnOff(k)}) = char(Summary.(summaryFields{ixOnOff(k)}) );
+                       end
+                       
                        set(obj.PlotSettings(index),fieldnames(Summary),struct2cell(Summary)');
                    end
                 end

@@ -672,19 +672,22 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
             commit = git(sprintf('-C "%s" --git-dir="%s" rev-parse HEAD', rootDir, fullfile(rootDir,obj.GitRepo)));
             cmd = sprintf('INSERT INTO Experiments VALUES ("%s", "%s", "%s", %f)', ...
                 type, Name, commit, time);
-%             if isempty(obj.dbid)
+            if isempty(obj.dbid)
 %                 system(sprintf('touch "%s"', fullfile(rootDir, obj.experimentsDB)) );
-                obj.dbid = mksqlite('open', fullfile(rootDir, obj.experimentsDB), 'rw');
+                dbPath = fullfile(rootDir, obj.experimentsDB);
+                fclose(fopen(dbPath,'w'));
+                
+                obj.dbid = mksqlite(0, 'open', dbPath, 'rw');
 %                 obj.dbid = mksqlite('open', 'experiments.db3', 'rw');
                 
                 mksqlite(obj.dbid, 'create table if not exists EXPERIMENTS (Type TEXT, Item TEXT, GitCommit TEXT, Time INTEGER);')
                 mksqlite(obj.dbid, 'create table if not exists RUNS (Experiment INTEGER, Files TEXT);')                
-%             end
+            end
             
             mksqlite( obj.dbid, cmd );
                        
             % add files
-            id=mksqlite(sprintf('select rowid from Experiments where Type="%s" and Item="%s" and GitCommit="%s" and Time=%f', ...
+            id=mksqlite(obj.dbid, sprintf('select rowid from Experiments where Type="%s" and Item="%s" and GitCommit="%s" and Time=%f', ...
                 type, Name, commit, time));
             if iscell(ResultFileNames)
                 values=cellfun(@(s) sprintf('(%d, "%s")', id.rowid, s), ResultFileNames, 'UniformOutput', false);

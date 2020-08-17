@@ -29,7 +29,9 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
     %% Properties
     properties
         Settings = QSP.Settings.empty(0,1)
-        OptimResultsFolderName = 'OptimResults' 
+        OptimResultsFolderName = '' 
+        OptimResultsFolderPath = {'OptimResults'}
+        
         ExcelResultFileName = {} % At least one file
         VPopName = {} % At least one Vpop
         
