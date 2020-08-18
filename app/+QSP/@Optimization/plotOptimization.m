@@ -173,7 +173,7 @@ for index = 1:numel(obj.PlotProfile)
 end
 
 if rerunSims && ~isempty(obj.PlotProfile) % need at least one profile
-    [StatusOK,Message,~,Cancelled,Results,ItemModels] = simulationRunHelper(simObj,ParamValues,ParamNames,[],ItemModels,find(IsSelected));
+    [StatusOK,Message,~,Cancelled,Results,ItemModels] = simulationRunHelper(simObj,ParamValues,ParamNames,[],ItemModels,find(IsSelected),[],false);
     
     obj.ItemModels = ItemModels;
     obj.Results = Results;

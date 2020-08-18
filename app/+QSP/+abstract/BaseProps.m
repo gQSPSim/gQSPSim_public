@@ -41,8 +41,9 @@ classdef (Abstract) BaseProps < matlab.mixin.SetGet & matlab.mixin.Heterogeneous
     properties
         Session = QSP.Session.empty(1,0)
 %         Name = ''    % Name
-        RelativeFilePath = '' % Path to file
+        RelativeFilePathParts = {''}
 %         Description = '' % Description
+        RelativeFilePath = ''
         
         bShowTraces = []
         bShowQuantiles = []
@@ -57,7 +58,8 @@ classdef (Abstract) BaseProps < matlab.mixin.SetGet & matlab.mixin.Heterogeneous
     end
     properties (Dependent=true)
         FilePath
-%         LastSavedTimeStr
+        RelativeFilePath_new
+%         LastSavedTimeStr        
     end
     
     %% Protected Properties
@@ -74,8 +76,15 @@ classdef (Abstract) BaseProps < matlab.mixin.SetGet & matlab.mixin.Heterogeneous
             obj.assignPVPairs(varargin{:});
             
         end % constructor       
+        
+        function Log(obj, msg)
+            obj.Session.Log(msg);
+        end        
+        
                 
     end % Public methods
+    
+    
     
     %% Protected methods
     methods (Access=protected)
@@ -280,9 +289,13 @@ classdef (Abstract) BaseProps < matlab.mixin.SetGet & matlab.mixin.Heterogeneous
 %             obj.Name = value;
 %         end
         
-        function set.RelativeFilePath(obj,value)
+        function set.RelativeFilePath_new(obj,value)
             validateattributes(value,{'char'},{})
-            obj.RelativeFilePath = value;
+            obj.RelativeFilePathParts = strsplit(value,filesep);
+        end
+        
+        function Value = get.RelativeFilePath_new(obj)
+            Value = strjoin(obj.RelativeFilePathParts,filesep);
         end
         
 %         function set.Description(obj,value)
@@ -308,18 +321,29 @@ classdef (Abstract) BaseProps < matlab.mixin.SetGet & matlab.mixin.Heterogeneous
         function value = get.SessionRoot(obj)
             if isscalar(obj.Session)
                 value = obj.Session.RootDirectory;
+                if ~isempty(getCurrentWorker)
+                    newRoot = getAttachedFilesFolder(value);
+                    if ~isempty(newRoot)
+                        obj.Session.RootDirectory = newRoot; % update session root
+                        value = newRoot;
+                    end
+                end                
             else
                 value = '';
             end
         end
         
         function value = get.FilePath(obj)
-            tmp = strrep(obj.RelativeFilePath, '\','/');
-            value = fullfile(obj.SessionRoot, tmp);
+            value = fullfile(obj.SessionRoot, obj.RelativeFilePath_new);       
+            if isempty(value)
+                return
+            end
+            
         end
+        
         function set.FilePath(obj,value)
             validateattributes(value,{'char'},{})
-            obj.RelativeFilePath = uix.utility.getRelativeFilePath(value, obj.SessionRoot, false);
+            obj.RelativeFilePath_new = uix.utility.getRelativeFilePath(value, obj.SessionRoot, false);
         end
         
     end %methods
