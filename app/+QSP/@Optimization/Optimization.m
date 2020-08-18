@@ -81,6 +81,7 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
     end
     
     properties (Dependent=true)
+        TaskGroupItems
         OptimResultsFolderName_new
         OptimizationItems
         SpeciesDataMapping
@@ -987,19 +988,23 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             obj.PlotSettings = Value;
         end
         
-        function set.OptimizationItems(obj,Value)
+        function set.TaskGroupItems(obj,Value)
             validateattributes(Value,{'cell'},{'size',[nan,2]});
             
             NewTaskGroup = QSP.TaskGroup.empty;
             for idx = 1:size(Value,1)
+                GroupID = Value{idx,2};
+                if isnumeric(GroupID)
+                    GroupID = num2str(GroupID);
+                end
                 NewTaskGroup(end+1) = QSP.TaskGroup(...
                     'TaskName',Value{idx,1},...
-                    'GroupID',Value{idx,2}); %#ok<AGROW>
+                    'GroupID',GroupID); %#ok<AGROW>
             end
             obj.Item = NewTaskGroup;
         end
         
-        function Value = get.OptimizationItems(obj)
+        function Value = get.TaskGroupItems(obj)
             TaskNames = {obj.Item.TaskName};
             GroupIDs = {obj.Item.GroupID};
             
@@ -1007,14 +1012,14 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         end
         
         function set.SpeciesDataMapping(obj,Value)
-            validateattributes(Value,{'cell'},{'size',[nan,2]});
+            validateattributes(Value,{'cell'},{'size',[nan,3]});
             
             NewSpeciesData = QSP.SpeciesData.empty;
             for idx = 1:size(Value,1)
                 NewSpeciesData(end+1) = QSP.SpeciesData(...
                     'SpeciesName',Value{idx,2},...
                     'DataName',Value{idx,1},...
-                    'FunctionExpression','x'); %#ok<AGROW>
+                    'FunctionExpression',Value{idx,3}); %#ok<AGROW>
             end
             obj.SpeciesData = NewSpeciesData;
         end
