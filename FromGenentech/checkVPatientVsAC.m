@@ -143,6 +143,10 @@ for grpIdx = 1:length(unqGroups) %nItems
             model_outputs = [model_outputs;Inf*ones(length(grpInds),1)];
             LB_outputs = [LB_outputs;NaN(length(grpInds),1)];            
             UB_outputs = [UB_outputs;NaN(length(grpInds),1)];
+            taskName_outputs = [taskName_outputs; NaN(length(grpInds),1)];
+            spec_outputs = [spec_outputs; NaN(length(grpInds),1)];
+            time_outputs = [time_outputs; NaN(length(grpInds),1)];
+                
             StatusOK = false;
             Message = getReport(ME2);
             D = inf;
