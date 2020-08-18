@@ -186,9 +186,10 @@ classdef Settings < matlab.mixin.SetGet & uix.mixin.AssignPVPairs & uix.mixin.Ha
             else
                 SpeciesList = {};
             end
-        end
+        end %function
         
-    end 
+        
+    end %methods
     
     
     %% Get/Set Methods
@@ -200,5 +201,6 @@ classdef Settings < matlab.mixin.SetGet & uix.mixin.AssignPVPairs & uix.mixin.Ha
         end
         
     end %methods
+    
     
 end %classdef

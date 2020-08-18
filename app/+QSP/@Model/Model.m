@@ -167,10 +167,22 @@ classdef Model < QSP.abstract.BaseProps
                 return;
             end
             
+            
+            if ~exist(ProjectPath,'file')
+                StatusOk = false;
+                dirFiles = dir(fileparts(ProjectPath));
+                Message = sprintf('Project file %s does not exist. ', ProjectPath);
+                fprintf('Project file %s does not exist.\nContents of dir: %s\n', ProjectPath, strjoin({dirFiles.name},'\n') );
+                return
+            end
+            
             % Continue IF stale
             % Load project
             try
+               fprintf('Loading %s\n', ProjectPath);    
                 AllModels = sbioloadproject(ProjectPath);
+%                fprintf('Success\n')
+                
             catch ME
                 StatusOk = false;
                 Message = ME.message;
@@ -341,7 +353,13 @@ classdef Model < QSP.abstract.BaseProps
         function Value = get.RuleNames(obj)
             if ~isempty(obj.mObj)
                 Value = sbioselect(obj.mObj, 'Type', 'Rule');
-                Value = get(Value,'Rule');
+                Rule = get(Value,'Rule');
+                Name = get(Value,'Name');
+                Name(cellfun(@isempty,Name)) = {'unnamed'};
+                
+                Value = arrayfun(@(k) sprintf('%s: %s', Name{k}, Rule{k}), 1:numel(Rule), 'UniformOutput', false);
+                Value = reshape(Value,[],1);
+                
                 if isempty(Value)
                     Value = cell(0,1);                
                 elseif ischar(Value)
@@ -354,8 +372,14 @@ classdef Model < QSP.abstract.BaseProps
         
         function Value = get.ReactionNames(obj)
             if ~isempty(obj.mObj)
-                Value = sbioselect(obj.mObj, 'Type', 'Reaction');                
-                Value = get(Value,'Reaction');
+                Value = sbioselect(obj.mObj, 'Type', 'Reaction');                           
+                Reaction = get(Value,'Reaction');
+                Name = get(Value,'Name');
+                Name(cellfun(@isempty,Name)) = {'unnamed'};
+                
+                Value = arrayfun(@(k) sprintf('%s: %s', Name{k}, Reaction{k}), 1:numel(Reaction), 'UniformOutput', false);
+                Value = reshape(Value,[],1);
+                
                 if isempty(Value)
                     Value = cell(0,1);                
                 elseif ischar(Value)

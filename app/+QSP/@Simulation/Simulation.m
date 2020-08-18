@@ -29,7 +29,6 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
     % Properties
     properties
         Settings = QSP.Settings.empty(0,1)
-        SimResultsFolderName = 'SimResults' 
         
         DatasetName = '' % OptimizationData Name
         GroupName = ''
@@ -44,6 +43,13 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         SelectedPlotLayout = '1x1'
         
         PlotSettings = repmat(struct(),1,12)
+        SimResultsFolderPath = {'SimResults'}
+        SimResultsFolderName = ''
+        
+    end
+      
+    properties (Dependent)
+        SimResultsFolderName_new
     end
     
     properties (SetAccess = 'private')
@@ -54,7 +60,11 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         NullVPop = 'ModelDefault'
     end
     
-    % Constructor
+    properties (Dependent=true)
+        TaskVPopItems
+    end
+    
+    %% Constructor
     methods
         function obj = Simulation(varargin)
             % Simulation - Constructor for QSP.Simulation
@@ -143,7 +153,7 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 'Name',obj.Name;
                 'Last Saved',obj.LastSavedTimeStr;
                 'Description',obj.Description;
-                'Results Path',obj.SimResultsFolderName;
+                'Results Path',obj.SimResultsFolderName_new;
                 'Dataset',obj.DatasetName;       
                 'Group Name',obj.GroupName;
                 'Items',SimulationItems;
@@ -271,6 +281,8 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 obj.Item(index).MATFileName = [];
             end
         end
+        
+     
           
     end
     
@@ -295,9 +307,15 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                     autoSaveFile(obj.Session,'Tag','preRunSimulation');
                 end
                 
+                if obj.Session.AutoSaveGit
+                    obj.Session.gitCommit();
+                end
+                
                 % Run helper
-                [ThisStatusOK, thisMessage, ResultFileNames, Cancelled, resultsArray] = simulationRunHelper(obj);
-
+                obj.Log(['running simulation ' obj.Name])
+                [ThisStatusOK,thisMessage,ResultFileNames,Cancelled, resultsArray] = simulationRunHelper(obj);
+                obj.Log('complete')
+                
                 if ~ThisStatusOK && ~Cancelled
 %                     error('run: %s',Message);
                     StatusOK = false;
@@ -314,9 +332,32 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                     obj.Item(index).MATFileName = ResultFileNames{index};
                 end
                 
+                % add entry to the database
+                if obj.Session.UseSQL
+                    obj.Session.addExperimentToDB( 'SIMULATION', obj.Name, now, ResultFileNames);
+                end
             end 
             
         end %function
+        
+        function data = GetData(obj)
+            Items = obj.Item;
+            data = struct();
+            for k = 1:length(Items)
+                try
+                    filePath = fullfile( obj.Session.RootDirectory, obj.SimResultsFolderName_new, Items(k).MATFileName);
+                    tmp = load(filePath);
+                    data(k).Data = tmp.Results;
+                    data(k).TaskName = Items(k).TaskName;
+                    data(k).VPopName = Items(k).VPopName;
+
+                catch err
+                    warning(err.message)                    
+                end
+
+            end
+            
+        end
         
         function updateSpeciesLineStyles(obj)
             ThisMap = obj.Settings.LineStyleMap;
@@ -354,8 +395,13 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                     TaskLastSavedTime = ThisTask.LastSavedTime;
                     
                     % SimBiology Project file from Task
-                    FileInfo = dir(ThisTask.FilePath);                    
-                    TaskProjectLastSavedTime = FileInfo.datenum;
+                    FileInfo = dir(ThisTask.FilePath);  
+                    if ~isempty(FileInfo)
+                        TaskProjectLastSavedTime = FileInfo.datenum;
+                    else
+                        TaskProjectLastSavedTime = 0;
+                    end
+                        
                     
                     % VPop object (item) and file
                     if ~isempty(ThisVPop) % Guard for NullVPop
@@ -365,7 +411,7 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                     end
                     
                     % Results file
-                    ThisFilePath = fullfile(obj.Session.RootDirectory,obj.SimResultsFolderName,obj.Item(index).MATFileName);
+                    ThisFilePath = fullfile(obj.Session.RootDirectory,obj.SimResultsFolderName_new,obj.Item(index).MATFileName);
                     if exist(ThisFilePath,'file') == 2
                         FileInfo = dir(ThisFilePath);
                         ResultLastSavedTime = FileInfo.datenum;
@@ -417,9 +463,13 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             obj.Settings = Value;
         end
         
-        function set.SimResultsFolderName(obj,Value)
+        function set.SimResultsFolderName_new(obj,Value)
             validateattributes(Value,{'char'},{'row'});
-            obj.SimResultsFolderName = Value;
+            obj.SimResultsFolderPath = strsplit(Value, filesep);
+        end
+        
+        function Value = get.SimResultsFolderName_new(obj)
+            Value = strjoin(obj.SimResultsFolderPath, filesep);
         end
         
         function set.DatasetName(obj,Value)
@@ -461,6 +511,40 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             validateattributes(Value,{'struct'},{});
             obj.PlotSettings = Value;
         end
+        
+        function set.TaskVPopItems(obj,Value)
+            validateattributes(Value,{'cell'},{'size',[nan,3]});
+            
+            NewTaskVPop = QSP.TaskVirtualPopulation.empty;
+            for idx = 1:size(Value,1)
+                NewTaskVPop(end+1) = QSP.TaskVirtualPopulation(...
+                    'TaskName',Value{idx,1},...
+                    'VPopName',Value{idx,2},...
+                    'Group',Value{idx,3}); %#ok<AGROW>
+            end
+            obj.Item = NewTaskVPop;
+        end
+        
+        function Value = get.TaskVPopItems(obj)
+            TaskNames = {obj.Item.TaskName};
+            VPopNames = {obj.Item.VPopName};
+            GroupIDs = {obj.Item.Group};
+            
+            Value = [TaskNames(:) VPopNames(:) GroupIDs(:)];
+        end
     end %methods
     
+    methods (Static)
+        function value = ExtractSpeciesData(Results, Species)
+                        
+            for k=1:length(Results)
+            
+                idxCol = find( strcmp(Results(k).Data.SpeciesNames, Species));
+                NS = length(Results(k).Data.SpeciesNames);
+                value(:,k) = Results(k).Data.Data(:, idxCol:NS:end);
+                
+            end                      
+                
+        end
+    end       
 end %classdef

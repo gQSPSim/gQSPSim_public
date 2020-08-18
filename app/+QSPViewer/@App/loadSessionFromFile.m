@@ -41,15 +41,19 @@ try
     validateattributes(s.Session,{'QSP.Session'},{'scalar'})
     
     % check the session root
-    if ~exist(s.Session.RootDirectory, 'dir') %&& strcmp(questdlg('Session root directory is invalid. Select a new root directory?', 'Select root directory', 'Yes'),'Yes')
-        if interactiveTF
-            if strcmp(questdlg('Session root directory is invalid. Select a new root directory?', 'Select root directory', 'Yes'),'Yes')
-                rootDir = uigetdir(s.Session.RootDirectory, 'Select valid session root directory');
+    if ~exist(s.Session.RootDirectory, 'dir')         
+        s.Session.RootDirectory = fileparts(FilePath);
+%         fprintf('Setting root directory to: %s\n', s.Session.RootDirectory)
+        
+        if usejava('jvm') && feature('ShowFigureWindows') && interactiveTF % there is a display
+            if strcmp(questdlg('Session root directory is invalid. Select a new root directory?', 'Select root directory', 'Yes'),'Yes')        
+                rootDir = uigetdir(fileparts(FilePath), 'Select valid session root directory');
                 if rootDir ~= 0
                     s.Session.RootDirectory = rootDir;
                 end
             end
         end
+        
     end
     
     Session = copy(s.Session);

@@ -5,7 +5,7 @@ function refreshSpeciesDataTable(vObj)
 
 if ~isempty(vObj.TempData)
     if exist(vObj.TempData.Session.ObjectiveFunctionsDirectory,'dir')
-        FileList = dir(vObj.TempData.Session.ObjectiveFunctionsDirectory);
+        FileList = dir(fullfile(vObj.TempData.Session.ObjectiveFunctionsDirectory,'*.m'));
         IsDir = [FileList.isdir];
         Names = {FileList(~IsDir).name};
         vObj.ObjectiveFunctions = vertcat('defaultObj',Names(:));

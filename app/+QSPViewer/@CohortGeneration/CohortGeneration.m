@@ -26,8 +26,6 @@ classdef CohortGeneration < uix.abstract.CardViewPane
         ParameterPopupItems = {'-'}
         ParameterPopupItemsWithInvalid = {'-'}
         
-        MethodPopupItems = {'Distribution','MCMC'}
-        
         TaskPopupTableItems = {}
         GroupIDPopupTableItems = {}
         SpeciesPopupTableItems = {} % From Tasks
@@ -223,7 +221,7 @@ classdef CohortGeneration < uix.abstract.CardViewPane
         
         function onMethodPopup(vObj,h,e)
             
-            vObj.TempData.Method = vObj.MethodPopupItems{get(h,'Value')};
+            vObj.TempData.Method = QSP.CohortGeneration.MethodPopupItems{get(h,'Value')};
             if strcmpi(vObj.TempData.Method, 'MCMC')
                 set(vObj.h.MCMCTuningEdit, 'Enable', 'on')
             else

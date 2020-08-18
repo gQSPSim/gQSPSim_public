@@ -61,7 +61,7 @@ classdef Task < uix.abstract.CardViewPane
             DataFilePath = e.NewValue;
             
             % Update the relative file path
-            vObj.TempData.RelativeFilePath = DataFilePath;
+            vObj.TempData.RelativeFilePath_new = DataFilePath;
             
             if exist(vObj.TempData.FilePath,'file')==2
                 
@@ -84,8 +84,6 @@ classdef Task < uix.abstract.CardViewPane
             % Get model name
             ModelNameOptions = get(h,'String');
             ModelName = ModelNameOptions{get(h,'Value')}; %get(h,'String');
-            
-            
             
             if strcmpi(ModelName,QSP.makeInvalid('-'))
                 ModelName = '';
