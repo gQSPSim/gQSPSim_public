@@ -351,6 +351,33 @@ classdef (Abstract) BaseProps < matlab.mixin.SetGet & matlab.mixin.Heterogeneous
     
     %% API methods
     methods
+        
+        function Remove(obj)
+            
+            FuncType = class(obj);
+            Type = regexprep(FuncType,'QSP\.','');
+            
+            % Get its parent container
+            if isprop(obj,'Settings') && isprop(obj.Settings,Type)
+                containerObj = obj.Settings;
+            elseif isprop(obj,'Session') && isprop(obj.Session,Type)
+                containerObj = obj.Session;
+            elseif isprop(obj,'Session') && isprop(obj.Session.Settings,Type)
+                containerObj = obj.Session.Settings;                
+            else
+                containerObj = [];
+            end
+            
+            % Delete
+            delete(obj)
+            
+            % Remove from its parent container
+            if ~isempty(containerObj)
+                containerObj.(Type)(~isvalid(containerObj.(Type))) = [];
+            end
+            
+        end %function
+        
         function newObj = Replicate(obj)
             
             FuncType = class(obj);

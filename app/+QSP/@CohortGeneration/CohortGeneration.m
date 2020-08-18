@@ -422,7 +422,7 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 % Check Species (Mapping)
                 if any(SpeciesMappingIndex == 0)
                     BadValues = {obj.SpeciesData(SpeciesMappingIndex==0).SpeciesName};
-                    ThisMessage = sprintf('Invalid species: %s',uix.utility.cellstr2dlmstr(BadValues,','));
+                    ThisMessage = sprintf('Invalid species name: %s',uix.utility.cellstr2dlmstr(BadValues,','));
                     StatusOK = false;
                     Message = sprintf('%s\n* %s\n',Message,ThisMessage);
                 end
@@ -430,7 +430,7 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                  % Check Data (Mapping)
                 if any(DataMappingIndex == 0)
                     BadValues = {obj.SpeciesData(DataMappingIndex==0).DataName};
-                    ThisMessage = sprintf('Invalid species: %s',uix.utility.cellstr2dlmstr(BadValues,','));
+                    ThisMessage = sprintf('Invalid data name: %s',uix.utility.cellstr2dlmstr(BadValues,','));
                     StatusOK = false;
                     Message = sprintf('%s\n* %s\n',Message,ThisMessage);
                 else
@@ -539,6 +539,23 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 end
             else
                 vpopObj = QSP.VirtualPopulation.empty(0,1);
+            end
+            
+            Message = strtrim(Message);
+            
+            
+            % Special handling for API
+            if nargout == 0
+               if StatusOK && isempty(Message) 
+                   disp('Virtual Cohort Generation ran successfully')
+               elseif StatusOK && ~isempty(Message)
+                   warning(Message)
+               else
+                   error(Message)
+               end
+               
+               % Append
+               obj.Settings.VirtualPopulation(end+1) = vpopObj;
             end
             
         end %function
@@ -813,9 +830,13 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             
             NewTaskGroup = QSP.TaskGroup.empty;
             for idx = 1:size(Value,1)
+                GroupID = Value{idx,2};
+                if isnumeric(GroupID)
+                    GroupID = num2str(GroupID);
+                end
                 NewTaskGroup(end+1) = QSP.TaskGroup(...
                     'TaskName',Value{idx,1},...
-                    'GroupID',Value{idx,2}); %#ok<AGROW>
+                    'GroupID',GroupID); %#ok<AGROW>
             end
             obj.Item = NewTaskGroup;
         end
@@ -828,14 +849,14 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         end
         
         function set.SpeciesDataMapping(obj,Value)
-            validateattributes(Value,{'cell'},{'size',[nan,2]});
+            validateattributes(Value,{'cell'},{'size',[nan,3]});
             
             NewSpeciesData = QSP.SpeciesData.empty;
             for idx = 1:size(Value,1)
                 NewSpeciesData(end+1) = QSP.SpeciesData(...
                     'SpeciesName',Value{idx,2},...
                     'DataName',Value{idx,1},...
-                    'FunctionExpression','x'); %#ok<AGROW>
+                    'FunctionExpression',Value{idx,3}); %#ok<AGROW>
             end
             obj.SpeciesData = NewSpeciesData;
         end
