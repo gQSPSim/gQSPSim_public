@@ -69,7 +69,7 @@ rootDirs={...
     fullfile(RootPath,'..','app'),true;... %root folder with children
     fullfile(RootPath,'..','utilities'),true;... %root folder with children
     fullfile(RootPath,'..','FromGenentech'),true;... %root folder with children
-    
+    fullfile(RootPath,'..'),false;
     };
 
 %************ EDIT ABOVE %************

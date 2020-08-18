@@ -29,7 +29,9 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
     %% Properties
     properties
         Settings = QSP.Settings.empty(0,1)
-        VPopResultsFolderName = 'VPopResults' 
+        VPopResultsFolderPath = {'VPopResults'}
+        VPopResultsFolderName = ''
+        
         ExcelResultFileName = ''
         VPopName = '' % VPop name from running vpop gen
               
@@ -76,6 +78,7 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
     end
     
     properties (Dependent=true)
+        VPopResultsFolderName_new
         TaskGroupItems
         SpeciesDataMapping
     end
@@ -214,7 +217,7 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
                 'Name',obj.Name;
                 'Last Saved',obj.LastSavedTimeStr;
                 'Description',obj.Description;
-                'Results Path',obj.VPopResultsFolderName;
+                'Results Path',obj.VPopResultsFolderName_new;
                 'Cohort Used',obj.DatasetName;
                 'Group Name',obj.GroupName;
                 'Min No of Virtual Subjects',num2str(obj.MinNumVirtualPatients);
@@ -493,11 +496,19 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
                     autoSaveFile(obj.Session,'Tag','preRunVPopGen');
                 end
                 
+                if obj.Session.AutoSaveGit
+                    obj.Session.gitCommit();
+                end                
+                
                 % Run helper
                 % clear cached results if any
                 obj.SimResults = {};
                 obj.SimFlag = [];
+                
+                obj.Log(['running vpop generation ' obj.Name])
                 [StatusOK,Message,ResultsFileName,ThisVPopName] = vpopGenerationRunHelper(obj);
+                obj.Log('complete')
+                
                 % Update MATFileName in the simulation items
                 obj.ExcelResultFileName = ResultsFileName;
                 obj.VPopName = ThisVPopName;
@@ -507,11 +518,17 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
                     vpopObj = QSP.VirtualPopulation;
                     vpopObj.Session = obj.Session;
                     vpopObj.Name = ThisVPopName;
-                    vpopObj.FilePath = fullfile(obj.Session.RootDirectory,obj.VPopResultsFolderName,obj.ExcelResultFileName);
+                    vpopObj.FilePath = fullfile(obj.Session.RootDirectory,obj.VPopResultsFolderName_new,obj.ExcelResultFileName);
                     % Update last saved time
                     updateLastSavedTime(vpopObj);
                     % Validate
                     validate(vpopObj,false);
+                    
+                    % add entry to the database
+                    if obj.Session.UseSQL
+                        obj.Session.addExperimentToDB( 'VPOP GENERATION', obj.Name, now, obj.ExcelResultFileName);                    
+                    end                    
+                    
                 else
                     vpopObj = QSP.VirtualPopulation.empty(0,1);
                 end
@@ -618,7 +635,7 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
                     % Compare times
                     
                     % Optimization object (this)
-                    ResultFileInfo = dir(fullfile(obj.Session.RootDirectory, obj.VPopResultsFolderName, obj.ExcelResultFileName));
+                    ResultFileInfo = dir(fullfile(obj.Session.RootDirectory, obj.VPopResultsFolderName_new, obj.ExcelResultFileName));
                     if ~isempty(ResultFileInfo)
                         VpopLastSavedTime = ResultFileInfo.datenum;
                     else
@@ -638,7 +655,7 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
                     VirtualPopulationDataFileLastSavedTime = FileInfo.datenum;
                                         
                     % Results file - ONE file
-                    ThisFilePath = fullfile(obj.Session.RootDirectory,obj.VPopResultsFolderName,obj.ExcelResultFileName);
+                    ThisFilePath = fullfile(obj.Session.RootDirectory,obj.VPopResultsFolderName_new,obj.ExcelResultFileName);
                     if exist(ThisFilePath,'file') == 2
                         FileInfo = dir(ThisFilePath);                        
                         ResultLastSavedTime = FileInfo.datenum;
@@ -692,10 +709,15 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
             obj.Settings = Value;
         end
         
-        function set.VPopResultsFolderName(obj,Value)
+        function set.VPopResultsFolderName_new(obj,Value)
             validateattributes(Value,{'char'},{'row'});
-            obj.VPopResultsFolderName = Value;
+            obj.VPopResultsFolderPath = strsplit(Value,filesep);
         end
+        
+        function Value = get.VPopResultsFolderName_new(obj)
+            Value = strjoin(obj.VPopResultsFolderPath,filesep);
+        end
+        
         
         function set.DatasetName(obj,Value)
             validateattributes(Value,{'char'},{});
@@ -743,13 +765,9 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
             
             NewTaskGroup = QSP.TaskGroup.empty;
             for idx = 1:size(Value,1)
-                GroupID = Value{idx,2};
-                if isnumeric(GroupID)
-                    GroupID = num2str(GroupID);
-                end
                 NewTaskGroup(end+1) = QSP.TaskGroup(...
                     'TaskName',Value{idx,1},...
-                    'GroupID',GroupID); %#ok<AGROW>
+                    'GroupID',Value{idx,2}); %#ok<AGROW>
             end
             obj.Item = NewTaskGroup;
         end
@@ -762,14 +780,14 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
         end
         
         function set.SpeciesDataMapping(obj,Value)
-            validateattributes(Value,{'cell'},{'size',[nan,3]});
+            validateattributes(Value,{'cell'},{'size',[nan,2]});
             
             NewSpeciesData = QSP.SpeciesData.empty;
             for idx = 1:size(Value,1)
                 NewSpeciesData(end+1) = QSP.SpeciesData(...
                     'SpeciesName',Value{idx,2},...
                     'DataName',Value{idx,1},...
-                    'FunctionExpression',Value{idx,3}); %#ok<AGROW>
+                    'FunctionExpression','x'); %#ok<AGROW>
             end
             obj.SpeciesData = NewSpeciesData;
         end

@@ -29,9 +29,12 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
     %% Properties
     properties
         Settings = QSP.Settings.empty(0,1)
-        VPopResultsFolderName = 'CohortGenerationResults' 
+        VPopResultsFolderPath = {'CohortGenerationResults'};
+        VPopResultsFolderName
+        
         ICFileName = ''
         ExcelResultFileName = ''
+        MatFileName = '' % results from running the cohort generation
         VPopName = '' % VPop name from running vpop gen
               
         DatasetName = '' % VirtualPopulationData Name
@@ -84,6 +87,10 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             'Distribution'
             'MCMC'
             }
+    end
+    
+    properties (Dependent)
+        VPopResultsFolderName_new
     end
     
     %% Transient Properties
@@ -242,7 +249,7 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 'Name',obj.Name;
                 'Last Saved',obj.LastSavedTimeStr;
                 'Description',obj.Description;
-                'Results Path',obj.VPopResultsFolderName;
+                'Results Path',obj.VPopResultsFolderName_new;
                 'Dataset',obj.DatasetName;
                 'Group Name',obj.GroupName;
                 'Items',VPopGenItems;
@@ -486,7 +493,10 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 if obj.Session.AutoSaveBeforeRun
                     autoSaveFile(obj.Session,'Tag','preRunCohortGeneration');
                 end
-                
+
+                if obj.Session.AutoSaveGit
+                    obj.Session.gitCommit();
+                end
                 % Run helper
                 
                 % set RNG if specified
@@ -497,21 +507,33 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 % clear cached results if any
                 obj.SimResults = {};
                 obj.SimFlag = [];
-                [StatusOK,Message,ResultsFileName,ThisVPopName] = cohortGenerationRunHelper(obj);
+                
+                obj.Log(['running virtual cohort generation ' obj.Name])
+                [StatusOK,Message,ResultsFileName,ThisVPopName,MatFileName] = cohortGenerationRunHelper(obj);
+                obj.Log('complete')
+                
                 % Update MATFileName in the simulation items
                 obj.ExcelResultFileName = ResultsFileName;
                 obj.VPopName = ThisVPopName;
+                obj.MatFileName = MatFileName;
                 
                 if StatusOK
                     % Create a new virtual population
                     vpopObj = QSP.VirtualPopulation;
                     vpopObj.Session = obj.Session;
                     vpopObj.Name = ThisVPopName;
-                    vpopObj.FilePath = fullfile(obj.Session.RootDirectory,obj.VPopResultsFolderName,obj.ExcelResultFileName);
+                    vpopObj.FilePath = fullfile(obj.Session.RootDirectory,obj.VPopResultsFolderName_new,obj.ExcelResultFileName);
                     % Update last saved time
                     updateLastSavedTime(vpopObj);
+                    updateLastSavedTime(obj);
                     % Validate
                     validate(vpopObj,false);
+                    
+                    % add entry to the database
+                    if obj.Session.UseSQL
+                        obj.Session.addExperimentToDB( 'COHORT GENERATION', obj.Name, now, obj.ExcelResultFileName);                    
+                    end
+                    
                 else
                     vpopObj = QSP.VirtualPopulation.empty(0,1);
                 end
@@ -617,7 +639,7 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                     % Compare times
                     
                     % Optimization object (this)
-                    ResultFileInfo = dir(fullfile(obj.Session.RootDirectory, obj.VPopResultsFolderName, obj.ExcelResultFileName));
+                    ResultFileInfo = dir(fullfile(obj.Session.RootDirectory, obj.VPopResultsFolderName_new, obj.ExcelResultFileName));
                     if ~isempty(ResultFileInfo)
                         VpopLastSavedTime = ResultFileInfo.datenum;
                     else
@@ -637,7 +659,8 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                     VirtualPopulationDataFileLastSavedTime = FileInfo.datenum;
                                         
                     % Results file - ONE file
-                    ThisFilePath = fullfile(obj.Session.RootDirectory,obj.VPopResultsFolderName,obj.ExcelResultFileName);
+                    ThisFilePath = fullfile(obj.Session.RootDirectory,obj.VPopResultsFolderName_new,obj.ExcelResultFileName);
+
                     if exist(ThisFilePath,'file') == 2
                         FileInfo = dir(ThisFilePath);                        
                         ResultLastSavedTime = FileInfo.datenum;
@@ -698,6 +721,29 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             end 
         end %function
         
+        function files = getDependencyPaths(obj)
+            % get the file paths of all dependencies for the cohort
+            % generation. useful for submitting to a remote cluster
+            
+            files = {};
+            for idxItem = 1:length(obj.Item)
+
+                % get model files
+                taskObj = obj.Session.getTaskItem(obj.Item(idxItem).TaskName );
+                mObj = obj.Session.getModelItem(taskObj.ModelName);
+                files = [files; mObj.FilePath];               
+            end
+            files = unique(files);
+            
+            % get acceptance criteria
+            acObj = obj.Session.getACItem(obj.DatasetName);
+            files = [files; acObj.FilePath];
+            
+            % parameters
+            pObj = obj.Session.getParametersItem(obj.RefParamName);
+            files = [files; pObj.FilePath];
+
+        end
     end %methods
     
    
@@ -709,10 +755,15 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             obj.Settings = Value;
         end
         
-        function set.VPopResultsFolderName(obj,Value)
+        function set.VPopResultsFolderName_new(obj,Value)
             validateattributes(Value,{'char'},{'row'});
-            obj.VPopResultsFolderName = Value;
+            obj.VPopResultsFolderPath = strsplit(Value,filesep);        
         end
+        
+        function Value=get.VPopResultsFolderName_new(obj)            
+            Value = strjoin(obj.VPopResultsFolderPath,filesep);
+        end
+            
         
         function set.DatasetName(obj,Value)
             validateattributes(Value,{'char'},{});
@@ -779,13 +830,9 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             
             NewTaskGroup = QSP.TaskGroup.empty;
             for idx = 1:size(Value,1)
-                GroupID = Value{idx,2};
-                if isnumeric(GroupID)
-                    GroupID = num2str(GroupID);
-                end
                 NewTaskGroup(end+1) = QSP.TaskGroup(...
                     'TaskName',Value{idx,1},...
-                    'GroupID',GroupID); %#ok<AGROW>
+                    'GroupID',Value{idx,2}); %#ok<AGROW>
             end
             obj.Item = NewTaskGroup;
         end
@@ -798,14 +845,14 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         end
         
         function set.SpeciesDataMapping(obj,Value)
-            validateattributes(Value,{'cell'},{'size',[nan,3]});
+            validateattributes(Value,{'cell'},{'size',[nan,2]});
             
             NewSpeciesData = QSP.SpeciesData.empty;
             for idx = 1:size(Value,1)
                 NewSpeciesData(end+1) = QSP.SpeciesData(...
                     'SpeciesName',Value{idx,2},...
                     'DataName',Value{idx,1},...
-                    'FunctionExpression',Value{idx,3}); %#ok<AGROW>
+                    'FunctionExpression','x'); %#ok<AGROW>
             end
             obj.SpeciesData = NewSpeciesData;
         end

@@ -205,7 +205,7 @@ if ~isempty(vObj.Data)
     end
     
     % Check which results files are invalid
-    ResultsDir = fullfile(vObj.Data.Session.RootDirectory,vObj.Data.SimResultsFolderName);
+    ResultsDir = fullfile(vObj.Data.Session.RootDirectory,vObj.Data.SimResultsFolderName_new);
     
     % Only make the "valids" missing. Leave the invalids as is
     TableData = vObj.PlotItemAsInvalidTable;

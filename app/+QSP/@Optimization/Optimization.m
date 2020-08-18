@@ -29,7 +29,9 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
     %% Properties
     properties
         Settings = QSP.Settings.empty(0,1)
-        OptimResultsFolderName = 'OptimResults' 
+        OptimResultsFolderName = '' 
+        OptimResultsFolderPath = {'OptimResults'}
+        
         ExcelResultFileName = {} % At least one file
         VPopName = {} % At least one Vpop
         
@@ -79,7 +81,8 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
     end
     
     properties (Dependent=true)
-        TaskGroupItems
+        OptimResultsFolderName_new
+        OptimizationItems
         SpeciesDataMapping
     end
     
@@ -210,7 +213,7 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 'Name',obj.Name;
                 'Last Saved',obj.LastSavedTimeStr;
                 'Description',obj.Description;
-                'Results Path',obj.OptimResultsFolderName;
+                'Results Path',obj.OptimResultsFolderName_new;
                 'Optimization Algorithm',obj.AlgorithmName;
                 'Dataset',obj.DatasetName;
                 'Group Name',obj.GroupName;
@@ -511,7 +514,8 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             if isempty(thisObj)            
                 % Virtual Population
                 Names = {obj.Settings.VirtualPopulation.Name};
-                [~,ThisName] = fileparts(NewSource);
+%                 [~,ThisName] = fileparts(NewSource);
+                ThisName = NewSource;
                 MatchIdx = strcmpi(Names,ThisName);
                 if any(MatchIdx)
                     thisObj = obj.Settings.VirtualPopulation(MatchIdx);
@@ -611,10 +615,12 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             end
         end %function 
         
-        function [StatusOK,Message,vpopObj] = run(obj)
+        function [StatusOK, Message, vpopObj, resultsArray] = run(obj)
             
             % Invoke validate
             [StatusOK, Message] = validate(obj,false);
+
+            resultsArray{1} = {};
             
             % Invoke helper
             if StatusOK
@@ -623,6 +629,10 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 if obj.Session.AutoSaveBeforeRun
                     autoSaveFile(obj.Session,'Tag','preRunOptimization');
                 end
+                
+                 if obj.Session.AutoSaveGit
+                    obj.Session.gitCommit();
+                 end
                 
                 % If no initial conditions are specified, only one VPop is
                 % created. If IC are provided, the # of VPops is equivalent
@@ -634,10 +644,26 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 end
                 
                 % Run helper
+                obj.Log(['running optimization ' obj.Name])
                 [StatusOK,Message,ResultsFileNames,VPopNames] = optimizationRunHelper(obj);
+                obj.Log('complete')
+
+                [StatusOK,Message,ResultsFileNames,VPopNames, resultsArray] = optimizationRunHelper(obj);
+                
+                % TODO pax: must make a standard for results at this level.
+                results.Results = resultsArray;
+                results.FileNames = ResultsFileNames;
+                
+                resultsArray = results;
+                
                 % Update MATFileName in the simulation items
                 obj.ExcelResultFileName = ResultsFileNames;
                 obj.VPopName = VPopNames;
+                
+                % add entry to the database
+                if obj.Session.UseSQL
+                    obj.Session.addExperimentToDB('OPTIMIZATION', obj.Name, now, ResultsFileNames);
+                end
                 
                 % update last saved time for optimization
                 updateLastSavedTime(obj);
@@ -649,7 +675,7 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                         thisVpopObj = QSP.VirtualPopulation;
                         thisVpopObj.Session = obj.Session;
                         thisVpopObj.Name = VPopNames{idx};
-                        thisVpopObj.FilePath = fullfile(obj.Session.RootDirectory,obj.OptimResultsFolderName,obj.ExcelResultFileName{idx});
+                        thisVpopObj.FilePath = fullfile(obj.Session.RootDirectory,obj.OptimResultsFolderName_new,obj.ExcelResultFileName{idx});
                         % Update last saved time
                         updateLastSavedTime(thisVpopObj);
                         % Validate
@@ -829,14 +855,19 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                     if ~isempty(pObj)
                         ParametersLastSavedTime = pObj.LastSavedTime;
                         FileInfo = dir(pObj.FilePath);
-                        ParametersFileLastSavedTime = FileInfo.datenum;                    
+                        if ~isempty(FileInfo)
+                            ParametersFileLastSavedTime = FileInfo.datenum;                    
+                        else
+                            ParametersFileLastSavedTime = 0;
+                        end
+                            
                     end
                     % Results file
                     if length(obj.ExcelResultFileName) < numel(obj.Item) ... % missing some items
                             || isempty(obj.ExcelResultFileName{index}) % no excel file available for this index
                         ResultLastSavedTime = '';        
                     else
-                        ThisFilePath = fullfile(obj.Session.RootDirectory,obj.OptimResultsFolderName,obj.ExcelResultFileName{index});
+                        ThisFilePath = fullfile(obj.Session.RootDirectory,obj.OptimResultsFolderName_new,obj.ExcelResultFileName{index});
                         if exist(ThisFilePath,'file') == 2
                             FileInfo = dir(ThisFilePath);                        
                             ResultLastSavedTime = FileInfo.datenum;                        
@@ -885,9 +916,13 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             obj.Settings = Value;
         end
         
-        function set.OptimResultsFolderName(obj,Value)
+        function set.OptimResultsFolderName_new(obj,Value)
             validateattributes(Value,{'char'},{'row'});
-            obj.OptimResultsFolderName = Value;
+            obj.OptimResultsFolderPath = strsplit(Value,filesep);
+        end
+        
+        function Value=get.OptimResultsFolderName_new(obj)
+            Value = strjoin(obj.OptimResultsFolderPath,filesep);
         end
         
         function set.DatasetName(obj,Value)
@@ -952,23 +987,19 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             obj.PlotSettings = Value;
         end
         
-        function set.TaskGroupItems(obj,Value)
+        function set.OptimizationItems(obj,Value)
             validateattributes(Value,{'cell'},{'size',[nan,2]});
             
             NewTaskGroup = QSP.TaskGroup.empty;
             for idx = 1:size(Value,1)
-                GroupID = Value{idx,2};
-                if isnumeric(GroupID)
-                    GroupID = num2str(GroupID);
-                end
                 NewTaskGroup(end+1) = QSP.TaskGroup(...
                     'TaskName',Value{idx,1},...
-                    'GroupID',GroupID); %#ok<AGROW>
+                    'GroupID',Value{idx,2}); %#ok<AGROW>
             end
             obj.Item = NewTaskGroup;
         end
         
-        function Value = get.TaskGroupItems(obj)
+        function Value = get.OptimizationItems(obj)
             TaskNames = {obj.Item.TaskName};
             GroupIDs = {obj.Item.GroupID};
             
@@ -976,14 +1007,14 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         end
         
         function set.SpeciesDataMapping(obj,Value)
-            validateattributes(Value,{'cell'},{'size',[nan,3]});
+            validateattributes(Value,{'cell'},{'size',[nan,2]});
             
             NewSpeciesData = QSP.SpeciesData.empty;
             for idx = 1:size(Value,1)
                 NewSpeciesData(end+1) = QSP.SpeciesData(...
                     'SpeciesName',Value{idx,2},...
                     'DataName',Value{idx,1},...
-                    'FunctionExpression',Value{idx,3}); %#ok<AGROW>
+                    'FunctionExpression','x'); %#ok<AGROW>
             end
             obj.SpeciesData = NewSpeciesData;
         end

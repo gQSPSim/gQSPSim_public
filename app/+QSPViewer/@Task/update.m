@@ -38,7 +38,7 @@ FlagValidModel = true;
 if ~isempty(vObj.TempData)
     set(vObj.h.ProjectFileSelector,...
         'RootDirectory',vObj.TempData.Session.RootDirectory,...
-        'Value',vObj.TempData.RelativeFilePath)
+        'Value',vObj.TempData.RelativeFilePath_new)
     
     % check if the task data is out of date -- project file has changed
     
@@ -66,6 +66,9 @@ if ~isempty(vObj.TempData)
         if ~isempty(Value)
             FullModelList = ModelList;
         else
+            if ~iscell(ModelList)
+                ModelList = {ModelList};
+            end
             FullModelList = unique(vertcat(ModelList(:),vObj.TempData.ModelName));
             MatchIdx = strcmp(FullModelList,vObj.TempData.ModelName);
             FullModelList(MatchIdx) = {QSP.makeInvalid(vObj.TempData.ModelName)};

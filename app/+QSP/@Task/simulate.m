@@ -161,7 +161,9 @@ function [simData, statusOK, Message] = simulate(obj, varargin)
     model.SimulationOptions.OutputTimes = times;
     
     try
+%         warning off
         simData = simulate(model,[reshape(ICValues,[],1); paramValues],doses);
+%         warning on
     catch simErr
         statusOK = false;
         Message = simErr.message;

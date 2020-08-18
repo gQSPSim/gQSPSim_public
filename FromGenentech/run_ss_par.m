@@ -7,6 +7,7 @@ function [VpopParams,varargout] = run_ss(objective_handle,estParamData)
 
 StatusOK = true;
 Message = '';
+VpopParams = [];
 
 % SS parameters
 sim_no = 1;
@@ -40,7 +41,7 @@ parMessage = cell(1,length(objvec));
 gcp
 parfevalOnAll(gcp(), @warning, 0, 'off')
 
-
+   
 parfor l = 1 : length(objvec)
 
     [objvec(l),parStatusOK(l),parMessage{l}] = objective_handle(Pset(l,:)');
