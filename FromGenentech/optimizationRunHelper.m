@@ -320,13 +320,14 @@ switch obj.AlgorithmName
         UB = estParamData(:,2);
 
         % options
-        LSQopts = optimoptions(@lsqnonlin,'MaxFunctionEvaluations',1e4,'MaxIterations',1e4,'FunctionTolerance',1e-5,'StepTolerance',1e-3,...
-            'Display', 'iter', 'PlotFcn', @optimplotfval, 'UseParallel', logical(obj.Session.UseParallel) );
-
+        opts = optimoptions(@fmincon,'MaxFunctionEvaluations',1e4,'MaxIterations',1e4, 'FunctionTolerance',1e-5,'StepTolerance',1e-3,...
+            'Display', 'iter', 'PlotFcn', @optimplotfval, 'UseParallel', obj.Session.UseParallel );
+        
         % fit
         p0 = estParamData(:,3);
         try
-        VpopParams = lsqnonlin(@(est_p) objectiveFun(est_p,paramObj,ItemModels,Groups,IDs,Time,optimData,dataNames,obj), p0, LB, UB, LSQopts);
+        
+        VpopParams = fmincon(@(est_p) objectiveFun(est_p,paramObj,ItemModels,Groups,IDs,Time,optimData,weights,dataNames,obj), p0, [], [], [], [], LB, UB, [], opts);        
         VpopParams = VpopParams';
         catch err
             StatusOK = false;
@@ -708,14 +709,15 @@ end
                 end % for id
             end % for grp
         end % try
-               
-        if ~strcmp(obj.AlgorithmName, 'Local')
-            % return scalar objective function
-            objective = nansum(objectiveVec);
-        else
-            objective = objectiveVec;
-        end
-        
+%                
+%         if ~strcmp(obj.AlgorithmName, 'Local')
+%             % return scalar objective function
+%             objective = nansum(objectiveVec);
+%         else
+%             objective = objectiveVec;
+%         end
+        objective = nansum(objectiveVec);
+
         if nargout>1
             varargout{1} = tempStatusOK;
             varargout{2} = tempMessage;
