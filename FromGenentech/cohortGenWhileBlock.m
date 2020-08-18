@@ -6,6 +6,12 @@ StatusOK = true;
 Message = '';
 
 
+% output
+Vpop = [];
+isValid = [];
+Results = [];
+
+
 % unpack args
 LB = args.LB;
 UB = args.UB;
