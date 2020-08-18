@@ -647,6 +647,7 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 obj.Log(['running optimization ' obj.Name])
                 [StatusOK,Message,ResultsFileNames,VPopNames] = optimizationRunHelper(obj);
                 obj.Log('complete')
+
                 [StatusOK,Message,ResultsFileNames,VPopNames, resultsArray] = optimizationRunHelper(obj);
                 
                 % TODO pax: must make a standard for results at this level.

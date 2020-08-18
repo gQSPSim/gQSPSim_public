@@ -1,4 +1,4 @@
-function [StatusOK,Message,ResultsFileNames,VpopNames, groupErrorCounts, groupErrorMessages, groupErrorMessageCounts] = optimizationRunHelper(obj)
+function [StatusOK,Message,ResultsFileNames,VpopNames, resultsArray, groupErrorCounts, groupErrorMessages, groupErrorMessageCounts] = optimizationRunHelper(obj)
 % Sets up and runs the optimization contained in the Optimization object
 % "obj".
 
@@ -64,8 +64,6 @@ if ~isempty(paramData)
     colId.P0 = find(contains(upper(paramHeaders), 'P0')); % keep only first column for now!    
     colId.Scale = find(strcmpi(paramHeaders, 'SCALE'));
     
-    
-
     % convert to numeric cell array if it is a cell array (i.e. contains strings)
     for k=1:length(colId.P0)
         if iscell(paramData(:,colId.P0(k)))            
@@ -465,7 +463,7 @@ else
         VpopHeaders = [VpopHeaders(paramOrder(bParam)), VpopHeaders(~bParam)];
         VpopData = [VpopData(:, paramOrder(bParam)), VpopData(:, ~bParam)];
         
-        Vpop_grp = [ VpopHeaders; VpopData];
+        Vpop_grp = [VpopHeaders; VpopData];
 
         % save current group's Vpop
         SaveFlag = true;
@@ -519,6 +517,8 @@ VpopHeaders = [VpopHeaders(paramOrder(bParam)), VpopHeaders(~bParam)];
 VpopData = [VpopData(:, paramOrder(bParam)), VpopData(:, ~bParam)];
 
 Vpop = [ VpopHeaders; VpopData];
+
+resultsArray = Vpop;
 
 
 % Vpop = [[estParamNames',ICspecNames,fixedParamNames']; [num2cell(Vpop), num2cell(repmat(fixedParamData', size(Vpop,1), 1)) ]];
