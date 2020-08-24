@@ -10,7 +10,7 @@ classdef gQSPSimTester < QSPViewer.App
             obj.originalWarningStates(1) = warning('off', 'MATLAB:table:ModifiedAndSavedVarnames');
             obj.originalWarningStates(2) = warning('off', 'MATLAB:ui:javacomponent:FunctionToBeRemoved');
             
-            sessionLoadedTF = obj.loadSessionFromFile(filename, false);
+            sessionLoadedTF = obj.loadSessionFromFile(char(filename), false);
             assert(sessionLoadedTF == true);
             
             obj.Session.RootDirectory = char(rootDirectory);
