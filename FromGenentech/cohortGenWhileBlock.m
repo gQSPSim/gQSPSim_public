@@ -2,6 +2,8 @@ function [Vpop, isValid, Results, ViolationTable, nPat, nSim, StatusOK, Message]
     
 nPat = 0;
 nSim = 0;
+nError = 0;
+
 StatusOK = true;
 Message = '';
 
@@ -26,33 +28,38 @@ Mappings = args.Mappings;
 P0_1 = args.P0_1;
 CV = args.CV;
 normInds = args.normInds;
+tune_param = obj.MCMCTuningParam;
+
+nItems = size(obj.TaskGroupItems,1);
 
 %% set up for validation of each virtual patient
 nGroups = length(unqGroups) ;
-taskObj = cell(1,nGroups);
-Species_grp = cell(1,nGroups);
-Time_grp = cell(1,nGroups);
-LB_grp = cell(1,nGroups);
-UB_grp = cell(1,nGroups);
-OutputTimes =  cell(1,nGroups);
-ICs = cell(1,nGroups);
-nIC = zeros(1,nGroups);
+taskObj = cell(1,nItems);
+Species_grp = cell(1,nItems);
+Time_grp = cell(1,nItems);
+LB_grp = cell(1,nItems);
+UB_grp = cell(1,nItems);
+OutputTimes =  cell(1,nItems);
+ICs = cell(1,nItems);
+nIC = zeros(1,nItems);
 
 LB_violation = [];
 UB_violation = [];
 ViolationTable = [];
 
 
-for grpIdx = 1:nGroups
-    
-    currGrp = unqGroups(grpIdx);
+if ~isempty(setdiff(groupVec,cellfun(@str2num, obj.TaskGroupItems(:,2))))
+    StatusOK = false;
+    Message = sprintf('%sInitial conditions file specified contains groups for which no task has been assigned.\n', Message);
+    delete(hWbar)
+    return
+end
 
-    % get matching taskGroup item based on group ID        
-    itemIdx = strcmp({obj.Item.GroupID}, num2str(currGrp));
-    if ~any(itemIdx)
-        % this group is not part of this vpop generation
-        continue
-    end
+
+% loop over the task items defined for the cohort generation
+for itemIdx = 1:length(obj.Item)    
+    currGrpStr = obj.TaskGroupItems{itemIdx,2};
+    currGrp = str2num(currGrpStr);
 
     if nnz(itemIdx) > 1
         StatusOK = false;
@@ -63,47 +70,40 @@ for grpIdx = 1:nGroups
     
     % get task object for this item based on name
     tskInd = strcmp(obj.Item(itemIdx).TaskName,{obj.Settings.Task.Name});
-    taskObj{grpIdx} = obj.Settings.Task(tskInd);
+    taskObj{itemIdx} = obj.Settings.Task(tskInd);
 
     % indices of data points in acc. crit. matching this group
     grpInds = find(Groups == currGrp);
 
     % get group information
-    Species_grp{grpIdx} = Species(grpInds);
-    Time_grp{grpIdx} = Time(grpInds);
-    LB_grp{grpIdx} = LB_accCrit(grpInds);
-    UB_grp{grpIdx} = UB_accCrit(grpInds);
+    Species_grp{itemIdx} = Species(grpInds);
+    Time_grp{itemIdx} = Time(grpInds);
+    LB_grp{itemIdx} = LB_accCrit(grpInds);
+    UB_grp{itemIdx} = UB_accCrit(grpInds);
 
     % change output times for the exported model
-    OutputTimes{grpIdx} = sort(unique(Time_grp{grpIdx}));    
+    OutputTimes{itemIdx} = sort(unique(Time_grp{itemIdx}));    
     
      % set the initial conditions to the value in the IC file if specified
     if ~isempty(ICTable)
-        ICs{grpIdx} = ICTable.data(groupVec==currGrp, ixSpecies );
+        ICs{itemIdx} = ICTable.data(groupVec==currGrp, ixSpecies );
         IC_species = ICTable.colheaders(ixSpecies);
-        nIC(grpIdx) = size(ICs{grpIdx},1);
-        if ~any(groupVec==currGrp)
-            StatusOK = false;
-            Message = sprintf('%sInitial conditions file specified contains groups for which no task has been assigned.\n', Message);
-            delete(hWbar)
-            return
-        end
-
+        nIC(itemIdx) = size(ICs{itemIdx},1);       
     else
-        nIC(grpIdx) = 1;
-        ICs{grpIdx} = [];
+        nIC(itemIdx) = 1;
+        ICs{itemIdx} = [];
         IC_species = {};
     end
     
     % cached results
-    Results{grpIdx}.Data = [];
-    Results{grpIdx}.VpopWeights = [];
-    Results{grpIdx}.Time = OutputTimes{grpIdx};
+    Results{itemIdx}.Data = [];
+    Results{itemIdx}.VpopWeights = [];
+    Results{itemIdx}.Time = OutputTimes{itemIdx};
     
-    if ~isempty(taskObj{grpIdx}.ActiveSpeciesNames)
-        Results{grpIdx}.SpeciesNames = taskObj{grpIdx}.ActiveSpeciesNames;
+    if ~isempty(taskObj{itemIdx}.ActiveSpeciesNames)
+        Results{itemIdx}.SpeciesNames = taskObj{itemIdx}.ActiveSpeciesNames;
     else
-        Results{grpIdx}.SpeciesNames = taskObj{grpIdx}.SpeciesNames;
+        Results{itemIdx}.SpeciesNames = taskObj{itemIdx}.SpeciesNames;
     end       
     
 end
@@ -138,13 +138,13 @@ waitStatus = true;
 
 
 LocalResults = cell(obj.MaxNumSimulations, length(unqGroups));
-for ixGrp = 1:length(unqGroups)
+for ixGrp = 1:length(obj.Item)
     NS(ixGrp) = length(grpData.taskObj{ixGrp}.ActiveSpeciesNames);
     NT(ixGrp) = length(grpData.OutputTimes{ixGrp});
     Results{ixGrp}.Data = zeros( NT(ixGrp) , NS(ixGrp) * obj.MaxNumSimulations);
 end
 VpopWeights = zeros(1,obj.MaxNumSimulations);
-Vpop = zeros(obj.MaxNumSimulations, length(perturbParamNames));
+Vpop = zeros(obj.MaxNumSimulations, length(perturbParamNames) + length(fixedParamNames));
 isValid = zeros(1,obj.MaxNumSimulations);
 
 % if ~isempty(getCurrentWorker) 
@@ -159,6 +159,8 @@ if ~isempty(stopFile)
         warning('stopfile on worker (modified) = %s (exists = %d)\n', stopFile, exist(stopFile))        
     end    
 end
+
+param_candidate_old = P0_1;
 
 while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients % && gop(@plus, nPat) < obj.MaxNumVirtualPatients && gop(@plus,nSim) < obj.MaxNumSimulations
     
@@ -224,7 +226,11 @@ while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients % && gop(@plu
 
 
     if ~StatusOK % exit loop if something went wrong
-        break
+        isValid(nSim) = false;
+        warning(Message)
+        nError = nError + 1;
+
+        continue     
     end
     
     if isValid(nSim)
@@ -232,31 +238,19 @@ while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients % && gop(@plu
         param_candidate_old = param_candidate; % keep new candidate as starting point        
     end
     
-    if isValid(nSim) || ~strcmp(obj.SaveInvalid, 'Save valid vpatients')    
-        % Add results of the simulation to Results.Data
-%         if ~isempty(q_vp)
-%             % parallel
-%             for ixGrp = 1:length(unqGroups)                            
-%                 Results{ixGrp}.Data = activeSpecData{ixGrp};
-%             end
-%         else
-            for ixGrp = 1:length(unqGroups)
-%                 LocalResults{nSim,ixGrp}.Data = activeSpecData{ixGrp};
-%                 Results{ixGrp}.Data = [Results{ixGrp}.Data, activeSpecData{ixGrp}];
-%                 LocalResults{nSim,ixGrp}.VpopWeights = isValid(nSim);
-%                 Results{ixGrp}.Data(:, (nSim-1)*NS(ixGrp) + (1:NS(ixGrp))) = activeSpecData{ixGrp};
-                dataIdx = (nSim-1)*NT(ixGrp)*NS(ixGrp) + (1:NS(ixGrp)*NT(ixGrp));
-                if isempty(activeSpecData{ixGrp})
-                    thisData = nan(size(dataIdx));
-                else
-                    thisData = activeSpecData{ixGrp};
-                end
-                Results{ixGrp}.Data( (nSim-1)*NT(ixGrp)*NS(ixGrp) + (1:NS(ixGrp)*NT(ixGrp)) ) = thisData;
-                
-                VpopWeights(nSim)= isValid(nSim);
-%                 Results{ixGrp}.VpopWeights = [Results{ixGrp}.VpopWeights; isValid(nSim)];
-            end            
-%         end
+    if isValid(nSim) || ~strcmp(obj.SaveInvalid, 'Save valid vpatients')
+        for ixGrp = 1:length(obj.Item)
+
+            dataIdx = (nSim-1)*NT(ixGrp)*NS(ixGrp) + (1:NS(ixGrp)*NT(ixGrp));
+            if isempty(activeSpecData{ixGrp})
+                thisData = nan(size(dataIdx));
+            else
+                thisData = activeSpecData{ixGrp};
+            end
+            Results{ixGrp}.Data( (nSim-1)*NT(ixGrp)*NS(ixGrp) + (1:NS(ixGrp)*NT(ixGrp)) ) = thisData;
+
+            VpopWeights(nSim)= isValid(nSim);
+        end            
     end    
 
     if ~waitStatus
@@ -265,14 +259,15 @@ while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients % && gop(@plu
     end
     
     if ~isempty(hWbar)
-        waitStatus = uix.utility.CustomWaitbar(nPat/obj.MaxNumVirtualPatients,hWbar,sprintf('Succesfully generated %d/%d vpatients. (%d/%d Failed)',  ...
-            nPat, obj.MaxNumVirtualPatients, nSim-nPat, nSim ));
+        waitStatus = uix.utility.CustomWaitbar(nPat/obj.MaxNumVirtualPatients,hWbar,sprintf('Generated %d/%d vpatients (%d/%d Failed, %d Errored)',  ...
+            nPat, obj.MaxNumVirtualPatients, nSim-nPat, nSim, nError ));
     end
 
     if isempty(LB_violation)
         LB_violation = model_outputs<LB_outputs;
     else
-        LB_violation = LB_violation + (model_outputs<LB_outputs);
+        newTerm = LB_violation + (model_outputs<LB_outputs);
+        LB_violation = newTerm;
     end
     
     if isempty(UB_violation)
@@ -280,70 +275,39 @@ while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients % && gop(@plu
     else
         UB_violation = UB_violation + (model_outputs>UB_outputs);
     end
-
-%     
-%     
-%     LBTable = table(taskName_outputs(LB_violation), ...
-%         spec_outputs(LB_violation), ...
-%         num2cell(time_outputs(LB_violation)),...
-%         repmat({'LB'},size(LB_violation)), ...
-%         'VariableNames', {'Task','Species','Time','Type'});
-%     UBTable = table(taskName_outputs(UB_violation), ...
-%         spec_outputs(UB_violation), ...
-%         num2cell(time_outputs(UB_violation)),...
-%         repmat({'UB'},size(UB_violation)), ...
-%         'VariableNames', {'Task','Species','Time','Type'});
            
     if ~isempty(q_vp)
-        % parallel (not batch mode), send each result after completion
-%         ViolationTable = [LBTable; UBTable];
-        
-%         data.Values = Values0';
-%         data.Valid = isValid(nSim);
-%         data.Results = Results;
-%         data.ViolationTable = ViolationTable;
-%         data.nPat = nPat;
-%         data.nSim = nSim;
-%         data.bCancelled = bCancelled;
-%         
-%         send(q_vp, data)
-        
         send(q_vp, isValid(nSim))
-
-
-%     else
-%         % grow ViolationTable
-%         ViolationTable = [ViolationTable; LBTable; UBTable];
     end
     
-%     ViolationTable = [ViolationTable; LBTable; UBTable];
-
-
-            
 end % while
 
 
 ixUB = find(UB_violation);
 ixLB = find(LB_violation);
 
-ViolationTable = [ table(taskName_outputs(ixUB), ...
-        spec_outputs(ixUB), ...
-        num2cell(time_outputs(ixUB)),...
-        repmat({'Exceeds UB'},size(ixUB)), ...
-        UB_violation(ixUB), ...
-        'VariableNames', {'Task','Species','Time','Type','Count'});
-        
-        table(taskName_outputs(ixLB), ...
-        spec_outputs(ixLB), ...
-        num2cell(time_outputs(ixLB)),...
-        repmat({'Below LB'},size(ixLB)), ...
-        UB_violation(ixLB), ...
-        'VariableNames', {'Task','Species','Time','Type','Count'})];
+if StatusOK
+    ViolationTable = [ table(taskName_outputs(ixUB), ...
+            spec_outputs(ixUB), ...
+            num2cell(time_outputs(ixUB)),...
+            repmat({'Exceeds UB'},size(ixUB)), ...
+            UB_violation(ixUB), ...
+            'VariableNames', {'Task','Species','Time','Type','Count'});
+
+            table(taskName_outputs(ixLB), ...
+            spec_outputs(ixLB), ...
+            num2cell(time_outputs(ixLB)),...
+            repmat({'Below LB'},size(ixLB)), ...
+            LB_violation(ixLB), ...
+            'VariableNames', {'Task','Species','Time','Type','Count'})];
+else
+    ViolationTable = [];
+end
 
 isValid = isValid(1:nSim);
 Vpop = Vpop(1:nSim,:);
 
-for ixGrp = 1:length(unqGroups)
+for ixGrp = 1:length(obj.Item)
 %     tmp = [LocalResults{:,ixGrp}];
 %     Results{ixGrp}.Data = horzcat(tmp.Data);
     Results{ixGrp}.VpopWeights = reshape(VpopWeights(1:nSim),[],1);
