@@ -632,6 +632,39 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
             end
         end %function
         
+        function validateRulesAndReactions(obj)
+            % loop over tasks
+            for index = 1:length(obj.Settings.Task)
+                % check if rules/reactions need to be converted to the new format
+                if ~isempty(obj.Settings.Task(index).InactiveReactionNames) 
+                    for ixReact = 1:length( obj.Settings.Task(index).InactiveReactionNames)
+                        if ~contains( obj.Settings.Task(index).InactiveReactionNames(ixReact), '.*: .*') 
+                            MatchIdx = strcmp(get(obj.Settings.Task(index).ModelObj.mObj.Reactions, 'Reaction'), obj.Settings.Task(index).InactiveReactionNames(ixReact));
+                            if nnz(MatchIdx) > 1
+                                warning('Multiple reactions with same equation. Please update tasks before running')
+                                continue
+                            end
+                            obj.Settings.Task(index).InactiveReactionNames(ixReact) = obj.Settings.Task(index).ReactionNames(MatchIdx);
+                        end
+                    end
+                end       
+                
+                if ~isempty(obj.Settings.Task(index).InactiveRuleNames) 
+                    for ixRule = 1:length( obj.Settings.Task(index).InactiveRuleNames)
+                        if ~contains( obj.Settings.Task(index).InactiveRuleNames(ixRule), '.*: .*') 
+                            MatchIdx = strcmp(get(obj.Settings.Task(index).ModelObj.mObj.Rules, 'Rule'), obj.Settings.Task(index).InactiveRuleNames(ixRule));
+                            if nnz(MatchIdx) > 1
+                                warning('Multiple rules with same equation. Please update tasks before running')
+                                continue
+                            end                            
+                            obj.Settings.Task(index).InactiveRuleNames(ixRule) = obj.Settings.Task(index).RuleNames(MatchIdx);
+                        end
+                    end
+                end             
+                
+            end
+        end
+        
     end %methods    
     
     %% Get/Set Methods
