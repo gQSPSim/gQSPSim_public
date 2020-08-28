@@ -318,7 +318,7 @@ classdef (Abstract) BaseProps < matlab.mixin.SetGet & matlab.mixin.Heterogeneous
         function value = get.SessionRoot(obj)
             if isscalar(obj.Session)
                 value = obj.Session.RootDirectory;
-                if ~isempty(getCurrentWorker)
+                if obj.Session.UseParallel && ~isempty(getCurrentWorker)
                     newRoot = getAttachedFilesFolder(value);
                     if ~isempty(newRoot)
                         obj.Session.RootDirectory = newRoot; % update session root
