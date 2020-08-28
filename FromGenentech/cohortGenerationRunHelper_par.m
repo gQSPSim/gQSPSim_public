@@ -50,6 +50,11 @@ if ~batchMode % don't create a pool when in batch mode
 %     paths(cellfun(@isempty,paths)) = [];                                
 %     
 %     addAttachedFiles(p, paths);
+%     updateAttachedFiles(p);
+%     
+%     fprintf('Attached files to parallel pool\n')
+% %     listAutoAttachedFiles(p)
+%     fprintf('All attached files: %s\n', strjoin(p.AttachedFiles, '\n') )
     
 
 end
@@ -115,6 +120,7 @@ function updateData(hWbar, data)
         addAttachedFiles(p, stopFile);
         
         
+        fprintf('Terminating cohort generation\n');
 %         delete(listener)
     end
     

@@ -8,6 +8,7 @@ hWbar = uix.utility.CustomWaitbar(0,'Virtual cohort generation','Generating virt
 
 [Vpop, isValid, Results, ViolationTable, nPat, nSim, bCancelled, Message] = cohortGenWhileBlock(obj, args, hWbar, [], []);
 
+
 if ~isempty(hWbar) && ishandle(hWbar)
     delete(hWbar)
 end

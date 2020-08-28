@@ -524,88 +524,41 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
                                 
                 if ~isa(SE, 'matlab.graphics.chart.primitive.ErrorBar')
                     setIconDisplayStyleOff([SE.meanLine,SE.medianLine,SE.edge,SE.patch]);            
-                end
-
                 
-                if obj.bShowMean(axIdx)
-                    set(SE.meanLine,'Visible','on');
-                else
-                    set(SE.meanLine,'Visible','off');
-                end
-                if obj.bShowMedian(axIdx)
-                    set(SE.medianLine,'Visible','on');
-                else
-                    set(SE.medianLine,'Visible','off');
-                end
-                if obj.bShowQuantiles(axIdx)
-                    if isa(SE, 'matlab.graphics.chart.primitive.ErrorBar')
+                    if obj.bShowMean(axIdx)
+                        set(SE.meanLine,'Visible','on');
+                    else
+                        set(SE.meanLine,'Visible','off');
+                    end
+                    if obj.bShowMedian(axIdx)
+                        set(SE.medianLine,'Visible','on');
+                    else
+                        set(SE.medianLine,'Visible','off');
+                    end
+                    
+                    if obj.bShowQuantiles(axIdx)
+                        set([SE.edge,SE.patch],'Visible','on');
+                    else
+                        set([SE.edge,SE.patch],'Visible','off');
+                    end
+                   
+                    % Set visibility
+                    if ~isempty(SE) && isstruct(SE) && isfield(SE,'meanLine')
+                        set([SE.meanLine,SE.medianLine,SE.edge,SE.patch],...
+                            'UserData',[sIdx,itemIdx],...
+                            'Visible',uix.utility.tf2onoff(IsVisible && obj.bShowQuantiles(axIdx)));
+                    elseif ~isempty(SE) && isa(SE, 'matlab.graphics.chart.primitive.ErrorBar')
+                        set(SE,  'UserData',[sIdx,itemIdx],... % SE.meanLine
+                            'Visible',uix.utility.tf2onoff(IsVisible));               
+                    end
+                else % is error bar
+                    if obj.bShowQuantiles(axIdx)
                         set(SE, 'Visible', 'on');
                     else
-                        set([SE.edge,SE.patch],'Visible','on');
-                    end
-                else
-                    if isa(SE, 'matlab.graphics.chart.primitive.ErrorBar')
                         set(SE, 'Visible', 'off')
-                    else
-                        set([SE.edge,SE.patch],'Visible','off');    
                     end
                 end
-                % Set visibility
-                if ~isempty(SE) && isstruct(SE) && isfield(SE,'meanLine')
-                    set([SE.meanLine,SE.medianLine,SE.edge,SE.patch],...
-                        'UserData',[sIdx,itemIdx],...
-                        'Visible',uix.utility.tf2onoff(IsVisible && obj.bShowQuantiles(axIdx)));
-                elseif ~isempty(SE) && isa(SE, 'matlab.graphics.chart.primitive.ErrorBar')
-                    set(SE,  'UserData',[sIdx,itemIdx],... % SE.meanLine
-                        'Visible',uix.utility.tf2onoff(IsVisible));               
-                end
-                
-                
-%                 % Plot Mean line
-%                 if strcmpi(Mode,'Cohort')
-%                     % Cohort
-%                     
-%                     % Mean line
-%                     hThis = plot(hSpeciesGroup{sIdx,axIdx}, Results{itemIdx}.Time, thisData(:,ColumnIdx) * ...
-%                         vpopWeights/sum(vpopWeights),...
-%                         'LineStyle',ThisLineStyle,...
-%                         'Color',ItemColors(itemIdx,:),...
-%                         'UserData',[sIdx,itemIdx],... % SE.meanLine
-%                         'Tag','WeightedMeanLine',... % TODO: Validate
-%                         'LineWidth',obj.PlotSettings(axIdx).MeanLineWidth);      
-%                     
-%                     setIconDisplayStyleOff(hThis);
-%                     set(hThis,'Visible',uix.utility.tf2onoff(IsVisible && ~obj.bShowQuantiles(axIdx)));
-%                 else
-%                     % VP
-%                     spData = vpopGenData( cell2mat(vpopGenData(:,strcmp(vpopGenHeader,'Group'))) == str2num(obj.PlotItemTable{itemNumber,4}) & ...
-%                         strcmp(vpopGenData(:,strcmp(vpopGenHeader,'Species')), ThisDataName), :); %#ok<ST2NM>
-%                     val1 = cell2mat(spData(:, strcmp(vpopGenHeader, 'Value1')));
-%                     
-%                     type = spData(:, strcmp(vpopGenHeader, 'Type'));
-%                     times = cell2mat(spData(:, strcmp(vpopGenHeader, 'Time')));
-%                     ixMean = strcmp(type,'MEAN');
-%                     
-%                     % Mean line
-%                     hThis = plot(hSpeciesGroup{sIdx,axIdx}, times(ixMean), val1(ixMean), ...
-%                         'LineStyle',ThisLineStyle,...
-%                         'Color',ItemColors(itemIdx,:),...
-%                         'UserData',[sIdx,itemIdx],... % SE.meanLine
-%                         'Tag','WeightedMeanLine',... % TODO: Validate
-%                         'LineWidth',obj.PlotSettings(axIdx).MeanLineWidth);
-%                     
-                    % Show simulation standard deviations
-%                 end
-                
-                % Only allow one display name - don't attach to
-                % traces and quantiles and instead attach to mean
-                % line
-                %                     set(hThis(1),'DisplayName',regexprep(sprintf('%s [Sim]',FullDisplayName),'_','\\_')); % For export, use patch since line width is not applied
-%                 setIconDisplayStyleOff(hThis);
-%                 set(hThis,'Visible',uix.utility.tf2onoff(IsVisible && ~obj.bShowQuantiles(axIdx)));
-                
-            end %if
-            
+            end %if            
             
             % Plot bounds - Cohort only
             if strcmpi(Mode,'Cohort')

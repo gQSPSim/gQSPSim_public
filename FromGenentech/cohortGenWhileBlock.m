@@ -6,12 +6,6 @@ StatusOK = true;
 Message = '';
 
 
-% output
-Vpop = [];
-isValid = [];
-Results = [];
-
-
 % unpack args
 LB = args.LB;
 UB = args.UB;
@@ -47,6 +41,11 @@ nIC = zeros(1,nGroups);
 LB_violation = [];
 UB_violation = [];
 ViolationTable = [];
+
+% output
+Vpop = [];
+isValid = [];
+Results = [];
 
 
 for grpIdx = 1:nGroups
@@ -150,7 +149,7 @@ for ixGrp = 1:length(unqGroups)
     Results{ixGrp}.Data = zeros( NT(ixGrp) , NS(ixGrp) * obj.MaxNumSimulations);
 end
 VpopWeights = zeros(1,obj.MaxNumSimulations);
-Vpop = zeros(obj.MaxNumSimulations, length(perturbParamNames));
+Vpop = zeros(obj.MaxNumSimulations, length(perturbParamNames) + length(fixedParams));
 isValid = zeros(1,obj.MaxNumSimulations);
 
 % if ~isempty(getCurrentWorker) 
@@ -168,6 +167,12 @@ end
 
 while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients % && gop(@plus, nPat) < obj.MaxNumVirtualPatients && gop(@plus,nSim) < obj.MaxNumSimulations
     
+%     fH = fopen(stopFile,'r');
+%     stop = fread(fH);
+%     if ~isempty(stop)
+%         break
+%     end
+%     fclose(fH);
     
     if exist(stopFile,'file')
         break
@@ -217,6 +222,8 @@ while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients % && gop(@plu
         if ~isempty(model_outputs) 
             Vpop(nSim,:) = Values0'; % store the parameter set
             isValid(nSim) = double(all(model_outputs>=LB_outputs) && all(model_outputs<=UB_outputs));    
+        else
+            isValid(nSim) = false; % no output produced
         end
     end
 
@@ -243,7 +250,13 @@ while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients % && gop(@plu
 %                 Results{ixGrp}.Data = [Results{ixGrp}.Data, activeSpecData{ixGrp}];
 %                 LocalResults{nSim,ixGrp}.VpopWeights = isValid(nSim);
 %                 Results{ixGrp}.Data(:, (nSim-1)*NS(ixGrp) + (1:NS(ixGrp))) = activeSpecData{ixGrp};
-                Results{ixGrp}.Data( (nSim-1)*NT(ixGrp)*NS(ixGrp) + (1:NS(ixGrp)*NT(ixGrp)) ) = activeSpecData{ixGrp};
+                dataIdx = (nSim-1)*NT(ixGrp)*NS(ixGrp) + (1:NS(ixGrp)*NT(ixGrp));
+                if isempty(activeSpecData{ixGrp})
+                    thisData = nan(size(dataIdx));
+                else
+                    thisData = activeSpecData{ixGrp};
+                end
+                Results{ixGrp}.Data( (nSim-1)*NT(ixGrp)*NS(ixGrp) + (1:NS(ixGrp)*NT(ixGrp)) ) = thisData;
                 
                 VpopWeights(nSim)= isValid(nSim);
 %                 Results{ixGrp}.VpopWeights = [Results{ixGrp}.VpopWeights; isValid(nSim)];
