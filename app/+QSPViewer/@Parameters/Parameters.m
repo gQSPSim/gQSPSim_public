@@ -62,7 +62,7 @@ classdef Parameters < uix.abstract.CardViewPane
             DataFilePath = e.NewValue;
             
             % Update the relative file path
-            vObj.TempData.RelativeFilePath = DataFilePath;
+            vObj.TempData.RelativeFilePath_new = DataFilePath;
             
             if exist(vObj.TempData.FilePath,'file')==2
                 
@@ -103,7 +103,7 @@ classdef Parameters < uix.abstract.CardViewPane
                     return
                 end
                 
-                vObj.TempData.RelativeFilePath = newFile ;
+                vObj.TempData.RelativeFilePath_new = newFile ;
                 
                 update(vObj);
                 

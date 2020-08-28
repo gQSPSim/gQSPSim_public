@@ -41,8 +41,9 @@ classdef (Abstract) BaseProps < matlab.mixin.SetGet & matlab.mixin.Heterogeneous
     properties
         Session = QSP.Session.empty(1,0)
 %         Name = ''    % Name
-        RelativeFilePath = '' % Path to file
+        RelativeFilePathParts = {''}
 %         Description = '' % Description
+        RelativeFilePath = ''
         
         bShowTraces = []
         bShowQuantiles = []
@@ -57,7 +58,8 @@ classdef (Abstract) BaseProps < matlab.mixin.SetGet & matlab.mixin.Heterogeneous
     end
     properties (Dependent=true)
         FilePath
-%         LastSavedTimeStr
+        RelativeFilePath_new
+%         LastSavedTimeStr        
     end
     
     %% Protected Properties
@@ -74,8 +76,12 @@ classdef (Abstract) BaseProps < matlab.mixin.SetGet & matlab.mixin.Heterogeneous
             obj.assignPVPairs(varargin{:});
             
         end % constructor       
+        
+        
                 
     end % Public methods
+    
+    
     
     %% Protected methods
     methods (Access=protected)
@@ -160,7 +166,7 @@ classdef (Abstract) BaseProps < matlab.mixin.SetGet & matlab.mixin.Heterogeneous
                         %RAJ - again this okpList is a bit slow. Would be better to
                         %persist the needed info for each utilized class somewhere.
                         defaultValue = okpList(isThisProp).DefaultValue;
-                    elseif ~isempty(obj)
+                    elseif ~isempty(obj) && isvalid(obj)
                         defaultValue = obj(1).(thisProp);
                     else
                         defaultValue = [];
@@ -244,7 +250,11 @@ classdef (Abstract) BaseProps < matlab.mixin.SetGet & matlab.mixin.Heterogeneous
                         % the value of thisProp in each obj instance might be array of
                         % different sizes.
                         for idx = 1:numel(obj)
-                            pValue = obj(idx).(thisProp);
+                            if isvalid(obj)
+                                pValue = obj(idx).(thisProp);
+                            else
+                                pValue=[];
+                            end
                             if isempty(pValue)
                                 if isempty(defaultValue)
                                     pValue = defaultValue;
@@ -254,6 +264,8 @@ classdef (Abstract) BaseProps < matlab.mixin.SetGet & matlab.mixin.Heterogeneous
                             elseif ischar(defaultValue) && ~iscell(pValue) % && iscell(pValue)
                                 pValue = char(pValue);                            
                             end
+                        
+                            
                             copyProperty(newObj(idx),thisProp,pValue);                            
                         end
                         
@@ -274,9 +286,13 @@ classdef (Abstract) BaseProps < matlab.mixin.SetGet & matlab.mixin.Heterogeneous
 %             obj.Name = value;
 %         end
         
-        function set.RelativeFilePath(obj,value)
+        function set.RelativeFilePath_new(obj,value)
             validateattributes(value,{'char'},{})
-            obj.RelativeFilePath = value;
+            obj.RelativeFilePathParts = strsplit(value,filesep);
+        end
+        
+        function Value = get.RelativeFilePath_new(obj)
+            Value = strjoin(obj.RelativeFilePathParts,filesep);
         end
         
 %         function set.Description(obj,value)
@@ -302,18 +318,29 @@ classdef (Abstract) BaseProps < matlab.mixin.SetGet & matlab.mixin.Heterogeneous
         function value = get.SessionRoot(obj)
             if isscalar(obj.Session)
                 value = obj.Session.RootDirectory;
+                if obj.Session.UseParallel && ~isempty(getCurrentWorker)
+                    newRoot = getAttachedFilesFolder(value);
+                    if ~isempty(newRoot)
+                        obj.Session.RootDirectory = newRoot; % update session root
+                        value = newRoot;
+                    end
+                end                
             else
                 value = '';
             end
         end
         
         function value = get.FilePath(obj)
-            tmp = strrep(obj.RelativeFilePath, '\','/');
-            value = fullfile(obj.SessionRoot, tmp);
+            value = fullfile(obj.SessionRoot, obj.RelativeFilePath_new);       
+            if isempty(value)
+                return
+            end
+            
         end
+        
         function set.FilePath(obj,value)
             validateattributes(value,{'char'},{})
-            obj.RelativeFilePath = uix.utility.getRelativeFilePath(value, obj.SessionRoot, false);
+            obj.RelativeFilePath_new = uix.utility.getRelativeFilePath(value, obj.SessionRoot, false);
         end
         
     end

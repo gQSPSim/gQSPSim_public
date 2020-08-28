@@ -108,7 +108,7 @@ for ii = 1:nItems
 %     ixGrp =  
     if any(ixGrp)
 %         Values = cohortData(~ixGrp, cell2mat(cohortData(:,ixGrp))==str2num(obj.Item(ii).GroupID) ); 
-        Values = cohortData(cohortData(:,ixGrp)==str2num(obj.Item(ii).GroupID),: ); % TODO verify that this is correct
+        Values = cohortData(cohortData(:,ixGrp)==str2num(obj.Item(ii).GroupID), ~ixGrp ); % TODO verify that this is correct
 
     else
         Values = cohortData;
@@ -247,7 +247,7 @@ if StatusOK
     obj.PrevalenceWeights = PW;     % save prevalence weight to object
     Vpop = [VpopHeader; num2cell(cohortData), num2cell(PW)];
     % save results
-    SaveFilePath = fullfile(obj.Session.RootDirectory,obj.VPopResultsFolderName);
+    SaveFilePath = fullfile(obj.Session.RootDirectory,obj.VPopResultsFolderName_new);
     if ~exist(SaveFilePath,'dir')
         [ThisStatusOk,ThisMessage] = mkdir(SaveFilePath);
         if ~ThisStatusOk

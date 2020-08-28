@@ -1,78 +1,35 @@
-function [Results, nFailedSims, StatusOK, Message, ErrObj] = parBlock(block, Names, Values, taskObj, Results)   
+function [Results, nFailedSims] = parBlock(taskObj, Names, Values, times, DataSize, NS, options, q )   
 
-    Message = cell(1,length(block));
-    ErrObj = cell(1,length(block));
-    StatusOK = true;
+if ~isempty(Values)
+    N = size(Values,1);
+else
+    N = 1; % model default
+end    
 
-%                 disp(block)
-    Time = Results.Time;
-    parData = cell(1,length(block));
-    nFailedSims = zeros(size(block));
+parResults = cell(1,N);
+nFailedSims = zeros(1,N);
+NT = DataSize(1);
+
+parfor jj = 1:N
+    if isempty(Values)
+        theseValues = [];
+    else
+        theseValues = Values(jj,:);
+    end     
+
+    [parResults{jj}, thisStatus, errMessage] = simulateOne(taskObj, Names, theseValues,times,options);
+
+    nFailedSims = nFailedSims + (thisStatus==false);
+    if ~thisStatus
+        warning('Simulation %d failed with error: %s\n', jj, errMessage);
+        parResults{jj} = nan(NT, NS);
+    end
     
-    
-   
-    
-    parfor jj = block
-%             disp([' ', num2str(jj),' '])
-        % check for user-input parameter values
+    if ~isempty(q)
+        send(q, true)
+    end
+end 
 
-        try 
-            if isempty(Values)
-                theseValues = [];
-            else
-                theseValues = Values(jj,:);
-            end
+Results = horzcat(parResults{:});
 
-            [simData,simOK,errMessage]  = taskObj.simulate(...
-                    'Names', Names, ...
-                    'Values', theseValues, ...
-                    'OutputTimes', Time, ...
-                    'CheckCurrent', false);
-
-            if ~simOK
-
-%                     ME = MException('simulationRunHelper:simulateVPatients', 'Simulation failed with error: %s', errMessage );
-%                     throw(ME)
-                StatusOK(jj) = false;
-                Message{jj} = errMessage;
-                warning('Simulation %d failed with error: %s\n', jj, errMessage);
-                activeSpec_j = NaN(size(Time,1), length(taskObj.ActiveSpeciesNames));
-            else
-                % extract active species data, if specified
-                if ~isempty(taskObj.ActiveSpeciesNames)
-                    [~,activeSpec_j] = selectbyname(simData,taskObj.ActiveSpeciesNames);
-                else
-                    [~,activeSpec_j] = selectbyname(simData,taskObj.SpeciesNames);
-                end
-
-            end
-
-        % Add results of the simulation to Results.Data
-            parData{jj} = activeSpec_j;
-%             Results.Data = [Results.Data,activeSpec_j];
-        catch err% simulation
-            % If the simulation fails, store NaNs
-            warning(err.identifier, 'simulationRunHelper: %s', err.message)
-%                 pad Results.Data with appropriate number of NaNs
-            if ~isempty(taskObj.ActiveSpeciesNames)
-%                     Results.Data = [Results.Data,];
-                parData{jj} = NaN*ones(length(Results.Time),length(taskObj.ActiveSpeciesNames));
-            else
-%                     Results.Data = [Results.Data,];
-                parData{jj} = NaN*ones(length(Results.Time),length(taskObj.SpeciesNames));
-            end
-
-            StatusOK(jj) = false;
-            Message{jj} = err.message;
-            nFailedSims(jj) = 1;
-            ErrObj{jj} = err;
-
-        end % try
-
-%             send(q, []);                      
-
-    end % for jj = ...
-    StatusOK = all(StatusOK);
-    Results.Data = horzcat(parData{:});
-    nFailedSims = sum(nFailedSims);
 end
