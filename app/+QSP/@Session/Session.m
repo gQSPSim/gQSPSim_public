@@ -789,28 +789,28 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         
         function value = get.ResultsDirectory(obj)
             value = fullfile(obj.RootDirectory, obj.RelativeResultsPath_new);
-            if ~isempty(getCurrentWorker)
+            if obj.UserParallel && ~isempty(getCurrentWorker)
                 value = getAttachedFilesFolder(value);
             end
         end
         
         function value = get.ObjectiveFunctionsDirectory(obj)
             value = fullfile(obj.RootDirectory, obj.RelativeObjectiveFunctionsPath_new);
-            if ~isempty(getCurrentWorker)
+            if obj.UserParallel && ~isempty(getCurrentWorker)
                 value = getAttachedFilesFolder(value);
             end            
         end
         
         function value = get.UserDefinedFunctionsDirectory(obj)
             value = fullfile(obj.RootDirectory, obj.RelativeUserDefinedFunctionsPath_new);
-            if ~isempty(getCurrentWorker)
+            if obj.UserParallel && ~isempty(getCurrentWorker)
                 value = getAttachedFilesFolder(value);
             end            
         end
         
         function value = get.AutoSaveDirectory(obj)
             value = fullfile(obj.RootDirectory, obj.RelativeAutoSavePath_new);
-            if ~isempty(getCurrentWorker)
+            if obj.UserParallel && ~isempty(getCurrentWorker)
                 value = getAttachedFilesFolder(value);
             end            
         end
