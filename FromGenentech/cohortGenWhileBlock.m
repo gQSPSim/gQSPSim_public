@@ -1,10 +1,10 @@
-function [Vpop, isValid, Results, ViolationTable, nPat, nSim, StatusOK, Message] = cohortGenWhileBlock(obj, args, hWbar, q_vp, stopFile)
+function [Vpop, isValid, Results, ViolationTable, nPat, nSim, bCancelled, StatusOK, Message] = cohortGenWhileBlock(obj, args, hWbar, q_vp, stopFile)
     
 nPat = 0;
 nSim = 0;
 StatusOK = true;
 Message = '';
-
+bCancelled = false;
 
 % unpack args
 LB = args.LB;
