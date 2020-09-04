@@ -148,7 +148,7 @@ allSim = 0;
 tic
 t=0;
 
-F = parfevalOnAll(p, @cohortGenWhileBlock, 8, obj, args,  [], q_vp, stopFile);
+F = parfevalOnAll(p, @cohortGenWhileBlock, 9, obj, args,  [], q_vp, stopFile);
 % end
 % cohortGenWhileBlock(obj, args, hWbar);
 
@@ -178,7 +178,7 @@ delete(hWbar)
 %         Results{ixGrp}.SpeciesNames = lastResults{ixGrp}.SpeciesNames;    
 %     end
 % else
-[Vpop, isValid, Results, ViolationTable, nPat, nSim, StatusOK, Message] = fetchOutputs(F, 'UniformOutput', false);
+[Vpop, isValid, Results, ViolationTable, nPat, nSim, bCancelled, StatusOK, Message] = fetchOutputs(F, 'UniformOutput', false);
 
 % concatenate results
 Vpop = vertcat(Vpop{:});
