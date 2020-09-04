@@ -120,9 +120,13 @@ end
 % Process all
 IsSelected = true(size(obj.PlotItemTable,1),1);
 CohortGenResults = {};
-try
-    CohortGenResults = load(fullfile(obj.FilePath, obj.VPopResultsFolderName_new, obj.MatFileName));    
-    CohortGenResults = CohortGenResults.Results;
+if ~isempty(obj.MatFileName)
+    try
+        CohortGenResults = load(fullfile(obj.FilePath, obj.VPopResultsFolderName_new, obj.MatFileName));    
+        CohortGenResults = CohortGenResults.Results;
+    catch error
+        warning('Error loading cached cohort generation results file %s', fullfile(obj.FilePath, obj.VPopResultsFolderName_new, obj.MatFileName))
+    end
 end
 
 % rerun sims if unable to load the cached results
