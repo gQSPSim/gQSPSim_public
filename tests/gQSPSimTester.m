@@ -70,6 +70,36 @@ classdef gQSPSimTester < QSPViewer.App
             end
         end
         
+        function testCase = runCohortGeneration(obj, testCase)            
+            for i = 1:numel(obj.Session.CohortGeneration)
+                simResultsFolder = string(obj.Session.CohortGeneration(i).VPopResultsFolderName);
+                % TODO: If we can't supress the saving of the file keep this tmp directory. 
+                % This enables us to cleanup after the test is run and keep results for failed 
+                % tests.
+                obj.Session.CohortGeneration(i).VPopResultsFolderPath = 'tmp';
+                                
+                [statusOK, Message, vpopObj] = obj.Session.CohortGeneration(i).run;                
+                
+                testCase.onFailure(Message);
+                testCase.verifyTrue(statusOK);                
+            end
+        end
+        
+        function testCase = runVirtualPopulationGeneration(obj, testCase)            
+            for i = 1:numel(obj.Session.VirtualPopulationGeneration)
+                simResultsFolder = string(obj.Session.VirtualPopulationGeneration(i).VPopResultsFolderName);
+                % TODO: If we can't supress the saving of the file keep this tmp directory. 
+                % This enables us to cleanup after the test is run and keep results for failed 
+                % tests.
+                %obj.Session.VirtualPopulationGeneration(i).VPopResultsFolderPath = 'tmp';
+                                
+                [statusOK, Message, vpopObj] = obj.Session.VirtualPopulationGeneration(i).run;                
+                
+                testCase.onFailure(Message);
+                testCase.verifyTrue(statusOK);                
+            end
+        end
+
         function runOptimizations(obj, testCase)
             for i = 1:1 %numel(obj.Session.Optimization)
                 resultsFolder = string(obj.Session.Optimization(i).OptimResultsFolderName);
