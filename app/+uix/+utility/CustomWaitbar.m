@@ -48,13 +48,21 @@ function varargout = CustomWaitbar(x,Name,Message,AllowCancel)
 persistent TStart hTxt
 
 % check if running on a worker thread
-if ~isempty(getCurrentWorker)
+try
+    worker = getCurrentWorker;
+    if ~isempty(worker)
+        if nargout
+            varargout{1} = [];
+        end
+        return
+    end        
+catch
+    % presumably no PCT
     if nargout
         varargout{1} = [];
     end
     return
 end
-
 
 % Which syntax was used?
 if ischar(Name)
