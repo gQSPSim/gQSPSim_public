@@ -120,7 +120,7 @@ end
 % Process all
 IsSelected = true(size(obj.PlotItemTable,1),1);
 CohortGenResults = {};
-if ~isempty(obj.MatFileName)
+if strcmpi(Mode,'Cohort') && ~isempty(obj.MatFileName) % only cohort has MatFile cache as of 9/15/2020
     try
         CohortGenResults = load(fullfile(obj.FilePath, obj.VPopResultsFolderName_new, obj.MatFileName));    
         CohortGenResults = CohortGenResults.Results;
