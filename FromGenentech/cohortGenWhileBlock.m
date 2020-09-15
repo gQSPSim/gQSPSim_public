@@ -80,7 +80,7 @@ for grpIdx = 1:nGroups
     UB_grp{grpIdx} = UB_accCrit(grpInds);
 
     % change output times for the exported model
-    OutputTimes{grpIdx} = sort(unique(Time_grp{grpIdx}));    
+    OutputTimes{grpIdx} = sort( union(unique(Time_grp{grpIdx}), taskObj{grpIdx}.OutputTimes) );    
     
      % set the initial conditions to the value in the IC file if specified
     if ~isempty(ICTable)
@@ -101,6 +101,7 @@ for grpIdx = 1:nGroups
     end
     
     % cached results
+    
     Results{grpIdx}.Data = [];
     Results{grpIdx}.VpopWeights = [];
     Results{grpIdx}.Time = OutputTimes{grpIdx};
@@ -145,7 +146,7 @@ waitStatus = true;
 LocalResults = cell(obj.MaxNumSimulations, length(unqGroups));
 for ixGrp = 1:length(unqGroups)
     NS(ixGrp) = length(grpData.taskObj{ixGrp}.ActiveSpeciesNames);
-    NT(ixGrp) = length(grpData.OutputTimes{ixGrp});
+    NT(ixGrp) = length(grpData.OutputTimes{ixGrp});  
     Results{ixGrp}.Data = zeros( NT(ixGrp) , NS(ixGrp) * obj.MaxNumSimulations);
 end
 VpopWeights = zeros(1,obj.MaxNumSimulations);
