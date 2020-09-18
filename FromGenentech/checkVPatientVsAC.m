@@ -120,7 +120,7 @@ for grpIdx = 1:length(unqGroups) %nItems
 
                 % select simulation time points for which there are acceptance criteria
                 [bSim,okInds] = ismember(simT,Time_grp_spec);
-                simData_spec = simData_spec(okInds(bSim));
+                simData_spec = simData_spec(bSim);
                 LB_grp_spec = LB_grp_spec(okInds(bSim));
                 UB_grp_spec = UB_grp_spec(okInds(bSim));
                 Time_grp_spec = Time_grp_spec(okInds(bSim));
