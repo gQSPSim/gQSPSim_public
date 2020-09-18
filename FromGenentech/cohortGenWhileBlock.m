@@ -238,7 +238,7 @@ while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients % && gop(@plu
         param_candidate_old = param_candidate; % keep new candidate as starting point        
     end
     
-    if isValid(nSim) || ~strcmp(obj.SaveInvalid, 'Save valid vpatients')    
+    if isValid(nSim) || ~strcmp(obj.SaveInvalid, 'Save valid virtual subjects')  
         % Add results of the simulation to Results.Data
 %         if ~isempty(q_vp)
 %             % parallel
