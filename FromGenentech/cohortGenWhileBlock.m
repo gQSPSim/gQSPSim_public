@@ -227,10 +227,10 @@ while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients % && gop(@plu
             isValid(nSim) = false; % no output produced
         end
     end
-
-
+    
     if ~StatusOK % exit loop if something went wrong
-        break
+%         break
+        continue
     end
     
     if isValid(nSim)
@@ -259,9 +259,10 @@ while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients % && gop(@plu
                 end
                 Results{ixGrp}.Data( (nSim-1)*NT(ixGrp)*NS(ixGrp) + (1:NS(ixGrp)*NT(ixGrp)) ) = thisData;
                 
-                VpopWeights(nSim)= isValid(nSim);
 %                 Results{ixGrp}.VpopWeights = [Results{ixGrp}.VpopWeights; isValid(nSim)];
-            end            
+            end          
+            VpopWeights(nSim)= isValid(nSim);
+            
 %         end
     end    
 

@@ -178,7 +178,13 @@ delete(hWbar)
 %         Results{ixGrp}.SpeciesNames = lastResults{ixGrp}.SpeciesNames;    
 %     end
 % else
+try
 [Vpop, isValid, Results, ViolationTable, nPat, nSim, bCancelled, StatusOK, Message] = fetchOutputs(F, 'UniformOutput', false);
+catch error
+    Message = sprintf('Error encountered with parallel cohort generation.\n%s', error.message)
+    StatusOK = false;
+    return
+end
 
 % concatenate results
 Vpop = vertcat(Vpop{:});

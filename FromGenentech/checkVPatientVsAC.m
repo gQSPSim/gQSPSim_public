@@ -44,7 +44,9 @@ LB_outputs = [];
 UB_outputs = [];
 taskName_outputs = [];
 model_outputs = [];
-activeSpecData = [];
+for grpIdx = 1:length(unqGroups) %nItems
+    activeSpecData{grpIdx} = [];
+end
 
 D = 0;
 
