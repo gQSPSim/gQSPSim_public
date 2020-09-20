@@ -1,8 +1,8 @@
 function varargout = QSPapp()
 
-if verLessThan('matlab','9.4') || ~verLessThan('matlab','9.5') % If version < R2018a (9.4) or >= R2018b (9.5)
+if verLessThan('matlab','9.4') 
     ThisVer = ver('matlab');
-    warning('gQSPSim has been tested in MATLAB R2018a (9.4). This MATLAB release %s may not be supported for gQSPSim',ThisVer.Release);
+    warning('gQSPSim has not been tested in versions prior to R2018a (9.4). This MATLAB release %s may not be supported for gQSPSim',ThisVer.Release);
 end
 
 EchoOutput = true;
