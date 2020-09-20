@@ -57,8 +57,14 @@ classdef gQSPSimTester < QSPViewer.App
                     end
                     expected = load(expectedFile(1).folder + "/" + expectedFile(1).name);
                     
-                    % Remove the names field for struct comparison purposes
-                    actual = rmfield(actual, 'FileNames');
+                    if isfield(expected.Results, 'FileNames')
+                        % Remove the names field for struct comparison purposes
+                        expected.Results = rmfield(expected.Results, 'FileNames');                                            
+                    end
+                    
+                    if isfield(actual, 'FileNames')
+                        actual = rmfield(actual, 'FileNames');
+                    end
                     
                     testCase.verifyEqual(actual, expected.Results, 'RelTol', 1e-3, 'AbsTol', 1e-4);
                     
