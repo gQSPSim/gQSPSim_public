@@ -44,7 +44,9 @@ LB_outputs = [];
 UB_outputs = [];
 taskName_outputs = [];
 model_outputs = [];
-activeSpecData = [];
+for grpIdx = 1:length(unqGroups) %nItems
+    activeSpecData{grpIdx} = [];
+end
 
 D = 0;
 
@@ -64,10 +66,13 @@ for grpIdx = 1:length(unqGroups) %nItems
 
         % simulate
         try
+            OutputTimes_grp = union(taskObj{grpIdx}.OutputTimes, OutputTimes{grpIdx});
+            
             [simData, StatusOK, Message]  = taskObj{grpIdx}.simulate(...
                 'Names', Names, ...
                 'Values', Values, ...
-                'OutputTimes', OutputTimes{grpIdx});
+                'OutputTimes', OutputTimes_grp);
+               % 'OutputTimes', OutputTimes{grpIdx});
 
             if ~StatusOK
                 return
@@ -89,6 +94,13 @@ for grpIdx = 1:length(unqGroups) %nItems
 
                 % grab data for the corresponding model species from the simulation results
                 [simT,simData_spec,specName] = selectbyname(simData,Mappings(specInd,1));
+                
+                % get just the time points needed for evaluation of the
+                % acceptance criteria
+                
+                ixACTimePoints = ismember(simT, OutputTimes{grpIdx});
+                simData_spec = simData_spec(ixACTimePoints, :);
+                simT = simT(ixACTimePoints,:);
 
                 try
                     % transform the model outputs to match the data

@@ -80,7 +80,7 @@ for grpIdx = 1:nGroups
     UB_grp{grpIdx} = UB_accCrit(grpInds);
 
     % change output times for the exported model
-    OutputTimes{grpIdx} = sort(unique(Time_grp{grpIdx}));    
+    OutputTimes{grpIdx} = sort( union(unique(Time_grp{grpIdx}), taskObj{grpIdx}.OutputTimes) );    
     
      % set the initial conditions to the value in the IC file if specified
     if ~isempty(ICTable)
@@ -101,6 +101,7 @@ for grpIdx = 1:nGroups
     end
     
     % cached results
+    
     Results{grpIdx}.Data = [];
     Results{grpIdx}.VpopWeights = [];
     Results{grpIdx}.Time = OutputTimes{grpIdx};
@@ -145,7 +146,7 @@ waitStatus = true;
 LocalResults = cell(obj.MaxNumSimulations, length(unqGroups));
 for ixGrp = 1:length(unqGroups)
     NS(ixGrp) = length(grpData.taskObj{ixGrp}.ActiveSpeciesNames);
-    NT(ixGrp) = length(grpData.OutputTimes{ixGrp});
+    NT(ixGrp) = length(grpData.OutputTimes{ixGrp});  
     Results{ixGrp}.Data = zeros( NT(ixGrp) , NS(ixGrp) * obj.MaxNumSimulations);
 end
 VpopWeights = zeros(1,obj.MaxNumSimulations);
@@ -226,10 +227,10 @@ while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients % && gop(@plu
             isValid(nSim) = false; % no output produced
         end
     end
-
-
+    
     if ~StatusOK % exit loop if something went wrong
-        break
+%         break
+        continue
     end
     
     if isValid(nSim)
@@ -237,7 +238,7 @@ while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients % && gop(@plu
         param_candidate_old = param_candidate; % keep new candidate as starting point        
     end
     
-    if isValid(nSim) || ~strcmp(obj.SaveInvalid, 'Save valid vpatients')    
+    if isValid(nSim) || ~strcmp(obj.SaveInvalid, 'Save valid virtual subjects')  
         % Add results of the simulation to Results.Data
 %         if ~isempty(q_vp)
 %             % parallel
@@ -258,9 +259,10 @@ while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients % && gop(@plu
                 end
                 Results{ixGrp}.Data( (nSim-1)*NT(ixGrp)*NS(ixGrp) + (1:NS(ixGrp)*NT(ixGrp)) ) = thisData;
                 
-                VpopWeights(nSim)= isValid(nSim);
 %                 Results{ixGrp}.VpopWeights = [Results{ixGrp}.VpopWeights; isValid(nSim)];
-            end            
+            end          
+            VpopWeights(nSim)= isValid(nSim);
+            
 %         end
     end    
 

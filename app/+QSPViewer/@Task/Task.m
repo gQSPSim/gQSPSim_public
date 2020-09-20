@@ -83,8 +83,12 @@ classdef Task < uix.abstract.CardViewPane
             
             % Get model name
             ModelNameOptions = get(h,'String');
+            if ~iscell(ModelNameOptions) % if more than one model it returns cell array otherwise char array
+                ModelNameOptions = {ModelNameOptions};
+            end
+                
             ModelName = ModelNameOptions{get(h,'Value')}; %get(h,'String');
-            
+
             if strcmpi(ModelName,QSP.makeInvalid('-'))
                 ModelName = '';
             end
