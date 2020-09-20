@@ -5,12 +5,13 @@ if verLessThan('matlab','9.4')
     warning('gQSPSim has not been tested in versions prior to R2018a (9.4). This MATLAB release %s may not be supported for gQSPSim',ThisVer.Release);
 end
 
-EchoOutput = true;
+EchoOutput = false;
 
-warning('off','uix:ViewPaneManager:NoView')
+warning('off','uix:ViewPaneManager:NoView');
 warning('off','MATLAB:table:ModifiedAndSavedVarnames');
-warning('off','MATLAB:Axes:NegativeDataInLogAxis')
-warning('off','MATLAB:HandleGraphics:ObsoletedProperty:JavaFrame')
+warning('off','MATLAB:Axes:NegativeDataInLogAxis');
+warning('off','MATLAB:HandleGraphics:ObsoletedProperty:JavaFrame');
+warning('off', 'MATLAB:ui:javacomponent:FunctionToBeRemoved');
 
 if ~isdeployed
     
@@ -151,7 +152,9 @@ Paths = {
     };
 
 % Display
-fprintf('%s\n',Paths{:});
+if EchoOutput
+    fprintf('%s\n',Paths{:});
+end
 
 % Add paths
 javaaddpath(Paths);

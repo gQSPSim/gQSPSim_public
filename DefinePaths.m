@@ -154,7 +154,9 @@ Paths = {
     };
 
 % Display
-fprintf('%s\n',Paths{:});
+if EchoOutput
+    fprintf('%s\n',Paths{:});
+end
 
 % Add paths
 javaaddpath(Paths);
