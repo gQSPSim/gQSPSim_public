@@ -39,7 +39,7 @@ if ~isempty(obj.ActiveVariantNames)
         if isempty(model)
             warning('constructModel:EmptyModel', 'Model is empty. Project Path %s', obj.FilePath)
         end
-        commit(model.variant(tmp(k)), model)
+        commit(model.variant(tmp(k)), model);
         
     end
     %         model = CombineVariants(model,varObj_i);

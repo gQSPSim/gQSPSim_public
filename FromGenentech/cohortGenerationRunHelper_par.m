@@ -115,12 +115,12 @@ function updateData(hWbar, data)
 %         cancel(F);
         
         % create stop file
-        fid=fopen(stopFile,'w');
-        fclose(fid);
-        addAttachedFiles(p, stopFile);
-        
-        
-        fprintf('Terminating cohort generation\n');
+        if ~exist(stopFile,'file')
+            fid=fopen(stopFile,'w');        
+            fclose(fid);
+            addAttachedFiles(p, stopFile);        
+            fprintf('Terminating cohort generation\n');
+        end
 %         delete(listener)
     end
     
@@ -199,6 +199,8 @@ end
 Results = Results_all;
 
 StatusOK = any(vertcat(StatusOK{:})); % && nnz(isValid) >= obj.MaxNumVirtualPatients;
+
+bCancelled = any(vertcat(bCancelled{:}));
 
 %     Message = strjoin([Message{:}],'\n');
 Message = strjoin(Message,'\n');

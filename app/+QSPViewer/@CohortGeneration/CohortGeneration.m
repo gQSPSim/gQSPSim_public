@@ -141,7 +141,7 @@ classdef CohortGeneration < uix.abstract.CardViewPane
         function onFolderSelection(vObj,~,evt) %#ok<*INUSD>
             
             % Update the value
-            vObj.TempData.VPopResultsFolderName = evt.NewValue;
+            vObj.TempData.VPopResultsFolderName_new = evt.NewValue;
             
             % Update the view
             updateResultsDir(vObj);
