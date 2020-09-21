@@ -879,7 +879,8 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                         '*.fig','MATLAB Figure';...
                         };
                     Title = 'Save as';
-                    SaveFilePath = pwd; % obj.LastPath;
+                    % TODO This is not likely to be the best way to determine the Session's Root directory.
+                    SaveFilePath = obj.Data.Settings.Session.RootDirectory;
                     [SaveFileName,SavePathName] = uiputfile(Spec,Title,SaveFilePath);
                     if ~isequal(SaveFileName,0)
                         
@@ -907,7 +908,8 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                         '*.fig','MATLAB Figure'...
                         };
                     Title = 'Save as';
-                    SaveFilePath = pwd; %obj.LastPath;
+                    % TODO This is not likely to be the best way to determine the Session's Root directory.
+                    SaveFilePath = obj.Data.Settings.Session.RootDirectory;
                     [SaveFileName,SavePathName] = uiputfile(Spec,Title,SaveFilePath);
                     if ~isequal(SaveFileName,0)
                         
