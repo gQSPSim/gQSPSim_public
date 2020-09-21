@@ -281,7 +281,8 @@ if ~isempty(Settings)
         
         % convert to char from enum type
         ixOnOff = cellfun(@(x) isa(x, 'matlab.lang.OnOffSwitchState'), Summary);
-        Summary(ixOnOff) = num2cell( cellfun(@char, Summary(ixOnOff), 'UniformOutput', false ) );
+        temp = cellfun(@char, Summary(ixOnOff), 'UniformOutput', false );
+        Summary(ixOnOff) = temp;
         
         
         % Set table
