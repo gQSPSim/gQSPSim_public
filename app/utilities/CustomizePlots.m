@@ -245,9 +245,10 @@ if ~isempty(eventData) && isprop(eventData,'Indices') && numel(eventData.Indices
     Row = Indices(1);
     Col = Indices(2);
     try
-        Settings(Row).(Settings(Row).(ThisPropGroup){Col,1}) = NewData{Row,Col};
+        Settings(Row).(Settings(Row).(ThisPropGroup){Col,1}) = char(NewData{Row,Col});
     catch ME  
-        NewData{Row,Col} = Settings(Row).(Settings(Row).(ThisPropGroup){Col,1});
+        NewData{Row,Col} = char(Settings(Row).(Settings(Row).(ThisPropGroup){Col,1}));
+
         set(hObject,'Data',NewData); 
         hDlg = errordlg(sprintf('Invalid value entered. %s',ME.message),'Invalid Value','modal');
         uiwait(hDlg);
@@ -277,6 +278,11 @@ if ~isempty(Settings)
         Fields = Settings(1).(PropertyGroup{pIndex})(:,1);
         ColumnFormat = Settings(1).(PropertyGroup{pIndex})(:,2);
         RowNames = cellfun(@(x)sprintf('Plot %d',x),num2cell(1:numel(Settings)),'UniformOutput',false);
+        
+        % convert to char from enum type
+        ixOnOff = cellfun(@(x) isa(x, 'matlab.lang.OnOffSwitchState'), Summary);
+        Summary(ixOnOff) = num2cell( cellfun(@char, Summary(ixOnOff), 'UniformOutput', false ) );
+        
         
         % Set table
         set(handles.SettingsTable(pIndex),...
