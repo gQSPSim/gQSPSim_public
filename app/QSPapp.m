@@ -16,7 +16,7 @@ warning('off', 'MATLAB:ui:javacomponent:FunctionToBeRemoved');
 % Check for the Text Analytics Toolbox install state. If it is around we have 
 % a conflict with the use of the POI java library so warn the user (or error?)
 installedProducts = ver;
-if any(string({a.Name}) == "Text Analytics Toolbox")
+if any(string({installedProducts.Name}) == "Text Analytics Toolbox")
     error("The Text Analytics Toolbox conflicts with some of the functionality in gQSPSim.\n Please uninstall to proceed.");
 end
 
