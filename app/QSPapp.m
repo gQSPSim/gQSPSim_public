@@ -17,8 +17,26 @@ warning('off', 'MATLAB:ui:javacomponent:FunctionToBeRemoved');
 % a conflict with the use of the POI java library so warn the user (or error?)
 installedProducts = ver;
 if any(string({installedProducts.Name}) == "Text Analytics Toolbox")
-    error("The Text Analytics Toolbox conflicts with some of the functionality in gQSPSim.\n Please uninstall to proceed.");
+    error("The Text Analytics Toolbox conflicts with some of the functionality in gQSPSim.\n Please uninstall Text Analytics Toolbox to proceed%s", ".");
 end
+
+% Check the long file name setting in the registry.
+if ispc
+    try
+        longFileNameEnabledTF = winqueryreg('HKEY_LOCAL_MACHINE', 'SYSTEM\CurrentControlSet\Control\FileSystem', 'LongPathsEnabled');
+        if longFileNameEnabledTF == 0
+            installPath = string(fileparts(which(mfilename))).extractBefore("\app");
+            warnString = sprintf('Proper operation of gQSPsim requires long filename support to be enabled.\nLong filename support can be enabled with Remove_260_Character_Path_Limit.reg in:\n%s\\utilities', installPath);
+            warndlg(warnString);
+            % Adding the message to the command line so that people can cut and paste the path.
+            warning(warnString);
+        end
+    catch 
+        % Don't want this code producing an error.
+    end
+end
+
+
 
 if ~isdeployed
     
@@ -53,8 +71,6 @@ if ~isdeployed
         return
     end
 
-
-    
 end %if ~isdeployed
 
 
@@ -131,8 +147,6 @@ for pCount = 1:size(rootDirs,1)
     end
     
 end
-
-
 
 %% Add java class paths
 
