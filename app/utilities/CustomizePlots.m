@@ -245,9 +245,12 @@ if ~isempty(eventData) && isprop(eventData,'Indices') && numel(eventData.Indices
     Row = Indices(1);
     Col = Indices(2);
     try
-        Settings(Row).(Settings(Row).(ThisPropGroup){Col,1}) = char(NewData{Row,Col});
+        Settings(Row).(Settings(Row).(ThisPropGroup){Col,1}) = NewData{Row,Col};
+%         Settings(Row).(Settings(Row).(ThisPropGroup){Col,1}) = char(NewData{Row,Col});
+
     catch ME  
-        NewData{Row,Col} = char(Settings(Row).(Settings(Row).(ThisPropGroup){Col,1}));
+%         NewData{Row,Col} = char(Settings(Row).(Settings(Row).(ThisPropGroup){Col,1}));
+        NewData{Row,Col} = Settings(Row).(Settings(Row).(ThisPropGroup){Col,1});
 
         set(hObject,'Data',NewData); 
         hDlg = errordlg(sprintf('Invalid value entered. %s',ME.message),'Invalid Value','modal');
