@@ -668,7 +668,8 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         
         function addExperimentToDB(obj, type, Name, time, ResultFileNames)
             rootDir = regexprep(obj.RootDirectory, '\\$', '');
-            
+            try 
+                
             commit = git(sprintf('-C "%s" --git-dir="%s" rev-parse HEAD', rootDir, fullfile(rootDir,obj.GitRepo)));
             cmd = sprintf('INSERT INTO Experiments VALUES ("%s", "%s", "%s", %f)', ...
                 type, Name, commit, time);
@@ -700,15 +701,22 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
             
             mksqlite(obj.dbid, cmd);
             
+            catch error
+                warning('Error occured accessing sqlite database\n%s', error.message)
+            end    
             
         end
         
         function gitCommit(obj)
             
             gitFiles = obj.GitFiles;
+            rootDir = regexprep(obj.RootDirectory, '\\$', '');
+
+            exists = cellfun(@(f) exist(fullfile(rootDir, f), 'file'), gitFiles) ~= 0;
+            gitFiles = gitFiles(exists);
+            
             tic
             
-            rootDir = regexprep(obj.RootDirectory, '\\$', '');
             
             if ~exist(fullfile(rootDir, obj.GitRepo), 'dir')
                 obj.Log('creating git repository')
@@ -723,14 +731,36 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
             fileChanges = git(sprintf('-C "%s" --git-dir="%s" diff --name-only', ...
                 rootDir, obj.GitRepo));
             fileChanges = strsplit(fileChanges,'\n');
-            % add files
-            for k=1:length(gitFiles)
-                result = git(sprintf('-C "%s" --git-dir="%s" add "%s" ', rootDir, ...
-                     obj.GitRepo, gitFiles{k}));
-                if ~isempty(result)
-                    warning(result)
-                end                
+            
+            if ispc % change file sep because git will output only forward slashes
+                for k=1:length(fileChanges)
+                    fileChanges{k} = strrep(fileChanges{k}, '/', '\');
+                end
             end
+            
+            % add files
+            gitPathspecFile = tempname;
+            fh = fopen(gitPathspecFile, 'w');
+            if fh == -1
+                warning('Could not open temp file for git add. Aborting')
+                return
+            end
+            
+            fprintf(fh, repmat('%s\n', 1, length(gitFiles)), gitFiles{:});
+            fclose(fh);
+            
+            result = git(sprintf( '-C "%s" --git-dir="%s" add --pathspec-from-file="%s"', rootDir, obj.GitRepo, gitPathspecFile ) );
+            if ~isempty(result)
+                warning(result)
+            end                    
+%             
+%             for k=1:length(gitFiles)
+%                 result = git(sprintf('-C "%s" --git-dir="%s" add "%s" ', rootDir, ...
+%                      obj.GitRepo, gitFiles{k}));
+%                 if ~isempty(result)
+%                     warning(result)
+%                 end                
+%             end
             
             diffMsg = '';
 
@@ -783,7 +813,11 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
             for ixObj = 1:length(objs)
                 m = objs(ixObj).ModelObj;
                 if ~isempty(m)
-                   sbprojFiles = [sbprojFiles, strrep( m.RelativeFilePath_new, [rootDir filesep], '')];
+                   thisFile = strrep( m.RelativeFilePath_new, [rootDir filesep], '');
+                   if ispc
+                       thisFile = strrep(thisFile, '\', '/');
+                   end
+                   sbprojFiles = [sbprojFiles, thisFile];
                 end
             end
             sbprojFiles = unique(sbprojFiles);
@@ -803,11 +837,12 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
             
             gitMessage = [fileChanges, diffMsg];
             
-            gitMessage = sprintf('Snapshot at %s\r\n\r\n%s', datestr(now), strjoin(gitMessage,'\r\n'));
-          
-            result = git(sprintf('-C "%s" --git-dir="%s" commit -m "%s"', rootDir, obj.GitRepo, ...
+            gitMessage = sprintf([ '-m "Snapshot at %s" -m "" ',  repmat( '-m "%s" ', 1, length(gitMessage))], ...
+                datestr(now), gitMessage{:} );                                
+            
+            result = git(sprintf('-C "%s" --git-dir="%s" commit %s', rootDir, obj.GitRepo, ...
                 gitMessage ));
-
+            
             fprintf('[%s] Committed snapshot to git (%0.2f s)\n', datestr(now), toc);
 
             % TODO version control qsp session as well
