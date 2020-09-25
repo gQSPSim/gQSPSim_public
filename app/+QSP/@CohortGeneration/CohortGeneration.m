@@ -111,9 +111,11 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             %    aObj = QSP.CohortGeneration();
             
             % Populate public properties from P-V input pairs
-            obj.assignPVPairs(varargin{:});
+            obj.assignPVPairs(varargin{:});   
             
             % For compatibility
+            initOptions(obj);
+            
             if size(obj.PlotSpeciesTable,2) == 4
                 obj.PlotSpeciesTable(:,5) = obj.PlotSpeciesTable(:,3);
             end

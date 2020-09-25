@@ -75,26 +75,26 @@ vObj.DatasetData = VPopData;
 
 TypeCol = find(strcmp(VPopHeader,'Type'));
 
-vObj.bShowTraces(1:vObj.MaxNumPlots) = false; % default off
-vObj.bShowQuantiles(1:vObj.MaxNumPlots) = true; % default on
-vObj.bShowMean(1:vObj.MaxNumPlots) = true; % default on
-vObj.bShowMedian(1:vObj.MaxNumPlots) = false; % default off
-vObj.bShowSD(1:vObj.MaxNumPlots) = false; % default off, unless Type = MEAN_STD
+vObj.Data.bShowTraces(1:vObj.MaxNumPlots) = false; % default off
+vObj.Data.bShowQuantiles(1:vObj.MaxNumPlots) = true; % default on
+vObj.Data.bShowMean(1:vObj.MaxNumPlots) = true; % default on
+vObj.Data.bShowMedian(1:vObj.MaxNumPlots) = false; % default off
+vObj.Data.bShowSD(1:vObj.MaxNumPlots) = false; % default off, unless Type = MEAN_STD
 
 if ~isempty(TypeCol)
     ThisType = VPopData(:,TypeCol);
     if any(strcmp(ThisType,'MEAN_STD')) % If MEAN_STD, then show SD
-        vObj.bShowSD(1:vObj.MaxNumPlots) = true;
+        vObj.Data.bShowSD(1:vObj.MaxNumPlots) = true;
     end
 end
 
 % Update context menu - since defaults are the same, okay to use first
 % value and assign to rest
-set(vObj.h.ContextMenuTraces,'Checked',uix.utility.tf2onoff(vObj.bShowTraces(1)));
-set(vObj.h.ContextMenuQuantiles,'Checked',uix.utility.tf2onoff(vObj.bShowQuantiles(1)));
-set(vObj.h.ContextMenuMean,'Checked',uix.utility.tf2onoff(vObj.bShowMean(1)));
-set(vObj.h.ContextMenuMedian,'Checked',uix.utility.tf2onoff(vObj.bShowMedian(1)));
-set(vObj.h.ContextMenuSD,'Checked',uix.utility.tf2onoff(vObj.bShowSD(1)));
+set(vObj.h.ContextMenuTraces,'Checked',uix.utility.tf2onoff(vObj.Data.bShowTraces(1)));
+set(vObj.h.ContextMenuQuantiles,'Checked',uix.utility.tf2onoff(vObj.Data.bShowQuantiles(1)));
+set(vObj.h.ContextMenuMean,'Checked',uix.utility.tf2onoff(vObj.Data.bShowMean(1)));
+set(vObj.h.ContextMenuMedian,'Checked',uix.utility.tf2onoff(vObj.Data.bShowMedian(1)));
+set(vObj.h.ContextMenuSD,'Checked',uix.utility.tf2onoff(vObj.Data.bShowSD(1)));
  
 
 %% Get 'Species' column from Dataset
