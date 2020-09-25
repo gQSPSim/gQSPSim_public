@@ -42,7 +42,13 @@ if ~isdeployed
     if isempty(ver('layout')) || verLessThan('layout','2.3.4')
         installPath = string(fileparts(which(mfilename))).extractBefore(filesep + "app");
         guiLayoutToolboxFile = installPath + filesep + "GUI Layout Toolbox 2.3.4.mltbx";            
+        
         installedGUILayoutToolbox = matlab.addons.toolbox.installToolbox(guiLayoutToolboxFile);
+        if isempty(installedGUILayoutToolbox)
+            hDlg = errordlg('Exiting QSPapp.', 'WindowStyle','modal');
+            uiwait(hDlg);
+            return
+        end
     end
        
     if isempty(mex.getCompilerConfigurations('C','Supported'))
