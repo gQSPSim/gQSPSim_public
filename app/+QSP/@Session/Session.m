@@ -651,7 +651,9 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
                 
                 if ~isempty(obj.Settings.Task(index).InactiveRuleNames) 
                     for ixRule = 1:length( obj.Settings.Task(index).InactiveRuleNames)
-                        if ~contains( obj.Settings.Task(index).InactiveRuleNames(ixRule), '.*: .*') 
+                        match = regexp( obj.Settings.Task(index).InactiveRuleNames(ixRule), '.*: .*');
+                        if isempty( match{1} ) % ~contains( obj.Settings.Task(index).InactiveRuleNames(ixRule), '.*: .*') 
+
                             MatchIdx = strcmp(get(obj.Settings.Task(index).ModelObj.mObj.Rules, 'Rule'), obj.Settings.Task(index).InactiveRuleNames(ixRule));
                             if nnz(MatchIdx) > 1
                                 warning('Multiple rules with same equation. Please update tasks before running')
