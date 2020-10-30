@@ -285,6 +285,10 @@ classdef TaskPane < QSPViewerNew.Application.ViewPane
     
     methods (Access = public) 
         
+        function Value = getRootDirectory(obj)
+            Value = obj.Task.Settings.Session.RootDirectory;
+        end
+        
         function showThisPane(obj)
             obj.showPane();
         end

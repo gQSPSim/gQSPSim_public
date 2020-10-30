@@ -87,6 +87,10 @@ classdef ParametersPane < QSPViewerNew.Application.ViewPane
     
     methods (Access = public) 
         
+        function Value = getRootDirectory(obj)
+            Value = obj.Parameters.Settings.Session.RootDirectory;
+        end
+        
         function showThisPane(obj)
             obj.showPane();
         end

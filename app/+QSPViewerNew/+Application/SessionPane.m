@@ -260,6 +260,10 @@ classdef SessionPane < QSPViewerNew.Application.ViewPane
     
     methods(Access = public) 
         
+        function Value = getRootDirectory(obj)
+            Value = obj.Session.RootDirectory;
+        end
+        
         function showThisPane(obj)
             obj.showPane();
         end

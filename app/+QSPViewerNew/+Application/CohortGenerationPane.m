@@ -825,6 +825,10 @@ classdef CohortGenerationPane < QSPViewerNew.Application.ViewPane
     
     methods (Access = public)
         
+        function Value = getRootDirectory(obj)
+            Value = obj.CohortGeneration.Session.RootDirectory;
+        end
+        
         function showThisPane(obj)
             obj.showPane();
         end

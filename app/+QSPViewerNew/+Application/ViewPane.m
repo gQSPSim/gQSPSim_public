@@ -668,7 +668,7 @@ classdef ViewPane < handle
                         '*.eps','EPS';...
                         };
                     Title = 'Save as';
-                    SaveFilePath = pwd; 
+                    SaveFilePath = getRootDirectory(obj);
                     [SaveFileName,SavePathName] = uiputfile(Spec,Title,SaveFilePath);
                     if ~isequal(SaveFileName,0)
                         
@@ -1342,6 +1342,7 @@ classdef ViewPane < handle
         hideThisPane(obj);
         showThisPane(obj);
         checkDirty(obj);
+        getRootDirectory(obj);
     end
     
     methods (Static)
