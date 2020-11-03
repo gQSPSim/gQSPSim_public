@@ -166,6 +166,9 @@ if ~isempty(stopFile)
     end    
 end
 
+param_candidate_old = P0_1;
+tune_param = obj.MCMCTuningParam;
+
 while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients % && gop(@plus, nPat) < obj.MaxNumVirtualPatients && gop(@plus,nSim) < obj.MaxNumSimulations
     
 %     fH = fopen(stopFile,'r');
