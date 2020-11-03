@@ -355,6 +355,20 @@ classdef Model < QSP.abstract.BaseProps
                 Value = sbioselect(obj.mObj, 'Type', 'Rule');
                 Rule = get(Value,'Rule');
                 Name = get(Value,'Name');
+                
+                if isempty(Rule)
+                    Value = cell(0,1);
+                    return
+                end
+                
+                if ~iscell(Name)
+                    Name = {Name};
+                end
+                
+                if ~iscell(Rule)
+                    Rule = {Rule};
+                end
+                
                 Name(cellfun(@isempty,Name)) = {'unnamed'};
                 
                 Value = arrayfun(@(k) sprintf('%s: %s', Name{k}, Rule{k}), 1:numel(Rule), 'UniformOutput', false);
@@ -374,7 +388,20 @@ classdef Model < QSP.abstract.BaseProps
             if ~isempty(obj.mObj)
                 Value = sbioselect(obj.mObj, 'Type', 'Reaction');                           
                 Reaction = get(Value,'Reaction');
+                if isempty(Reaction)
+                    Value = cell(0,1);
+                    return
+                end
+                    
                 Name = get(Value,'Name');
+                if ~iscell(Name)
+                    Name = {Name};
+                end
+                
+                if ~iscell(Reaction)
+                    Reaction = {Reaction};
+                end
+                
                 Name(cellfun(@isempty,Name)) = {'unnamed'};
                 
                 Value = arrayfun(@(k) sprintf('%s: %s', Name{k}, Reaction{k}), 1:numel(Reaction), 'UniformOutput', false);
