@@ -87,8 +87,14 @@ function [Results, nFailedSims, StatusOK, Message, Cancelled] = simulateVPatient
         elseif ~batchMode
             p = gcp('nocreate');
             if isempty(p) 
-                p = parpool(options.ParallelCluster, ...
-                    'AttachedFiles', options.UDF);
+                try 
+                    p = parpool(options.ParallelCluster, ...
+                        'AttachedFiles', options.UDF);
+                catch ME
+                    Message = sprintf('Parallel pool could not be started! Try starting manually.\n%s', ME.message);
+                    StatusOK = false;
+                    return
+                end
             end
             
             
