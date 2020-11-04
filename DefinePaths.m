@@ -136,6 +136,8 @@ end
 
 %% Add java class paths
 
+addpath(genpath('GUI_Layout_Toolbox'));
+
 if EchoOutput
     disp('Initializing Java paths for UI Widgets');
     disp('---------------------------------------------------');
