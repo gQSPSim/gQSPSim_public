@@ -88,6 +88,10 @@ classdef VirtualPopulationPane < QSPViewerNew.Application.ViewPane
     
     methods (Access = public) 
         
+        function Value = getRootDirectory(obj)
+            Value = obj.VirtualPopulation.Settings.Session.RootDirectory;
+        end
+        
         function showThisPane(obj)
             obj.showPane();
         end
