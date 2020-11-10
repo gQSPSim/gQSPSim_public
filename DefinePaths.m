@@ -1,4 +1,4 @@
-function DefinePaths(varargin)
+function OutPaths = DefinePaths(varargin)
 % DefinePaths - Set up the MATLAB path
 % -------------------------------------------------------------------------
 % Abstract: This function prepares the MATLAB path
@@ -27,14 +27,20 @@ function DefinePaths(varargin)
 %   $Revision: 312 $  $Date: 2016-09-08 13:06:09 -0400 (Thu, 08 Sep 2016) $
 % ---------------------------------------------------------------------
 
-if nargin<1
+if nargin < 1
     EchoOutput = true;
 else
     if islogical(varargin{1})
         EchoOutput = varargin{1};
     else
         EchoOutput = true;
-    end
+    end       
+end
+
+if nargin==2
+    doAdd = varargin{2};
+else
+    doAdd = true;
 end
 
 % Disable warnings
@@ -64,6 +70,8 @@ rootDirs={...
     fullfile(RootPath,'FromGenentech'),true;... %root folder with children
     
     };
+
+OutPaths = [ genpath(fullfile(RootPath,'app')), genpath(fullfile(RootPath,'utilities')), genpath(fullfile(RootPath,'FromGenentech')) ];
 
 %************ EDIT ABOVE %************
 
@@ -103,11 +111,19 @@ for pCount = 1:size(rootDirs,1)
             end
             if ispc  % Windows is not case-sensitive
                 if ~any(strcmpi(rawPathCell{pCount}, pathCell))
-                    addpath(rawPathCell{pCount}); %#ok<MCAP>
+                    thisPath = rawPathCell{pCount};
+                    if doAdd
+                        addpath(thisPath); %#ok<MCAP>
+                    end
+                    OutPaths = [OutPaths, thisPath];
                 end
             else
                 if ~any(strcmp(rawPathCell{pCount}, pathCell))
-                    addpath(rawPathCell{pCount}); %#ok<MCAP>
+                    thisPath = rawPathCell{pCount};         
+                    if doAdd
+                        addpath(thisPath); %#ok<MCAP>
+                    end
+                    OutPaths = [OutPaths, thisPath];                    
                 end
             end
         else
@@ -119,6 +135,8 @@ end
 
 
 %% Add java class paths
+
+addpath(genpath('GUI_Layout_Toolbox'));
 
 if EchoOutput
     disp('Initializing Java paths for UI Widgets');
@@ -138,7 +156,9 @@ Paths = {
     };
 
 % Display
-fprintf('%s\n',Paths{:});
+if EchoOutput
+    fprintf('%s\n',Paths{:});
+end
 
 % Add paths
 javaaddpath(Paths);

@@ -317,7 +317,7 @@ switch obj.AlgorithmName
             p0 = estParamData(:,3);
 
             options = optimoptions('ParticleSwarm', 'Display', 'iter', 'FunctionTolerance', .1, 'MaxTime', 12000, ...
-                'UseParallel', obj.Session.UseParallel, 'FunValCheck', 'on', 'UseVectorized', false, 'PlotFcn',  @pswplotbestf, ...
+                'UseParallel', logical(obj.Session.UseParallel), 'FunValCheck', 'on', 'UseVectorized', false, 'PlotFcn',  @pswplotbestf, ...
                 'InitialSwarmMatrix', p0');
             
             VpopParams = particleswarm( @(est_p) objectiveFun(est_p',paramObj,ItemModels,Groups,IDs,Time,optimData,dataNames,obj), N, LB, UB, options);
@@ -336,13 +336,14 @@ switch obj.AlgorithmName
         UB = estParamData(:,2);
 
         % options
-        LSQopts = optimoptions(@lsqnonlin,'MaxFunctionEvaluations',1e4,'MaxIterations',1e4,'UseParallel',false,'FunctionTolerance',1e-5,'StepTolerance',1e-3,...
+        opts = optimoptions(@fmincon,'MaxFunctionEvaluations',1e4,'MaxIterations',1e4, 'FunctionTolerance',1e-5,'StepTolerance',1e-3,...
             'Display', 'iter', 'PlotFcn', @optimplotfval, 'UseParallel', obj.Session.UseParallel );
-
+        
         % fit
         p0 = estParamData(:,3);
         try
-        VpopParams = lsqnonlin(@(est_p) objectiveFun(est_p,paramObj,ItemModels,Groups,IDs,Time,optimData,dataNames,obj), p0, LB, UB, LSQopts);
+        
+        VpopParams = fmincon(@(est_p) objectiveFun(est_p,paramObj,ItemModels,Groups,IDs,Time,optimData,dataNames,obj), p0, [], [], [], [], LB, UB, [], opts);        
         VpopParams = VpopParams';
         catch err
             StatusOK = false;
@@ -447,7 +448,7 @@ else
 
         % save current group's Vpop
         SaveFlag = true;
-        SaveFilePath = fullfile(obj.Session.RootDirectory,obj.OptimResultsFolderName);
+        SaveFilePath = fullfile(obj.Session.RootDirectory,obj.OptimResultsFolderName_new);
         if ~exist(SaveFilePath,'dir')
             [ThisStatusOk,ThisMessage] = mkdir(SaveFilePath);
             if ~ThisStatusOk
@@ -503,7 +504,7 @@ Vpop = [ VpopHeaders; VpopData];
 
 % save final Vpop
 SaveFlag = true;
-SaveFilePath = fullfile(obj.Session.RootDirectory,obj.OptimResultsFolderName);
+SaveFilePath = fullfile(obj.Session.RootDirectory,obj.OptimResultsFolderName_new);
 if ~exist(SaveFilePath,'dir')
     [ThisStatusOk,ThisMessage] = mkdir(SaveFilePath);
     if ~ThisStatusOk
@@ -514,7 +515,7 @@ end
 
 if SaveFlag
     VpopNames{end} = ['Results - Optimization = ' obj.Name ' - Date = ' timeStamp];
-    ResultsFileNames{end} = [VpopNames{end} '.xls'];
+    ResultsFileNames{end} = [VpopNames{end} '.xlsx'];
     try
         if ispc
             xlswrite(fullfile(SaveFilePath,ResultsFileNames{end}),Vpop);
@@ -537,6 +538,11 @@ end
     function [objective,varargout] = objectiveFun(est_p,paramObj,ItemModels,Groups,IDs,Time,optimData,dataNames,obj)
         tempStatusOK = true;
         tempMessage = '';
+        
+        if nargout>1 % preset the output arguments
+            varargout{1} = true;
+            varargout{2} = '';
+        end
         
 %         inputStr = '(species,data,simTime,dataTime,allData,ID,Grp,currID,currGrp)';
         logInds = reshape( paramObj.logInds, [], 1);
@@ -599,7 +605,9 @@ end
  
                     % simulate experiment for this ID
                     OutputTimes = sort(unique(Time_id(Time_id>=0)));
-                    StopTime = max(Time_id(Time_id>=0));
+                    maxTime = max(Time_id(Time_id>=0));
+                    OutputTimes = OutputTimes(OutputTimes <= maxTime);
+
                     Values = [IC;est_p];
                     Names = [{SpeciesIC.SpeciesName}'; estParamNames];
                     if ~isempty(fixed_p)
@@ -610,8 +618,7 @@ end
                     [simData_id, thisStatusOK, thisMessage] = ItemModels.Task(grpIdx).simulate(...
                         'Names', Names, ...
                         'Values', Values, ...
-                        'OutputTimes', OutputTimes, ...
-                        'StopTime', StopTime );
+                        'OutputTimes', OutputTimes);
                     
                     if ~thisStatusOK
                         % simulation failed for this particular task
@@ -620,7 +627,9 @@ end
                         % for this group
                         Message = sprintf('%s\n%s\n', Message, thisMessage);
                         fprintf('Warning: Group %d produced error %s\n', currGrp, thisMessage);
-                        
+                        objective = 1e6;
+                        path(myPath);
+                        return                             
                     end
                                         
                     % generate elements of objective vector by comparing model
@@ -721,14 +730,15 @@ end
                 end % for id
             end % for grp
         end % try
-               
-        if ~strcmp(obj.AlgorithmName, 'Local')
-            % return scalar objective function
-            objective = nansum(objectiveVec);
-        else
-            objective = objectiveVec;
-        end
-        
+%                
+%         if ~strcmp(obj.AlgorithmName, 'Local')
+%             % return scalar objective function
+%             objective = nansum(objectiveVec);
+%         else
+%             objective = objectiveVec;
+%         end
+        objective = nansum(objectiveVec);
+
         if nargout>1
             varargout{1} = tempStatusOK;
             varargout{2} = tempMessage;

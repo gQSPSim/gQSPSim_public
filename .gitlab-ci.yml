@@ -1,0 +1,39 @@
+stages:
+    - test
+
+R2018a Test:
+    stage: test
+    tags:
+        - maci64
+    script:
+        - ./tests/gQSPSimTesterScript.sh /Applications/MATLAB_R2018a.app
+
+R2018b Test:
+    stage: test
+    tags:
+        - maci64
+    script:
+        - ./tests/gQSPSimTesterScript.sh /Applications/MATLAB_R2018b.app
+
+R2019a Test:
+    stage: test
+    tags:
+        - maci64
+    script:
+        - ./tests/gQSPSimTesterScript.sh /Applications/MATLAB_R2019a.app
+
+R2019b Test:
+    stage: test
+    tags:
+        - maci64
+    script:
+        - ./tests/gQSPSimTesterScript.sh /Applications/MATLAB_R2019b.app
+
+R2020a Test:
+    stage: test
+    tags:
+        - maci64
+    script:
+        - ./tests/gQSPSimTesterScript.sh /Applications/MATLAB_R2020a.app
+
+

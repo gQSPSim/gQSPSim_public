@@ -1,0 +1,19 @@
+To run tests from MATLAB:
+1. Setup gQSPSim as usual. E.g. DefinePaths etc. 
+2. While in the top of the gQSSim directory (root directory) run
+3. >> run tests
+
+The actual tests are in the tgQSPsim.m file. The MATLAB unit test harness will 
+run any files started with 't' in the target directory. Avoid adding any files 
+in this directory starting with the letter 't' if they are not meant to be tests. 
+
+There is a testing harness file in this directory:
+gQSPSimTester.m: A subclass of the QSPViewer.App allowing us to construct a QSPViewer and 
+    access its private methods. 
+
+The remaining files are used to hook up the tests to the gitlab pipeline CI. The files are:
+gQSPSimTesterScript.sh and driver.m. The former is called directly from the gitlab-runner 
+shell and it in turn calls matlab and asks it to execute the driver.
+
+The baselines directory contains the gQSPSim project folders with functionality results 
+included. These are used to validate the results obtained when running the tests. 

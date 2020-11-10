@@ -29,7 +29,9 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
     %% Properties
     properties
         Settings = QSP.Settings.empty(0,1)
-        OptimResultsFolderName = 'OptimResults' 
+        OptimResultsFolderPath = {'OptimResults'};
+        OptimResultsFolderName = ''
+        
         ExcelResultFileName = {} % At least one file
         VPopName = {} % At least one Vpop
         
@@ -81,6 +83,7 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
     properties (Dependent=true)
         TaskGroupItems
         SpeciesDataMapping
+        OptimResultsFolderName_new
     end
     
     %% Constructor
@@ -210,7 +213,7 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 'Name',obj.Name;
                 'Last Saved',obj.LastSavedTimeStr;
                 'Description',obj.Description;
-                'Results Path',obj.OptimResultsFolderName;
+                'Results Path',obj.OptimResultsFolderName_new;
                 'Optimization Algorithm',obj.AlgorithmName;
                 'Dataset',obj.DatasetName;
                 'Group Name',obj.GroupName;
@@ -511,7 +514,8 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             if isempty(thisObj)            
                 % Virtual Population
                 Names = {obj.Settings.VirtualPopulation.Name};
-                [~,ThisName] = fileparts(NewSource);
+%                 [~,ThisName] = fileparts(NewSource);
+                ThisName = NewSource;
                 MatchIdx = strcmpi(Names,ThisName);
                 if any(MatchIdx)
                     thisObj = obj.Settings.VirtualPopulation(MatchIdx);
@@ -649,7 +653,7 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                         thisVpopObj = QSP.VirtualPopulation;
                         thisVpopObj.Session = obj.Session;
                         thisVpopObj.Name = VPopNames{idx};
-                        thisVpopObj.FilePath = fullfile(obj.Session.RootDirectory,obj.OptimResultsFolderName,obj.ExcelResultFileName{idx});
+                        thisVpopObj.FilePath = fullfile(obj.Session.RootDirectory,obj.OptimResultsFolderName_new,obj.ExcelResultFileName{idx});
                         % Update last saved time
                         updateLastSavedTime(thisVpopObj);
                         % Validate
@@ -829,14 +833,19 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                     if ~isempty(pObj)
                         ParametersLastSavedTime = pObj.LastSavedTime;
                         FileInfo = dir(pObj.FilePath);
-                        ParametersFileLastSavedTime = FileInfo.datenum;                    
+                        if ~isempty(FileInfo)
+                            ParametersFileLastSavedTime = FileInfo.datenum;                    
+                        else
+                            ParametersFileLastSavedTime = 0;
+                        end
+                            
                     end
                     % Results file
                     if length(obj.ExcelResultFileName) < numel(obj.Item) ... % missing some items
                             || isempty(obj.ExcelResultFileName{index}) % no excel file available for this index
                         ResultLastSavedTime = '';        
                     else
-                        ThisFilePath = fullfile(obj.Session.RootDirectory,obj.OptimResultsFolderName,obj.ExcelResultFileName{index});
+                        ThisFilePath = fullfile(obj.Session.RootDirectory,obj.OptimResultsFolderName_new,obj.ExcelResultFileName{index});
                         if exist(ThisFilePath,'file') == 2
                             FileInfo = dir(ThisFilePath);                        
                             ResultLastSavedTime = FileInfo.datenum;                        
@@ -885,9 +894,13 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             obj.Settings = Value;
         end
         
-        function set.OptimResultsFolderName(obj,Value)
+        function set.OptimResultsFolderName_new(obj,Value)
             validateattributes(Value,{'char'},{'row'});
-            obj.OptimResultsFolderName = Value;
+            obj.OptimResultsFolderPath = strsplit(Value,filesep);
+        end
+        
+        function Value=get.OptimResultsFolderName_new(obj)
+            Value = strjoin(obj.OptimResultsFolderPath,filesep);
         end
         
         function set.DatasetName(obj,Value)

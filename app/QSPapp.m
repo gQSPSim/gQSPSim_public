@@ -1,40 +1,54 @@
 function varargout = QSPapp()
 
-if verLessThan('matlab','9.4') || ~verLessThan('matlab','9.5') % If version < R2018a (9.4) or >= R2018b (9.5)
+if verLessThan('matlab','9.4') 
     ThisVer = ver('matlab');
-    warning('gQSPSim has been tested in MATLAB R2018a (9.4). This MATLAB release %s may not be supported for gQSPSim',ThisVer.Release);
+    warning('gQSPSim has not been tested in versions prior to R2018a (9.4). This MATLAB release %s may not be supported for gQSPSim',ThisVer.Release);
 end
 
-EchoOutput = true;
+EchoOutput = false;
 
-warning('off','uix:ViewPaneManager:NoView')
+warning('off','uix:ViewPaneManager:NoView');
 warning('off','MATLAB:table:ModifiedAndSavedVarnames');
-warning('off','MATLAB:Axes:NegativeDataInLogAxis')
-warning('off','MATLAB:HandleGraphics:ObsoletedProperty:JavaFrame')
+warning('off','MATLAB:Axes:NegativeDataInLogAxis');
+warning('off','MATLAB:HandleGraphics:ObsoletedProperty:JavaFrame');
+warning('off', 'MATLAB:ui:javacomponent:FunctionToBeRemoved');
+
+% Check for the Text Analytics Toolbox install state. If it is around we have 
+% a conflict with the use of the POI java library so warn the user (or error?)
+installedProducts = ver;
+if any(string({installedProducts.Name}) == "Text Analytics Toolbox")
+    error("The Text Analytics Toolbox conflicts with some of the functionality in gQSPSim.\n Please uninstall Text Analytics Toolbox to proceed%s", ".");
+end
+
+% Check the long file name setting in the registry.
+if ispc
+    try
+        longFileNameEnabledTF = winqueryreg('HKEY_LOCAL_MACHINE', 'SYSTEM\CurrentControlSet\Control\FileSystem', 'LongPathsEnabled');
+        if longFileNameEnabledTF == 0
+            installPath = string(fileparts(which(mfilename))).extractBefore("\app");
+            warnString = sprintf('Proper operation of gQSPsim requires long filename support to be enabled.\nLong filename support can be enabled with Remove_260_Character_Path_Limit.reg in:\n%s\\utilities', installPath);
+            warndlg(warnString);
+            % Adding the message to the command line so that people can cut and paste the path.
+            warning(warnString);
+        end
+    catch 
+        % Don't want this code producing an error.
+    end
+end
 
 if ~isdeployed
     
     % Verify GUI Layout Toolbox
-    if isempty(ver('layout')) || verLessThan('layout','2.1')
+    if isempty(ver('layout')) || verLessThan('layout','2.3.4')
+        installPath = string(fileparts(which(mfilename))).extractBefore(filesep + "app");
+        guiLayoutToolboxFile = installPath + filesep + "GUI Layout Toolbox 2.3.4.mltbx";            
         
-        % Toolbox is missing. Prompt to download
-        hDlg = errordlg(['<html>Unable to locate GUI Layout Toolbox 2.1 or '...
-            'greater. Please find and install "GUI Layout Toolbox" on '...
-            'the MATLAB Add-On Explorer or File Exchange. '],...
-            'WindowStyle','modal');
-        uiwait(hDlg);
-        
-        if verLessThan('matlab','R2015b')
-            % Launch Web Browser to GUI Layout Toolbox  (prior to R2016a)
-            web('https://www.mathworks.com/matlabcentral/fileexchange/47982','-browser');
-        elseif verLessThan('matlab','R2016a')
-            % Launch Add-On Browser to GUI Layout Toolbox (R2016a only)
-            matlab.internal.language.introspective.showAddon('e5af5a78-4a80-11e4-9553-005056977bd0');
-        else
-            % Launch Add-On Browser to GUI Layout Toolbox
-            com.mathworks.addons.AddonsLauncher.showDetailPageInExplorerFor('e5af5a78-4a80-11e4-9553-005056977bd0','AO_CONSULTING')
+        installedGUILayoutToolbox = matlab.addons.toolbox.installToolbox(guiLayoutToolboxFile);
+        if isempty(installedGUILayoutToolbox)
+            hDlg = errordlg('Exiting QSPapp.', 'WindowStyle','modal');
+            uiwait(hDlg);
+            return
         end
-        
     end
        
     if isempty(mex.getCompilerConfigurations('C','Supported'))
@@ -45,8 +59,6 @@ if ~isdeployed
         return
     end
 
-
-    
 end %if ~isdeployed
 
 
@@ -69,7 +81,7 @@ rootDirs={...
     fullfile(RootPath,'..','app'),true;... %root folder with children
     fullfile(RootPath,'..','utilities'),true;... %root folder with children
     fullfile(RootPath,'..','FromGenentech'),true;... %root folder with children
-    
+    fullfile(RootPath,'..'),false;
     };
 
 %************ EDIT ABOVE %************
@@ -124,8 +136,6 @@ for pCount = 1:size(rootDirs,1)
     
 end
 
-
-
 %% Add java class paths
 
 % Disable warnings
@@ -151,7 +161,9 @@ Paths = {
     };
 
 % Display
-fprintf('%s\n',Paths{:});
+if EchoOutput
+    fprintf('%s\n',Paths{:});
+end
 
 % Add paths
 javaaddpath(Paths);

@@ -108,10 +108,16 @@ for axIndex = AxIndices(:)'
         
         % Get all Traces and Quantiles
         TheseChildren = ch(~IsDummyLine);
+        if isempty(TheseChildren)
+            continue
+        end
         
         ChildrenUserData = get(TheseChildren,'UserData');
+        ixValidData = ~cellfun(@isempty, ChildrenUserData);
+        TheseChildren = TheseChildren(ixValidData);
+        
         if iscell(ChildrenUserData)
-            ChildrenUserData = vertcat(ChildrenUserData{:});
+            ChildrenUserData = vertcat(ChildrenUserData{ixValidData});
         end
         
         IsItemVisible = ismember(ChildrenUserData(:,2),VisibleItemIndices);

@@ -1,4 +1,4 @@
-function StatusOk = loadSessionFromFile(obj,FilePath)
+function StatusOk = loadSessionFromFile(obj, FilePath, interactiveTF)
 % loadSessionFromFile
 % -------------------------------------------------------------------------
 % Abstract: This method is executed when the user user wants to load a
@@ -14,6 +14,10 @@ function StatusOk = loadSessionFromFile(obj,FilePath)
 % ---------------------------------------------------------------------
 
 StatusOk = true;
+
+if nargin == 2
+    interactiveTF = true;
+end
 
 % Get the filename
 [~,FileName] = fileparts(FilePath);
@@ -35,12 +39,20 @@ end
 % Validate the file
 try
     validateattributes(s.Session,{'QSP.Session'},{'scalar'})
-
+    
     % check the session root
-    if ~exist(s.Session.RootDirectory, 'dir') && strcmp(questdlg('Session root directory is invalid. Select a new root directory?', 'Select root directory', 'Yes'),'Yes')        
-        rootDir = uigetdir(s.Session.RootDirectory, 'Select valid session root directory');
-        if rootDir ~= 0
-            s.Session.RootDirectory = rootDir;
+    if ~exist(s.Session.RootDirectory, 'dir')         
+        s.Session.RootDirectory = fileparts(FilePath);
+%         fprintf('Setting root directory to: %s\n', s.Session.RootDirectory)
+        if interactiveTF
+            if usejava('jvm') && feature('ShowFigureWindows') % there is a display
+                if strcmp(questdlg('Session root directory is invalid. Select a new root directory?', 'Select root directory', 'Yes'),'Yes')        
+                    rootDir = uigetdir(fileparts(FilePath), 'Select valid session root directory');
+                    if rootDir ~= 0
+                        s.Session.RootDirectory = rootDir;
+                    end
+                end
+            end
         end
     end
     
@@ -52,13 +64,15 @@ catch err
 end
 
 if StatusOk
-
-
+    
+    % convert rules and reactions
+    
+    Session.validateRulesAndReactions();
+    
     
     % Add the session to the app
     obj.createNewSession(Session);
-
-
 else
-    hDlg = errordlg(Message,'Open File','modal'); uiwait(hDlg);
+    hDlg = errordlg(Message,'Open File','modal'); 
+    uiwait(hDlg);
 end

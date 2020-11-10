@@ -168,6 +168,13 @@ function [simData, statusOK, Message] = simulate(obj, varargin)
         simData= [];
         return
     end
+    
+    if ~isequal(simData.Time, times) 
+        statusOK = false;
+        Message = 'Simulation terminated prematurely';
+        simData = [];
+        return
+    end
         
 end
 

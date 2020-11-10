@@ -93,7 +93,7 @@ if ~isempty(IsSelected)
             end
         end
     end
-    ResultsDir = fullfile(obj.Session.RootDirectory,obj.SimResultsFolderName);
+    ResultsDir = fullfile(obj.Session.RootDirectory,obj.SimResultsFolderName_new);
     MATResultFilePaths = cellfun(@(X) fullfile(ResultsDir,X), MATFileNames, 'UniformOutput', false);
 else
     MATResultFilePaths = {};
@@ -204,8 +204,17 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
         else
             ThisMarkerStyle = 'none';
         end
+        N = size(ThisResult.Data,2)/length(ThisResult.SpeciesNames);
+        MAX_LINES = min(200, N) ;
+        w0 = ThisResult.VpopWeights;
+        if isempty(w0)
+            w0 = ones(1, N);
+        end
+        w0 = reshape(w0./sum(w0),[],1); % renormalization
         
-        hThisTrace = plot(hSpeciesGroup{sIdx,axIdx},ThisResult.Time,ThisResult.Data(:,ColumnIdx),...
+        SampleIdx = ColumnIdx(discretesample( w0(w0>0), MAX_LINES));
+        
+        hThisTrace = plot(hSpeciesGroup{sIdx,axIdx},ThisResult.Time,ThisResult.Data(:,SampleIdx),...
             'Color',ThisColor,...
             'Tag','TraceLine',...
             'LineStyle',ThisLineStyle,...
@@ -223,12 +232,9 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
         %                 q75 = quantile(Results(resultIdx).Data(:,ColumnIdx),0.75,2);
         %                 q25 = quantile(Results(resultIdx).Data(:,ColumnIdx),0.25,2);
         
-        w0 = ThisResult.VpopWeights;
-        w0 = w0(w0>0); % filter out the zero weight simulations
-        if isempty(w0)
-            w0 = ones(1, size(ThisResult.Data,2)/length(ThisResult.SpeciesNames));
-        end
-        w0 = reshape(w0./sum(w0),[],1); % renormalization
+%         w0 = w0(w0>0); % filter out the zero weight simulations
+
+        
         
         %                 NT = size(Results(resultIdx).Data,1);
         %                 q50 = zeros(1,NT);
@@ -258,8 +264,8 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
         %                         'LineStyle',ThisLineStyle);
         %                     set(SE.patch,'FaceColor',SelectedItemColors(itemIdx,:));
         %                     set(SE.edge,'Color',SelectedItemColors(itemIdx,:),'LineWidth',2);
-        x = ThisResult.Data(:,ColumnIdx);
-        
+        x = ThisResult.Data(:,ColumnIdx); 
+        w0 = w0(w0>0);
         
         % NOTE: If hSpeciesGroup is not parented to an
         % axes, then this will pop up a new figure. Set to an
@@ -271,7 +277,7 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
         end
         
         quantileStyle = 'mean_std'; % 'quantile'
-        
+        hold(hThisParent,'on')
         SE = weightedQuantilePlot(ThisResult.Time, x, w0, ThisColor, ...
             'linestyle',ThisLineStyle,...
             'meanlinewidth',obj.PlotSettings(axIdx).MeanLineWidth,...
@@ -282,6 +288,10 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
             'style',quantileStyle ...
             ); % hSpeciesGroup{sIdx,axIdx});
         
+        if isempty(SE)
+            continue
+        end
+        
         if isa(SE, 'matlab.graphics.chart.primitive.ErrorBar')
             % error bar (one time point)
             set(SE, 'Parent',hSpeciesGroup{sIdx,axIdx});
@@ -290,10 +300,7 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
             set([SE.meanLine,SE.medianLine,SE.edge,SE.patch],'Parent',hSpeciesGroup{sIdx,axIdx});
         end
         
-        if isempty(SE)
-            continue
-        end
-        
+      
         if obj.bShowMean(axIdx)
             set(SE.meanLine,'Visible','on');
         else
