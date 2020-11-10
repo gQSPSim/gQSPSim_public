@@ -288,6 +288,10 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
             'style',quantileStyle ...
             ); % hSpeciesGroup{sIdx,axIdx});
         
+        if isempty(SE)
+            continue
+        end
+        
         if isa(SE, 'matlab.graphics.chart.primitive.ErrorBar')
             % error bar (one time point)
             set(SE, 'Parent',hSpeciesGroup{sIdx,axIdx});
@@ -296,10 +300,7 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
             set([SE.meanLine,SE.medianLine,SE.edge,SE.patch],'Parent',hSpeciesGroup{sIdx,axIdx});
         end
         
-        if isempty(SE)
-            continue
-        end
-        
+      
         if obj.bShowMean(axIdx)
             set(SE.meanLine,'Visible','on');
         else

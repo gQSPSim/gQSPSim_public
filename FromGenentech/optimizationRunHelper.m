@@ -499,7 +499,7 @@ end
 
 if SaveFlag
     VpopNames{end} = ['Results - Optimization = ' obj.Name ' - Date = ' timeStamp];
-    ResultsFileNames{end} = [VpopNames{end} '.xls'];
+    ResultsFileNames{end} = [VpopNames{end} '.xlsx'];
     try
         if ispc
             xlswrite(fullfile(SaveFilePath,ResultsFileNames{end}),Vpop);

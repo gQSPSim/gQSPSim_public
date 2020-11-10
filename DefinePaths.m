@@ -71,7 +71,7 @@ rootDirs={...
     
     };
 
-OutPaths = {};
+OutPaths = [ genpath(fullfile(RootPath,'app')), genpath(fullfile(RootPath,'utilities')), genpath(fullfile(RootPath,'FromGenentech')) ];
 
 %************ EDIT ABOVE %************
 

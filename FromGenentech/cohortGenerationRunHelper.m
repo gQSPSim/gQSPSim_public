@@ -275,9 +275,11 @@ if obj.Session.UseParallel
             
             % gQSPSim paths
             paths = DefinePaths(false,false);
-            paths = horzcat(paths{:});
-            paths = strsplit(paths,pathsep);
-            paths(cellfun(@isempty,paths)) = [];
+%             paths = horzcat(paths{:});
+            if ~isempty(paths)
+                paths = strsplit(paths,pathsep);
+                paths(cellfun(@isempty,paths)) = [];               
+            end
                             
             
             cohortGenPaths = obj.getDependencyPaths();

@@ -455,7 +455,7 @@ classdef CohortGeneration < uix.abstract.CardViewPane
                 scrollingPanel = uix.ScrollingPanel('Parent', h); %, 'Units', 'Normalized', 'Position', [0 0 1 1]); %,  'Units', 'pixels', 'Position', [0 0 1000 600]);
 %                 p0.Widths = -1;
 
-                vpopFile = fullfile(vObj.Data.FilePath, vObj.Data.VPopResultsFolderName, vObj.Data.ExcelResultFileName);                
+                vpopFile = fullfile(vObj.Data.FilePath, vObj.Data.VPopResultsFolderName_new, vObj.Data.ExcelResultFileName);                
                 try
                     Raw = readtable(vpopFile);
                     ParamNames = Raw.Properties.VariableNames;

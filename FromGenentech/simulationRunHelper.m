@@ -150,10 +150,12 @@ if ~isempty(ItemModels)
 
         % gQSPSim paths
         paths = DefinePaths(false,false);
-        paths = horzcat(paths{:});
-        paths = strsplit(paths,pathsep);
-        paths(cellfun(@isempty,paths)) = [];
-            
+%         paths = horzcat(paths{:});
+        if ~isempty(paths)
+            paths = strsplit(paths,pathsep);
+            paths(cellfun(@isempty,paths)) = [];
+        end
+        
         RootPath = { fullfile(fileparts(fileparts(mfilename('fullpath'))),'app'); fullfile(fileparts(fileparts(mfilename('fullpath'))),'FromGenentech'); ...
             fullfile(fileparts(fileparts(mfilename('fullpath'))),'utilities')};
         job = createJob(c, 'AttachedFiles', [taskObj.Session.UserDefinedFunctionsDirectory, paths, obj.Session.RootDirectory], 'AutoAddClientPath', false); %, 'Type', 'pool');

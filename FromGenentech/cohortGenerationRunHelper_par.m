@@ -3,6 +3,12 @@ function [StatusOK,Message,isValid,Vpop,Results,nPat,nSim, bCancelled]  = cohort
 
 StatusOK = true;
 Message = '';
+isValid = false;
+Vpop = [];
+nPat = 0;
+nSim = 0;
+Results = [];
+bCancelled = false;
 
 unqGroups = args.unqGroups;
 groupVec = args.groupVec;
@@ -38,12 +44,25 @@ end
 p = gcp('nocreate');
 if ~batchMode % don't create a pool when in batch mode
     if isempty(p) 
-        p = parpool(obj.Session.ParallelCluster, ...
-            'AttachedFiles', obj.Session.UserDefinedFunctionsDirectory);
-    elseif  ~strcmp(p.Cluster.Profile,obj.Session.ParallelCluster)
+        try
+            p = parpool(obj.Session.ParallelCluster, ...
+                'AttachedFiles', obj.Session.UserDefinedFunctionsDirectory);
+        catch ME
+            StatusOK = false;
+            Message = sprintf('Failed to start parallel pool.\n%s', ME.message);
+            return
+        end
+           
+    elseif ~strcmp(p.Cluster.Profile,obj.Session.ParallelCluster)
         delete(gcp('nocreate'))
-        p = parpool(obj.Session.ParallelCluster, ...
-         'AttachedFiles', obj.Session.UserDefinedFunctionsDirectory);
+        try
+            p = parpool(obj.Session.ParallelCluster, ...
+                'AttachedFiles', obj.Session.UserDefinedFunctionsDirectory);
+        catch ME
+            StatusOK = false;
+            Message = sprintf('Failed to start parallel pool.\n%s', ME.message);
+            return
+        end
     end
 % else
 %     tmp = mfilename('fullpath');
