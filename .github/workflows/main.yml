@@ -1,6 +1,6 @@
 name: Test gQSPSim
 
-on: [push]
+on: [push, workflow_dispatch]
 
 jobs:
   Setup-matlab:
