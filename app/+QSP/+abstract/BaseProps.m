@@ -343,6 +343,90 @@ classdef (Abstract) BaseProps < matlab.mixin.SetGet & matlab.mixin.Heterogeneous
             obj.RelativeFilePath_new = uix.utility.getRelativeFilePath(value, obj.SessionRoot, false);
         end
         
-    end
+    end %methods
+    
+    
+    %% API methods
+    methods
+        
+        function Remove(obj)
+            
+            FuncType = class(obj);
+            Type = regexprep(FuncType,'QSP\.','');
+            
+            % Get its parent container
+            if isprop(obj,'Settings') && isprop(obj.Settings,Type)
+                containerObj = obj.Settings;
+            elseif isprop(obj,'Session') && isprop(obj.Session,Type)
+                containerObj = obj.Session;
+            elseif isprop(obj,'Session') && isprop(obj.Session.Settings,Type)
+                containerObj = obj.Session.Settings;                
+            else
+                containerObj = [];
+            end
+            
+            % Delete
+            delete(obj)
+            
+            % Remove from its parent container
+            if ~isempty(containerObj)
+                containerObj.(Type)(~isvalid(containerObj.(Type))) = [];
+            end
+            
+        end %function
+        
+        function newObj = Replicate(obj)
+            
+            FuncType = class(obj);
+            ThisFcn = str2func(FuncType);
+            newObj = ThisFcn();
+            
+            % Copy
+            newObj = copy(obj,newObj);
+            updateLastSavedTime(newObj);
+            
+            Type = regexprep(FuncType,'QSP\.','');
+            
+            if isprop(obj,'Settings') && isprop(obj.Settings,Type)
+                AllNames = {obj.Settings.(Type).Name}; 
+            elseif isprop(obj,'Session') && isprop(obj.Session,Type)
+                AllNames = {obj.Session.(Type).Name};
+            elseif isprop(obj,'Session') && isprop(obj.Session.Settings,Type)
+                AllNames = {obj.Session.Settings.(Type).Name};
+            else
+                AllNames = {};
+            end
+            
+            if isprop(obj,'Session')
+                newObj.Session = obj.Session;
+            end
+            
+            if isprop(obj,'Settings')
+                newObj.Settings = obj.Settings;
+            end
+            
+            switch Type
+                case 'VirtualPopulationGenerationData'
+                    NewName = 'New Target Statistics';
+                case 'VirtualPopulationData'
+                    NewName = 'New Acceptance Criteria';
+                otherwise
+                    NewName = sprintf('New %s',Type);
+            end
+            
+            newObj.Name =  matlab.lang.makeUniqueStrings(NewName,AllNames);
+            
+            if isprop(obj,'Settings') && isprop(obj.Settings,Type)
+                obj.Settings.(Type)(end+1) = newObj;
+            elseif isprop(obj,'Session') && isprop(obj.Session,Type)
+                obj.Session.(Type)(end+1) = newObj;
+            elseif isprop(obj,'Session') && isprop(obj.Session.Settings,Type)
+                obj.Session.Settings.(Type)(end+1) = newObj;
+            else
+                warning('Could not add replicated object to Session or Settings');
+            end
+            
+        end %function
+    end %methods (API)
     
 end % classdef

@@ -247,6 +247,13 @@ for ii = 1:nItems
 
     % get the task obj from the settings obj
     tskInd = find(strcmp(obj.Item(ii).TaskName,{obj.Settings.Task.Name}));
+    if nnz(tskInd) ~= 1
+        StatusOK = false;
+        Message = 'Invalid task for optimization';
+        return
+    end
+    
+       
     tObj_i = obj.Settings.Task(tskInd);
     
     % Validate
@@ -294,6 +301,15 @@ switch obj.AlgorithmName
         
     case 'ParticleSwarm'
         N = size(estParamData,1);
+        
+        if license('test','GADS_Toolbox') == 0
+            StatusOK = false;
+            ThisMessage = 'The particle swarm method is not available. Please install the Global Optimization Toolbox in order to use the particle swarm method.';
+            Message = sprintf('%s\n%s\n',Message,ThisMessage);
+            path(myPath);
+            return
+        end
+        
         try
             StatusOK = true;
             LB = estParamData(:,1);

@@ -148,6 +148,7 @@ if ~isempty(ItemModels)
         UDF_files = dir(fullfile(taskObj.Session.UserDefinedFunctionsDirectory,'**','*.m'));
         UDF_files = arrayfun(@(x) fullfile(x.folder,x.name), UDF_files, 'UniformOutput', false);
 
+
         % gQSPSim paths
         paths = DefinePaths(false,false);
 %         paths = horzcat(paths{:});
@@ -158,8 +159,10 @@ if ~isempty(ItemModels)
         
         RootPath = { fullfile(fileparts(fileparts(mfilename('fullpath'))),'app'); fullfile(fileparts(fileparts(mfilename('fullpath'))),'FromGenentech'); ...
             fullfile(fileparts(fileparts(mfilename('fullpath'))),'utilities')};
-        job = createJob(c, 'AttachedFiles', [taskObj.Session.UserDefinedFunctionsDirectory, paths, obj.Session.RootDirectory], 'AutoAddClientPath', false); %, 'Type', 'pool');
+        job = createJob(c, 'AttachedFiles', [UDF_files; RootPath], 'AutoAddClientPath', false); %, 'Type', 'pool');
         
+    else
+        job = [];
     end
     
     for ii = runItems
@@ -508,8 +511,16 @@ function [ItemModel, StatusOK, Message] = constructVpopItem(taskObj, vpopObj, gr
 %             vpopTable = cell2mat(raw(2:end,:));
 %         end
         
-        [params, vpopTable, StatusOK, Message] = xlread(vpopObj.FilePath);
-        vpopTable = cell2mat(vpopTable);
+%         [params, vpopTable, StatusOK, Message] = xlread(vpopObj.FilePath);
+%         vpopTable = cell2mat(vpopTable);
+        
+        vpopTable = readtable(vpopObj.FilePath,'PreserveVariableNames',true);
+        params = vpopTable.Properties.VariableNames;
+        StatusOK = true;
+        Message = '';
+        vpopTable = table2array(vpopTable);
+        
+        
         if ~StatusOK
             return
         end

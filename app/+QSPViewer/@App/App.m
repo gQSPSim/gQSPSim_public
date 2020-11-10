@@ -223,7 +223,7 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
             set(obj.Figure,'Visible','on')       
             
             % check version
-            QSPViewer.App.checkForUpdates() % TODO reenable when repo is
+%             QSPViewer.App.checkForUpdates() % TODO reenable when repo is
 %             public
             
             

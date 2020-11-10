@@ -89,9 +89,13 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         ParameterValues
         ReactionNames
         RuleNames
-        OutputTimes
         DefaultOutputTimes
         DefaultMaxWallClockTime        
+    end
+    
+    %% Dependent Properties
+    properties(SetAccess=public,Dependent=true)
+        OutputTimes
     end
     
     %% Constructor
@@ -200,7 +204,7 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             
             [ThisStatusOk,ThisMessage] = importModel(obj,obj.FilePath,obj.ModelName);
             obj.MaxWallClockTime = ThisMaxWallClockTime; % override model defaults
-            if ~ThisStatusOk
+            if ~ThisStatusOk || isempty(obj.ModelObj) % NOTE: isempty(obj.ModelObj) check may need to be moved into importModel
                 Message = sprintf('%s\n* Error loading model "%s" in "%s". %s\n',Message,obj.ModelName,obj.FilePath,ThisMessage);
                 return
             end            
@@ -656,6 +660,70 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         end
     end
     
+    %% Methods (Private)
+    methods (Access=private)
+        
+        function [StatusOK,Message] = importModelWrapper(obj)
+            % Helper method used by API methods to retrieve model's
+            % activate variants, doses, and species
+            
+            StatusOK = true;
+            Message = '';
+            
+            % Initialize
+            obj.ActiveVariantNames = {};
+            obj.InactiveReactionNames = {};
+            obj.InactiveRuleNames = {};
+            
+            if exist(obj.FilePath,'file')==2
+                 [StatusOK,Message] = importModel(obj,obj.FilePath,obj.ModelName);
+                 if ~StatusOK
+                     return;
+                 end
+            
+                 if ~isempty(obj.ModelObj) && ~isempty(obj.ModelObj.mObj)
+                     % get active variant names
+                     allVariantNames = get(obj.ModelObj.mObj.Variants, 'Name');
+                     if isempty(allVariantNames)
+                         allVariantNames = {};
+                     end
+                     VariantsActiveBoolean = get(obj.ModelObj.mObj.Variants,'Active');
+                     if ~iscell(VariantsActiveBoolean)
+                         VariantsActiveBoolean = {VariantsActiveBoolean};
+                     end
+                     
+                     obj.ActiveVariantNames = allVariantNames(cell2mat(VariantsActiveBoolean));
+                     
+                     % get inactive reactions from the model
+                     allReactionNames = obj.ReactionNames;
+                     if isempty(allReactionNames)
+                         allReactionNames = {};
+                     end
+                     ReactionsActiveBoolean = get(obj.ModelObj.mObj.Reactions,'Active');
+                     if ~iscell(ReactionsActiveBoolean)
+                         ReactionsActiveBoolean = {ReactionsActiveBoolean};
+                     end
+                     
+                     obj.InactiveReactionNames = allReactionNames(~cell2mat(ReactionsActiveBoolean));
+                     
+                     % get inactive rules from model
+                     allRulesNames = obj.RuleNames;
+                     if isempty(allRulesNames)
+                         allRulesNames = {};
+                     end
+                     
+                     RulesActiveBoolean = get(obj.ModelObj.mObj.Rules,'Active');
+                     if ~iscell(RulesActiveBoolean)
+                         RulesActiveBoolean = {RulesActiveBoolean};
+                     end
+                     
+                     obj.InactiveRuleNames = allRulesNames(~cell2mat(RulesActiveBoolean));
+                 end
+            end
+        end %function
+        
+    end %methods (Access=private)
+    
     %% Get Methods
     methods
         
@@ -734,7 +802,11 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         end % get.ReactionNames
         
         function Value = get.OutputTimes(obj)
-            Value = eval(obj.OutputTimesStr);
+            if ~isempty(obj.OutputTimesStr)
+                Value = evalin('base',obj.OutputTimesStr);
+            else
+                Value = [];
+            end
             
 %            if ~isempty(obj.ModelObj)
 %                 Value = obj.ModelObj.OutputTimes;
@@ -743,6 +815,10 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
 %                 Value = [];
 %            end
         end % get.OutputTimes
+        
+        function set.OutputTimes(obj,Value)
+            obj.OutputTimesStr = mat2str(Value);            
+        end
         
         function Value = get.DefaultOutputTimes(obj)
             if ~isempty(obj.ModelObj)
@@ -819,5 +895,84 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         end % set.Resample
         
     end %methods
+    
+    
+     %% API methods
+     methods
+         function [StatusOK,Message] = SetProject(obj,RelativeFilePath)
+             
+             arguments
+                 obj (1,1) QSP.Task
+                 RelativeFilePath (1,:) char
+             end
+             
+             % Update the relative file path
+             obj.RelativeFilePath = RelativeFilePath;
+             
+             [StatusOK,Message] = importModelWrapper(obj);
+             if nargout < 2
+                 error(Message);
+             end
+             
+         end %function
+         
+         function [StatusOK,Message] = SetModel(obj,ModelName)
+             
+             arguments
+                 obj (1,1) QSP.Task
+                 ModelName (1,:) char
+             end
+             
+             % Update the model name
+             obj.ModelName = ModelName;
+             
+             [StatusOK,Message] = importModelWrapper(obj);
+             if nargout < 2
+                 error(Message);
+             end
+             
+         end %function
+         
+         function ActivateVariants(obj,Names)
+             arguments
+                 obj (1,1) QSP.Task
+                 Names (1,:)
+             end             
+             obj.ActiveVariantNames = cellstr(unique(Names,'stable'));
+         end %function
+         
+         function InactiveRules(obj,Names)
+             arguments
+                 obj (1,1) QSP.Task
+                 Names (1,:)
+             end
+             obj.InactiveRuleNames = cellstr(Names);
+         end %function
+         
+         function InactiveReactions(obj,Names)
+             arguments
+                 obj (1,1) QSP.Task
+                 Names (1,:)
+             end
+             obj.InactiveReactionNames = cellstr(Names);
+         end %function
+         
+         function AddDoses(obj,Names)
+             arguments
+                 obj (1,1) QSP.Task
+                 Names (1,:)
+             end
+             obj.ActiveDoseNames = cellstr(Names);
+         end %function
+         
+         function IncludeSpecies(obj,Names)
+             arguments
+                 obj (1,1) QSP.Task
+                 Names (1,:)
+             end
+             obj.ActiveSpeciesNames = cellstr(Names);
+         end %function         
+         
+     end %methods (API)
     
 end %classdef

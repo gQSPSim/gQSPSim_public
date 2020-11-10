@@ -361,6 +361,7 @@ if StatusOK && bProceed
 
     VpopHeader = [Names0; 'PWeight']';
 
+
    if strcmp(obj.SaveInvalid, 'Save valid virtual subjects')
         % filter out invalids
         Vpop = Vpop(isValid==1,:);
@@ -401,8 +402,6 @@ if StatusOK && bProceed
     end
     
 %     obj.SimFlag = repmat(isValid, nIC, 1);
-      
- 
     
     if SaveFlag
         VpopName = ['Results - Cohort Generation = ' obj.Name ' - Date = ' datestr(now,'dd-mmm-yyyy_HH-MM-SS')];

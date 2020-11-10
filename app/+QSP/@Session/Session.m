@@ -848,88 +848,138 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
        
         
     end %methods
+       
+    %% API methods - Helper
+    methods (Access=private)
+        function newObj = AddHelper(obj,FuncType,varargin)
+            ThisFcn = str2func(FuncType);
+            newObj = ThisFcn();
+            updateLastSavedTime(newObj);
+            
+            Type = regexprep(FuncType,'QSP\.','');
+            
+            if isprop(obj.Settings,Type)
+                AllNames = {obj.Settings.(Type).Name}; 
+            else
+                AllNames = {obj.(Type).Name};
+            end
+            
+            if isprop(newObj,'Session')
+                newObj.Session = obj;
+            end
+            
+            if isprop(newObj,'Settings')
+                newObj.Settings = obj.Settings;
+            end
+            
+            if nargin > 2
+                NewName = varargin{1};
+                if iscell(NewName)
+                    NewName = NewName{1};
+                end
+            else
+                switch Type
+                    case 'VirtualPopulationGenerationData'
+                        NewName = 'New Target Statistics';
+                    case 'VirtualPopulationData'
+                        NewName = 'New Acceptance Criteria';
+                    otherwise
+                        NewName = sprintf('New %s',Type);
+                end
+            end
+            
+            newObj.Name =  matlab.lang.makeUniqueStrings(NewName,AllNames);
+            
+            if isprop(obj.Settings,Type)
+                obj.Settings.(Type)(end+1) = newObj;
+            else
+                obj.(Type)(end+1) = newObj;
+            end
+        end %function
+    end %methods (private)
     
-    %% Utility Methods
-    methods
-        function sObj = getSimulationItem(obj, Name)
-            MatchIdx = strcmp(Name, {obj.Simulation.Name});
-            sObj = [];
-            if any(MatchIdx)
-                sObj = obj.Simulation(MatchIdx);
-            else
-                warning('Simulation %s not found in session', Name)
-            end
-        end
+    
+    %% API methods
+    methods 
+        function newObj = CreateTask(obj,varargin)
+            newObj = AddHelper(obj,'QSP.Task',varargin(:));
+        end %function
         
-        function sObj = getVPopItem(obj, Name)
-            MatchIdx = strcmp(Name, {obj.Settings.VirtualPopulation.Name});
-            sObj = [];
-            if any(MatchIdx)
-                sObj = obj.Settings.VirtualPopulation(MatchIdx);
-            else
-                warning('Virtual subjects %s not found in session', Name)
-            end
-        end        
+        function thisObj = GetTask(obj,Name)
+            thisObj = obj.Settings.Task(strcmp({obj.Settings.Task.Name},Name));
+        end %function
         
-        function sObj = getTaskItem(obj, Name)
-            MatchIdx = strcmp(Name, {obj.Settings.Task.Name});
-            sObj = [];
-            if any(MatchIdx)
-                sObj = obj.Settings.Task(MatchIdx);
-            else
-                warning('Task %s not found in session', Name)
-            end            
-        end
+        function newObj = CreateDataset(obj,varargin)
+            newObj = AddHelper(obj,'QSP.OptimizationData',varargin(:));
+        end %function
         
-        function mObj = getModelItem(obj, Name)
-            MatchIdx = strcmp(Name, {obj.Settings.Model.ModelName});
-            mObj = [];
-            if any(MatchIdx)
-                mObj = obj.Settings.Model(MatchIdx);
-            else
-                warning('Model %s not found in session', Name)
-            end            
-        end        
+        function thisObj = GetDataset(obj,Name)
+            thisObj = obj.Settings.OptimizationData(strcmp({obj.Settings.OptimizationData.Name},Name));
+        end %function
         
-            
-        function sObj = getACItem(obj, Name)
-            MatchIdx = strcmp(Name, {obj.Settings.VirtualPopulationData.Name});
-            sObj = [];
-            if any(MatchIdx)
-                sObj = obj.Settings.VirtualPopulationData(MatchIdx);
-            else
-                warning('Acceptance Criteria %s not found in session', Name)
-            end
-        end           
+        function newObj = CreateParameter(obj,varargin)
+            newObj = AddHelper(obj,'QSP.Parameters',varargin(:)); 
+        end %function
         
-        function sObj = getDataItem(obj, Name)
-            MatchIdx = strcmp(Name, {obj.Settings.OptimizationData.Name});
-            sObj = [];
-            if any(MatchIdx)
-                sObj = obj.Settings.OptimizationData(MatchIdx);
-            else
-                warning('Optimization Data %s not found in session', Name)
-            end            
-        end
+        function thisObj = GetParameter(obj,Name)
+            thisObj = obj.Settings.Parameters(strcmp({obj.Settings.Parameters.Name},Name));
+        end %function
         
-        function sObj = getParametersItem(obj, Name)
-            MatchIdx = strcmp(Name, {obj.Settings.Parameters.Name});
-            sObj = [];
-            if any(MatchIdx)
-                sObj = obj.Settings.Parameters(MatchIdx);
-            else
-                warning('Parameter %s not found in session', Name)
-            end            
-        end
-  
-        function relativePath = getTaskRelativePath(obj, taskName)
-            relativePath = '';
-            
-            idx = strcmp({obj.Settings.Task.Name}, taskName);
-            if any(idx)
-                relativePath = obj.Settings.Task(idx).ModelObj.RelativeFilePath_new;
-            end
-        end         
+        function newObj = CreateOptimization(obj,varargin)
+            newObj = AddHelper(obj,'QSP.Optimization',varargin(:));
+        end %function
+        
+        function thisObj = GetOptimization(obj,Name)
+            thisObj = obj.Optimization(strcmp({obj.Optimization.Name},Name));
+        end %function
+        
+        function newObj = CreateAcceptanceCriteria(obj,varargin)
+            newObj = AddHelper(obj,'QSP.VirtualPopulationData',varargin(:));
+        end %function
+        
+        function thisObj = GetAcceptanceCriteria(obj,Name)
+            thisObj = obj.VirtualPopulationData(strcmp({obj.VirtualPopulationData.Name},Name));
+        end %function
+        
+        function newObj = CreateVirtualSubjects(obj,varargin)
+            newObj = AddHelper(obj,'QSP.VirtualPopulation',varargin(:));
+        end %function
+        
+        function thisObj = GetVirtualSubjects(obj,Name)
+            thisObj = obj.Settings.VirtualPopulation(strcmp({obj.Settings.VirtualPopulation.Name},Name));
+        end %function
+        
+        function newObj = CreateVCohortGen(obj,varargin)
+            newObj = AddHelper(obj,'QSP.CohortGeneration',varargin(:));
+        end %function
+        
+        function thisObj = GetCohortGeneration(obj,Name)
+            thisObj = obj.CohortGeneration(strcmp({obj.CohortGeneration.Name},Name));
+        end %function
+        
+        function newObj = CreateTargetStatistics(obj,varargin)
+            newObj = AddHelper(obj,'QSP.VirtualPopulationGenerationData',varargin(:));        
+        end %function
+        
+        function thisObj = GetTargetStatistics(obj,Name)
+            thisObj = obj.Settings.VirtualPopulationGenerationData(strcmp({obj.Settings.VirtualPopulationGenerationData.Name},Name));
+        end %function
+        
+        function newObj = CreateSimulation(obj,varargin)
+            newObj = AddHelper(obj,'QSP.Simulation',varargin(:));
+        end %function
+        
+        function thisObj = GetSimulation(obj,Name)
+            thisObj = obj.Simulation(strcmp({obj.Simulation.Name},Name));
+        end %function
+        
+        function newObj = CreateVPopGen(obj,varargin)
+            newObj = AddHelper(obj,'QSP.VirtualPopulationGeneration',varargin(:));
+        end %function
+        
+        function thisObj = GetVirtualPopulationGeneration(obj,Name)
+            thisObj = obj.VirtualPopulationGeneration(strcmp({obj.VirtualPopulationGeneration.Name},Name));
+        end %function
     end
-    
+
 end %classdef

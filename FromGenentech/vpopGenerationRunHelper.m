@@ -118,19 +118,26 @@ for ii = 1:nItems
     set(hWbar2, 'Name', sprintf('Simulating task %d of %d',ii,nItems))
     uix.utility.CustomWaitbar(0,hWbar2,'');
     nPatients = size(Values,1);
+    FailedVpatIdx = [];
+    ThisTaskMessage = '';
     for vpatIdx = 1:nPatients
-            StatusOK = uix.utility.CustomWaitbar(vpatIdx/nPatients, hWbar2, sprintf('Simulating vpatient %d/%d', vpatIdx, nPatients));
-
-         % update wait bar
-            if ~StatusOK
-                Cancelled=true;
-                break
-            end
+        StatusOK = uix.utility.CustomWaitbar(vpatIdx/nPatients, hWbar2, sprintf('Simulating vpatient %d/%d', vpatIdx, nPatients));
         
-        simData = taskObj.simulate(...
-                    'Names', Names, ...
-                    'Values', Values(vpatIdx,:), ...
-                    'OutputTimes', unqTime);
+        % update wait bar
+        if ~StatusOK
+            Cancelled=true;
+            break
+        end
+        
+        [simData,ThisStatusOk,ThisTaskMessage] = taskObj.simulate(...
+            'Names', Names, ...
+            'Values', Values(vpatIdx,:), ...
+            'OutputTimes', unqTime);
+        if ~ThisStatusOk
+            FailedVpatIdx = [FailedVpatIdx vpatIdx]; %#ok<AGROW>
+            continue;
+        end
+                
         thisData = zeros(length(unqTime), length(obj.SpeciesData)); % temporary object for transforming data for relevant species
         for idxSpecies = 1:length(obj.SpeciesData)
             thisData(:,idxSpecies) = obj.SpeciesData(idxSpecies).evaluate(...
@@ -138,6 +145,14 @@ for ii = 1:nItems
         end 
         vpatData{ii}(:,:,vpatIdx) = thisData;
     end
+    
+    if ~isempty(FailedVpatIdx)
+        ThisMessage = sprintf('Task simulation failed for virtual patients:\n%s\nPossible cause due to %s',strjoin(string(FailedVpatIdx),','),ThisTaskMessage);
+        Message = sprintf('%s\n%s\n',Message,ThisMessage);
+        return;
+    end
+    
+    
     if Cancelled
         break
     end
