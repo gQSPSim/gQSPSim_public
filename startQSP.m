@@ -1,0 +1,2 @@
+DefinePaths(false);
+QSPapp;
