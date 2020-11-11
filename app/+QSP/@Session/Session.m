@@ -980,6 +980,17 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         function thisObj = GetVirtualPopulationGeneration(obj,Name)
             thisObj = obj.VirtualPopulationGeneration(strcmp({obj.VirtualPopulationGeneration.Name},Name));
         end %function
+        
+        function thisObj = GetModelItem(obj, Name)
+            MatchIdx = strcmp(Name, {obj.Settings.Model.ModelName});
+            thisObj = [];
+            if any(MatchIdx)
+                thisObj = obj.Settings.Model(MatchIdx);
+            else
+                warning('Model %s not found in session', Name)
+            end
+        end
+        
     end
 
 end %classdef

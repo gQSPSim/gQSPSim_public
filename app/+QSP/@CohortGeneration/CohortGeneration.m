@@ -716,19 +716,19 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             files = {};
             for idxItem = 1:length(obj.Item)
 
-                % get model files
-                taskObj = obj.Session.getTaskItem(obj.Item(idxItem).TaskName );
-                mObj = obj.Session.getModelItem(taskObj.ModelName);
+                % get model files                
+                taskObj = obj.Session.GetTask(obj.Item(idxItem).TaskName);
+                mObj = obj.Session.GetModelItem(taskObj.ModelName);                
                 files = [files; mObj.FilePath];               
             end
             files = unique(files);
             
             % get acceptance criteria
-            acObj = obj.Session.getACItem(obj.DatasetName);
+            acObj = obj.Session.CreateAcceptanceCriteria(obj.DatasetName);
             files = [files; acObj.FilePath];
             
             % parameters
-            pObj = obj.Session.getParametersItem(obj.RefParamName);
+            pObj = obj.Session.GetParameter(obj.RefParamName);
             files = [files; pObj.FilePath];
 
         end
