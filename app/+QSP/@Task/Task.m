@@ -907,7 +907,7 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
              end
              
              % Update the relative file path
-             obj.RelativeFilePath = RelativeFilePath;
+             obj.RelativeFilePath_new = RelativeFilePath;
              
              [StatusOK,Message] = importModelWrapper(obj);
              if nargout < 2
