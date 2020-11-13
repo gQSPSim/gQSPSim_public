@@ -6,8 +6,7 @@ StatusOK = true;
 % generate the virtual patients    
 hWbar = uix.utility.CustomWaitbar(0,'Virtual cohort generation','Generating virtual cohort...',true);
 
-[Vpop, isValid, Results, ViolationTable, nPat, nSim, bCancelled] = cohortGenWhileBlock(obj, args, hWbar, [], []);
-
+[Vpop, isValid, Results, ViolationTable, nPat, nSim, bCancelled, Message] = cohortGenWhileBlock(obj, args, hWbar, [], []);
 
 if ~isempty(hWbar) && ishandle(hWbar)
     delete(hWbar)
