@@ -609,7 +609,7 @@ classdef ViewPane < handle
             if obj.checkDirty()
                 Options = {'Save','Don''t Save','Cancel'};
                 selection = uiconfirm(obj.getUIFigure,...
-                'Changes Have not been saved. How would you like to continue?',...
+                'Changes have not been saved. How would you like to continue?',...
                    'Continue?','Options',Options,'DefaultOption',3);
             else
                 selection = 'Don''t Save';
@@ -838,6 +838,7 @@ classdef ViewPane < handle
                         obj.EditButton.Enable = 'off';
                         if obj.HasVisualization
                             obj.toggleButtonsInteraction({'on','on','on','on','on','off','off','off','off'});
+                            %obj.toggleButtonsInteraction({'off','off','off','off','off','off','off','off','off'});
                         end
                     end
                 case 'Run'

@@ -190,7 +190,12 @@ classdef AddRemoveTable < handle
         end
         
         function setFormat(obj,input)
-             obj.TableMain.ColumnFormat = input;
+            % input cannot have empty matrices. If any entry of input is empty then 
+            % don't set the format. 
+            skip_TF = cellfun(@(x)isempty(x), input);
+            if ~any(skip_TF)
+                obj.TableMain.ColumnFormat = input;
+            end
         end
         
         function setName(obj,input)
