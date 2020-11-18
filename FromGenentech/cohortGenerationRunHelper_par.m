@@ -85,7 +85,11 @@ end
 % q = parallel.pool.DataQueue;
 q_vp = parallel.pool.DataQueue;
 
-hWbar = uix.utility.CustomWaitbar(0,'Virtual cohort generation','Generating virtual cohort...',true);
+if obj.Session.ShowProgressBars
+    hWbar = uix.utility.CustomWaitbar(0,'Virtual cohort generation','Generating virtual cohort...',true);
+end
+
+
 Results_all = cell(1,length(unqGroups));
 for ixGrp = 1:length(unqGroups)
     Results_all{ixGrp}.Data = [];
@@ -178,8 +182,9 @@ fprintf('Generated %d vpatients (%d valid)\n', allSim, allPat)
 warning(orig_state);
 
 % [Vpop, isValid, Results, ViolationTable, nPat, nSim, bCancelled] = fetchOutputs(F, 'UniformOutput', false);
-
-delete(hWbar)
+if obj.Session.ShowProgressBars
+    delete(hWbar)
+end
 
 % reconstruct results from the data passed over the data queue if in batch
 % mode

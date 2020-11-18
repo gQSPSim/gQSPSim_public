@@ -274,7 +274,7 @@ while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients % && gop(@plu
         break
     end
     
-    if ~isempty(hWbar)
+    if obj.Session.ShowProgressBars && ~isempty(hWbar)
         waitStatus = uix.utility.CustomWaitbar(nPat/obj.MaxNumVirtualPatients,hWbar,sprintf('Succesfully generated %d/%d vpatients. (%d/%d Failed)',  ...
             nPat, obj.MaxNumVirtualPatients, nSim-nPat, nSim ));
     end

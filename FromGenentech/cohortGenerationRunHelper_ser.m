@@ -4,12 +4,16 @@ Message = '';
 StatusOK = true;
     
 % generate the virtual patients    
-hWbar = uix.utility.CustomWaitbar(0,'Virtual cohort generation','Generating virtual cohort...',true);
+if obj.Session.ShowProgressBars
+    hWbar = uix.utility.CustomWaitbar(0,'Virtual cohort generation','Generating virtual cohort...',true);
+else
+    hWbar = [];
+end
 
 [Vpop, isValid, Results, ViolationTable, nPat, nSim, bCancelled, StatusOK, Message] = cohortGenWhileBlock(obj, args, hWbar, [], []);
 
 
-if ~isempty(hWbar) && ishandle(hWbar)
+if obj.Session.ShowProgressBars && ~isempty(hWbar) && ishandle(hWbar)
     delete(hWbar)
 end
 % in case nPat is less than the maximum number of virtual patients...
