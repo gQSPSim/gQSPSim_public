@@ -197,6 +197,10 @@ for ii = 1:nItems
     
     % get the task obj from the settings obj
     tskInd = find(strcmp(obj.Item(ii).TaskName,{obj.Settings.Task.Name}));
+    if length(tskInd) ~= 1
+        error('Wrong number of task objects found')
+    end
+    
     tObj_i = obj.Settings.Task(tskInd);
     
     % Validate
@@ -351,8 +355,11 @@ end
 
 % StatusOK = all([StatusOK{:}]);
 
-if StatusOK && bProceed
-    hWbar = uix.utility.CustomWaitbar(0,'Saving virtual cohort','Saving virtual cohort...',true);
+if StatusOK && bProceed 
+    
+    if obj.Session.ShowProgressBars
+        hWbar = uix.utility.CustomWaitbar(0,'Saving virtual cohort','Saving virtual cohort...',true);
+    end
 
     SaveFlag = true;
     % add prevalence weight
@@ -439,8 +446,10 @@ if StatusOK && bProceed
         ThisMessage = 'Could not save the output of virtual cohort generation.';
         Message = sprintf('%s\n%s\n',Message,ThisMessage);
     end
-        
-    delete(hWbar)
+
+    if obj.Session.ShowProgressBars
+        delete(hWbar)
+    end
 end
 
 % restore path

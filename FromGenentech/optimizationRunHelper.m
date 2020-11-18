@@ -15,7 +15,9 @@ end
 % Initialize waitbar
 Title = sprintf('Run Optimization');
 DialogMessage = sprintf('Optimization in progress. Please wait...');
-hDlg = warndlg(DialogMessage,Title,'modal');
+if obj.Session.ShowProgressBars
+    hDlg = warndlg(DialogMessage,Title,'modal');
+end
 
 StatusOK = true;
 Message = '';
@@ -749,7 +751,7 @@ end
 path(myPath);
 
 % close dialog
-if ~isempty(hDlg) && ishandle(hDlg)
+if obj.Session.ShowProgressBars && ~isempty(hDlg) && ishandle(hDlg)
     delete(hDlg);
 end
 

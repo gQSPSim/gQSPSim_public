@@ -50,6 +50,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         UseParallel = false
         ParallelCluster
         UseAutoSaveTimer = false
+        ShowProgressBars = true % set false for CLI, testing
         
         RelativeResultsPathParts = {}
         RelativeUserDefinedFunctionsPathParts = {}

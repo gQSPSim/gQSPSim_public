@@ -43,7 +43,7 @@ function [Results, nFailedSims, StatusOK, Message, Cancelled] = simulateVPatient
     nComplete = 0;
     function updateWaitBar(data)
         nComplete = nComplete+1;
-        if ~isempty(options.WaitBar)
+        if options.ShowProgressBars && ~isempty(options.WaitBar)
             StatusOK = uix.utility.CustomWaitbar(nComplete/ItemModel.nPatients, options.WaitBar, sprintf('Simulating vpatient %d/%d', nComplete, ItemModel.nPatients));
             if ~StatusOK
                 cancel(F);
@@ -77,7 +77,7 @@ function [Results, nFailedSims, StatusOK, Message, Cancelled] = simulateVPatient
                     Results.Data(:, NS*(jj-1) + (1:NS)) = thisResult;
                 end
 
-                if ~isempty(options.WaitBar)
+                if options.ShowProgressBars && ~isempty(options.WaitBar)
                     StatusOK = uix.utility.CustomWaitbar(jj/ItemModel.nPatients, options.WaitBar, sprintf('Simulating vpatient %d/%d', jj, ItemModel.nPatients));
                 end
                 if ~StatusOK
@@ -108,7 +108,7 @@ function [Results, nFailedSims, StatusOK, Message, Cancelled] = simulateVPatient
                 [Results.Data, nFailedSims] = fetchOutputs(F);
             catch err
                 Message = err.message;
-                Cancelled = ~isvalid(options.WaitBar);                
+                Cancelled = options.ShowProgressBars && ~isvalid(options.WaitBar);                
                 StatusOK = false;
                 return
             end
@@ -120,7 +120,7 @@ function [Results, nFailedSims, StatusOK, Message, Cancelled] = simulateVPatient
             
     end % if
    
-    Cancelled = ~isvalid(options.WaitBar);
+    Cancelled = options.ShowProgressBars && ~isvalid(options.WaitBar);
 end
 
 
