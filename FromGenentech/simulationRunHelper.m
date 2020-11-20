@@ -511,20 +511,21 @@ function [ItemModel, StatusOK, Message] = constructVpopItem(taskObj, vpopObj, gr
 %             vpopTable = cell2mat(raw(2:end,:));
 %         end
         
-%         [params, vpopTable, StatusOK, Message] = xlread(vpopObj.FilePath);
-%         vpopTable = cell2mat(vpopTable);
-        
-        vpopTable = readtable(vpopObj.FilePath,'PreserveVariableNames',true);
-        params = vpopTable.Properties.VariableNames;
+
         StatusOK = true;
         Message = '';
-        vpopTable = table2array(vpopTable);
-        
+        if verLessThan('matlab', '9.8')
+            [params, vpopTable, StatusOK, Message] = xlread(vpopObj.FilePath);
+            vpopTable = cell2mat(vpopTable);
+        else
+            vpopTable = readtable(vpopObj.FilePath,'PreserveVariableNames',true);
+            params = vpopTable.Properties.VariableNames;
+            vpopTable = table2array(vpopTable);
+        end
         
         if ~StatusOK
             return
         end
-        
         
 %         params = params(1,:);
 %         T = readtable(vpopObj.FilePath);
