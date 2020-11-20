@@ -166,15 +166,14 @@ classdef VirtualPopulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             
             % Load from file
             try
-                Table = readtable(DataFilePath,'PreserveVariableNames',true);
-                Header = Table.Properties.VariableNames;
-                StatusOK = true;
-                Message = '';
-                Data = table2array(Table);
-                
-                % WAS:
-%                  [Header,Data,StatusOk,Message] = xlread(DataFilePath);
-%                  Data = cell2mat(Data);                
+                if verLessThan('matlab', '9.8')
+                    [Header,Data,StatusOk,Message] = xlread(DataFilePath);
+                    Data = cell2mat(Data);
+                else
+                    Table = readtable(DataFilePath,'PreserveVariableNames',true);
+                    Data = table2array(Table);
+                    Header = Table.Properties.VariableNames;
+                end
             catch ME
                  Raw = {};
                  StatusOk = false;

@@ -205,7 +205,7 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
             ThisMarkerStyle = 'none';
         end
         N = size(ThisResult.Data,2)/length(ThisResult.SpeciesNames);
-        MAX_LINES = min(200, N) ;
+        MAX_LINES = min(obj.MaxTracesToDisplay, N) ;
         w0 = ThisResult.VpopWeights;
         if isempty(w0)
             w0 = ones(1, N);
