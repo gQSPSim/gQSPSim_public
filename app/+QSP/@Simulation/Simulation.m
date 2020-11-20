@@ -46,6 +46,8 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         SimResultsFolderPath = {'SimResults'}
         SimResultsFolderName = ''
         
+        MaxTracesToDisplay = 200
+        
     end
       
     properties (Dependent)

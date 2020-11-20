@@ -875,6 +875,7 @@ classdef CohortGeneration < uix.abstract.CardViewPane
             
         end
         
+       
     end
     
     

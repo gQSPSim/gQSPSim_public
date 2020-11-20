@@ -57,6 +57,14 @@ if ~isempty(vObj.Data)
     vObj.Data.bShowSD = vObj.bShowSD;
 end
 
+
+%% Set max num traces to display
+
+if ~isempty(vObj.Data)
+    set(vObj.h.MaxTracesEdit,'Value',vObj.Data.MaxTracesToDisplay);
+end
+
+
 %% Update table contextmenus
 
 hFigure = ancestor(vObj.UIContainer,'figure');

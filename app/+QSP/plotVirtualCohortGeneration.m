@@ -397,14 +397,10 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
                 continue
             end
             
-            % LIMIT NUMBER OF LINES PLOTTED
-            MAX_LINES = 200;
-                
-            
             % invalid lines
             if ~isempty(ColumnIdx_invalid)
                 nInvalid = length(ColumnIdx_invalid);
-                ixSample = discretesample(ones(size(ColumnIdx_invalid))/length(ColumnIdx_invalid), min(nInvalid,MAX_LINES));
+                ixSample = discretesample(ones(size(ColumnIdx_invalid))/length(ColumnIdx_invalid), min(nInvalid,obj.MaxTracesToDisplay));
                 ColumnIdx_invalid_sample = ColumnIdx_invalid(ixSample);               
                 % Plot
                 hThis = plot(hSpeciesGroup{sIdx,axIdx},Results{itemIdx}.Time,thisData(:,ColumnIdx_invalid_sample),...
@@ -438,7 +434,7 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
                     % Cohort
                     ValidIdx = setdiff(ColumnIdx, ColumnIdx_invalid);
                     nValid = length(ValidIdx);
-                    sampleIdx = discretesample(ones(size(ValidIdx))/length(ValidIdx), min(nValid,MAX_LINES));
+                    sampleIdx = discretesample(ones(size(ValidIdx))/length(ValidIdx), min(nValid,obj.MaxTracesToDisplay));
                     ValidIdx = ValidIdx(sampleIdx);
                                         
                     x = thisData(:,ValidIdx);
@@ -447,7 +443,7 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
                     % VP
                     ValidIdx = ColumnIdx;
                     nValid = length(ValidIdx);
-                    sampleIdx = discretesample(ones(size(ValidIdx))/length(ValidIdx), min(nValid,MAX_LINES));
+                    sampleIdx = discretesample(ones(size(ValidIdx))/length(ValidIdx), min(nValid,obj.MaxTracesToDisplay));
                     ValidIdx = ValidIdx(sampleIdx);
                     
                     x = thisData(:,ValidIdx);

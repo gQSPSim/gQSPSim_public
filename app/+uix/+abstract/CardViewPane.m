@@ -1134,6 +1134,46 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
             
         end %function
         
+        function onMaxTracesEdit(obj,h,e)
+            
+            NewValue = str2double(get(h,'Value'));
+            
+            % Return if value has not changed
+            if NewValue == obj.Data.MaxTracesToDisplay
+                return;
+            end
+            
+            if ~isnan(NewValue) && NewValue >= 1 && NewValue <= 200
+                    
+                % Assign value
+                obj.Data.MaxTracesToDisplay = NewValue;
+                
+                % Re-plot
+                obj.plotData();
+                
+                % Mark Dirty
+                notify(obj,'MarkDirty');
+                        
+            elseif NewValue >= 200
+                Prompt = sprintf('Plotting may take a while. Are you sure you want to continue with displaying %d traces?',NewValue);
+                Result = questdlg(Prompt,'Large number of traces to display','Continue','Cancel','Cancel');
+                if strcmpi(Result,'Continue')
+                    % Assign value
+                    obj.Data.MaxTracesToDisplay = NewValue;
+                    
+                    % Re-plot
+                    obj.plotData();
+                    
+                    % Mark Dirty
+                    notify(obj,'MarkDirty');
+                end
+            end %if
+            
+            % Update the view
+            updateVisualizationView(obj);
+            
+        end %function
+        
         function refresh(obj)
             
             %%% Update TempData

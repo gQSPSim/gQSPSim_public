@@ -66,6 +66,8 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         ShowInvalidVirtualPatients = true
         
         PlotSettings = repmat(struct(),1,12)
+        
+        MaxTracesToDisplay = 200
     end
     
     properties (SetAccess = 'private')
