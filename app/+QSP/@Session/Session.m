@@ -101,6 +101,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         Optimization = QSP.Optimization.empty(1,0)
         VirtualPopulationGeneration = QSP.VirtualPopulationGeneration.empty(1,0)
         CohortGeneration = QSP.CohortGeneration.empty(1,0)
+        GlobalSensitivityAnalysis = QSP.GlobalSensitivityAnalysis.empty(1,0)
         Deleted = QSP.abstract.BaseProps.empty(1,0)
     end
     
@@ -409,6 +410,18 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
                     end
                 end
                 
+                newObj.GlobalSensitivityAnalysis = obj.GlobalSensitivityAnalysis;
+                for idxGSA = 1:length(newObj.GlobalSensitivityAnalysis)
+                    if ~isempty(newObj.GlobalSensitivityAnalysis(idxGSA).ResultsFolderName)
+                        if ispc
+                            newPath = strrep(newObj.GlobalSensitivityAnalysis(idxGSA).ResultsFolderName, '/', '\');
+                        else
+                            newPath = strrep(newObj.GlobalSensitivityAnalysis(idxGSA).ResultsFolderName, '\', '/');
+                        end
+                        newObj.CohortGeneration(idxGSA).ResultsFolderName_new = newPath;
+                    end
+                end
+                
                 newObj.Deleted = obj.Deleted;
                 
                 for idx = 1:numel(obj.Settings.Task)
@@ -456,6 +469,12 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
 %                     newObj.CohortGeneration(idx) = copy(obj.CohortGeneration(idx));
                     newObj.CohortGeneration(idx).Session = newObj;
                     newObj.CohortGeneration(idx).Settings = sObj;
+                end
+                
+                for idx = 1:numel(obj.GlobalSensitivityAnalysis)
+%                     newObj.CohortGeneration(idx) = copy(obj.CohortGeneration(idx));
+                    newObj.GlobalSensitivityAnalysis(idx).Session = newObj;
+                    newObj.GlobalSensitivityAnalysis(idx).Settings = sObj;
                 end
              
                 % TODO:

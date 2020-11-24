@@ -475,17 +475,10 @@ classdef ApplicationUI < matlab.apps.AppBase
                         Data.TreeNode = hNode; %Store node in the object for cross-ref
                         
                     case 'QSP.VirtualPopulationGenerationData'
-
                         hNode = app.createNode(parent, Data, Data.Name, QSPViewerNew.Resources.LoadResourcePath('target_stats.png'),...
                             'Target Statistics', [], '');
                         Data.TreeNode = hNode; %Store node in the object for cross-ref
                         
-                    case 'QSP.GlobalSensitivityAnalysis'
-                        
-                        hNode = app.createNode(parent, Data, Data.Name, QSPViewerNew.Resources.LoadResourcePath('sensitivity.png'),...
-                            'Global Sensitivity Analysis', [], '');
-                        Data.TreeNode = hNode; %Store node in the object for cross-ref                        
-
                     otherwise
                         
                         % Skip this node
@@ -514,7 +507,6 @@ classdef ApplicationUI < matlab.apps.AppBase
                 'Optimization',                     'Optimization'
                 'Cohort Generation',                'CohortGeneration'
                 'Virtual Population Generation',    'VirtualPopulationGeneration'
-                'Global Sensitivity Analysis',      'GlobalSensitivityAnalysis'
                 };
             Index = find(strcmpi(Type,ItemTypes(:,1)));
             
@@ -821,8 +813,7 @@ classdef ApplicationUI < matlab.apps.AppBase
             % What tree branch does this go under?
             ChildNodes = ParentObj.TreeNode.Children;
             ChildTypes = {ChildNodes.UserData};
-            if any(strcmpi(itemType,{'Simulation','Optimization','CohortGeneration',...
-                    'VirtualPopulationGeneration','GlobalSensitivityAnalysis'}))
+            if any(strcmpi(itemType,{'Simulation','Optimization','CohortGeneration','VirtualPopulationGeneration'}))
                 ThisChildNode = ChildNodes(strcmpi(ChildTypes,'Functionalities'));
                 ChildNodes = ThisChildNode.Children;
                 ChildTypes = {ChildNodes.UserData};
@@ -1525,10 +1516,6 @@ classdef ApplicationUI < matlab.apps.AppBase
                 case 'QSP.VirtualPopulationGenerationData'
                     app.ActivePane = QSPViewerNew.Application.VirtualPopulationGenerationDataPane(classInputs);
                     app.ActivePane.attachNewVirtPopGenData(nodeData);
-                case 'QSP.GlobalSensitivityAnalysis'
-                    app.ActivePane = QSPViewerNew.Application.GlobalSensitivityAnalysisPane(classInputs);
-                    app.ActivePane.attachNewGlobalSensitivityAnalysis(nodeData);                    
-                    
             end
             if ~isempty(app.ActivePane)
                 %Now take the pane and display it.
@@ -1570,8 +1557,6 @@ classdef ApplicationUI < matlab.apps.AppBase
                     app.ActivePane.attachNewSimulation(nodeData);
                 case 'QSPViewerNew.Application.CohortGenerationPane'
                     app.ActivePane.attachNewCohortGeneration(nodeData);
-                case 'QSPViewerNew.Application.GlobalSensitivityAnalysisPane'
-                    app.ActivePane.attachNewGlobalSensitivityAnalysis(nodeData);
             end
             
             app.ActivePane.showThisPane();
@@ -1632,8 +1617,6 @@ classdef ApplicationUI < matlab.apps.AppBase
                     tree.NodeData.Session = app.Sessions(app.SelectedSessionIdx);
                 case 'VirtualPopulationGeneration'
                     tree.NodeData.Session = app.Sessions(app.SelectedSessionIdx);
-                case 'GlobalSensitivityAnalysis'
-                    tree.NodeData.Session = app.Sessions(app.SelectedSessionIdx);                    
             end 
         end
         
@@ -1875,8 +1858,6 @@ classdef ApplicationUI < matlab.apps.AppBase
                     PaneClass = 'QSPViewerNew.Application.VirtualPopulationGenerationPane';
                 case 'QSP.VirtualPopulationGenerationData'
                     PaneClass = 'QSPViewerNew.Application.VirtualPopulationGenerationDataPane';
-                case 'QSP.GlobalSensitivityAnalysis'
-                    PaneClass = 'QSPViewerNew.Application.GlobalSensitivityAnalysisPane';
             end
        end
        
