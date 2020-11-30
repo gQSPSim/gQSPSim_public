@@ -4,7 +4,7 @@ function [hLines,hLegend,hLegendChildren] = plotSobolIndices(obj,hAxes,mode)
 % Abstract: This plots the Sobol indices of a global sensitivity analysis.
 %
 % Syntax:
-%           plotSobolIndices(aObj,hAxes)
+%           plotSobolIndices(Obj,hAxes)
 %
 % Inputs:
 %           obj - QSP.GlobalSensitivityAnalysis object
@@ -52,110 +52,186 @@ function [hLines,hLegend,hLegendChildren] = plotSobolIndices(obj,hAxes,mode)
         hold(hAxes(index),'on')        
     end
 
-    hLines = cell(size(obj.PlotFirstOrderInfo,1),2);
+    hLines = cell(1,2);
     hLegend = [];
     hLegendChildren = [];
     maxXLim = zeros(1,numAxes);
+    axContainsVariancePlot = false(1,numAxes);
 
     [statusOk, message, inputs] = obj.getParameterInfo();
     
-    barInfo = cell(numAxes,2);
+    barInfo = cell(numAxes,1);
     meanStatistics = cell(numAxes, numel(obj.PlotInputs)*numel(obj.PlotOutputs));
     
-    markerSize = 0.1;
-    
     %% Plot Simulation Items
-    numItems = numel(obj.Item);
-    for itemIdx = 1:numItems
+
+    for tableIdx = 1:numel(obj.PlotSobolIndex)
         
-        if ~obj.Item(itemIdx).Include 
+        if ~any([obj.Item.Include])
             continue;
         end
         
-        task = obj.getObjectsByName(obj.Settings.Task, obj.Item(itemIdx).TaskName);
-        outputs = task.ActiveSpeciesNames;
-            
-        for inputIdx = 1:numel(inputs)
-            for outputIdx = 1:numel(outputs)
-                                
-                [~, plotOutputIdx] = ismember(outputs{outputIdx}, obj.PlotOutputs);
-                [~, plotInputIdx]  = ismember(inputs{inputIdx}, obj.PlotInputs);
-                idx = obj.getInputOutputIndex(plotInputIdx,plotOutputIdx,numel(obj.PlotInputs));
-                
-                alphaValues = linspace(0.4, 1, numel(obj.Item(itemIdx).Results));
-                
-                axIdx = str2double(obj.PlotFirstOrderInfo{idx,1});
-                if isnan(axIdx)
-                elseif mode == 1
-                    for i = 1:numel(alphaValues)
-                        hLine = plot(hAxes(axIdx), obj.Item(itemIdx).Results(i).Time, ...
-                            obj.Item(itemIdx).Results(i).SobolIndices(inputIdx,outputIdx).FirstOrder, ...
-                            'Color', [obj.Item(itemIdx).Color, alphaValues(i)], 'LineStyle', obj.PlotFirstOrderInfo{idx,2}); 
-                    end
-                    maxXLim(axIdx) = max(maxXLim(axIdx), max(eval(task.OutputTimesStr)));
-                else
-                    xIdx = find(idx == barInfo{axIdx,1}, 1);
-                    if isempty(xIdx)
-                        barInfo{axIdx,1} = [barInfo{axIdx,1}, idx];
-                        xIdx = numel(barInfo{axIdx,1});
-                        currentLabel = obj.PlotFirstOrderInfo{idx,3};
-                        if isempty(currentLabel)
-                            currentLabel = [outputs{outputIdx}, '/', inputs{inputIdx}, '(first order)'];
-                        end
-                        barInfo{axIdx,2} = [barInfo{axIdx,2}, {currentLabel}];
-
-                    end
-                    for i = 1:numel(alphaValues) 
-                        barValue = getBarValue(obj.Item(itemIdx).Results(i).SobolIndices(inputIdx,outputIdx).FirstOrder, mode);
-                        scatter(hAxes(axIdx), xIdx, barValue, 100, 'd', ...
-                            'MarkerEdgeColor', obj.Item(itemIdx).Color, ...
-                            'MarkerFaceColor', obj.Item(itemIdx).Color, ...
-                            'MarkerFaceAlpha', alphaValues(i), ...
-                            'MarkerEdgeAlpha', alphaValues(i));
-                    end
-                    meanStatistics{axIdx, xIdx} = ...
-                        [meanStatistics{axIdx, xIdx}, barValue];
-                    maxXLim(axIdx) = max(maxXLim(axIdx), xIdx);
-                end
-                
-                axIdx = str2double(obj.PlotTotalOrderInfo{idx,1});
-                if isnan(axIdx)
-                elseif mode == 1
-                    for i = 1:numel(alphaValues)
-                        plot(hAxes(axIdx), obj.Item(itemIdx).Results(i).Time, ...
-                            obj.Item(itemIdx).Results(i).SobolIndices(inputIdx,outputIdx).TotalOrder, ...
-                            'Color', [obj.Item(itemIdx).Color, alphaValues(i)], 'LineStyle', obj.PlotFirstOrderInfo{idx,2}); 
-                    end
-                    maxXLim(axIdx) = max(maxXLim(axIdx), max(eval(task.OutputTimesStr)));
-                else
-                    xIdx = find(-idx == barInfo{axIdx},1);
-                    if isempty(xIdx)
-                        barInfo{axIdx} = [barInfo{axIdx}, -idx];
-                        xIdx = numel(barInfo{axIdx});
-                        currentLabel = obj.PlotTotalOrderInfo{idx,3};
-                        if isempty(currentLabel)
-                            currentLabel = [outputs{outputIdx}, '/', inputs{inputIdx}, '(total order)'];
-                        end
-                        barInfo{axIdx,2} = [barInfo{axIdx,2}, {currentLabel}];
-                    end
-                    for i = 1:numel(alphaValues) 
-                        barValue = getBarValue(obj.Item(itemIdx).Results(i).SobolIndices(inputIdx,outputIdx).TotalOrder, mode);
-                        scatter(hAxes(axIdx), xIdx, barValue, 100, 'd', ...
-                            'MarkerEdgeColor', obj.Item(itemIdx).Color, ...
-                            'MarkerFaceColor', obj.Item(itemIdx).Color, ...
-                            'MarkerFaceAlpha', alphaValues(i), ...
-                            'MarkerEdgeAlpha', alphaValues(i));
-                    end
-                    meanStatistics{axIdx, xIdx} = ...
-                        [meanStatistics{axIdx, xIdx}, barValue];  
-                    maxXLim(axIdx) = max(maxXLim(axIdx), xIdx);
-                end
-                
-            end
+        output = obj.PlotSobolIndex(tableIdx).Output;
+        input  = obj.PlotSobolIndex(tableIdx).Input;
+        if strcmp(obj.PlotSobolIndex(tableIdx).Order, 'first')
+            order = 'FirstOrder';
+            orderLabel = 'first order';
+        else
+            order = 'TotalOrder';
+            orderLabel = 'total order';
         end
+        lineStyle = obj.PlotSobolIndex(tableIdx).Style;
+        display = obj.PlotSobolIndex(tableIdx).Display;
 
+        [~, inputIdx]  = ismember(input, obj.PlotInputs);
+
+        axIdx = str2double(obj.PlotSobolIndex(tableIdx).Plot);
+        if isnan(axIdx)
+            continue;
+        end
+        
+        xIdx = numel(barInfo{axIdx})+1;
+        currentLabel =  display;
+        if isempty(currentLabel)
+            currentLabel = [output, '/', input, ' (', orderLabel, ')';];
+        end
+        barInfo{axIdx} = [barInfo{axIdx}, {currentLabel}];
+        
+        for itemIdx = 1:numel(obj.Item)
+
+            if ~obj.Item(itemIdx).Include || isempty(obj.Item(itemIdx).Results)
+                continue;
+            end
+
+            task = obj.getObjectsByName(obj.Settings.Task, obj.Item(itemIdx).TaskName);
+            [tfOutputExists, outputIdx] = ismember(output, task.ActiveSpeciesNames);
+
+            if ~tfOutputExists
+                continue;
+            end
+            
+            % All times are equal, so just get the first time vector.
+            time = obj.Item(itemIdx).Results(1).Time; 
+
+            alphaValues = linspace(0.2, 1, numel(obj.Item(itemIdx).Results));
+            
+            if mode == 1
+                for i = 1:numel(alphaValues)
+                    results = obj.Item(itemIdx).Results(i).SobolIndices;
+                    hLine = plot(hAxes(axIdx), time, ...
+                        results(inputIdx,outputIdx).(order), ...
+                        'Color', [obj.Item(itemIdx).Color, alphaValues(i)], ...
+                        'LineStyle', lineStyle); 
+                end
+                maxXLim(axIdx) = max(time);
+            else
+                for i = 1:numel(alphaValues) 
+                    results = obj.Item(itemIdx).Results(i).SobolIndices;
+                    barValue = getBarValue(results(inputIdx,outputIdx).(order), mode);
+                    scatter(hAxes(axIdx), xIdx, barValue, 100, 'd', ...
+                        'MarkerEdgeColor', obj.Item(itemIdx).Color, ...
+                        'MarkerFaceColor', obj.Item(itemIdx).Color, ...
+                        'MarkerFaceAlpha', alphaValues(i), ...
+                        'MarkerEdgeAlpha', alphaValues(i));
+                end
+                meanStatistics{axIdx, xIdx} = ...
+                    [meanStatistics{axIdx, xIdx}, barValue];
+                maxXLim(axIdx) = max(maxXLim(axIdx), xIdx);
+            end
+            
+        end                
     end 
     
+    
+    for tableIdx = 1:numel(obj.PlotVariance)
+        
+        if ~any([obj.Item.Include])
+            continue;
+        end
+        
+        output = obj.PlotVariance(tableIdx).Output;
+        type = obj.PlotVariance(tableIdx).Type;
+        if strcmp(type, 'total')
+            typeLabel = 'variance';
+        else
+            typeLabel = 'unexplained fraction';
+        end
+        lineStyle = obj.PlotVariance(tableIdx).Style;
+        display = obj.PlotVariance(tableIdx).Display;
+
+        axIdx = str2double(obj.PlotVariance(tableIdx).Plot);
+        if isnan(axIdx)
+            continue;
+        end
+        
+        xIdx = numel(barInfo{axIdx})+1;
+        currentLabel =  display;
+        if isempty(currentLabel)
+            currentLabel = [output, ' (', typeLabel, ')';];
+        end
+        barInfo{axIdx} = [barInfo{axIdx}, {currentLabel}];
+        
+        for itemIdx = 1:numel(obj.Item)
+
+            if ~obj.Item(itemIdx).Include || isempty(obj.Item(itemIdx).Results)
+                continue;
+            end
+            
+            task = obj.getObjectsByName(obj.Settings.Task, obj.Item(itemIdx).TaskName);
+            [tfOutputExists, outputIdx] = ismember(output, task.ActiveSpeciesNames);
+
+            if ~tfOutputExists
+                continue;
+            end
+            
+            % All times are equal, so just get the first time vector.
+            time = obj.Item(itemIdx).Results(1).Time; 
+
+            alphaValues = linspace(0.2, 1, numel(obj.Item(itemIdx).Results));
+
+            if mode == 1
+                for i = 1:numel(alphaValues)
+                    if strcmp(type, 'unexplained')
+                        results = 1;
+                        for j = 1:numel(obj.PlotInputs)
+                            results = results - ...
+                                reshape(obj.Item(itemIdx).Results(i).SobolIndices(j,outputIdx).FirstOrder, 1, []);
+                        end
+                    else
+                        results = obj.Item(itemIdx).Results(i).Variances{:,outputIdx};
+                        axContainsVariancePlot(axIdx) = true;
+                    end                    
+                    hLine = plot(hAxes(axIdx), time, results, ...
+                        'Color', [obj.Item(itemIdx).Color, alphaValues(i)], ...
+                        'LineStyle', lineStyle); 
+                end
+                maxXLim(axIdx) = max(time);
+            else
+                for i = 1:numel(alphaValues) 
+                    if strcmp(type, 'unexplained')
+                        results = 1;
+                        for j = 1:numel(obj.PlotInputs)
+                            results = results - ...
+                                reshape(obj.Item(itemIdx).Results(i).SobolIndices(j,outputIdx).FirstOrder, 1, []);
+                        end
+                    else
+                        results = obj.Item(itemIdx).Results(i).Variances{:,outputIdx};
+                        axContainsVariancePlot(axIdx) = true;
+                    end
+                    barValue = getBarValue(results, mode);
+                    scatter(hAxes(axIdx), xIdx, barValue, 100, 'd', ...
+                        'MarkerEdgeColor', obj.Item(itemIdx).Color, ...
+                        'MarkerFaceColor', obj.Item(itemIdx).Color, ...
+                        'MarkerFaceAlpha', alphaValues(i), ...
+                        'MarkerEdgeAlpha', alphaValues(i));
+                end
+                meanStatistics{axIdx, xIdx} = ...
+                    [meanStatistics{axIdx, xIdx}, barValue];
+                maxXLim(axIdx) = max(maxXLim(axIdx), xIdx);
+            end
+            
+        end        
+    end 
     
 	for axIdx = 1:numAxes
         
@@ -175,18 +251,27 @@ function [hLines,hLegend,hLegendChildren] = plotSobolIndices(obj,hAxes,mode)
         if mode == 1
             yLimValues = [-0.1, 1.1];
             xLimValues = [0, max(maxXLim(axIdx),1)];
+            if ~axContainsVariancePlot(axIdx)
+                plot(hAxes(axIdx),xLimValues,[0, 0],'k:');
+                plot(hAxes(axIdx),xLimValues,[1, 1],'k:');
+            end
             set(hAxes(axIdx), 'XTickMode', 'auto', 'XTickLabelMode', 'auto');
-            plot(hAxes(axIdx),xLimValues,[0, 0],'k:');
-            plot(hAxes(axIdx),xLimValues,[1, 1],'k:');
         else
-            yLimValues = [-0.025, 1.1];
+            if axContainsVariancePlot(axIdx)
+                currentYLim = get(hAxes(axIdx),'YLim');
+                yLimValues = [-0.025, currentYLim(2)];
+            else
+                yLimValues = [-0.025, 1.1];
+            end
             xLimValues = 0.5 + [0, max(maxXLim(axIdx),1)];
             plot(hAxes(axIdx),xLimValues,[0, 0],'k-');
-            set(hAxes(axIdx), 'XTick', 1:numel(barInfo{axIdx,2}), ...
-                'XTickLabel', barInfo{axIdx,2});
+            set(hAxes(axIdx), 'XTick', 1:numel(barInfo{axIdx}), ...
+                'XTickLabel', barInfo{axIdx});
         end
-        set(hAxes(axIdx),'XLim',xLimValues);        
-        set(hAxes(axIdx),'YLim',yLimValues);
+        set(hAxes(axIdx),'XLim',xLimValues);
+        if mode > 1 || ~axContainsVariancePlot(axIdx) 
+            set(hAxes(axIdx),'YLim',yLimValues);
+        end
 	end
     
     %% Turn off hold
@@ -244,3 +329,4 @@ function barValue = getBarValue(sobolIndices, mode)
             barValue = min(sobolIndices);
     end
 end
+
