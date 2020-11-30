@@ -27,9 +27,14 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
         LineStyles = {'-','--','.-',':'}
         PlotNumber = {' ','1','2','3','4','5','6','7','8','9','10','11','12'}
         PlotItemsColor = {};
+        Order = {'first','total'};
+        VarianceType = {'unexplained', 'total'};
         
-        SelectedRow = struct('GSAItemsTable', 0, ...
-                             'PlotItemsTable', 0);
+        
+        SelectedRow = struct('TaskTable', 0, ...
+                             'PlotItemsTable', 0, ...
+                             'PlotSobolIndexTable', [0,0], ...
+                             'PlotVarianceTable', [0,0]);
                          
         StaleFlag
         ValidFlag
@@ -46,6 +51,8 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
     % Graphical Components
     % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     properties(Access=private)
+        
+        %% Edit panel 
         EditGrid                    matlab.ui.container.GridLayout
         ResultFolderSelector        QSPViewerNew.Widgets.FolderSelector
         SamplingConfigurationGrid   matlab.ui.container.GridLayout
@@ -56,24 +63,52 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
         SeedSubLayout               matlab.ui.container.GridLayout
         FixSeedLabel                matlab.ui.control.Label
         FixSeedCheckBox             matlab.ui.control.CheckBox
-        RNGSeedLabel                matlab.ui.control.Label
-        RNGSeedEdit                 matlab.ui.control.NumericEditField
+        SeedLabel                matlab.ui.control.Label
+        SeedEdit                 matlab.ui.control.NumericEditField
         SensitivityInputsDropDown   matlab.ui.control.DropDown
         SensitivityInputsLabel      matlab.ui.control.Label
-        GSAItemLabel                matlab.ui.control.Label
-        GSAItemGrid                 matlab.ui.container.GridLayout
-        GSAItemButtonGrid           matlab.ui.container.GridLayout
-        NewButton                   matlab.ui.control.Button
-        RemoveButton                matlab.ui.control.Button
-        GSAItemsTable               matlab.ui.control.Table
         
+        % Table for task selection for sensitivity outputs
+        TaskLabel                   matlab.ui.control.Label
+        TaskGrid                    matlab.ui.container.GridLayout
+        TaskButtonGrid              matlab.ui.container.GridLayout
+        NewTaskButton               matlab.ui.control.Button
+        TaskTable                   matlab.ui.control.Table
+        RemoveItemButton            matlab.ui.control.Button
+        
+        % Table for managing iteration results
+        IterationsTable             matlab.ui.control.Table
+        IterationsLabel             matlab.ui.control.Label
+        IterationsGrid              matlab.ui.container.GridLayout
+        IterationsButtonGrid        matlab.ui.container.GridLayout
+        RemoveIterationButton       matlab.ui.control.Button
+
+        %% Plot panel
         PlotGrid                    matlab.ui.container.GridLayout
         PlotModeLabel               matlab.ui.control.Label
         PlotModeDropDown            matlab.ui.control.DropDown
-        FirstOrderLabel             matlab.ui.control.Label
-        FirstOrderTable             matlab.ui.control.Table
-        TotalOrderLabel             matlab.ui.control.Label
-        TotalOrderTable             matlab.ui.control.Table
+        
+        % Table for selecting Sobol indices for plotting
+        SobolIndexLabel             matlab.ui.control.Label
+        SobolIndexGrid              matlab.ui.container.GridLayout
+        SobolIndexButtonGrid        matlab.ui.container.GridLayout
+        NewSobolIndexButton         matlab.ui.control.Button
+        RemoveSobolIndexButton      matlab.ui.control.Button
+        MoveUpSobolIndexButton      matlab.ui.control.Button
+        MoveDownSobolIndexButton    matlab.ui.control.Button
+        SobolIndexTable           matlab.ui.control.Table
+        
+        % Table for selecting variances for plotting
+        VarianceLabel               matlab.ui.control.Label
+        VarianceGrid                matlab.ui.container.GridLayout
+        VarianceButtonGrid          matlab.ui.container.GridLayout
+        NewVarianceButton           matlab.ui.control.Button
+        RemoveVarianceButton        matlab.ui.control.Button
+        MoveUpVarianceButton        matlab.ui.control.Button
+        MoveDownVarianceButton      matlab.ui.control.Button
+        VarianceTable               matlab.ui.control.Table
+        
+        % Table for selecting tasks for inclusion in plots
         PlotItemsGrid               matlab.ui.container.GridLayout
         SelectColorGrid             matlab.ui.container.GridLayout
         SelectColorButton           matlab.ui.control.Button
@@ -100,256 +135,386 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
     methods (Access = private)
         
         function create(obj)
-            % Edit layout
+            
+            %% Edit panel 
             obj.EditGrid = uigridlayout(obj.getEditGrid());
-            obj.EditGrid.ColumnWidth = {'1x'};
-            obj.EditGrid.RowHeight = {obj.WidgetHeight,obj.WidgetHeight,obj.WidgetHeight,obj.WidgetHeight,obj.WidgetHeight,'1x'};
-            obj.EditGrid.Layout.Row = 3;
+            obj.EditGrid.ColumnWidth   = {'1x'};
+            obj.EditGrid.RowHeight     = {obj.WidgetHeight, ...        % results folder selection
+                                          obj.WidgetHeight, ...        % number of samples/iterations
+                                          obj.WidgetHeight, ...        % random number seed
+                                          obj.WidgetHeight, ...        % sensitivity inputs
+                                          obj.WidgetHeight, '2x', ...  % task selection table
+                                          obj.WidgetHeight, '1x'};     % iteration results table
+            obj.EditGrid.Layout.Row    = 3;
             obj.EditGrid.Layout.Column = 1;
-            obj.EditGrid.Padding = obj.WidgetPadding;
-            obj.EditGrid.RowSpacing = obj.WidgetHeightSpacing;
+            obj.EditGrid.Padding       = obj.WidgetPadding;
+            obj.EditGrid.RowSpacing    = obj.WidgetHeightSpacing;
             obj.EditGrid.ColumnSpacing = obj.WidgetWidthSpacing;
             
             % Results path selector
             obj.ResultFolderSelector = QSPViewerNew.Widgets.FolderSelector(obj.EditGrid,1,1,'Results Path');
             
             % Sampling configuration grid
-            % ---------------------------
-            % Sampling method       [         Sobol ]   [ ] Fix seed for random number generation
-            % Add number of samples [          1000 ]   RNG Seed          [                 100 ]
-            obj.SamplingConfigurationGrid = uigridlayout(obj.EditGrid);
-            obj.SamplingConfigurationGrid.ColumnWidth = {1.5*obj.LabelLength,'1x',1.25*obj.LabelLength,'1x'};
-            obj.SamplingConfigurationGrid.RowHeight = {obj.WidgetHeight,obj.WidgetHeight,obj.WidgetHeight};
-            obj.SamplingConfigurationGrid.Layout.Row = [2,4];
+            obj.SamplingConfigurationGrid               = uigridlayout(obj.EditGrid);
+            obj.SamplingConfigurationGrid.ColumnWidth   = {1.50*obj.LabelLength, '1x', ... 
+                                                           1.25*obj.LabelLength,'1x'};     
+            obj.SamplingConfigurationGrid.RowHeight     = {obj.WidgetHeight, ... % number samples/iterations
+                                                           obj.WidgetHeight, ... % random seed
+                                                           obj.WidgetHeight};    % sensitivity inputs
+            obj.SamplingConfigurationGrid.Layout.Row    = [2,4];
             obj.SamplingConfigurationGrid.Layout.Column = 1;
-            obj.SamplingConfigurationGrid.Padding = obj.WidgetPadding;
-            obj.SamplingConfigurationGrid.RowSpacing = obj.WidgetHeightSpacing;
+            obj.SamplingConfigurationGrid.Padding       = obj.WidgetPadding;
+            obj.SamplingConfigurationGrid.RowSpacing    = obj.WidgetHeightSpacing;
             obj.SamplingConfigurationGrid.ColumnSpacing = obj.WidgetWidthSpacing;
             
-            % Number of samples label
-            obj.NumberSamplesLabel = uilabel(obj.SamplingConfigurationGrid);
+            % Number of samples
+            obj.NumberSamplesLabel               = uilabel(obj.SamplingConfigurationGrid);
             obj.NumberSamplesLabel.Layout.Column = 1;
-            obj.NumberSamplesLabel.Layout.Row = 1;
-            obj.NumberSamplesLabel.Text = 'Add number of samples';
-
-            % Number of samples numeric edit field
-            obj.NumberSamplesEditField = uieditfield(obj.SamplingConfigurationGrid, 'numeric');
-            obj.NumberSamplesEditField.Layout.Column = 2;
-            obj.NumberSamplesEditField.Layout.Row = 1;
-            obj.NumberSamplesEditField.Limits = [0,Inf];
+            obj.NumberSamplesLabel.Layout.Row    = 1;
+            obj.NumberSamplesLabel.Text          = 'Add number of samples';
+            obj.NumberSamplesEditField                       = uieditfield(obj.SamplingConfigurationGrid, 'numeric');
+            obj.NumberSamplesEditField.Layout.Column         = 2;
+            obj.NumberSamplesEditField.Layout.Row            = 1;
+            obj.NumberSamplesEditField.Limits                = [0,Inf];
+            obj.NumberSamplesEditField.ValueChangedFcn       = @(h,e)obj.onNumberSamplesChange();            
             obj.NumberSamplesEditField.RoundFractionalValues = true;
-            obj.NumberSamplesEditField.ValueChangedFcn = @(h,e)obj.onNumberSamplesChange();            
             
-            % Number of iterations label
-            obj.NumberIterationsLabel = uilabel(obj.SamplingConfigurationGrid);
+            % Number of iterations
+            obj.NumberIterationsLabel               = uilabel(obj.SamplingConfigurationGrid);
             obj.NumberIterationsLabel.Layout.Column = 3;
-            obj.NumberIterationsLabel.Layout.Row = 1;
-            obj.NumberIterationsLabel.Text = 'Number of iterations';
-
-            % Number of iterations edit field
-            obj.NumberIterationsEditField = uieditfield(obj.SamplingConfigurationGrid, 'numeric');
-            obj.NumberIterationsEditField.Layout.Column = 4;
-            obj.NumberIterationsEditField.Layout.Row = 1;
-            obj.NumberIterationsEditField.Limits = [1,Inf];
+            obj.NumberIterationsLabel.Layout.Row    = 1;
+            obj.NumberIterationsLabel.Text          = 'Number of iterations';
+            obj.NumberIterationsEditField                       = uieditfield(obj.SamplingConfigurationGrid, 'numeric');
+            obj.NumberIterationsEditField.Layout.Column         = 4;
+            obj.NumberIterationsEditField.Layout.Row            = 1;
+            obj.NumberIterationsEditField.Limits                = [1,Inf];
             obj.NumberIterationsEditField.RoundFractionalValues = true;
-            obj.NumberIterationsEditField.ValueChangedFcn = @(h,e)obj.onNumberIterationsChange();            
+            obj.NumberIterationsEditField.ValueChangedFcn       = @(h,e)obj.onNumberIterationsChange();            
 
-            % FixSeed checkbox
-            obj.FixSeedCheckBox = uicheckbox(obj.SamplingConfigurationGrid);
-            obj.FixSeedCheckBox.Text = "Fix seed for random number generation";
-            obj.FixSeedCheckBox.Layout.Column = [1,2];
-            obj.FixSeedCheckBox.Layout.Row = 2;
-            obj.FixSeedCheckBox.Visible = 'off';
-            obj.FixSeedCheckBox.Enable = 'on';
-            obj.FixSeedCheckBox.Value = false;
+            % Random seed configuration
+            % checkbox
+            obj.FixSeedCheckBox                 = uicheckbox(obj.SamplingConfigurationGrid);
+            obj.FixSeedCheckBox.Text            = "Fix seed for random number generation";
+            obj.FixSeedCheckBox.Layout.Column   = [1,2];
+            obj.FixSeedCheckBox.Layout.Row      = 2;
+            obj.FixSeedCheckBox.Visible         = 'off';
+            obj.FixSeedCheckBox.Enable          = 'on';
+            obj.FixSeedCheckBox.Value           = false;
             obj.FixSeedCheckBox.ValueChangedFcn = @(h,e)obj.onFixRandomSeedChange();
+            % label
+            obj.SeedLabel               = uilabel(obj.SamplingConfigurationGrid);
+            obj.SeedLabel.Text          = 'RNG Seed';
+            obj.SeedLabel.Layout.Row    = 2;
+            obj.SeedLabel.Layout.Column = 3;
+            obj.SeedLabel.Visible       = 'off';
+            obj.SeedLabel.Enable        = 'off';
+            % edit field
+            obj.SeedEdit                       = uieditfield(obj.SamplingConfigurationGrid,'numeric');
+            obj.SeedEdit.Layout.Row            = 2;
+            obj.SeedEdit.Layout.Column         = 4;
+            obj.SeedEdit.Limits                = [0,Inf];
+            obj.SeedEdit.RoundFractionalValues = true;
+            obj.SeedEdit.Visible               = 'off';
+            obj.SeedEdit.Enable                = 'off';
             
-            % RNG seed label
-            obj.RNGSeedLabel = uilabel(obj.SamplingConfigurationGrid);
-            obj.RNGSeedLabel.Text = 'RNG Seed';
-            obj.RNGSeedLabel.Layout.Row = 2;
-            obj.RNGSeedLabel.Layout.Column = 3;
-            obj.RNGSeedLabel.Visible = 'off';
-            obj.RNGSeedLabel.Enable = 'off';
-            
-            % RNG Seed numeric edit field
-            obj.RNGSeedEdit = uieditfield(obj.SamplingConfigurationGrid,'numeric');
-            obj.RNGSeedEdit.Layout.Row = 2;
-            obj.RNGSeedEdit.Layout.Column = 4;
-            obj.RNGSeedEdit.Limits = [0,Inf];
-            obj.RNGSeedEdit.RoundFractionalValues = true;
-            obj.RNGSeedEdit.Visible  = 'off';
-            obj.RNGSeedEdit.Enable  = 'off';
-            
-            % Sensitivity inputs label
-            obj.SensitivityInputsLabel = uilabel(obj.SamplingConfigurationGrid);
+            % Sensitivity inputs 
+            obj.SensitivityInputsLabel               = uilabel(obj.SamplingConfigurationGrid);
             obj.SensitivityInputsLabel.Layout.Column = 1;
-            obj.SensitivityInputsLabel.Layout.Row = 3;
-            obj.SensitivityInputsLabel.Text = 'Sensitivity inputs';
-            
-            % Sensitivity inputs drop down
-            obj.SensitivityInputsDropDown = uidropdown(obj.SamplingConfigurationGrid);
-            obj.SensitivityInputsDropDown.Layout.Column = [2,4];
-            obj.SensitivityInputsDropDown.Layout.Row = 3;
-            obj.SensitivityInputsDropDown.Items = {'foo', 'bar'};
+            obj.SensitivityInputsLabel.Layout.Row    = 3;
+            obj.SensitivityInputsLabel.Text          = 'Sensitivity inputs';
+            obj.SensitivityInputsDropDown                 = uidropdown(obj.SamplingConfigurationGrid);
+            obj.SensitivityInputsDropDown.Layout.Column   = [2,4];
+            obj.SensitivityInputsDropDown.Layout.Row      = 3;
+            obj.SensitivityInputsDropDown.Items           = {'foo', 'bar'};
             obj.SensitivityInputsDropDown.ValueChangedFcn = @(h,e)obj.onSensitivityInputChange();            
             
-            % Global sensitivity analysis items label
-            obj.GSAItemLabel = uilabel(obj.EditGrid);
-            obj.GSAItemLabel.Layout.Row = 5;
-            obj.GSAItemLabel.Layout.Column = 1;
-            obj.GSAItemLabel.Text = 'Global Sensitivity Analysis Items';
-            obj.GSAItemLabel.FontWeight = 'bold';
-            
-            % Select global sensitivity analysis items
-            obj.GSAItemGrid = uigridlayout(obj.EditGrid);
-            obj.GSAItemGrid.ColumnWidth = {obj.ButtonWidth,'1x'};
-            obj.GSAItemGrid.RowHeight = {'1x'};
-            obj.GSAItemGrid.Layout.Row = 6;
-            obj.GSAItemGrid.Layout.Column = 1;
-            obj.GSAItemGrid.Padding = [0,0,0,0];
-            obj.GSAItemGrid.RowSpacing = 0;
-            obj.GSAItemGrid.ColumnSpacing = 0;
-            
-            % Global sensitivity analysis item select buttons grid
-            obj.GSAItemButtonGrid = uigridlayout(obj.GSAItemGrid);
-            obj.GSAItemButtonGrid.ColumnWidth = {'1x'};
-            obj.GSAItemButtonGrid.RowHeight = {obj.ButtonHeight,obj.ButtonHeight};
-            obj.GSAItemButtonGrid.Layout.Row = 1;
-            obj.GSAItemButtonGrid.Layout.Column = 1;
-            obj.GSAItemButtonGrid.Padding = [0,0,0,0];
-            obj.GSAItemButtonGrid.RowSpacing = 0;
-            obj.GSAItemButtonGrid.ColumnSpacing = 0;
-            
-            % New/add button
-            obj.NewButton = uibutton(obj.GSAItemButtonGrid,'push');
-            obj.NewButton.Layout.Row = 1;
-            obj.NewButton.Layout.Column = 1;
-            obj.NewButton.Icon = QSPViewerNew.Resources.LoadResourcePath('add_24.png');
-            obj.NewButton.Text = '';
-            obj.NewButton.ButtonPushedFcn = @(h,e)obj.onAddGSAItem();
-            
-            % Remove button
-            obj.RemoveButton = uibutton(obj.GSAItemButtonGrid,'push');
-            obj.RemoveButton.Layout.Row = 2;
-            obj.RemoveButton.Layout.Column = 1;
-            obj.RemoveButton.Icon = QSPViewerNew.Resources.LoadResourcePath('delete_24.png');
-            obj.RemoveButton.Text = '';
-            obj.RemoveButton.ButtonPushedFcn = @(h,e)obj.onRemoveGSAItem();
-           
-            % Items table 
-            obj.GSAItemsTable = uitable(obj.GSAItemGrid);
-            obj.GSAItemsTable.Layout.Row = 1;
-            obj.GSAItemsTable.Layout.Column = 2;
-            obj.GSAItemsTable.Data = {[],[],[],[]};
-            obj.GSAItemsTable.ColumnName = {'Include','Task','Number of Samples'};
-            obj.GSAItemsTable.ColumnFormat = {'logical',obj.TaskPopupTableItems,'numeric'};
-            obj.GSAItemsTable.ColumnEditable = [true,true,false];
-            obj.GSAItemsTable.ColumnWidth = {'fit', 'auto', 'fit'};
-            obj.GSAItemsTable.CellEditCallback = @(h,e) obj.onGSAItemsTableSelectionEdit(e);
-            obj.GSAItemsTable.CellSelectionCallback = @(h,e) obj.onTableSelectionChange(h,e);
-           
-            %VisualizationPanel Items
-            obj.PlotGrid = uigridlayout(obj.getVisualizationGrid());
-            obj.PlotGrid.Layout.Row = 2;
-            obj.PlotGrid.Layout.Column = 1;
-            obj.PlotGrid.RowHeight = {obj.WidgetHeight,obj.WidgetHeight,'1x',obj.WidgetHeight,'1x',obj.WidgetHeight,'1x',0};
-            obj.PlotGrid.ColumnWidth = {obj.LabelLength,'1x'};
-            
-            % Sampling method label
-            obj.PlotModeLabel = uilabel(obj.PlotGrid);
-            obj.PlotModeLabel.Layout.Column = 1;
-            obj.PlotModeLabel.Layout.Row = 1;
-            obj.PlotModeLabel.Text = 'Mode';
+            % Table for task selection for sensitivity outputs
+            obj.TaskLabel               = uilabel(obj.EditGrid);
+            obj.TaskLabel.Layout.Row    = 5;
+            obj.TaskLabel.Layout.Column = 1;
+            obj.TaskLabel.Text          = 'Global Sensitivity Analysis Items';
+            obj.TaskLabel.FontWeight    = 'bold';
+            obj.TaskGrid               = uigridlayout(obj.EditGrid);
+            obj.TaskGrid.ColumnWidth   = {obj.ButtonWidth,'1x'};
+            obj.TaskGrid.RowHeight     = {'1x'};
+            obj.TaskGrid.Layout.Row    = 6;
+            obj.TaskGrid.Layout.Column = 1;
+            obj.TaskGrid.Padding       = [0,0,0,0];
+            obj.TaskGrid.RowSpacing    = 0;
+            obj.TaskGrid.ColumnSpacing = 0;
+            % buttons
+            obj.TaskButtonGrid = uigridlayout(obj.TaskGrid);
+            obj.TaskButtonGrid.ColumnWidth = {'1x'};
+            obj.TaskButtonGrid.RowHeight = {obj.ButtonHeight, ... % add
+                                            obj.ButtonHeight};    % remove
+            obj.TaskButtonGrid.Layout.Row = 1;
+            obj.TaskButtonGrid.Layout.Column = 1;
+            obj.TaskButtonGrid.Padding = [0,0,0,0];
+            obj.TaskButtonGrid.RowSpacing = 0;
+            obj.TaskButtonGrid.ColumnSpacing = 0;
+            % add task
+            obj.NewTaskButton                 = uibutton(obj.TaskButtonGrid,'push');
+            obj.NewTaskButton.Layout.Row      = 1;
+            obj.NewTaskButton.Layout.Column   = 1;
+            obj.NewTaskButton.Icon            = QSPViewerNew.Resources.LoadResourcePath('add_24.png');
+            obj.NewTaskButton.Text            = '';
+            obj.NewTaskButton.ButtonPushedFcn = @(h,e)obj.onAddSensitivityOutput();
+            % remove task
+            obj.RemoveItemButton                 = uibutton(obj.TaskButtonGrid,'push');
+            obj.RemoveItemButton.Layout.Row      = 2;
+            obj.RemoveItemButton.Layout.Column   = 1;
+            obj.RemoveItemButton.Icon            = QSPViewerNew.Resources.LoadResourcePath('delete_24.png');
+            obj.RemoveItemButton.Text            = '';
+            obj.RemoveItemButton.ButtonPushedFcn = @(h,e)obj.onRemoveSensitivityOutput();
+            % task table
+            obj.TaskTable                       = uitable(obj.TaskGrid);
+            obj.TaskTable.Layout.Row            = 1;
+            obj.TaskTable.Layout.Column         = 2;
+            obj.TaskTable.Data                  = {[],[],[],[]};
+            obj.TaskTable.ColumnName            = {'Include','Task','Number of Samples'};
+            obj.TaskTable.ColumnFormat          = {'logical',obj.TaskPopupTableItems,'numeric'};
+            obj.TaskTable.ColumnEditable        = [true,true,false];
+            obj.TaskTable.ColumnWidth           = {'fit', 'auto', 'fit'};
+            obj.TaskTable.CellEditCallback      = @(h,e) obj.onTaskTableEdit(e);
+            obj.TaskTable.CellSelectionCallback = @(h,e) obj.onTableSelectionChange(h,e);
 
-            % Sampling method drop down
-            obj.PlotModeDropDown = uidropdown(obj.PlotGrid);
-            obj.PlotModeDropDown.Layout.Column = 2;
-            obj.PlotModeDropDown.Layout.Row = 1;
-            obj.PlotModeDropDown.Items = {'Time course','Bar plot (mean)','Bar plot (median)','Bar plot (max)','Bar plot (min)'};
+            % Table for managing iteration results
+            obj.IterationsLabel = uilabel(obj.EditGrid);
+            obj.IterationsLabel.Layout.Row = 7;
+            obj.IterationsLabel.Layout.Column = 1;
+            obj.IterationsLabel.Text = 'Iterations: select a task';
+            obj.IterationsLabel.FontWeight = 'bold';
+            obj.IterationsGrid = uigridlayout(obj.EditGrid);
+            obj.IterationsGrid.ColumnWidth = {obj.ButtonWidth,'1x'};
+            obj.IterationsGrid.RowHeight = {'1x'};
+            obj.IterationsGrid.Layout.Row = 8;
+            obj.IterationsGrid.Layout.Column = 1;
+            obj.IterationsGrid.Padding = [0,0,0,0];
+            obj.IterationsGrid.RowSpacing = 0;
+            obj.IterationsGrid.ColumnSpacing = 0;
+            
+            % buttons
+            obj.IterationsButtonGrid               = uigridlayout(obj.IterationsGrid);
+            obj.IterationsButtonGrid.ColumnWidth   = {'1x'};
+            obj.IterationsButtonGrid.RowHeight     = {obj.ButtonHeight};
+            obj.IterationsButtonGrid.Layout.Row    = 1;
+            obj.IterationsButtonGrid.Layout.Column = 1;
+            obj.IterationsButtonGrid.Padding       = [0,0,0,0];
+            obj.IterationsButtonGrid.RowSpacing    = 0;
+            obj.IterationsButtonGrid.ColumnSpacing = 0;
+            % clear iteration
+            obj.RemoveIterationButton                 = uibutton(obj.IterationsButtonGrid,'push');
+            obj.RemoveIterationButton.Layout.Row      = 1;
+            obj.RemoveIterationButton.Layout.Column   = 1;
+            obj.RemoveIterationButton.Icon            = QSPViewerNew.Resources.LoadResourcePath('clearPlot_24.png');
+            obj.RemoveIterationButton.Text            = '';
+            obj.RemoveIterationButton.ButtonPushedFcn = @(h,e)obj.onRemoveIteration();
+            % table
+            obj.IterationsTable                = uitable(obj.IterationsGrid);
+            obj.IterationsTable.Layout.Row     = 1;
+            obj.IterationsTable.Layout.Column  = 2;
+            obj.IterationsTable.Data           = {[],[],[],[],[]};
+            obj.IterationsTable.ColumnName     = {'Remove','Color','Max. difference','Mean difference','Number of Samples'};
+            obj.IterationsTable.ColumnFormat   = {'logical','char','numeric'};
+            obj.IterationsTable.ColumnEditable = [true,false,false,false,false];
+            obj.IterationsTable.ColumnWidth    = {'fit','fit','auto','auto','fit'};
+            
+            %% Plot panel
+            obj.PlotGrid               = uigridlayout(obj.getVisualizationGrid());
+            obj.PlotGrid.Layout.Row    = 2;
+            obj.PlotGrid.Layout.Column = 1;
+            obj.PlotGrid.RowHeight     = {obj.WidgetHeight, ...        % display mode
+                                          obj.WidgetHeight, '1x', ...  % Sobol index table
+                                          obj.WidgetHeight, '1x', ...  % variance table
+                                          obj.WidgetHeight,'1x'};      % task selection table
+            obj.PlotGrid.ColumnWidth   = {obj.LabelLength,'1x'};
+            
+            % Plot mode
+            obj.PlotModeLabel               = uilabel(obj.PlotGrid);
+            obj.PlotModeLabel.Layout.Column = 1;
+            obj.PlotModeLabel.Layout.Row    = 1;
+            obj.PlotModeLabel.Text          = 'Mode';
+            obj.PlotModeDropDown                 = uidropdown(obj.PlotGrid);
+            obj.PlotModeDropDown.Layout.Column   = 2;
+            obj.PlotModeDropDown.Layout.Row      = 1;
+            obj.PlotModeDropDown.Items           = {'Time course','Bar plot (mean)','Bar plot (median)','Bar plot (max)','Bar plot (min)'};
             obj.PlotModeDropDown.ValueChangedFcn = @(h,e)obj.onVisualizationModeChange();
             
-            % Input/output table label for first order indices
-            obj.FirstOrderLabel = uilabel(obj.PlotGrid);
-            obj.FirstOrderLabel.Layout.Row = 2;
-            obj.FirstOrderLabel.Layout.Column = [1,2];
-            obj.FirstOrderLabel.Text = 'First order Sobol indices';
-            obj.FirstOrderLabel.FontWeight = 'bold';
-            
-            % Input/output table for first order indices
-            obj.FirstOrderTable = uitable(obj.PlotGrid);
-            obj.FirstOrderTable.Layout.Row = 3;
-            obj.FirstOrderTable.Layout.Column = [1,2];
-            obj.FirstOrderTable.Data = cell(0,5);
-            obj.FirstOrderTable.ColumnName = {'Plot','Line style','Input','Output','Display'};
-            obj.FirstOrderTable.ColumnFormat = {obj.PlotNumber,obj.LineStyles,'char','char','char'};
-            obj.FirstOrderTable.ColumnEditable = [true,true,true,true,true];
-            obj.FirstOrderTable.ColumnWidth = '1x';
-            obj.FirstOrderTable.CellEditCallback = @(h,e) obj.onVisualizationTableSelectionEdit(h,e);
+            % Table for selecting Sobol indices for plotting
+            obj.SobolIndexLabel               = uilabel(obj.PlotGrid);
+            obj.SobolIndexLabel.Layout.Row    = 2;
+            obj.SobolIndexLabel.Layout.Column = [1,2];
+            obj.SobolIndexLabel.Text          = 'Sobol indices';
+            obj.SobolIndexLabel.FontWeight    = 'bold';
+            obj.SobolIndexGrid               = uigridlayout(obj.PlotGrid);
+            obj.SobolIndexGrid.ColumnWidth   = {obj.ButtonWidth,'1x'};
+            obj.SobolIndexGrid.RowHeight     = {'1x'};
+            obj.SobolIndexGrid.Layout.Row    = 3;
+            obj.SobolIndexGrid.Layout.Column = [1,2];
+            obj.SobolIndexGrid.Padding       = [0,0,0,0];
+            obj.SobolIndexGrid.RowSpacing    = 0;
+            obj.SobolIndexGrid.ColumnSpacing = 0;
+            % buttons
+            obj.SobolIndexButtonGrid               = uigridlayout(obj.SobolIndexGrid);
+            obj.SobolIndexButtonGrid.ColumnWidth   = {'1x'};
+            obj.SobolIndexButtonGrid.RowHeight     = {obj.ButtonHeight,... % add
+                                                      obj.ButtonHeight,... % remove
+                                                      obj.ButtonHeight,... % move up
+                                                      obj.ButtonHeight};   % move down
+            obj.SobolIndexButtonGrid.Layout.Row    = 1;
+            obj.SobolIndexButtonGrid.Layout.Column = 1;
+            obj.SobolIndexButtonGrid.Padding       = [0,0,0,0];
+            obj.SobolIndexButtonGrid.RowSpacing    = 0;
+            obj.SobolIndexButtonGrid.ColumnSpacing = 0;
+            % add Sobol index to plot
+            obj.NewSobolIndexButton                 = uibutton(obj.SobolIndexButtonGrid,'push');
+            obj.NewSobolIndexButton.Layout.Row      = 1;
+            obj.NewSobolIndexButton.Layout.Column   = 1;
+            obj.NewSobolIndexButton.Icon            = QSPViewerNew.Resources.LoadResourcePath('add_24.png');
+            obj.NewSobolIndexButton.Text            = '';
+            obj.NewSobolIndexButton.ButtonPushedFcn = @(h,e)obj.onPlotTableButtonPress(h);
+            % remove Sobol index from plot
+            obj.RemoveSobolIndexButton                 = uibutton(obj.SobolIndexButtonGrid,'push');
+            obj.RemoveSobolIndexButton.Layout.Row      = 2;
+            obj.RemoveSobolIndexButton.Layout.Column   = 1;
+            obj.RemoveSobolIndexButton.Icon            = QSPViewerNew.Resources.LoadResourcePath('delete_24.png');
+            obj.RemoveSobolIndexButton.Text            = '';
+            obj.RemoveSobolIndexButton.ButtonPushedFcn = @(h,e)obj.onPlotTableButtonPress(h);
+            % move up Sobol index up
+            obj.MoveUpSobolIndexButton                 = uibutton(obj.SobolIndexButtonGrid,'push');
+            obj.MoveUpSobolIndexButton.Layout.Row      = 3;
+            obj.MoveUpSobolIndexButton.Layout.Column   = 1;
+            obj.MoveUpSobolIndexButton.Icon            = QSPViewerNew.Resources.LoadResourcePath('arrow_up_24.png');
+            obj.MoveUpSobolIndexButton.Text            = '';
+            obj.MoveUpSobolIndexButton.ButtonPushedFcn = @(h,e)obj.onPlotTableButtonPress(h);
+            % move up Sobol index down
+            obj.MoveDownSobolIndexButton                 = uibutton(obj.SobolIndexButtonGrid,'push');
+            obj.MoveDownSobolIndexButton.Layout.Row      = 4;
+            obj.MoveDownSobolIndexButton.Layout.Column   = 1;
+            obj.MoveDownSobolIndexButton.Icon            = QSPViewerNew.Resources.LoadResourcePath('arrow_down_24.png');
+            obj.MoveDownSobolIndexButton.Text            = '';
+            obj.MoveDownSobolIndexButton.ButtonPushedFcn = @(h,e)obj.onPlotTableButtonPress(h);
+            % table
+            obj.SobolIndexTable                       = uitable(obj.SobolIndexGrid);
+            obj.SobolIndexTable.Layout.Row            = 1;
+            obj.SobolIndexTable.Layout.Column         = 2;
+            obj.SobolIndexTable.Data                  = cell(0,6);
+            obj.SobolIndexTable.ColumnName            = {'Plot','Style','Input','Output','Order','Display'};
+            obj.SobolIndexTable.ColumnFormat          = {obj.PlotNumber,obj.LineStyles,obj.TaskPopupTableItems,obj.TaskPopupTableItems,obj.Order,'char'};
+            obj.SobolIndexTable.ColumnEditable        = [true,true,true,true,true,true];
+            obj.SobolIndexTable.ColumnWidth           = '1x';
+            obj.SobolIndexTable.SelectionHighlight    = 'off';
+            obj.SobolIndexTable.CellEditCallback      = @(h,e) obj.onVisualizationTableEdit(h,e);
+            obj.SobolIndexTable.CellSelectionCallback = @(h,e) obj.onTableSelectionChange(h,e);
 
-            % Input/output table label for total order indices
-            obj.TotalOrderLabel = uilabel(obj.PlotGrid);
-            obj.TotalOrderLabel.Layout.Row = 4;
-            obj.TotalOrderLabel.Layout.Column = [1,2];
-            obj.TotalOrderLabel.Text = 'Total order Sobol indices';
-            obj.TotalOrderLabel.FontWeight = 'bold';
+            % Table for selecting variances for plotting
+            obj.VarianceLabel               = uilabel(obj.PlotGrid);
+            obj.VarianceLabel.Layout.Row    = 4;
+            obj.VarianceLabel.Layout.Column = [1,2];
+            obj.VarianceLabel.Text          = 'Variance';
+            obj.VarianceLabel.FontWeight    = 'bold';
+            obj.VarianceGrid               = uigridlayout(obj.PlotGrid);
+            obj.VarianceGrid.ColumnWidth   = {obj.ButtonWidth,'1x'};
+            obj.VarianceGrid.RowHeight     = {'1x'};
+            obj.VarianceGrid.Layout.Row    = 5;
+            obj.VarianceGrid.Layout.Column = [1,2];
+            obj.VarianceGrid.Padding       = [0,0,0,0];
+            obj.VarianceGrid.RowSpacing    = 0;
+            obj.VarianceGrid.ColumnSpacing = 0;
+            % buttons
+            obj.VarianceButtonGrid               = uigridlayout(obj.VarianceGrid);
+            obj.VarianceButtonGrid.ColumnWidth   = {'1x'};
+            obj.VarianceButtonGrid.RowHeight     = {obj.ButtonHeight, ... % add
+                                                    obj.ButtonHeight, ... % remove
+                                                    obj.ButtonHeight, ... % move up
+                                                    obj.ButtonHeight};    % move down
+            obj.VarianceButtonGrid.Layout.Row    = 1;
+            obj.VarianceButtonGrid.Layout.Column = 1;
+            obj.VarianceButtonGrid.Padding       = [0,0,0,0];
+            obj.VarianceButtonGrid.RowSpacing    = 0;
+            obj.VarianceButtonGrid.ColumnSpacing = 0;
+            % add variance to plot
+            obj.NewVarianceButton                 = uibutton(obj.VarianceButtonGrid,'push');
+            obj.NewVarianceButton.Layout.Row      = 1;
+            obj.NewVarianceButton.Layout.Column   = 1;
+            obj.NewVarianceButton.Icon            = QSPViewerNew.Resources.LoadResourcePath('add_24.png');
+            obj.NewVarianceButton.Text            = '';
+            obj.NewVarianceButton.ButtonPushedFcn = @(h,e)obj.onPlotTableButtonPress(h);
+            % remove variance from plot
+            obj.RemoveVarianceButton                 = uibutton(obj.VarianceButtonGrid,'push');
+            obj.RemoveVarianceButton.Layout.Row      = 2;
+            obj.RemoveVarianceButton.Layout.Column   = 1;
+            obj.RemoveVarianceButton.Icon            = QSPViewerNew.Resources.LoadResourcePath('delete_24.png');
+            obj.RemoveVarianceButton.Text            = '';
+            obj.RemoveVarianceButton.ButtonPushedFcn = @(h,e)obj.onPlotTableButtonPress(h);
+            % move variance up
+            obj.MoveUpVarianceButton                 = uibutton(obj.VarianceButtonGrid,'push');
+            obj.MoveUpVarianceButton.Layout.Row      = 3;
+            obj.MoveUpVarianceButton.Layout.Column   = 1;
+            obj.MoveUpVarianceButton.Icon            = QSPViewerNew.Resources.LoadResourcePath('arrow_up_24.png');
+            obj.MoveUpVarianceButton.Text            = '';
+            obj.MoveUpVarianceButton.ButtonPushedFcn = @(h,e)obj.onPlotTableButtonPress(h);
+            % move variance down
+            obj.MoveDownVarianceButton                 = uibutton(obj.VarianceButtonGrid,'push');
+            obj.MoveDownVarianceButton.Layout.Row      = 4;
+            obj.MoveDownVarianceButton.Layout.Column   = 1;
+            obj.MoveDownVarianceButton.Icon            = QSPViewerNew.Resources.LoadResourcePath('arrow_down_24.png');
+            obj.MoveDownVarianceButton.Text            = '';
+            obj.MoveDownVarianceButton.ButtonPushedFcn = @(h,e)obj.onPlotTableButtonPress(h);
+            % table
+            obj.VarianceTable                       = uitable(obj.VarianceGrid);
+            obj.VarianceTable.Layout.Row            = 1;
+            obj.VarianceTable.Layout.Column         = 2;
+            obj.VarianceTable.Data                  = cell(0,5);
+            obj.VarianceTable.ColumnName            = {'Plot','Style','Output','Type','Display'};
+            obj.VarianceTable.ColumnFormat          = {obj.PlotNumber,obj.LineStyles,obj.TaskPopupTableItems,obj.VarianceType,'char'};
+            obj.VarianceTable.ColumnEditable        = [true,true,true,true,true];
+            obj.VarianceTable.ColumnWidth           = '1x';
+            obj.VarianceTable.SelectionHighlight    = 'off';
+            obj.VarianceTable.CellEditCallback      = @(h,e) obj.onVisualizationTableEdit(h,e);
+            obj.VarianceTable.CellSelectionCallback = @(h,e) obj.onTableSelectionChange(h,e);
             
-            % Input/output table for total order indices
-            obj.TotalOrderTable = uitable(obj.PlotGrid);
-            obj.TotalOrderTable.Layout.Row = 5;
-            obj.TotalOrderTable.Layout.Column = [1,2];
-            obj.TotalOrderTable.Data = cell(0,5);
-            obj.TotalOrderTable.ColumnName = {'Plot','Line style','Input','Output','Display'};
-            obj.TotalOrderTable.ColumnFormat = {obj.PlotNumber,obj.LineStyles,'char', 'char','char'};
-            obj.TotalOrderTable.ColumnEditable = [true,true,true,true,true];
-            obj.TotalOrderTable.ColumnWidth = '1x';
-            obj.TotalOrderTable.CellEditCallback = @(h,e) obj.onVisualizationTableSelectionEdit(h,e);
             
-            % Task selection label for visualization
-            obj.PlotItemsLabel = uilabel(obj.PlotGrid);
-            obj.PlotItemsLabel.Layout.Row = 6;
+            % Table for selecting tasks for inclusion in plots
+            obj.PlotItemsLabel               = uilabel(obj.PlotGrid);
+            obj.PlotItemsLabel.Layout.Row    = 6;
             obj.PlotItemsLabel.Layout.Column = [1,2];
-            obj.PlotItemsLabel.Text = 'Task selection';
-            obj.PlotItemsLabel.FontWeight = 'bold';
-            
-            % Select global sensitivity analysis items
-            obj.PlotItemsGrid = uigridlayout(obj.PlotGrid);
-            obj.PlotItemsGrid.ColumnWidth = {obj.ButtonWidth,'1x'};
-            obj.PlotItemsGrid.RowHeight = {'1x'};
-            obj.PlotItemsGrid.Layout.Row = 7;
+            obj.PlotItemsLabel.Text          = 'Task selection';
+            obj.PlotItemsLabel.FontWeight    = 'bold';
+            obj.PlotItemsGrid               = uigridlayout(obj.PlotGrid);
+            obj.PlotItemsGrid.ColumnWidth   = {obj.ButtonWidth,'1x'};
+            obj.PlotItemsGrid.RowHeight     = {'1x'};
+            obj.PlotItemsGrid.Layout.Row    = 7;
             obj.PlotItemsGrid.Layout.Column = [1,2];
-            obj.PlotItemsGrid.Padding = [0,0,0,0];
-            obj.PlotItemsGrid.RowSpacing = 0;
+            obj.PlotItemsGrid.Padding       = [0,0,0,0];
+            obj.PlotItemsGrid.RowSpacing    = 0;
             obj.PlotItemsGrid.ColumnSpacing = 0;
-            
-            % Color selection button grid
-            obj.SelectColorGrid = uigridlayout(obj.PlotItemsGrid);
-            obj.SelectColorGrid.ColumnWidth = {'1x'};
-            obj.SelectColorGrid.RowHeight = {obj.ButtonHeight};
-            obj.SelectColorGrid.Layout.Row = 1;
+            % button
+            obj.SelectColorGrid               = uigridlayout(obj.PlotItemsGrid);
+            obj.SelectColorGrid.ColumnWidth   = {'1x'};
+            obj.SelectColorGrid.RowHeight     = {obj.ButtonHeight};
+            obj.SelectColorGrid.Layout.Row    = 1;
             obj.SelectColorGrid.Layout.Column = 1;
-            obj.SelectColorGrid.Padding = [0,0,0,0];
-            obj.SelectColorGrid.RowSpacing = 0;
+            obj.SelectColorGrid.Padding       = [0,0,0,0];
+            obj.SelectColorGrid.RowSpacing    = 0;
             obj.SelectColorGrid.ColumnSpacing = 0;
-            
-            % Color selection button
-            obj.SelectColorButton = uibutton(obj.SelectColorGrid,'push');
-            obj.SelectColorButton.Layout.Row = 1;
-            obj.SelectColorButton.Layout.Column = 1;
-            obj.SelectColorButton.Icon = QSPViewerNew.Resources.LoadResourcePath('fillColor_24.png');
-            obj.SelectColorButton.Text = '';
+            % color selection
+            obj.SelectColorButton                 = uibutton(obj.SelectColorGrid,'push');
+            obj.SelectColorButton.Layout.Row      = 1;
+            obj.SelectColorButton.Layout.Column   = 1;
+            obj.SelectColorButton.Icon            = QSPViewerNew.Resources.LoadResourcePath('fillColor_24.png');
+            obj.SelectColorButton.Text            = '';
             obj.SelectColorButton.ButtonPushedFcn = @(h,e)obj.setPlotItemColor();
-            
-            % Task selection table for visualization
-            obj.PlotItemsTable = uitable(obj.PlotItemsGrid);
-            obj.PlotItemsTable.Layout.Row = 1;
-            obj.PlotItemsTable.Layout.Column = 2;
-            obj.PlotItemsTable.Data = cell(0,4);
-            obj.PlotItemsTable.ColumnName = {'Include','Color','Task','Description'};
-            obj.PlotItemsTable.ColumnFormat = {'logical','char','char'};
-            obj.PlotItemsTable.ColumnEditable = [true,false,false,true];
-            obj.PlotItemsTable.ColumnWidth = {'fit','fit','auto','auto'};
-            obj.PlotItemsTable.CellEditCallback = @(h,e) obj.onVisualizationTableSelectionEdit(h,e);
+            % table
+            obj.PlotItemsTable                       = uitable(obj.PlotItemsGrid);
+            obj.PlotItemsTable.Layout.Row            = 1;
+            obj.PlotItemsTable.Layout.Column         = 2;
+            obj.PlotItemsTable.Data                  = cell(0,4);
+            obj.PlotItemsTable.ColumnName            = {'Include','Color','Task','Description'};
+            obj.PlotItemsTable.ColumnFormat          = {'logical','char','char'};
+            obj.PlotItemsTable.ColumnEditable        = [true,false,false,true];
+            obj.PlotItemsTable.ColumnWidth           = {'fit','fit','auto','auto'};
+            obj.PlotItemsTable.CellEditCallback      = @(h,e) obj.onVisualizationTableEdit(h,e);
             obj.PlotItemsTable.CellSelectionCallback = @(h,e) obj.onTableSelectionChange(h,e);
             
 
@@ -366,33 +531,31 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
     % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     methods (Access = private)
         
-        function onRemoveGSAItem(obj)
-            DeleteIdx = obj.SelectedRow.GSAItemsTable;
-            if DeleteIdx~= 0 && DeleteIdx <= numel(obj.TemporaryGlobalSensitivityAnalysis.Item)
-                 obj.TemporaryGlobalSensitivityAnalysis.removeItem(DeleteIdx);
+        function onRemoveSensitivityOutput(obj)
+            DeleteIdx = obj.SelectedRow.TaskTable;
+            if DeleteIdx == 0
+                uialert(obj.getUIFigure(), ...
+                    ['Select a task to remove the corresponding ', ...
+                     'global sensitivity analysis.'],'Selection required');
+                return;
             end
+            obj.TemporaryGlobalSensitivityAnalysis.remove('item', DeleteIdx);
             obj.updateGSAItemTable();
+            obj.updatePlotTables();
+            obj.SelectedRow.TaskTable = 0;
             obj.IsDirty = true;
         end
         
-        function onAddGSAItem(obj)
+        function onAddSensitivityOutput(obj)
             if isempty(obj.TaskPopupTableItems)
-                uialert(obj.getUIFigure(),'At least one task and one parameter set must be defined in order to add a global sensitivity analysis item.','Cannot Add');
+                uialert(obj.getUIFigure(), ...
+                    ['At least one task and one parameter set must be ', ...
+                    'defined in order to add a global sensitivity analysis item.'],...
+                    'Cannot Add');
             end
-            NewItem = obj.TemporaryGlobalSensitivityAnalysis.ItemTemplate;
-            existingTaskNames = {obj.TemporaryGlobalSensitivityAnalysis.Item.TaskName};
-            tfTaskExists = ismember(obj.TaskPopupTableItems, existingTaskNames);
-            if all(tfTaskExists)
-                uialert(obj.getUIFigure(),'All tasks are already selected. Add more tasks to add them to this sensitivity analysis','Cannot Add');
-            end
-            nonExistingTaskNames = obj.TaskPopupTableItems(~tfTaskExists);
-            NewItem.TaskName = nonExistingTaskNames{1};
-            ItemColors = getItemColors(obj.TemporaryGlobalSensitivityAnalysis.Session,...
-                numel(obj.TemporaryGlobalSensitivityAnalysis.Item)+1);
-            NewItem.Color = ItemColors(end,:);
-            NewItem.Description = '';
-            obj.TemporaryGlobalSensitivityAnalysis.addItem(NewItem);
+            obj.TemporaryGlobalSensitivityAnalysis.add('item');
             obj.updateGSAItemTable();
+            obj.updatePlotTables();
             obj.IsDirty = true;
         end
 
@@ -408,35 +571,54 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
         
         function onFixRandomSeedChange(obj)
             if obj.FixSeedCheckBox.Value
-                obj.TemporaryGlobalSensitivityAnalysis.RandomSeed = obj.RNGSeedEdit.Value;
-                obj.RNGSeedLabel.Enable = 'on';
-                obj.RNGSeedEdit.Enable  = 'on';
+                obj.TemporaryGlobalSensitivityAnalysis.RandomSeed = obj.SeedEdit.Value;
+                obj.SeedLabel.Enable = 'on';
+                obj.SeedEdit.Enable  = 'on';
             else
                 obj.TemporaryGlobalSensitivityAnalysis.RandomSeed = [];
-                obj.RNGSeedLabel.Enable = 'off';
-                obj.RNGSeedEdit.Enable  = 'off';
+                obj.SeedLabel.Enable = 'off';
+                obj.SeedEdit.Enable  = 'off';
             end
         end
         
         function onSensitivityInputChange(obj)
-            obj.TemporaryGlobalSensitivityAnalysis.setParametersName(obj.SensitivityInputsDropDown.Value);
+            obj.TemporaryGlobalSensitivityAnalysis.ParametersName = obj.SensitivityInputsDropDown.Value;
             suggestedSamples = max([1000, 10^numel(obj.TemporaryGlobalSensitivityAnalysis.PlotInputs), ...
                 obj.TemporaryGlobalSensitivityAnalysis.NumberSamples]);
             obj.TemporaryGlobalSensitivityAnalysis.NumberSamples = suggestedSamples;
             obj.NumberSamplesEditField.Value = suggestedSamples;
+            obj.updatePlotTables();
             obj.IsDirty = true;
         end
         
-        function onTableSelectionChange(obj,source,eventData)
-            if source == obj.GSAItemsTable
-                obj.SelectedRow.GSAItemsTable = eventData.Indices(1);
+        function onTableSelectionChange(obj, source, eventData)
+            % Keep track of selected row in GSA tables
+            if source == obj.TaskTable
+                % Sensitivity output table
+                obj.SelectedRow.TaskTable = eventData.Indices(1);
+                obj.updateIterationsTable();
+            elseif source == obj.VarianceTable
+                % Variance table for plotting
+                % The first index indicates the user-visible selected row.
+                % The second index indicates tha actual selected row of the
+                % table.
+                obj.SelectedRow.PlotVarianceTable = eventData.Indices(1)*[1,1];
+                obj.VarianceTable = obj.selectRow(obj.VarianceTable, obj.SelectedRow.PlotVarianceTable(1), false);
+            elseif source == obj.SobolIndexTable
+                % Sobol index table for plotting.
+                % The first index indicates the user-visible selected row.
+                % The second index indicates tha actual selected row of the
+                % table.
+                obj.SelectedRow.PlotSobolIndexTable = eventData.Indices(1)*[1,1];
+                obj.SobolIndexTable = obj.selectRow(obj.SobolIndexTable, obj.SelectedRow.PlotSobolIndexTable(1), false);
             else
+                % Item (sens. outputs) selection table for plotting
                 obj.SelectedRow.PlotItemsTable = eventData.Indices(1);
             end
             obj.IsDirty = true;
         end
         
-        function onGSAItemsTableSelectionEdit(obj,eventData)
+        function onTaskTableEdit(obj,eventData)
             Indices = eventData.Indices;
             if isempty(Indices)
                 return;
@@ -445,7 +627,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             RowIdx = Indices(1,1);
             ColIdx = Indices(1,2);
             
-            obj.SelectedRow.GSAItemsTable = RowIdx;
+            obj.SelectedRow.TaskTable = RowIdx;
             
             % Update entry if necessary:
             % Map table column header/index to field name in 
@@ -453,13 +635,25 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             ColumnToItemProperty = {'Include','TaskName','ParametersName'};
             item = obj.TemporaryGlobalSensitivityAnalysis.Item(RowIdx);
             if ~isequal(item.(ColumnToItemProperty{ColIdx}),eventData.NewData)
+                if item.NumberSamples > 0
+                    selection = uiconfirm(obj.getUIFigure(),'Changing the task will delete results.','Change task',...
+                        'Icon','warning');
+                    if strcmp(selection, 'Cancel')
+                        obj.TaskTable.Data{RowIdx, ColIdx} = eventData.PreviousData;
+                        return;
+                    end
+                end
                 item.(ColumnToItemProperty{ColIdx}) = eventData.NewData;                
                 item.MATFileName = '';
                 item.NumberSamples = 0;
-                obj.TemporaryGlobalSensitivityAnalysis.updateItemTable(RowIdx, item);
+                item.Results = [];
+                obj.TemporaryGlobalSensitivityAnalysis.updateItem(RowIdx, item);
             end
             
             obj.updateGSAItemTable();
+            if ColIdx == 2
+                obj.updateIterationsTable();
+            end
             obj.IsDirty = true;
         end
         
@@ -479,42 +673,128 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
         
         function setPlotItemColor(obj)
             if obj.SelectedRow.PlotItemsTable > 0
-                currentColor = obj.GlobalSensitivityAnalysis.Item(obj.SelectedRow.PlotItemsTable).Color;
+                currentColor = obj.TemporaryGlobalSensitivityAnalysis.Item(obj.SelectedRow.PlotItemsTable).Color;
                 newColor = uisetcolor(currentColor);
                 if isequal(newColor, currentColor)
                     return;
                 end
-                obj.GlobalSensitivityAnalysis.Item(obj.SelectedRow.PlotItemsTable).Color = newColor;
+                obj.TemporaryGlobalSensitivityAnalysis.Item(obj.SelectedRow.PlotItemsTable).Color = newColor;
                 stylesTable = obj.PlotItemsTable.StyleConfigurations;
                 idx = vertcat(stylesTable.TargetIndex{:});
                 updateIdx = find(idx(:,1)==obj.SelectedRow.PlotItemsTable,1);
                 removeStyle(obj.PlotItemsTable, updateIdx);
                 style = uistyle('BackgroundColor',newColor);
                 addStyle(obj.PlotItemsTable,style,'cell',[obj.SelectedRow.PlotItemsTable,2]);
-                plotSobolIndices(obj.GlobalSensitivityAnalysis,obj.getPlotArray(),obj.getPlotMode());
+                plotSobolIndices(obj.TemporaryGlobalSensitivityAnalysis,obj.getPlotArray(),obj.getPlotMode());
             end
         end
         
-        function onVisualizationTableSelectionEdit(obj, source, eventData)
+        function onVisualizationTableEdit(obj, source, eventData)
             indices = eventData.Indices;
             rowIdx = indices(1,1);
             colIdx = indices(1,2);
-            if source == obj.FirstOrderTable
-                obj.GlobalSensitivityAnalysis.PlotFirstOrderInfo(rowIdx, [1,2,3]) = source.Data(rowIdx, [1,2,5]);
-            elseif source == obj.TotalOrderTable
-                obj.GlobalSensitivityAnalysis.PlotTotalOrderInfo(rowIdx, [1,2,3]) = source.Data(rowIdx, [1,2,5]);
-            else
-                if colIdx == 1
-                    obj.GlobalSensitivityAnalysis.Item(rowIdx).Include = eventData.NewData;
-                else
-                    obj.GlobalSensitivityAnalysis.Item(rowIdx).Description = eventData.NewData;
-                end
+            if source == obj.SobolIndexTable
+                fieldName = obj.SobolIndexTable.ColumnName{colIdx};
+                obj.TemporaryGlobalSensitivityAnalysis.PlotSobolIndex(rowIdx).(fieldName) = eventData.NewData;    
+            elseif source == obj.VarianceTable
+                fieldName = obj.VarianceTable.ColumnName{colIdx};
+                obj.TemporaryGlobalSensitivityAnalysis.PlotVariance(rowIdx).(fieldName) = eventData.NewData;    
+            elseif source == obj.PlotItemsTable
+                fieldName = obj.PlotItemsTable.ColumnName{colIdx};
+                obj.TemporaryGlobalSensitivityAnalysis.Item(rowIdx).(fieldName) = eventData.NewData;
             end
-            plotSobolIndices(obj.GlobalSensitivityAnalysis,obj.getPlotArray(),obj.getPlotMode());
+            plotSobolIndices(obj.TemporaryGlobalSensitivityAnalysis,obj.getPlotArray(),obj.getPlotMode());
         end
         
         function onVisualizationModeChange(obj)
-            plotSobolIndices(obj.GlobalSensitivityAnalysis,obj.getPlotArray(),obj.getPlotMode());
+            plotSobolIndices(obj.TemporaryGlobalSensitivityAnalysis,obj.getPlotArray(),obj.getPlotMode());
+        end
+        
+        function onRemoveIteration(obj)
+            if isempty(obj.IterationsTable.Data)
+                uialert(obj.getUIFigure(),'No iterations available to remove.','No iterations');
+                return;
+            end
+            removeIterationIdx = fliplr(find([obj.IterationsTable.Data{:,1}]));
+            if isempty(removeIterationIdx)
+                uialert(obj.getUIFigure(),'Mark iterations to be removed before clicking the erase button.','Selection required');
+                return;
+            end
+            obj.TemporaryGlobalSensitivityAnalysis.removeResults(obj.TaskTable.Data{obj.SelectedRow.TaskTable,2}, removeIterationIdx);
+            obj.updateIterationsTable();
+        end
+        
+        function onPlotTableButtonPress(obj, src)
+            if src == obj.NewSobolIndexButton
+                [statusOk, message] = obj.TemporaryGlobalSensitivityAnalysis.add('sobolIndex');
+            elseif src == obj.RemoveSobolIndexButton
+                [statusOk, message] = obj.TemporaryGlobalSensitivityAnalysis.remove('sobolIndex', obj.SelectedRow.PlotSobolIndexTable(1));
+                if statusOk && obj.SelectedRow.PlotSobolIndexTable(1) == size(obj.SobolIndexTable.Data,1)
+                    obj.SelectedRow.PlotSobolIndexTable = [0,0];
+                    obj.SobolIndexTable = obj.selectRow(obj.SobolIndexTable, 0, false);
+                    plotSobolIndices(obj.TemporaryGlobalSensitivityAnalysis,obj.getPlotArray(),obj.getPlotMode());
+                end
+            elseif src == obj.MoveUpSobolIndexButton
+                [statusOk, message] = obj.TemporaryGlobalSensitivityAnalysis.moveUp('sobolIndex', obj.SelectedRow.PlotSobolIndexTable(1));
+                if statusOk
+                    obj.SelectedRow.PlotSobolIndexTable(1) = obj.SelectedRow.PlotSobolIndexTable(1) - 1;
+                    tfRenewTable = obj.SelectedRow.PlotSobolIndexTable(2) > 0;
+                    if tfRenewTable
+                        obj.SelectedRow.PlotSobolIndexTable(2) = 0;
+                    end
+                    obj.SobolIndexTable = obj.selectRow(obj.SobolIndexTable, obj.SelectedRow.PlotSobolIndexTable(1), tfRenewTable);
+                    plotSobolIndices(obj.TemporaryGlobalSensitivityAnalysis,obj.getPlotArray(),obj.getPlotMode());
+                end
+            elseif src == obj.MoveDownSobolIndexButton
+                [statusOk, message] = obj.TemporaryGlobalSensitivityAnalysis.moveDown('sobolIndex', obj.SelectedRow.PlotSobolIndexTable(1));
+                if statusOk
+                    obj.SelectedRow.PlotSobolIndexTable(1) = obj.SelectedRow.PlotSobolIndexTable(1) + 1;
+                    tfRenewTable = obj.SelectedRow.PlotSobolIndexTable(2) > 0;
+                    if tfRenewTable
+                        obj.SelectedRow.PlotSobolIndexTable(2) = 0;
+                    end
+                    obj.SobolIndexTable = obj.selectRow(obj.SobolIndexTable, obj.SelectedRow.PlotSobolIndexTable(1), tfRenewTable);
+                    plotSobolIndices(obj.TemporaryGlobalSensitivityAnalysis,obj.getPlotArray(),obj.getPlotMode());
+                end
+            elseif src == obj.NewVarianceButton
+                [statusOk, message] = obj.TemporaryGlobalSensitivityAnalysis.add('variance');
+            elseif src == obj.RemoveVarianceButton
+                [statusOk, message] = obj.TemporaryGlobalSensitivityAnalysis.remove('variance', obj.SelectedRow.PlotVarianceTable(1));
+                if statusOk && obj.SelectedRow.PlotVarianceTable == size(obj.VarianceTable.Data,1)
+                    obj.SelectedRow.PlotVarianceTable = [0,0];
+                    obj.VarianceTable = obj.selectRow(obj.VarianceTable, 0, false);
+                    plotSobolIndices(obj.TemporaryGlobalSensitivityAnalysis,obj.getPlotArray(),obj.getPlotMode());
+                end
+            elseif src == obj.MoveUpVarianceButton
+                [statusOk, message] = obj.TemporaryGlobalSensitivityAnalysis.moveUp('variance', obj.SelectedRow.PlotVarianceTable(1));
+                if statusOk
+                    obj.SelectedRow.PlotVarianceTable(1) = obj.SelectedRow.PlotVarianceTable(1) - 1;
+                    tfRenewTable = obj.SelectedRow.PlotVarianceTable(2) > 0;
+                    if tfRenewTable
+                        obj.SelectedRow.PlotVarianceTable(2) = 0;
+                    end
+                    obj.VarianceTable = obj.selectRow(obj.VarianceTable, obj.SelectedRow.PlotVarianceTable(1), tfRenewTable);
+                    plotSobolIndices(obj.TemporaryGlobalSensitivityAnalysis,obj.getPlotArray(),obj.getPlotMode());
+                end
+            elseif src == obj.MoveDownVarianceButton
+                [statusOk, message] = obj.TemporaryGlobalSensitivityAnalysis.moveDown('variance', obj.SelectedRow.PlotVarianceTable(1));
+                if statusOk
+                    obj.SelectedRow.PlotVarianceTable(1) = obj.SelectedRow.PlotVarianceTable(1) + 1;
+                    tfRenewTable = obj.SelectedRow.PlotVarianceTable(2) > 0;
+                    if tfRenewTable
+                        obj.SelectedRow.PlotVarianceTable(2) = 0;
+                    end                    
+                    obj.VarianceTable = obj.selectRow(obj.VarianceTable, obj.SelectedRow.PlotVarianceTable(1), tfRenewTable);
+                    plotSobolIndices(obj.TemporaryGlobalSensitivityAnalysis,obj.getPlotArray(),obj.getPlotMode());
+                end
+            end
+            if statusOk
+                obj.updatePlotTables();
+                obj.IsDirty = true;
+            else
+                uialert(obj.getUIFigure(), message, 'Error')
+            end
+
         end
         
     end
@@ -592,6 +872,37 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
 
         end
         
+        function updateIterationsTable(obj)
+            if obj.SelectedRow.TaskTable == 0
+                obj.IterationsTable.Data = cell(0,5);
+                return
+            end
+            [~, itemIdx] = ismember(obj.TaskTable.Data{obj.SelectedRow.TaskTable,2}, ...
+                {obj.TemporaryGlobalSensitivityAnalysis.Item.TaskName});
+            item = obj.TemporaryGlobalSensitivityAnalysis.Item(itemIdx);
+            obj.IterationsLabel.Text = ['Iterations: ', item.TaskName];
+            numResults = numel(item.Results);
+            if numResults <= 1
+               obj.IterationsLabel.Text = [obj.IterationsLabel.Text, ...
+                   ' (no iterations available)'];
+                obj.IterationsTable.Data = cell(0,5);
+            else
+                numIterations = numResults - 1; 
+                [maxDifference, meanDifference] = obj.TemporaryGlobalSensitivityAnalysis.getConvergenceStats(itemIdx);
+                obj.IterationsTable.Data = [repmat({false}, numIterations, 1), ...
+                    repmat({' '}, numIterations, 1), flipud(maxDifference), flipud(meanDifference), ...
+                    fliplr(num2cell([item.Results(1:numIterations).NumberSamples]))'];
+                alphaValues = fliplr(linspace(0.2, 1, numResults));
+                alphaValues = alphaValues(2:end);
+                removeStyle(obj.IterationsTable)
+                for i = 1:numIterations
+                    iterationColor = alphaValues(i)*item.Color + [1,1,1]*(1-alphaValues(i));
+                    style = uistyle('BackgroundColor',iterationColor);
+                    addStyle(obj.IterationsTable,style,'cell',[i,2]);
+                end
+            end
+        end
+        
         function UpdateBackendPlotSettings(obj)
             obj.GlobalSensitivityAnalysis.PlotSettings = getSummary(obj.getPlotSettings());
         end
@@ -659,6 +970,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             obj.updateGSAConfiguration();
             obj.updateGSAItemTable();
             obj.updatePlotTables();
+            obj.updateIterationsTable();
             obj.IsDirty = false;
         end
         
@@ -739,18 +1051,65 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
                 return
             end
             
-            info = obj.TemporaryGlobalSensitivityAnalysis.getPlotInformation();
-            
-            obj.FirstOrderTable.Data = [info.FirstOrderInfo(:,1:2),info.InputsOutputs,info.FirstOrderInfo(:,3)];
-            obj.TotalOrderTable.Data = [info.TotalOrderInfo(:,1:2),info.InputsOutputs,info.TotalOrderInfo(:,3)];
-            if isempty(obj.FirstOrderTable.Data)
-                obj.TotalOrderTable.ColumnWidth = '1x';
-                obj.FirstOrderTable.ColumnWidth = '1x';
+            % Sobol indices table
+            plot = {obj.TemporaryGlobalSensitivityAnalysis.PlotSobolIndex.Plot};
+            lineStyle = {obj.TemporaryGlobalSensitivityAnalysis.PlotSobolIndex.Style};
+            inputs = {obj.TemporaryGlobalSensitivityAnalysis.PlotSobolIndex.Input};
+            output = {obj.TemporaryGlobalSensitivityAnalysis.PlotSobolIndex.Output};
+            order = {obj.TemporaryGlobalSensitivityAnalysis.PlotSobolIndex.Order};
+            display = {obj.TemporaryGlobalSensitivityAnalysis.PlotSobolIndex.Display};
+            obj.SobolIndexTable.Data = [plot(:),lineStyle(:),inputs(:),output(:), order(:),display(:)];
+            if isempty(obj.SobolIndexTable.Data)
+                columnWidth = '1x';
             else
-                obj.TotalOrderTable.ColumnWidth = {'fit','fit','auto','auto','auto'};
-                obj.FirstOrderTable.ColumnWidth = {'fit','fit','auto','auto','auto'};
+                columnWidth = {'fit','fit','auto','auto','fit','auto'};
             end
+            columnFormat = obj.SobolIndexTable.ColumnFormat;
+            editableTF = obj.SobolIndexTable.ColumnEditable;
+            if isempty(obj.TemporaryGlobalSensitivityAnalysis.PlotInputs)
+                columnFormat{3} = 'char';
+                editableTF(3) = false;
+            else
+                columnFormat{3} = obj.TemporaryGlobalSensitivityAnalysis.PlotInputs';
+                editableTF(3) = true;
+            end
+            if isempty(obj.TemporaryGlobalSensitivityAnalysis.PlotOutputs)
+                columnFormat{4} = 'char';
+                editableTF(4) = false;
+            else
+                columnFormat{4} = obj.TemporaryGlobalSensitivityAnalysis.PlotOutputs';
+                editableTF(4) = true;
+            end
+            obj.SobolIndexTable.ColumnWidth = columnWidth;
+            obj.SobolIndexTable.ColumnFormat = columnFormat;
+            obj.SobolIndexTable.ColumnEditable = editableTF;
+
+            % Variance table
+            plot = {obj.TemporaryGlobalSensitivityAnalysis.PlotVariance.Plot};
+            lineStyle = {obj.TemporaryGlobalSensitivityAnalysis.PlotVariance.Style};
+            output = {obj.TemporaryGlobalSensitivityAnalysis.PlotVariance.Output};
+            type = {obj.TemporaryGlobalSensitivityAnalysis.PlotVariance.Type};
+            display = {obj.TemporaryGlobalSensitivityAnalysis.PlotVariance.Display};
+            obj.VarianceTable.Data = [plot(:),lineStyle(:),output(:),type(:),display(:)];
+            if isempty(obj.VarianceTable.Data)
+                columnWidth = '1x';
+            else
+                columnWidth = {'fit','fit','auto','fit','auto'};
+            end
+            columnFormat = obj.VarianceTable.ColumnFormat;
+            editableTF = obj.VarianceTable.ColumnEditable;
+            if isempty(obj.TemporaryGlobalSensitivityAnalysis.PlotOutputs)
+                columnFormat{3} = 'char';
+                editableTF(3) = false;
+            else
+                columnFormat{3} = obj.TemporaryGlobalSensitivityAnalysis.PlotOutputs';
+                editableTF(3) = true;
+            end
+            obj.VarianceTable.ColumnWidth = columnWidth;
+            obj.VarianceTable.ColumnFormat = columnFormat;
+            obj.VarianceTable.ColumnEditable = editableTF;
             
+            % Task selection table
             include         = {obj.TemporaryGlobalSensitivityAnalysis.Item.Include};
             taskNames       = {obj.TemporaryGlobalSensitivityAnalysis.Item.TaskName};
             taskColor       = {obj.TemporaryGlobalSensitivityAnalysis.Item.Color};
@@ -800,29 +1159,45 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             end
             
             %First, reset the data
-            obj.GSAItemsTable.Data = Data;
+            obj.TaskTable.Data = Data;
             s = uistyle('Fontcolor', [0.75,0.75,0.75]);
-            addStyle(obj.GSAItemsTable,s,'column',3)
+            addStyle(obj.TaskTable,s,'column',3)
             
             %Then, reset the pop up options.
             %New uitable API cannot handle empty lists for table dropdowns.
             %Instead, we need to set the format to char.
-            [columnFormat,editableTF] = obj.replaceEmptyDropdowns();
-            obj.GSAItemsTable.ColumnFormat = columnFormat;
-            obj.GSAItemsTable.ColumnEditable = editableTF;
-        end
-        
-        function [columnFormat,editableTF] = replaceEmptyDropdowns(obj)
             columnFormat = {'logical',obj.TaskPopupTableItems,'numeric'};
             editableTF = [true,true,false];
             if isempty(columnFormat{2})
                 columnFormat{2} = 'char';
                 editableTF(2) = false;
             end
+            obj.TaskTable.ColumnFormat = columnFormat;
+            obj.TaskTable.ColumnEditable = editableTF;
         end
         
         function mode = getPlotMode(obj)
            [~, mode] = ismember(obj.PlotModeDropDown.Value,obj.PlotModeDropDown.Items);
+        end
+        
+        function tbl = selectRow(~, tbl, rowIdx, resetSelection)
+            if resetSelection
+                tmp = tbl;
+                tbl = copy(tbl);
+                tbl.Parent = tmp.Parent;
+                tbl.CellEditCallback = tmp.CellEditCallback;
+                tbl.CellSelectionCallback = tmp.CellSelectionCallback;    
+                tmp.Visible = 'off';
+                tmp.Parent = [];
+                drawnow;
+            end
+            removeStyle(tbl);
+            if rowIdx > 0 && rowIdx <= size(tbl.Data, 1)
+                alpha = 0.1;
+                blue = [0,0.447,0.741];
+                style = uistyle('BackgroundColor', blue*alpha + [1,1,1]*(1-alpha));
+                addStyle(tbl, style, 'row', rowIdx);
+            end
         end
         
     end

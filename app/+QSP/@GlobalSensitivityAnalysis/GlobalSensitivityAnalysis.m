@@ -34,41 +34,56 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
         ResultsFolderName = ''
 
         Item
+                  
+        NumberSamples    = 1000
+        RandomSeed       = []
+        NumberIterations = 3
+        
+        SelectedPlotLayout = '1x1'
+
+        PlotInputs  = cell(0,1) % Inputs
+        PlotOutputs = cell(0,1) % Outputs
+
+        PlotSobolIndex
+        PlotVariance
+        
+        PlotSettings = repmat(struct(),1,12)
+        
+        ParametersName_I = [] % needs to be public for copy to work
+    end
+      
+    properties (Dependent)
+        ParametersName
+        ResultsFolderName_new
+    end
+    
+    properties (SetAccess = 'private')
+        SpeciesLineStyles
+        
+    end
+    
+    properties (Access = private)
         ItemTemplate = struct('TaskName', [], ...
                               'NumberSamples', 0, ...
                               'Include', true, ...
                               'MATFileName', [], ...
                               'Color', [], ...
                               'Description', [], ...
-                              'Results', []);
-                  
-        ParametersName   = [];
-        NumberSamples    = 1000;
-        RandomSeed       = []
-        NumberIterations = 3;
-        
-        SelectedPlotLayout = '1x1'
+                              'Results', [])
+        PlotSobolIndexTemplate = struct('Plot', ' ', ...
+                                        'Style', '-', ...
+                                        'Input', [], ...
+                                        'Output', [], ...
+                                        'Order', 'first', ...
+                                        'Display', '')
+        PlotVarianceTemplate = struct('Plot', ' ', ...
+                                      'Style', '-', ...
+                                      'Output', [], ...
+                                      'Type', 'total', ...
+                                      'Display', '')
 
-        PlotInputs         = cell(0,1) % Inputs
-        PlotOutputs        = cell(0,1) % Outputs
-        PlotFirstOrderInfo = cell(0,4) % Plot | Line style | Display | Line handles
-        PlotTotalOrderInfo = cell(0,4) % Plot | Line style | Display | Line handles
-        
-        PlotSettings = repmat(struct(),1,12)
-        
     end
-      
-    properties (Dependent)
-        ResultsFolderName_new
-    end
-    
-    properties (SetAccess = 'private')
-        SpeciesLineStyles
-    end
-    
-%     properties (Dependent=true)
-%         TaskVPopItems
-%     end
+
     
     %% Constructor
     methods
@@ -89,33 +104,19 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
             % Example:
             %    aObj = QSP.GlobalSensitivityAnalysis();
             
-            obj.Item = obj.ItemTemplate([]);
+            obj.Item           = obj.ItemTemplate([]);
+            obj.PlotSobolIndex = obj.PlotSobolIndexTemplate([]);
+            obj.PlotVariance   = obj.PlotVarianceTemplate([]);
             
             % Populate public properties from P-V input pairs
             obj.assignPVPairs(varargin{:});       
-            
-            % For compatibility
-%             if size(obj.PlotSpeciesTable,2) == 3
-%                 obj.PlotSpeciesTable(:,4) = obj.PlotSpeciesTable(:,3);
-%             end
-%             if size(obj.PlotItemTable,2) == 4
-%                 TaskNames = obj.PlotItemTable(:,3);
-%                 VPopNames = obj.PlotItemTable(:,4);
-%                 obj.PlotItemTable(:,5) = cellfun(@(x,y)sprintf('%s - %s',x,y),TaskNames,VPopNames,'UniformOutput',false);
-%             end
-%             if size(obj.PlotDataTable,2) == 3
-%                 obj.PlotDataTable(:,4) = obj.PlotDataTable(:,3);
-%             end
-%             if size(obj.PlotGroupTable,2) == 3
-%                 obj.PlotGroupTable(:,4) = obj.PlotGroupTable(:,3);
-%             end
             
             % assign plot settings names
             for index = 1:length(obj.PlotSettings)
                 obj.PlotSettings(index).Title = sprintf('Plot %d', index);
             end
             
-        end %function obj = Simulation(varargin)
+        end %function obj = GlobalSensitivityAnalysis(varargin)
         
     end %methods
     
@@ -176,14 +177,7 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
             if  obj.Session.UseParallel && ~isempty(getCurrentTask())
                 return
             end
-            
-            % Validate number of samples
-            if obj.NumberSamples == 0
-                StatusOK = false;
-                ThisMessage = 'Number of added samples is zero.';
-                Message = sprintf('%s\n* %s\n',Message,ThisMessage);
-            end
-            
+           
             % Validate task-parameters pair is valid
             if ~isempty(obj.Settings)
                 
@@ -260,9 +254,7 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
                 obj.Item(index).NumberSamples = 0;
             end
         end
-        
-     
-          
+
     end
     
     %  Methods    
@@ -296,10 +288,6 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
                     obj.Item(index).MATFileName = ResultFileNames{index};
                 end
                 
-                % add entry to the database
-%                 if obj.Session.UseSQL
-%                     obj.Session.addExperimentToDB('GSA', obj.Name, now, ResultFileNames);
-%                 end
             end 
             
         end %function
@@ -324,13 +312,11 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
             
         end
         
-        function updatePlotInformation(obj)
+        function updateInputsOutputs(obj)
                       
             if isempty(obj.Item)
                 obj.PlotInputs  = cell(0,1); % Inputs
                 obj.PlotOutputs = cell(0,1); % Outputs
-                obj.PlotFirstOrderInfo = cell(0,3); % Plot | Line style | Display
-                obj.PlotTotalOrderInfo = cell(0,3); % Plot | Line style | Display
                 return
             end
             
@@ -344,99 +330,164 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
             end
             sensitivityOutputs = unique([sensitivityOutputs{:}], 'stable');
             
-            numInputs  = numel(sensitivityInputs);
-            numOutputs = numel(sensitivityOutputs);
-            
-            plotFirstOrderInfo = cell(numInputs*numOutputs,3); % Plot | Line style | Display
-            plotTotalOrderInfo = cell(numInputs*numOutputs,3); % Plot | Line style | Display
-            
-            [tfInputExists, inputIdx] = ismember(sensitivityInputs, obj.PlotInputs);
-            [tfOutputExists, outnputIdx] = ismember(sensitivityOutputs, obj.PlotOutputs);
-            for i = 1:numInputs
-                for j = 1:numOutputs
-                    idx = obj.getInputOutputIndex(i,j,numel(sensitivityInputs));
-                    if ~tfInputExists(i) || ~tfOutputExists(j)
-                        plotFirstOrderInfo(idx,:) = {' ', '-', ''};
-                        plotTotalOrderInfo(idx,:) = {' ', '-', ''};
-                    else
-                        oldIdx = obj.getInputOutputIndex(inputIdx(i),outnputIdx(j),numel(obj.PlotInputs));
-                        plotFirstOrderInfo(idx,:) = obj.PlotFirstOrderInfo(oldIdx,:);
-                        plotTotalOrderInfo(idx,:) = obj.PlotTotalOrderInfo(oldIdx,:);
-                    end
-                end
-            end
             obj.PlotInputs  = reshape(sensitivityInputs,[],1);
             obj.PlotOutputs = reshape(sensitivityOutputs,[],1);
-            obj.PlotFirstOrderInfo = plotFirstOrderInfo;
-            obj.PlotTotalOrderInfo = plotTotalOrderInfo;
-            
-        end
-        
-        function plotInfo = getPlotInformation(obj)
-            plotInfo = struct('InputsOutputs', [], ...
-                'FirstOrderInfo', [], ...
-                'TotalOrderInfo', []);
-            [outIdx, inIdx] = meshgrid(1:numel(obj.PlotOutputs), 1:numel(obj.PlotInputs));
-            plotInfo.InputsOutputs = [obj.PlotInputs(inIdx(:)), obj.PlotOutputs(outIdx(:))];
-            plotInfo.FirstOrderInfo = obj.PlotFirstOrderInfo;
-            plotInfo.TotalOrderInfo = obj.PlotTotalOrderInfo;
-        end
-        
-        function addItem(obj, item)
-            obj.Item(end+1) = item;
-            obj.updatePlotInformation();
-        end
-        
-        function removeItem(obj, idx)
-            obj.Item(idx) = [];
-            obj.updatePlotInformation();
-        end
-        
-        function updateItemTable(obj, idx, item)
-            tfNeedUpdatePlotInformation = ~strcmp(item.TaskName, obj.Item(idx).TaskName);
-            obj.Item(idx) = item;
-            if tfNeedUpdatePlotInformation
-                obj.updatePlotInformation();
-            end
-        end
-        
-        function updateItemPlotInfo(obj, itemIdx, results)            
-            obj.Item(itemIdx).Results = [obj.Item(itemIdx).Results, results];
-        end    
-            
-        
-        function hLine = plotTimeCourseHelper(obj, plotInfo, time, sobolIndices, itemIdx, displayname, color, ax)
-            
-            ThisLineStyle = plotInfo{2};
-            ThisDisplayName = plotInfo{3};
-            if isempty(ThisDisplayName)
-                ThisDisplayName = displayname;
-            end
-            FullDisplayName = sprintf('%s %s',ThisDisplayName,obj.Item(itemIdx).Description);
-            hLine = plot(ax, time, sobolIndices, ...
-                'LineWidth', 2, 'LineStyle', ThisLineStyle, 'Color', color, ...
-                'Visible', 'off', 'Tag', obj.Item(itemIdx).TaskName);
 
         end
         
-        function setParametersName(obj, parametersName)
-            if ~strcmp(parametersName, obj.ParametersName)
-                obj.ParametersName = parametersName;
-                obj.updatePlotInformation();
+        function [statusOk, message] = add(obj, type)
+            statusOk = true;
+            message  = '';
+            switch type
+                case 'item'
+                    existingTaskNames = {obj.Item.TaskName};
+                    allTasks = {obj.Settings.Task.Name};
+                    tfTaskExists = ismember(allTasks, existingTaskNames);
+                    if all(tfTaskExists)
+                        statusOk = false;
+                        message = 'All tasks are already selected. Add more tasks to add them to this global sensitivity analysis.';
+                        return;
+                    end
+                    obj.Item(end+1) = obj.ItemTemplate;
+                    itemColors = getItemColors(obj.Session, numel(obj.Item));                    
+                    nonExistingTaskNames = allTasks(~tfTaskExists);
+                    obj.Item(end).TaskName = nonExistingTaskNames{1};
+                    obj.Item(end).Color = itemColors(end,:);
+                    obj.updateInputsOutputs();
+                case 'sobolIndex'
+                    if isempty(obj.PlotInputs)
+                        statusOk = false;
+                        message = 'Selection of sensitivity inputs required. Select Parameters as inputs for the global sensitivity analysis.';
+                        return;
+                    end
+                    if isempty(obj.PlotOutputs)
+                        statusOk = false;
+                        message = 'Selection of sensitivity outputs required. Select at least one Task as outputs for the global sensitivity analysis.';
+                        return;
+                    end
+                    obj.PlotSobolIndex(end+1) = obj.PlotSobolIndexTemplate;
+                    obj.PlotSobolIndex(end).Input = obj.PlotInputs{1};
+                    obj.PlotSobolIndex(end).Output = obj.PlotOutputs{1};
+                case 'variance'
+                    if isempty(obj.PlotOutputs)
+                        statusOk = false;
+                        message = 'Selection of sensitivity outputs required. Select at least one Task as outputs for the global sensitivity analysis.';
+                        return;
+                    end
+                    obj.PlotVariance(end+1) = obj.PlotVarianceTemplate;
+                    obj.PlotVariance(end).Output = obj.PlotOutputs{1};
             end
         end
         
-%         function updateSpeciesLineStyles(obj)
-%             ThisMap = obj.Settings.LineStyleMap;
-%             if ~isempty(ThisMap) && size(obj.PlotSpeciesTable,1) ~= numel(obj.SpeciesLineStyles)
-%                 obj.SpeciesLineStyles = uix.utility.GetLineStyleMap(ThisMap,size(obj.PlotSpeciesTable,1)); % Number of species
-%             end
-%         end %function
-%         
-%         function setSpeciesLineStyles(obj,Index,NewLineStyle)
-%             NewLineStyle = validatestring(NewLineStyle,obj.Settings.LineStyleMap);
-%             obj.SpeciesLineStyles{Index} = NewLineStyle;
-%         end %function
+        function [statusOk, message] = remove(obj, type, idx)
+            if idx == 0
+                statusOk = false;
+                message = 'Select a row to mark it for removal.';
+                return;
+            end
+            statusOk = true;
+            message  = '';
+            switch type
+                case 'item'
+                    obj.Item(idx) = [];
+                    obj.updateInputsOutputs();
+                case 'sobolIndex'
+                    obj.PlotSobolIndex(idx) = [];
+                case 'variance'
+                    obj.PlotVariance(idx) = [];
+            end            
+        end
+        
+        function [statusOk, message] = moveUp(obj, type, idx)
+            if idx == 0
+                statusOk = false;
+                message = 'Select a row to move it up.';
+                return;
+            elseif idx == 1
+                statusOk = false;
+                message = 'The select row is already on the top of the table.';
+                return;
+            else
+                statusOk = true;
+                message  = '';                
+            end            
+            switch type
+                case 'sobolIndex'
+                    if numel(obj.PlotSobolIndex) > 1
+                        obj.PlotSobolIndex([idx-1, idx]) = obj.PlotSobolIndex([idx, idx-1]);
+                    end
+                case 'variance'
+                    if numel(obj.PlotVariance) > 1
+                        obj.PlotVariance([idx-1, idx]) = obj.PlotVariance([idx, idx-1]);
+                    end
+            end
+        end
+        
+        function [statusOk, message] = moveDown(obj, type, idx)
+            if idx == 0
+                statusOk = false;
+                message = 'Select a row to move it down.';
+                return;
+            else
+                statusOk = true;
+                message  = '';                
+            end            
+            switch type
+                case 'sobolIndex'
+                    if idx == numel(obj.PlotSobolIndex)
+                        statusOk = false;
+                        message = 'The select row is already on the bottom of the table.';
+                        return;
+                    end
+                    if numel(obj.PlotSobolIndex) > 1
+                        obj.PlotSobolIndex([idx, idx+1]) = obj.PlotSobolIndex([idx+1, idx]);
+                    end
+                case 'variance'
+                    if idx == numel(obj.PlotVariance)
+                        statusOk = false;
+                        message = 'The select row is already on the bottom of the table.';
+                        return;
+                    end
+                    if numel(obj.PlotVariance) > 1                    
+                        obj.PlotVariance([idx, idx+1]) = obj.PlotVariance([idx+1, idx]);
+                    end
+            end
+        end
+        
+        function updateItem(obj, idx, item)
+            tfNeedupdateInputsOutputs = ~strcmp(item.TaskName, obj.Item(idx).TaskName);
+            obj.Item(idx) = item;
+            if tfNeedupdateInputsOutputs
+                obj.updateInputsOutputs();
+            end
+        end
+        
+        function addResults(obj, itemIdx, results)            
+            obj.Item(itemIdx).Results = [obj.Item(itemIdx).Results, results];
+        end    
+            
+        function removeResults(obj, taskName, idx)
+        	[~, itemIdx] = ismember(taskName, {obj.Item.TaskName});
+            obj.Item(itemIdx).Results(idx) = [];
+        end
+
+        function [maxDifference, meanDifference] = getConvergenceStats(obj, itemIdx)
+            
+            numResults = numel(obj.Item(itemIdx).Results);
+            maxDifference = cell(numResults-1, 1);
+            meanDifference = cell(numResults-1, 1);
+            
+            for i = 1:numResults-1
+                differences = reshape(abs([([obj.Item(itemIdx).Results(i).SobolIndices(:).FirstOrder] - ...
+                    [obj.Item(itemIdx).Results(end).SobolIndices(:).FirstOrder]); ...
+                	([obj.Item(itemIdx).Results(i).SobolIndices(:).TotalOrder] - ...
+                    [obj.Item(itemIdx).Results(end).SobolIndices(:).TotalOrder])]), [], 1);
+                differences(isnan(differences)) = [];
+                maxDifference{i} = max(differences, [], 'all');
+                meanDifference{i} = mean(differences, 'all');
+            end
+            
+        end
         
         function [StaleFlag,ValidFlag,InvalidMessages,StaleReason] = getStaleItemIndices(obj)
             
@@ -541,57 +592,121 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
         function Value = get.ResultsFolderName_new(obj)
             Value = strjoin(obj.ResultsFolderPath, filesep);
         end
+
+        function set.ParametersName(obj,parametersName)
+            validateattributes(parametersName,{'char'},{'row'});
+            if ~strcmp(parametersName, obj.ParametersName_I)
+                obj.ParametersName_I = parametersName;
+                obj.updateInputsOutputs();
+            end
+        end
+        
+        function Value = get.ParametersName(obj)
+            Value = obj.ParametersName_I;
+        end
+        
         
         function set.Item(obj,Value)
             validateattributes(Value,{'struct'},{});
             obj.Item = Value;
         end
         
-%         function set.PlotSpeciesTable(obj,Value)
-%             validateattributes(Value,{'cell'},{});
-%             obj.PlotSpeciesTable = Value;
-%         end
-%         
-%         function set.PlotItemTable(obj,Value)
-%             validateattributes(Value,{'cell'},{'size',[nan 6]});
-%             obj.PlotItemTable = Value;
-%         end
-%         
-%         function set.PlotDataTable(obj,Value)
-%             validateattributes(Value,{'cell'},{});
-%             obj.PlotDataTable = Value;
-%         end
-%         
-%         function set.PlotGroupTable(obj,Value)
-%             validateattributes(Value,{'cell'},{'size',[nan 4]});
-%             obj.PlotGroupTable = Value;
-%         end
-        
         function set.PlotSettings(obj,Value)
             validateattributes(Value,{'struct'},{});
             obj.PlotSettings = Value;
         end
         
-%         function set.TaskVPopItems(obj,Value)
-%             validateattributes(Value,{'cell'},{'size',[nan,3]});
-%             
-%             NewTaskVPop = QSP.TaskVirtualPopulation.empty;
-%             for idx = 1:size(Value,1)
-%                 NewTaskVPop(end+1) = QSP.TaskVirtualPopulation(...
-%                     'TaskName',Value{idx,1},...
-%                     'VPopName',Value{idx,2},...
-%                     'Group',Value{idx,3}); %#ok<AGROW>
-%             end
-%             obj.Item = NewTaskVPop;
-%         end
-%         
-%         function Value = get.TaskVPopItems(obj)
-%             TaskNames = {obj.Item.TaskName};
-%             VPopNames = {obj.Item.VPopName};
-%             GroupIDs = {obj.Item.Group};
-%             
-%             Value = [TaskNames(:) VPopNames(:) GroupIDs(:)];
-%         end
+        function matchingObjects = getObjectsByName(~, objects, names)
+            % Filter objects by name and return matchingObjects whose Name property
+            % matches entries in 'names'. The order of returned objects matches the
+            % order of 'names'. 
+            %  'objects': specified as vector of objects with a Name property
+            %  'names'  : specified as character vector or cell array of
+            %             character vectors of names
+
+            [~, idx] = ismember(names, {objects.Name});
+            matchingObjects = objects(idx);
+            % TODOGSA, this assumes that object names are unique within
+            % Parameters and within Tasks. Is this assumption justified?
+            % TODOGSA: this also assumes that names is a subset of all names.
+
+        end
+        
+        function [statusOk, message, sensitivityInputs, transformations, ...
+            distributions, samplingInfo] = getParameterInfo(obj)
+            % Get parameter information from a QSP.Parameters object. Only
+            % information for parameters whose are specified to include in the
+            % analysis are returned.
+            %  'statusOk'         : logical scalar indicating if parameter import
+            %                       was successful 
+            %  'message'          : character vector containing information about
+            %                       parameter import failure
+            %  'sensitivityInputs': cell array of character vectors specifying 
+            %                       names of parameters to include as sensitivity
+            %                       inputs in the global sensitivity analysis
+            %  'transformations'  : cell array of character vectors specifying 
+            %                       transformations; 'linear' and 'log'
+            %                       transformations are supported
+            %  'distributions'    : cell array of character vectors specifying 
+            %                       distributions; 'uniform' and 'normal'
+            %                       distributions are supported. 
+            %  'samplingInfo'     : numeric matrix with two columns. There is one
+            %                       row per sensitivityInput. The values in each
+            %                       row are interpreted as follows, dependent on
+            %                       {transformation, distribution}:
+            %                       - 'linear' & 'uniform' : [lb, ub]
+            %                         meaning the values specified in the xlsx sheet
+            %                         determine the sampling range
+            %                       - 'linear' & 'log'     : [exp(lb), exp(ub)],
+            %                         meaning the values specified in the xlsx sheet
+            %                         determine the sampling range
+            %                       - 'normal' & 'uniform' : [mu, sig] of normal distribution
+            %                       - 'normal' & 'log'     : [mu, sig] of (non-log) normal distribution
+
+            % Import included parameter information
+
+            if isempty(obj.ParametersName)
+                statusOk = false;
+                message = 'No sensitivity inputs selected.';
+                sensitivityInputs = {};
+                transformations = {};
+                distributions = {};
+                samplingInfo = {};
+                return;
+            end
+            parameters = obj.getObjectsByName(obj.Settings.Parameters, obj.ParametersName);
+            [statusOk, message, header, data] = parameters.importData(parameters.FilePath);
+            tfInclude = strcmpi(data(:, strcmpi(header, 'include')), 'yes');
+            data = data(tfInclude, :);
+
+
+            sensitivityInputs = data(:, strcmpi(header, 'name'));
+
+            if nargout <= 3
+                return
+            end
+
+            transformations = data(:, strcmpi(header, 'scale'));
+
+            distributions = data(:, strcmpi(header, 'dist'));
+            tfNormalDistribution = strcmp(distributions, 'normal');
+
+            lb = data(:, strcmpi(header, 'lb'));
+            ub = data(:, strcmpi(header, 'ub'));
+
+            p0_1 = cell2mat(data(:, strcmpi(header, 'p0_1')));
+            cv = nan(size(lb));
+            if ismember('cv', header)
+                cv = cell2mat(data(:, strcmpi(header, 'cv')));
+            end
+
+            samplingInfo = cell2mat([lb, ub]);
+            samplingInfo(tfNormalDistribution, 1) = p0_1(tfNormalDistribution);
+            samplingInfo(tfNormalDistribution, 2) = cv(tfNormalDistribution);
+
+            statusOk = statusOk && ~any(isnan(samplingInfo), 'all');
+
+        end                
     end %methods
      
 	methods(Access = private)
@@ -602,17 +717,5 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
             idx = inputIdx + (outputIdx-1)*numInputs;
         end
     end
-%     methods (Static)
-%         function value = ExtractSpeciesData(Results, Species)
-%                         
-%             for k=1:length(Results)
-%             
-%                 idxCol = find( strcmp(Results(k).Data.SpeciesNames, Species));
-%                 NS = length(Results(k).Data.SpeciesNames);
-%                 value(:,k) = Results(k).Data.Data(:, idxCol:NS:end);
-%                 
-%             end                      
-%                 
-%         end
-%     end       
+
 end %classdef

@@ -90,15 +90,23 @@ function [statusOk, message, resultFileNames] = runHelper(obj, figureHandle, ax)
             
         end
         
+        if isempty(items(i).Results)
+            existingNumberSamples = 0;
+        else
+            existingNumberSamples = items(i).Results(end).NumberSamples; 
+        end
+        
         plotItems{1} = struct('Time', results.Time, ...
                               'SobolIndices', results.SobolIndices, ...
-                              'Variances', results.Variance);  
+                              'Variances', results.Variance, ...
+                              'NumberSamples', existingNumberSamples+numberSamples(1));  
 
         for iteration = 2:numel(numberSamples)
             results = addsamples(results, numberSamples(iteration));
             plotItems{iteration} = struct('Time', results.Time, ...
                                           'SobolIndices', results.SobolIndices, ...
-                                          'Variances', results.Variance);
+                                          'Variances', results.Variance, ...
+                                          'NumberSamples', existingNumberSamples+numberSamples(iteration));
 
         end
         
@@ -112,7 +120,7 @@ function [statusOk, message, resultFileNames] = runHelper(obj, figureHandle, ax)
         obj.Item(i).NumberSamples = ...
             items(i).NumberSamples + numberSamples(end);
         
-        obj.updateItemPlotInfo(i, [plotItems{:}]);
+        obj.addResults(i, [plotItems{:}]);
 
     end
     
