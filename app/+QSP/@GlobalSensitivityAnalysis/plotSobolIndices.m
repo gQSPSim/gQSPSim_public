@@ -30,24 +30,8 @@ function [hLines,hLegend,hLegendChildren] = plotSobolIndices(obj,hAxes,mode)
     numAxes = numel(hAxes);
     for index = 1:numAxes
 
-        cla(hAxes(index));
+        cla(hAxes(index), 'reset');
         legend(hAxes(index),'off')    
-
-        set(hAxes(index),...
-            'XLimMode',obj.PlotSettings(index).XLimMode,...
-            'YLimMode',obj.PlotSettings(index).YLimMode);
-        if strcmpi(obj.PlotSettings(index).XLimMode,'manual')
-            tmp = obj.PlotSettings(index).CustomXLim;
-            if ischar(tmp), tmp = str2num(tmp); end         %#ok<ST2NM>
-            set(hAxes(index),...
-                'XLim',tmp);
-        end
-        if strcmpi(obj.PlotSettings(index).YLimMode,'manual')
-            tmp = obj.PlotSettings(index).CustomYLim;
-            if ischar(tmp), tmp = str2num(tmp); end         %#ok<ST2NM>
-            set(hAxes(index),...
-                'YLim',tmp);
-        end
 
         hold(hAxes(index),'on')        
     end
@@ -58,44 +42,33 @@ function [hLines,hLegend,hLegendChildren] = plotSobolIndices(obj,hAxes,mode)
     maxXLim = zeros(1,numAxes);
     axContainsVariancePlot = false(1,numAxes);
 
-    [statusOk, message, inputs] = obj.getParameterInfo();
-    
-    barInfo = cell(numAxes,1);
+    % Store plot labels : text and color
+    plotLabelInfo  = cell(2,numAxes);
+    % Store mean bar height in bar plots for multiple tasks
     meanStatistics = cell(numAxes, numel(obj.PlotInputs)*numel(obj.PlotOutputs));
     
     %% Plot Simulation Items
 
     for tableIdx = 1:numel(obj.PlotSobolIndex)
         
-        if ~any([obj.Item.Include])
+        axIdx = str2double(obj.PlotSobolIndex(tableIdx).Plot);
+        if ~any([obj.Item.Include]) || isnan(axIdx)
             continue;
         end
         
-        output = obj.PlotSobolIndex(tableIdx).Output;
-        input  = obj.PlotSobolIndex(tableIdx).Input;
-        if strcmp(obj.PlotSobolIndex(tableIdx).Order, 'first')
-            order = 'FirstOrder';
-            orderLabel = 'first order';
-        else
-            order = 'TotalOrder';
-            orderLabel = 'total order';
-        end
+        output    = obj.PlotSobolIndex(tableIdx).Output;
+        input     = obj.PlotSobolIndex(tableIdx).Input;
         lineStyle = obj.PlotSobolIndex(tableIdx).Style;
-        display = obj.PlotSobolIndex(tableIdx).Display;
+        display   = obj.PlotSobolIndex(tableIdx).Display;
 
         [~, inputIdx]  = ismember(input, obj.PlotInputs);
 
-        axIdx = str2double(obj.PlotSobolIndex(tableIdx).Plot);
-        if isnan(axIdx)
-            continue;
-        end
-        
-        xIdx = numel(barInfo{axIdx})+1;
+        xIdx = numel(plotLabelInfo{1,axIdx})+1;
         currentLabel =  display;
         if isempty(currentLabel)
-            currentLabel = [output, '/', input, ' (', orderLabel, ')';];
+            currentLabel = [output, '/', input, ' (', obj.PlotSobolIndex(tableIdx).Type, ')';];
         end
-        barInfo{axIdx} = [barInfo{axIdx}, {currentLabel}];
+        plotLabelInfo{1, axIdx} = [plotLabelInfo{1, axIdx}, {currentLabel}];
         
         for itemIdx = 1:numel(obj.Item)
 
@@ -110,127 +83,60 @@ function [hLines,hLegend,hLegendChildren] = plotSobolIndices(obj,hAxes,mode)
                 continue;
             end
             
-            % All times are equal, so just get the first time vector.
-            time = obj.Item(itemIdx).Results(1).Time; 
-
-            alphaValues = linspace(0.2, 1, numel(obj.Item(itemIdx).Results));
-            
-            if mode == 1
-                for i = 1:numel(alphaValues)
-                    results = obj.Item(itemIdx).Results(i).SobolIndices;
-                    hLine = plot(hAxes(axIdx), time, ...
-                        results(inputIdx,outputIdx).(order), ...
-                        'Color', [obj.Item(itemIdx).Color, alphaValues(i)], ...
-                        'LineStyle', lineStyle); 
-                end
-                maxXLim(axIdx) = max(time);
+            if isempty(plotLabelInfo{2, axIdx})
+                plotLabelInfo{2, axIdx} = obj.Item(itemIdx).Color;
             else
-                for i = 1:numel(alphaValues) 
-                    results = obj.Item(itemIdx).Results(i).SobolIndices;
-                    barValue = getBarValue(results(inputIdx,outputIdx).(order), mode);
-                    scatter(hAxes(axIdx), xIdx, barValue, 100, 'd', ...
-                        'MarkerEdgeColor', obj.Item(itemIdx).Color, ...
-                        'MarkerFaceColor', obj.Item(itemIdx).Color, ...
-                        'MarkerFaceAlpha', alphaValues(i), ...
-                        'MarkerEdgeAlpha', alphaValues(i));
-                end
-                meanStatistics{axIdx, xIdx} = ...
-                    [meanStatistics{axIdx, xIdx}, barValue];
-                maxXLim(axIdx) = max(maxXLim(axIdx), xIdx);
-            end
-            
-        end                
-    end 
-    
-    
-    for tableIdx = 1:numel(obj.PlotVariance)
-        
-        if ~any([obj.Item.Include])
-            continue;
-        end
-        
-        output = obj.PlotVariance(tableIdx).Output;
-        type = obj.PlotVariance(tableIdx).Type;
-        if strcmp(type, 'total')
-            typeLabel = 'variance';
-        else
-            typeLabel = 'unexplained fraction';
-        end
-        lineStyle = obj.PlotVariance(tableIdx).Style;
-        display = obj.PlotVariance(tableIdx).Display;
-
-        axIdx = str2double(obj.PlotVariance(tableIdx).Plot);
-        if isnan(axIdx)
-            continue;
-        end
-        
-        xIdx = numel(barInfo{axIdx})+1;
-        currentLabel =  display;
-        if isempty(currentLabel)
-            currentLabel = [output, ' (', typeLabel, ')';];
-        end
-        barInfo{axIdx} = [barInfo{axIdx}, {currentLabel}];
-        
-        for itemIdx = 1:numel(obj.Item)
-
-            if ~obj.Item(itemIdx).Include || isempty(obj.Item(itemIdx).Results)
-                continue;
-            end
-            
-            task = obj.getObjectsByName(obj.Settings.Task, obj.Item(itemIdx).TaskName);
-            [tfOutputExists, outputIdx] = ismember(output, task.ActiveSpeciesNames);
-
-            if ~tfOutputExists
-                continue;
+                plotLabelInfo{2, axIdx} = [0,0,0];
             end
             
             % All times are equal, so just get the first time vector.
             time = obj.Item(itemIdx).Results(1).Time; 
 
             alphaValues = linspace(0.2, 1, numel(obj.Item(itemIdx).Results));
-
-            if mode == 1
-                for i = 1:numel(alphaValues)
-                    if strcmp(type, 'unexplained')
+            
+            if obj.ShowIterations
+                plotAlphaRange = 1:numel(alphaValues);
+            else
+                plotAlphaRange = numel(alphaValues);
+            end
+            
+            for i = plotAlphaRange
+                switch obj.PlotSobolIndex(tableIdx).Type
+                    case 'unexpl. frac.'
                         results = 1;
                         for j = 1:numel(obj.PlotInputs)
                             results = results - ...
                                 reshape(obj.Item(itemIdx).Results(i).SobolIndices(j,outputIdx).FirstOrder, 1, []);
                         end
-                    else
+                    case 'variance'
                         results = obj.Item(itemIdx).Results(i).Variances{:,outputIdx};
                         axContainsVariancePlot(axIdx) = true;
-                    end                    
+                    case 'first order'
+                        results = obj.Item(itemIdx).Results(i).SobolIndices(inputIdx,outputIdx).FirstOrder;
+                    case 'total order'
+                        results = obj.Item(itemIdx).Results(i).SobolIndices(inputIdx,outputIdx).TotalOrder;
+                end
+                if mode == 1
                     hLine = plot(hAxes(axIdx), time, results, ...
                         'Color', [obj.Item(itemIdx).Color, alphaValues(i)], ...
-                        'LineStyle', lineStyle); 
-                end
-                maxXLim(axIdx) = max(time);
-            else
-                for i = 1:numel(alphaValues) 
-                    if strcmp(type, 'unexplained')
-                        results = 1;
-                        for j = 1:numel(obj.PlotInputs)
-                            results = results - ...
-                                reshape(obj.Item(itemIdx).Results(i).SobolIndices(j,outputIdx).FirstOrder, 1, []);
-                        end
-                    else
-                        results = obj.Item(itemIdx).Results(i).Variances{:,outputIdx};
-                        axContainsVariancePlot(axIdx) = true;
-                    end
+                        'LineStyle', lineStyle);      
+                    maxXLim(axIdx) = max(time);
+                else
                     barValue = getBarValue(results, mode);
                     scatter(hAxes(axIdx), xIdx, barValue, 100, 'd', ...
                         'MarkerEdgeColor', obj.Item(itemIdx).Color, ...
                         'MarkerFaceColor', obj.Item(itemIdx).Color, ...
                         'MarkerFaceAlpha', alphaValues(i), ...
                         'MarkerEdgeAlpha', alphaValues(i));
+                    if i == plotAlphaRange(end)
+                        meanStatistics{axIdx, xIdx} = ...
+                        [meanStatistics{axIdx, xIdx}, barValue];
+                    end
+                    maxXLim(axIdx) = max(maxXLim(axIdx), xIdx);
                 end
-                meanStatistics{axIdx, xIdx} = ...
-                    [meanStatistics{axIdx, xIdx}, barValue];
-                maxXLim(axIdx) = max(maxXLim(axIdx), xIdx);
             end
             
-        end        
+        end                
     end 
     
 	for axIdx = 1:numAxes
@@ -256,6 +162,7 @@ function [hLines,hLegend,hLegendChildren] = plotSobolIndices(obj,hAxes,mode)
                 plot(hAxes(axIdx),xLimValues,[1, 1],'k:');
             end
             set(hAxes(axIdx), 'XTickMode', 'auto', 'XTickLabelMode', 'auto');
+            
         else
             if axContainsVariancePlot(axIdx)
                 currentYLim = get(hAxes(axIdx),'YLim');
@@ -265,8 +172,8 @@ function [hLines,hLegend,hLegendChildren] = plotSobolIndices(obj,hAxes,mode)
             end
             xLimValues = 0.5 + [0, max(maxXLim(axIdx),1)];
             plot(hAxes(axIdx),xLimValues,[0, 0],'k-');
-            set(hAxes(axIdx), 'XTick', 1:numel(barInfo{axIdx}), ...
-                'XTickLabel', barInfo{axIdx});
+            set(hAxes(axIdx), 'XTick', 1:numel(plotLabelInfo{1, axIdx}), ...
+                'XTickLabel', plotLabelInfo{1, axIdx});
         end
         set(hAxes(axIdx),'XLim',xLimValues);
         if mode > 1 || ~axContainsVariancePlot(axIdx) 
@@ -300,6 +207,20 @@ function [hLines,hLegend,hLegendChildren] = plotSobolIndices(obj,hAxes,mode)
             'FontWeight',obj.PlotSettings(index).YLabelFontWeight); % 'States');
         set(hAxes(index),'YScale',obj.PlotSettings(index).YScale);
 
+%         set(hAxes(index),...
+%             'XLimMode',obj.PlotSettings(index).XLimMode,...
+%             'YLimMode',obj.PlotSettings(index).YLimMode);
+%         if strcmpi(xLimMode{index,1},'manual')
+%             tmp = obj.PlotSettings(index).CustomXLim;
+%             if ischar(tmp), tmp = str2num(tmp); end         %#ok<ST2NM>
+%             set(hAxes(index), 'XLim', tmp);
+%         end
+%         if strcmpi(obj.PlotSettings(index).YLimMode,'manual')
+%             tmp = obj.PlotSettings(index).CustomYLim;
+%             if ischar(tmp), tmp = str2num(tmp); end         %#ok<ST2NM>
+%             set(hAxes(index), 'YLim', tmp);
+%         end        
+        
         hold(hAxes(index),'off')
          % Reset zoom state
 %         hFigure = ancestor(hAxes(index),'Figure');
