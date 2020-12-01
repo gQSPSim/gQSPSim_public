@@ -45,7 +45,7 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
         PlotOutputs = cell(0,1) % Outputs
 
         PlotSobolIndex
-        PlotVariance
+        ShowIterations = true
         
         PlotSettings = repmat(struct(),1,12)
         
@@ -74,13 +74,8 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
                                         'Style', '-', ...
                                         'Input', [], ...
                                         'Output', [], ...
-                                        'Order', 'first', ...
+                                        'Type', 'first order', ...
                                         'Display', '')
-        PlotVarianceTemplate = struct('Plot', ' ', ...
-                                      'Style', '-', ...
-                                      'Output', [], ...
-                                      'Type', 'total', ...
-                                      'Display', '')
 
     end
 
@@ -106,7 +101,6 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
             
             obj.Item           = obj.ItemTemplate([]);
             obj.PlotSobolIndex = obj.PlotSobolIndexTemplate([]);
-            obj.PlotVariance   = obj.PlotVarianceTemplate([]);
             
             % Populate public properties from P-V input pairs
             obj.assignPVPairs(varargin{:});       
@@ -368,14 +362,6 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
                     obj.PlotSobolIndex(end+1) = obj.PlotSobolIndexTemplate;
                     obj.PlotSobolIndex(end).Input = obj.PlotInputs{1};
                     obj.PlotSobolIndex(end).Output = obj.PlotOutputs{1};
-                case 'variance'
-                    if isempty(obj.PlotOutputs)
-                        statusOk = false;
-                        message = 'Selection of sensitivity outputs required. Select at least one Task as outputs for the global sensitivity analysis.';
-                        return;
-                    end
-                    obj.PlotVariance(end+1) = obj.PlotVarianceTemplate;
-                    obj.PlotVariance(end).Output = obj.PlotOutputs{1};
             end
         end
         
@@ -393,12 +379,10 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
                     obj.updateInputsOutputs();
                 case 'sobolIndex'
                     obj.PlotSobolIndex(idx) = [];
-                case 'variance'
-                    obj.PlotVariance(idx) = [];
             end            
         end
         
-        function [statusOk, message] = moveUp(obj, type, idx)
+        function [statusOk, message] = moveUp(obj, idx)
             if idx == 0
                 statusOk = false;
                 message = 'Select a row to move it up.';
@@ -411,19 +395,12 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
                 statusOk = true;
                 message  = '';                
             end            
-            switch type
-                case 'sobolIndex'
-                    if numel(obj.PlotSobolIndex) > 1
-                        obj.PlotSobolIndex([idx-1, idx]) = obj.PlotSobolIndex([idx, idx-1]);
-                    end
-                case 'variance'
-                    if numel(obj.PlotVariance) > 1
-                        obj.PlotVariance([idx-1, idx]) = obj.PlotVariance([idx, idx-1]);
-                    end
+            if numel(obj.PlotSobolIndex) > 1
+                obj.PlotSobolIndex([idx-1, idx]) = obj.PlotSobolIndex([idx, idx-1]);
             end
         end
         
-        function [statusOk, message] = moveDown(obj, type, idx)
+        function [statusOk, message] = moveDown(obj, idx)
             if idx == 0
                 statusOk = false;
                 message = 'Select a row to move it down.';
@@ -432,25 +409,13 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
                 statusOk = true;
                 message  = '';                
             end            
-            switch type
-                case 'sobolIndex'
-                    if idx == numel(obj.PlotSobolIndex)
-                        statusOk = false;
-                        message = 'The select row is already on the bottom of the table.';
-                        return;
-                    end
-                    if numel(obj.PlotSobolIndex) > 1
-                        obj.PlotSobolIndex([idx, idx+1]) = obj.PlotSobolIndex([idx+1, idx]);
-                    end
-                case 'variance'
-                    if idx == numel(obj.PlotVariance)
-                        statusOk = false;
-                        message = 'The select row is already on the bottom of the table.';
-                        return;
-                    end
-                    if numel(obj.PlotVariance) > 1                    
-                        obj.PlotVariance([idx, idx+1]) = obj.PlotVariance([idx+1, idx]);
-                    end
+            if idx == numel(obj.PlotSobolIndex)
+                statusOk = false;
+                message = 'The select row is already on the bottom of the table.';
+                return;
+            end
+            if numel(obj.PlotSobolIndex) > 1
+                obj.PlotSobolIndex([idx, idx+1]) = obj.PlotSobolIndex([idx+1, idx]);
             end
         end
         
@@ -473,9 +438,9 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
 
         function [maxDifference, meanDifference] = getConvergenceStats(obj, itemIdx)
             
-            numResults = numel(obj.Item(itemIdx).Results);
-            maxDifference = cell(numResults-1, 1);
-            meanDifference = cell(numResults-1, 1);
+            numResults     = numel(obj.Item(itemIdx).Results);
+            maxDifference  = repmat({'-'}, numResults, 1);
+            meanDifference = repmat({'-'}, numResults, 1);
             
             for i = 1:numResults-1
                 differences = reshape(abs([([obj.Item(itemIdx).Results(i).SobolIndices(:).FirstOrder] - ...
@@ -483,8 +448,8 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
                 	([obj.Item(itemIdx).Results(i).SobolIndices(:).TotalOrder] - ...
                     [obj.Item(itemIdx).Results(end).SobolIndices(:).TotalOrder])]), [], 1);
                 differences(isnan(differences)) = [];
-                maxDifference{i} = max(differences, [], 'all');
-                meanDifference{i} = mean(differences, 'all');
+                maxDifference{i} = num2str(max(differences, [], 'all'));
+                meanDifference{i} = num2str(mean(differences, 'all'));
             end
             
         end
@@ -594,7 +559,7 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
         end
 
         function set.ParametersName(obj,parametersName)
-            validateattributes(parametersName,{'char'},{'row'});
+%             validateattributes(parametersName,{'char'},{'row'});
             if ~strcmp(parametersName, obj.ParametersName_I)
                 obj.ParametersName_I = parametersName;
                 obj.updateInputsOutputs();
@@ -709,13 +674,13 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
         end                
     end %methods
      
-	methods(Access = private)
-        function idx = getInputOutputIndex(~, inputIdx, outputIdx, numInputs)
-            % Get index into PlotFirstOrderInfo and PlotTotalOrderInfo
-            % from indices if sensitivity inputs/outputs as listed in 
-            % PlotInput and PlotOutput.
-            idx = inputIdx + (outputIdx-1)*numInputs;
-        end
-    end
+% 	methods(Access = private)
+%         function idx = getInputOutputIndex(~, inputIdx, outputIdx, numInputs)
+%             % Get index into PlotFirstOrderInfo and PlotTotalOrderInfo
+%             % from indices if sensitivity inputs/outputs as listed in 
+%             % PlotInput and PlotOutput.
+%             idx = inputIdx + (outputIdx-1)*numInputs;
+%         end
+%     end
 
 end %classdef

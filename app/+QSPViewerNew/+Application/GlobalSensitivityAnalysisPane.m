@@ -27,14 +27,11 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
         LineStyles = {'-','--','.-',':'}
         PlotNumber = {' ','1','2','3','4','5','6','7','8','9','10','11','12'}
         PlotItemsColor = {};
-        Order = {'first','total'};
-        VarianceType = {'unexplained', 'total'};
-        
+        Type = {'first order', 'total order', 'unexpl. frac.', 'variance'};
         
         SelectedRow = struct('TaskTable', 0, ...
                              'PlotItemsTable', 0, ...
-                             'PlotSobolIndexTable', [0,0], ...
-                             'PlotVarianceTable', [0,0]);
+                             'PlotSobolIndexTable', [0,0]);
                          
         StaleFlag
         ValidFlag
@@ -63,8 +60,8 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
         SeedSubLayout               matlab.ui.container.GridLayout
         FixSeedLabel                matlab.ui.control.Label
         FixSeedCheckBox             matlab.ui.control.CheckBox
-        SeedLabel                matlab.ui.control.Label
-        SeedEdit                 matlab.ui.control.NumericEditField
+        SeedLabel                   matlab.ui.control.Label
+        SeedEdit                    matlab.ui.control.NumericEditField
         SensitivityInputsDropDown   matlab.ui.control.DropDown
         SensitivityInputsLabel      matlab.ui.control.Label
         
@@ -76,13 +73,6 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
         TaskTable                   matlab.ui.control.Table
         RemoveItemButton            matlab.ui.control.Button
         
-        % Table for managing iteration results
-        IterationsTable             matlab.ui.control.Table
-        IterationsLabel             matlab.ui.control.Label
-        IterationsGrid              matlab.ui.container.GridLayout
-        IterationsButtonGrid        matlab.ui.container.GridLayout
-        RemoveIterationButton       matlab.ui.control.Button
-
         %% Plot panel
         PlotGrid                    matlab.ui.container.GridLayout
         PlotModeLabel               matlab.ui.control.Label
@@ -96,17 +86,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
         RemoveSobolIndexButton      matlab.ui.control.Button
         MoveUpSobolIndexButton      matlab.ui.control.Button
         MoveDownSobolIndexButton    matlab.ui.control.Button
-        SobolIndexTable           matlab.ui.control.Table
-        
-        % Table for selecting variances for plotting
-        VarianceLabel               matlab.ui.control.Label
-        VarianceGrid                matlab.ui.container.GridLayout
-        VarianceButtonGrid          matlab.ui.container.GridLayout
-        NewVarianceButton           matlab.ui.control.Button
-        RemoveVarianceButton        matlab.ui.control.Button
-        MoveUpVarianceButton        matlab.ui.control.Button
-        MoveDownVarianceButton      matlab.ui.control.Button
-        VarianceTable               matlab.ui.control.Table
+        SobolIndexTable             matlab.ui.control.Table
         
         % Table for selecting tasks for inclusion in plots
         PlotItemsGrid               matlab.ui.container.GridLayout
@@ -114,6 +94,15 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
         SelectColorButton           matlab.ui.control.Button
         PlotItemsLabel              matlab.ui.control.Label
         PlotItemsTable              matlab.ui.control.Table
+        
+        % Table for managing iteration results
+        IterationsTable             matlab.ui.control.Table
+        IterationsLabel             matlab.ui.control.Label
+        IterationsGrid              matlab.ui.container.GridLayout
+        IterationsButtonGrid        matlab.ui.container.GridLayout
+        RemoveIterationButton       matlab.ui.control.Button
+        ShowIterationsCheckBox      matlab.ui.control.CheckBox
+
     end
         
     % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -143,8 +132,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
                                           obj.WidgetHeight, ...        % number of samples/iterations
                                           obj.WidgetHeight, ...        % random number seed
                                           obj.WidgetHeight, ...        % sensitivity inputs
-                                          obj.WidgetHeight, '2x', ...  % task selection table
-                                          obj.WidgetHeight, '1x'};     % iteration results table
+                                          obj.WidgetHeight, '1x'};     % task selection table
             obj.EditGrid.Layout.Row    = 3;
             obj.EditGrid.Layout.Column = 1;
             obj.EditGrid.Padding       = obj.WidgetPadding;
@@ -278,55 +266,15 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             obj.TaskTable.CellEditCallback      = @(h,e) obj.onTaskTableEdit(e);
             obj.TaskTable.CellSelectionCallback = @(h,e) obj.onTableSelectionChange(h,e);
 
-            % Table for managing iteration results
-            obj.IterationsLabel = uilabel(obj.EditGrid);
-            obj.IterationsLabel.Layout.Row = 7;
-            obj.IterationsLabel.Layout.Column = 1;
-            obj.IterationsLabel.Text = 'Iterations: select a task';
-            obj.IterationsLabel.FontWeight = 'bold';
-            obj.IterationsGrid = uigridlayout(obj.EditGrid);
-            obj.IterationsGrid.ColumnWidth = {obj.ButtonWidth,'1x'};
-            obj.IterationsGrid.RowHeight = {'1x'};
-            obj.IterationsGrid.Layout.Row = 8;
-            obj.IterationsGrid.Layout.Column = 1;
-            obj.IterationsGrid.Padding = [0,0,0,0];
-            obj.IterationsGrid.RowSpacing = 0;
-            obj.IterationsGrid.ColumnSpacing = 0;
-            
-            % buttons
-            obj.IterationsButtonGrid               = uigridlayout(obj.IterationsGrid);
-            obj.IterationsButtonGrid.ColumnWidth   = {'1x'};
-            obj.IterationsButtonGrid.RowHeight     = {obj.ButtonHeight};
-            obj.IterationsButtonGrid.Layout.Row    = 1;
-            obj.IterationsButtonGrid.Layout.Column = 1;
-            obj.IterationsButtonGrid.Padding       = [0,0,0,0];
-            obj.IterationsButtonGrid.RowSpacing    = 0;
-            obj.IterationsButtonGrid.ColumnSpacing = 0;
-            % clear iteration
-            obj.RemoveIterationButton                 = uibutton(obj.IterationsButtonGrid,'push');
-            obj.RemoveIterationButton.Layout.Row      = 1;
-            obj.RemoveIterationButton.Layout.Column   = 1;
-            obj.RemoveIterationButton.Icon            = QSPViewerNew.Resources.LoadResourcePath('clearPlot_24.png');
-            obj.RemoveIterationButton.Text            = '';
-            obj.RemoveIterationButton.ButtonPushedFcn = @(h,e)obj.onRemoveIteration();
-            % table
-            obj.IterationsTable                = uitable(obj.IterationsGrid);
-            obj.IterationsTable.Layout.Row     = 1;
-            obj.IterationsTable.Layout.Column  = 2;
-            obj.IterationsTable.Data           = {[],[],[],[],[]};
-            obj.IterationsTable.ColumnName     = {'Remove','Color','Max. difference','Mean difference','Number of Samples'};
-            obj.IterationsTable.ColumnFormat   = {'logical','char','numeric'};
-            obj.IterationsTable.ColumnEditable = [true,false,false,false,false];
-            obj.IterationsTable.ColumnWidth    = {'fit','fit','auto','auto','fit'};
-            
             %% Plot panel
             obj.PlotGrid               = uigridlayout(obj.getVisualizationGrid());
             obj.PlotGrid.Layout.Row    = 2;
             obj.PlotGrid.Layout.Column = 1;
             obj.PlotGrid.RowHeight     = {obj.WidgetHeight, ...        % display mode
-                                          obj.WidgetHeight, '1x', ...  % Sobol index table
-                                          obj.WidgetHeight, '1x', ...  % variance table
-                                          obj.WidgetHeight,'1x'};      % task selection table
+                                          obj.WidgetHeight, '2x', ...  % Sobol index table
+                                          obj.WidgetHeight, '1x', ...  % task selection table
+                                          obj.WidgetHeight, '1x', ...  % iterations table
+                                          obj.WidgetHeight};           % show iterations checkbox
             obj.PlotGrid.ColumnWidth   = {obj.LabelLength,'1x'};
             
             % Plot mode
@@ -344,7 +292,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             obj.SobolIndexLabel               = uilabel(obj.PlotGrid);
             obj.SobolIndexLabel.Layout.Row    = 2;
             obj.SobolIndexLabel.Layout.Column = [1,2];
-            obj.SobolIndexLabel.Text          = 'Sobol indices';
+            obj.SobolIndexLabel.Text          = 'Results';
             obj.SobolIndexLabel.FontWeight    = 'bold';
             obj.SobolIndexGrid               = uigridlayout(obj.PlotGrid);
             obj.SobolIndexGrid.ColumnWidth   = {obj.ButtonWidth,'1x'};
@@ -399,92 +347,24 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             obj.SobolIndexTable.Layout.Row            = 1;
             obj.SobolIndexTable.Layout.Column         = 2;
             obj.SobolIndexTable.Data                  = cell(0,6);
-            obj.SobolIndexTable.ColumnName            = {'Plot','Style','Input','Output','Order','Display'};
-            obj.SobolIndexTable.ColumnFormat          = {obj.PlotNumber,obj.LineStyles,obj.TaskPopupTableItems,obj.TaskPopupTableItems,obj.Order,'char'};
+            obj.SobolIndexTable.ColumnName            = {'Plot','Style','Input','Output','Type','Display'};
+            obj.SobolIndexTable.ColumnFormat          = {obj.PlotNumber,obj.LineStyles,obj.TaskPopupTableItems,obj.TaskPopupTableItems,obj.Type,'char'};
             obj.SobolIndexTable.ColumnEditable        = [true,true,true,true,true,true];
             obj.SobolIndexTable.ColumnWidth           = '1x';
             obj.SobolIndexTable.SelectionHighlight    = 'off';
             obj.SobolIndexTable.CellEditCallback      = @(h,e) obj.onVisualizationTableEdit(h,e);
             obj.SobolIndexTable.CellSelectionCallback = @(h,e) obj.onTableSelectionChange(h,e);
 
-            % Table for selecting variances for plotting
-            obj.VarianceLabel               = uilabel(obj.PlotGrid);
-            obj.VarianceLabel.Layout.Row    = 4;
-            obj.VarianceLabel.Layout.Column = [1,2];
-            obj.VarianceLabel.Text          = 'Variance';
-            obj.VarianceLabel.FontWeight    = 'bold';
-            obj.VarianceGrid               = uigridlayout(obj.PlotGrid);
-            obj.VarianceGrid.ColumnWidth   = {obj.ButtonWidth,'1x'};
-            obj.VarianceGrid.RowHeight     = {'1x'};
-            obj.VarianceGrid.Layout.Row    = 5;
-            obj.VarianceGrid.Layout.Column = [1,2];
-            obj.VarianceGrid.Padding       = [0,0,0,0];
-            obj.VarianceGrid.RowSpacing    = 0;
-            obj.VarianceGrid.ColumnSpacing = 0;
-            % buttons
-            obj.VarianceButtonGrid               = uigridlayout(obj.VarianceGrid);
-            obj.VarianceButtonGrid.ColumnWidth   = {'1x'};
-            obj.VarianceButtonGrid.RowHeight     = {obj.ButtonHeight, ... % add
-                                                    obj.ButtonHeight, ... % remove
-                                                    obj.ButtonHeight, ... % move up
-                                                    obj.ButtonHeight};    % move down
-            obj.VarianceButtonGrid.Layout.Row    = 1;
-            obj.VarianceButtonGrid.Layout.Column = 1;
-            obj.VarianceButtonGrid.Padding       = [0,0,0,0];
-            obj.VarianceButtonGrid.RowSpacing    = 0;
-            obj.VarianceButtonGrid.ColumnSpacing = 0;
-            % add variance to plot
-            obj.NewVarianceButton                 = uibutton(obj.VarianceButtonGrid,'push');
-            obj.NewVarianceButton.Layout.Row      = 1;
-            obj.NewVarianceButton.Layout.Column   = 1;
-            obj.NewVarianceButton.Icon            = QSPViewerNew.Resources.LoadResourcePath('add_24.png');
-            obj.NewVarianceButton.Text            = '';
-            obj.NewVarianceButton.ButtonPushedFcn = @(h,e)obj.onPlotTableButtonPress(h);
-            % remove variance from plot
-            obj.RemoveVarianceButton                 = uibutton(obj.VarianceButtonGrid,'push');
-            obj.RemoveVarianceButton.Layout.Row      = 2;
-            obj.RemoveVarianceButton.Layout.Column   = 1;
-            obj.RemoveVarianceButton.Icon            = QSPViewerNew.Resources.LoadResourcePath('delete_24.png');
-            obj.RemoveVarianceButton.Text            = '';
-            obj.RemoveVarianceButton.ButtonPushedFcn = @(h,e)obj.onPlotTableButtonPress(h);
-            % move variance up
-            obj.MoveUpVarianceButton                 = uibutton(obj.VarianceButtonGrid,'push');
-            obj.MoveUpVarianceButton.Layout.Row      = 3;
-            obj.MoveUpVarianceButton.Layout.Column   = 1;
-            obj.MoveUpVarianceButton.Icon            = QSPViewerNew.Resources.LoadResourcePath('arrow_up_24.png');
-            obj.MoveUpVarianceButton.Text            = '';
-            obj.MoveUpVarianceButton.ButtonPushedFcn = @(h,e)obj.onPlotTableButtonPress(h);
-            % move variance down
-            obj.MoveDownVarianceButton                 = uibutton(obj.VarianceButtonGrid,'push');
-            obj.MoveDownVarianceButton.Layout.Row      = 4;
-            obj.MoveDownVarianceButton.Layout.Column   = 1;
-            obj.MoveDownVarianceButton.Icon            = QSPViewerNew.Resources.LoadResourcePath('arrow_down_24.png');
-            obj.MoveDownVarianceButton.Text            = '';
-            obj.MoveDownVarianceButton.ButtonPushedFcn = @(h,e)obj.onPlotTableButtonPress(h);
-            % table
-            obj.VarianceTable                       = uitable(obj.VarianceGrid);
-            obj.VarianceTable.Layout.Row            = 1;
-            obj.VarianceTable.Layout.Column         = 2;
-            obj.VarianceTable.Data                  = cell(0,5);
-            obj.VarianceTable.ColumnName            = {'Plot','Style','Output','Type','Display'};
-            obj.VarianceTable.ColumnFormat          = {obj.PlotNumber,obj.LineStyles,obj.TaskPopupTableItems,obj.VarianceType,'char'};
-            obj.VarianceTable.ColumnEditable        = [true,true,true,true,true];
-            obj.VarianceTable.ColumnWidth           = '1x';
-            obj.VarianceTable.SelectionHighlight    = 'off';
-            obj.VarianceTable.CellEditCallback      = @(h,e) obj.onVisualizationTableEdit(h,e);
-            obj.VarianceTable.CellSelectionCallback = @(h,e) obj.onTableSelectionChange(h,e);
-            
-            
             % Table for selecting tasks for inclusion in plots
             obj.PlotItemsLabel               = uilabel(obj.PlotGrid);
-            obj.PlotItemsLabel.Layout.Row    = 6;
+            obj.PlotItemsLabel.Layout.Row    = 4;
             obj.PlotItemsLabel.Layout.Column = [1,2];
             obj.PlotItemsLabel.Text          = 'Task selection';
             obj.PlotItemsLabel.FontWeight    = 'bold';
             obj.PlotItemsGrid               = uigridlayout(obj.PlotGrid);
             obj.PlotItemsGrid.ColumnWidth   = {obj.ButtonWidth,'1x'};
             obj.PlotItemsGrid.RowHeight     = {'1x'};
-            obj.PlotItemsGrid.Layout.Row    = 7;
+            obj.PlotItemsGrid.Layout.Row    = 5;
             obj.PlotItemsGrid.Layout.Column = [1,2];
             obj.PlotItemsGrid.Padding       = [0,0,0,0];
             obj.PlotItemsGrid.RowSpacing    = 0;
@@ -517,6 +397,53 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             obj.PlotItemsTable.CellEditCallback      = @(h,e) obj.onVisualizationTableEdit(h,e);
             obj.PlotItemsTable.CellSelectionCallback = @(h,e) obj.onTableSelectionChange(h,e);
             
+            % Table for managing iteration results
+            obj.IterationsLabel = uilabel(obj.PlotGrid);
+            obj.IterationsLabel.Layout.Row = 6;
+            obj.IterationsLabel.Layout.Column = [1,2];
+            obj.IterationsLabel.Text = 'Iterations: select a task';
+            obj.IterationsLabel.FontWeight = 'bold';
+            obj.IterationsGrid = uigridlayout(obj.PlotGrid);
+            obj.IterationsGrid.ColumnWidth = {obj.ButtonWidth,'1x'};
+            obj.IterationsGrid.RowHeight = {'1x'};
+            obj.IterationsGrid.Layout.Row = 7;
+            obj.IterationsGrid.Layout.Column = [1,2];
+            obj.IterationsGrid.Padding = [0,0,0,0];
+            obj.IterationsGrid.RowSpacing = 0;
+            obj.IterationsGrid.ColumnSpacing = 0;
+            % buttons
+            obj.IterationsButtonGrid               = uigridlayout(obj.IterationsGrid);
+            obj.IterationsButtonGrid.ColumnWidth   = {'1x'};
+            obj.IterationsButtonGrid.RowHeight     = {obj.ButtonHeight};
+            obj.IterationsButtonGrid.Layout.Row    = 1;
+            obj.IterationsButtonGrid.Layout.Column = 1;
+            obj.IterationsButtonGrid.Padding       = [0,0,0,0];
+            obj.IterationsButtonGrid.RowSpacing    = 0;
+            obj.IterationsButtonGrid.ColumnSpacing = 0;
+            % clear iteration
+            obj.RemoveIterationButton                 = uibutton(obj.IterationsButtonGrid,'push');
+            obj.RemoveIterationButton.Layout.Row      = 1;
+            obj.RemoveIterationButton.Layout.Column   = 1;
+            obj.RemoveIterationButton.Icon            = QSPViewerNew.Resources.LoadResourcePath('clearPlot_24.png');
+            obj.RemoveIterationButton.Text            = '';
+            obj.RemoveIterationButton.ButtonPushedFcn = @(h,e)obj.onRemoveIteration();
+            % table
+            obj.IterationsTable                = uitable(obj.IterationsGrid);
+            obj.IterationsTable.Layout.Row     = 1;
+            obj.IterationsTable.Layout.Column  = 2;
+            obj.IterationsTable.Data           = {[],[],[],[],[]};
+            obj.IterationsTable.ColumnName     = {'Remove','Color','Max. difference','Mean difference','Samples'};
+            obj.IterationsTable.ColumnFormat   = {'logical','char','char','char','numeric'};
+            obj.IterationsTable.ColumnEditable = [true,false,false,false,false];
+            obj.IterationsTable.ColumnWidth    = {'fit','fit','auto','auto','fit'};
+            % show iterations checkbox
+            obj.ShowIterationsCheckBox                 = uicheckbox(obj.PlotGrid);
+            obj.ShowIterationsCheckBox.Text            = "Show iterations in plot";
+            obj.ShowIterationsCheckBox.Layout.Column   = [1,2];
+            obj.ShowIterationsCheckBox.Layout.Row      = 8;
+            obj.ShowIterationsCheckBox.Value           = true;
+            obj.ShowIterationsCheckBox.ValueChangedFcn = @(h,e)obj.onShowIterationsChange();
+            
 
         end
         
@@ -541,7 +468,6 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             end
             obj.TemporaryGlobalSensitivityAnalysis.remove('item', DeleteIdx);
             obj.updateGSAItemTable();
-            obj.updatePlotTables();
             obj.SelectedRow.TaskTable = 0;
             obj.IsDirty = true;
         end
@@ -555,7 +481,6 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             end
             obj.TemporaryGlobalSensitivityAnalysis.add('item');
             obj.updateGSAItemTable();
-            obj.updatePlotTables();
             obj.IsDirty = true;
         end
 
@@ -587,7 +512,6 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
                 obj.TemporaryGlobalSensitivityAnalysis.NumberSamples]);
             obj.TemporaryGlobalSensitivityAnalysis.NumberSamples = suggestedSamples;
             obj.NumberSamplesEditField.Value = suggestedSamples;
-            obj.updatePlotTables();
             obj.IsDirty = true;
         end
         
@@ -597,13 +521,6 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
                 % Sensitivity output table
                 obj.SelectedRow.TaskTable = eventData.Indices(1);
                 obj.updateIterationsTable();
-            elseif source == obj.VarianceTable
-                % Variance table for plotting
-                % The first index indicates the user-visible selected row.
-                % The second index indicates tha actual selected row of the
-                % table.
-                obj.SelectedRow.PlotVarianceTable = eventData.Indices(1)*[1,1];
-                obj.VarianceTable = obj.selectRow(obj.VarianceTable, obj.SelectedRow.PlotVarianceTable(1), false);
             elseif source == obj.SobolIndexTable
                 % Sobol index table for plotting.
                 % The first index indicates the user-visible selected row.
@@ -611,9 +528,11 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
                 % table.
                 obj.SelectedRow.PlotSobolIndexTable = eventData.Indices(1)*[1,1];
                 obj.SobolIndexTable = obj.selectRow(obj.SobolIndexTable, obj.SelectedRow.PlotSobolIndexTable(1), false);
+                obj.updatePlotTables();
             else
                 % Item (sens. outputs) selection table for plotting
                 obj.SelectedRow.PlotItemsTable = eventData.Indices(1);
+                obj.updateIterationsTable();
             end
             obj.IsDirty = true;
         end
@@ -686,6 +605,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
                 style = uistyle('BackgroundColor',newColor);
                 addStyle(obj.PlotItemsTable,style,'cell',[obj.SelectedRow.PlotItemsTable,2]);
                 plotSobolIndices(obj.TemporaryGlobalSensitivityAnalysis,obj.getPlotArray(),obj.getPlotMode());
+                obj.updateIterationsTable();
             end
         end
         
@@ -695,19 +615,17 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             colIdx = indices(1,2);
             if source == obj.SobolIndexTable
                 fieldName = obj.SobolIndexTable.ColumnName{colIdx};
-                obj.TemporaryGlobalSensitivityAnalysis.PlotSobolIndex(rowIdx).(fieldName) = eventData.NewData;    
-            elseif source == obj.VarianceTable
-                fieldName = obj.VarianceTable.ColumnName{colIdx};
-                obj.TemporaryGlobalSensitivityAnalysis.PlotVariance(rowIdx).(fieldName) = eventData.NewData;    
+                obj.GlobalSensitivityAnalysis.PlotSobolIndex(rowIdx).(fieldName) = eventData.NewData;    
             elseif source == obj.PlotItemsTable
                 fieldName = obj.PlotItemsTable.ColumnName{colIdx};
-                obj.TemporaryGlobalSensitivityAnalysis.Item(rowIdx).(fieldName) = eventData.NewData;
+                obj.GlobalSensitivityAnalysis.Item(rowIdx).(fieldName) = eventData.NewData;
             end
-            plotSobolIndices(obj.TemporaryGlobalSensitivityAnalysis,obj.getPlotArray(),obj.getPlotMode());
+            obj.updatePlotTables();
+            plotSobolIndices(obj.GlobalSensitivityAnalysis,obj.getPlotArray(),obj.getPlotMode());
         end
         
         function onVisualizationModeChange(obj)
-            plotSobolIndices(obj.TemporaryGlobalSensitivityAnalysis,obj.getPlotArray(),obj.getPlotMode());
+            plotSobolIndices(obj.GlobalSensitivityAnalysis,obj.getPlotArray(),obj.getPlotMode());
         end
         
         function onRemoveIteration(obj)
@@ -726,16 +644,16 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
         
         function onPlotTableButtonPress(obj, src)
             if src == obj.NewSobolIndexButton
-                [statusOk, message] = obj.TemporaryGlobalSensitivityAnalysis.add('sobolIndex');
+                [statusOk, message] = obj.GlobalSensitivityAnalysis.add('sobolIndex');
             elseif src == obj.RemoveSobolIndexButton
-                [statusOk, message] = obj.TemporaryGlobalSensitivityAnalysis.remove('sobolIndex', obj.SelectedRow.PlotSobolIndexTable(1));
+                [statusOk, message] = obj.GlobalSensitivityAnalysis.remove('sobolIndex', obj.SelectedRow.PlotSobolIndexTable(1));
                 if statusOk && obj.SelectedRow.PlotSobolIndexTable(1) == size(obj.SobolIndexTable.Data,1)
                     obj.SelectedRow.PlotSobolIndexTable = [0,0];
                     obj.SobolIndexTable = obj.selectRow(obj.SobolIndexTable, 0, false);
-                    plotSobolIndices(obj.TemporaryGlobalSensitivityAnalysis,obj.getPlotArray(),obj.getPlotMode());
                 end
+                plotSobolIndices(obj.GlobalSensitivityAnalysis,obj.getPlotArray(),obj.getPlotMode());
             elseif src == obj.MoveUpSobolIndexButton
-                [statusOk, message] = obj.TemporaryGlobalSensitivityAnalysis.moveUp('sobolIndex', obj.SelectedRow.PlotSobolIndexTable(1));
+                [statusOk, message] = obj.GlobalSensitivityAnalysis.moveUp(obj.SelectedRow.PlotSobolIndexTable(1));
                 if statusOk
                     obj.SelectedRow.PlotSobolIndexTable(1) = obj.SelectedRow.PlotSobolIndexTable(1) - 1;
                     tfRenewTable = obj.SelectedRow.PlotSobolIndexTable(2) > 0;
@@ -743,10 +661,10 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
                         obj.SelectedRow.PlotSobolIndexTable(2) = 0;
                     end
                     obj.SobolIndexTable = obj.selectRow(obj.SobolIndexTable, obj.SelectedRow.PlotSobolIndexTable(1), tfRenewTable);
-                    plotSobolIndices(obj.TemporaryGlobalSensitivityAnalysis,obj.getPlotArray(),obj.getPlotMode());
+                    plotSobolIndices(obj.GlobalSensitivityAnalysis,obj.getPlotArray(),obj.getPlotMode());
                 end
             elseif src == obj.MoveDownSobolIndexButton
-                [statusOk, message] = obj.TemporaryGlobalSensitivityAnalysis.moveDown('sobolIndex', obj.SelectedRow.PlotSobolIndexTable(1));
+                [statusOk, message] = obj.GlobalSensitivityAnalysis.moveDown(obj.SelectedRow.PlotSobolIndexTable(1));
                 if statusOk
                     obj.SelectedRow.PlotSobolIndexTable(1) = obj.SelectedRow.PlotSobolIndexTable(1) + 1;
                     tfRenewTable = obj.SelectedRow.PlotSobolIndexTable(2) > 0;
@@ -754,38 +672,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
                         obj.SelectedRow.PlotSobolIndexTable(2) = 0;
                     end
                     obj.SobolIndexTable = obj.selectRow(obj.SobolIndexTable, obj.SelectedRow.PlotSobolIndexTable(1), tfRenewTable);
-                    plotSobolIndices(obj.TemporaryGlobalSensitivityAnalysis,obj.getPlotArray(),obj.getPlotMode());
-                end
-            elseif src == obj.NewVarianceButton
-                [statusOk, message] = obj.TemporaryGlobalSensitivityAnalysis.add('variance');
-            elseif src == obj.RemoveVarianceButton
-                [statusOk, message] = obj.TemporaryGlobalSensitivityAnalysis.remove('variance', obj.SelectedRow.PlotVarianceTable(1));
-                if statusOk && obj.SelectedRow.PlotVarianceTable == size(obj.VarianceTable.Data,1)
-                    obj.SelectedRow.PlotVarianceTable = [0,0];
-                    obj.VarianceTable = obj.selectRow(obj.VarianceTable, 0, false);
-                    plotSobolIndices(obj.TemporaryGlobalSensitivityAnalysis,obj.getPlotArray(),obj.getPlotMode());
-                end
-            elseif src == obj.MoveUpVarianceButton
-                [statusOk, message] = obj.TemporaryGlobalSensitivityAnalysis.moveUp('variance', obj.SelectedRow.PlotVarianceTable(1));
-                if statusOk
-                    obj.SelectedRow.PlotVarianceTable(1) = obj.SelectedRow.PlotVarianceTable(1) - 1;
-                    tfRenewTable = obj.SelectedRow.PlotVarianceTable(2) > 0;
-                    if tfRenewTable
-                        obj.SelectedRow.PlotVarianceTable(2) = 0;
-                    end
-                    obj.VarianceTable = obj.selectRow(obj.VarianceTable, obj.SelectedRow.PlotVarianceTable(1), tfRenewTable);
-                    plotSobolIndices(obj.TemporaryGlobalSensitivityAnalysis,obj.getPlotArray(),obj.getPlotMode());
-                end
-            elseif src == obj.MoveDownVarianceButton
-                [statusOk, message] = obj.TemporaryGlobalSensitivityAnalysis.moveDown('variance', obj.SelectedRow.PlotVarianceTable(1));
-                if statusOk
-                    obj.SelectedRow.PlotVarianceTable(1) = obj.SelectedRow.PlotVarianceTable(1) + 1;
-                    tfRenewTable = obj.SelectedRow.PlotVarianceTable(2) > 0;
-                    if tfRenewTable
-                        obj.SelectedRow.PlotVarianceTable(2) = 0;
-                    end                    
-                    obj.VarianceTable = obj.selectRow(obj.VarianceTable, obj.SelectedRow.PlotVarianceTable(1), tfRenewTable);
-                    plotSobolIndices(obj.TemporaryGlobalSensitivityAnalysis,obj.getPlotArray(),obj.getPlotMode());
+                    plotSobolIndices(obj.GlobalSensitivityAnalysis,obj.getPlotArray(),obj.getPlotMode());
                 end
             end
             if statusOk
@@ -796,7 +683,11 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             end
 
         end
-        
+
+        function onShowIterationsChange(obj)
+            obj.GlobalSensitivityAnalysis.ShowIterations = obj.ShowIterationsCheckBox.Value;
+            plotSobolIndices(obj.GlobalSensitivityAnalysis,obj.getPlotArray(),obj.getPlotMode());
+        end
     end
     
     methods (Access = public) 
@@ -859,43 +750,45 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             end
             
 %             obj.updateGSAItemTable();
-%             obj.updatePlotTables();
+            obj.updatePlotTables();
             plotSobolIndices(obj.GlobalSensitivityAnalysis,obj.getPlotArray(),obj.getPlotMode());
             
         end
         
         function refreshVisualization(obj,axIndex)
                         
-            obj.updateGSAItemTable();
+            obj.updateIterationsTable();
             obj.updatePlotTables();
             plotSobolIndices(obj.GlobalSensitivityAnalysis,obj.getPlotArray(),obj.getPlotMode());
 
         end
         
         function updateIterationsTable(obj)
-            if obj.SelectedRow.TaskTable == 0
+            if isempty(obj.TaskTable.Data)
                 obj.IterationsTable.Data = cell(0,5);
                 return
+            elseif obj.SelectedRow.PlotItemsTable(1) == 0
+                selectedRow = 1;
+            else
+                selectedRow = obj.SelectedRow.PlotItemsTable(1);
             end
-            [~, itemIdx] = ismember(obj.TaskTable.Data{obj.SelectedRow.TaskTable,2}, ...
-                {obj.TemporaryGlobalSensitivityAnalysis.Item.TaskName});
-            item = obj.TemporaryGlobalSensitivityAnalysis.Item(itemIdx);
+            [~, itemIdx] = ismember(obj.TaskTable.Data{selectedRow,2}, ...
+                {obj.GlobalSensitivityAnalysis.Item.TaskName});
+            item = obj.GlobalSensitivityAnalysis.Item(itemIdx);
             obj.IterationsLabel.Text = ['Iterations: ', item.TaskName];
-            numResults = numel(item.Results);
-            if numResults <= 1
+            if isempty(item.Results)
                obj.IterationsLabel.Text = [obj.IterationsLabel.Text, ...
                    ' (no iterations available)'];
                 obj.IterationsTable.Data = cell(0,5);
             else
-                numIterations = numResults - 1; 
-                [maxDifference, meanDifference] = obj.TemporaryGlobalSensitivityAnalysis.getConvergenceStats(itemIdx);
-                obj.IterationsTable.Data = [repmat({false}, numIterations, 1), ...
-                    repmat({' '}, numIterations, 1), flipud(maxDifference), flipud(meanDifference), ...
-                    fliplr(num2cell([item.Results(1:numIterations).NumberSamples]))'];
+                numResults = numel(item.Results);
+                [maxDifference, meanDifference] = obj.GlobalSensitivityAnalysis.getConvergenceStats(itemIdx);
+                obj.IterationsTable.Data = [repmat({false}, numResults, 1), ...
+                    repmat({' '}, numResults, 1), flipud([maxDifference]), flipud([meanDifference]), ...
+                    fliplr(num2cell([item.Results.NumberSamples]))'];
                 alphaValues = fliplr(linspace(0.2, 1, numResults));
-                alphaValues = alphaValues(2:end);
-                removeStyle(obj.IterationsTable)
-                for i = 1:numIterations
+                removeStyle(obj.IterationsTable);
+                for i = 1:numResults
                     iterationColor = alphaValues(i)*item.Color + [1,1,1]*(1-alphaValues(i));
                     style = uistyle('BackgroundColor',iterationColor);
                     addStyle(obj.IterationsTable,style,'cell',[i,2]);
@@ -1046,74 +939,53 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
         end
         
         function updatePlotTables(obj)
-            if isempty(obj.TemporaryGlobalSensitivityAnalysis)
+            if isempty(obj.GlobalSensitivityAnalysis)
                 assert(false, "Internal error: missing temporary GSA object.");
                 return
             end
             
             % Sobol indices table
-            plot = {obj.TemporaryGlobalSensitivityAnalysis.PlotSobolIndex.Plot};
-            lineStyle = {obj.TemporaryGlobalSensitivityAnalysis.PlotSobolIndex.Style};
-            inputs = {obj.TemporaryGlobalSensitivityAnalysis.PlotSobolIndex.Input};
-            output = {obj.TemporaryGlobalSensitivityAnalysis.PlotSobolIndex.Output};
-            order = {obj.TemporaryGlobalSensitivityAnalysis.PlotSobolIndex.Order};
-            display = {obj.TemporaryGlobalSensitivityAnalysis.PlotSobolIndex.Display};
-            obj.SobolIndexTable.Data = [plot(:),lineStyle(:),inputs(:),output(:), order(:),display(:)];
+            plot      = {obj.GlobalSensitivityAnalysis.PlotSobolIndex.Plot};
+            lineStyle = {obj.GlobalSensitivityAnalysis.PlotSobolIndex.Style};
+            inputs    = {obj.GlobalSensitivityAnalysis.PlotSobolIndex.Input};
+            output    = {obj.GlobalSensitivityAnalysis.PlotSobolIndex.Output};
+            type      = {obj.GlobalSensitivityAnalysis.PlotSobolIndex.Type};
+            tfVariance = ismember(type, {'variance', 'unexpl. frac.'});
+            inputs(tfVariance) = {'-'};
+            display   = {obj.GlobalSensitivityAnalysis.PlotSobolIndex.Display};
+            obj.SobolIndexTable.Data = [plot(:),lineStyle(:),inputs(:),output(:), type(:),display(:)];
             if isempty(obj.SobolIndexTable.Data)
                 columnWidth = '1x';
             else
                 columnWidth = {'fit','fit','auto','auto','fit','auto'};
             end
             columnFormat = obj.SobolIndexTable.ColumnFormat;
-            editableTF = obj.SobolIndexTable.ColumnEditable;
-            if isempty(obj.TemporaryGlobalSensitivityAnalysis.PlotInputs)
+            editableTF   = obj.SobolIndexTable.ColumnEditable;
+            if isempty(obj.GlobalSensitivityAnalysis.PlotInputs) || ...
+                    (obj.SelectedRow.PlotSobolIndexTable(1) > 0 && ...
+                    tfVariance(obj.SelectedRow.PlotSobolIndexTable(1)))
                 columnFormat{3} = 'char';
                 editableTF(3) = false;
             else
-                columnFormat{3} = obj.TemporaryGlobalSensitivityAnalysis.PlotInputs';
+                columnFormat{3} = obj.GlobalSensitivityAnalysis.PlotInputs';
                 editableTF(3) = true;
             end
-            if isempty(obj.TemporaryGlobalSensitivityAnalysis.PlotOutputs)
+            if isempty(obj.GlobalSensitivityAnalysis.PlotOutputs)
                 columnFormat{4} = 'char';
                 editableTF(4) = false;
             else
-                columnFormat{4} = obj.TemporaryGlobalSensitivityAnalysis.PlotOutputs';
+                columnFormat{4} = obj.GlobalSensitivityAnalysis.PlotOutputs';
                 editableTF(4) = true;
             end
             obj.SobolIndexTable.ColumnWidth = columnWidth;
             obj.SobolIndexTable.ColumnFormat = columnFormat;
             obj.SobolIndexTable.ColumnEditable = editableTF;
 
-            % Variance table
-            plot = {obj.TemporaryGlobalSensitivityAnalysis.PlotVariance.Plot};
-            lineStyle = {obj.TemporaryGlobalSensitivityAnalysis.PlotVariance.Style};
-            output = {obj.TemporaryGlobalSensitivityAnalysis.PlotVariance.Output};
-            type = {obj.TemporaryGlobalSensitivityAnalysis.PlotVariance.Type};
-            display = {obj.TemporaryGlobalSensitivityAnalysis.PlotVariance.Display};
-            obj.VarianceTable.Data = [plot(:),lineStyle(:),output(:),type(:),display(:)];
-            if isempty(obj.VarianceTable.Data)
-                columnWidth = '1x';
-            else
-                columnWidth = {'fit','fit','auto','fit','auto'};
-            end
-            columnFormat = obj.VarianceTable.ColumnFormat;
-            editableTF = obj.VarianceTable.ColumnEditable;
-            if isempty(obj.TemporaryGlobalSensitivityAnalysis.PlotOutputs)
-                columnFormat{3} = 'char';
-                editableTF(3) = false;
-            else
-                columnFormat{3} = obj.TemporaryGlobalSensitivityAnalysis.PlotOutputs';
-                editableTF(3) = true;
-            end
-            obj.VarianceTable.ColumnWidth = columnWidth;
-            obj.VarianceTable.ColumnFormat = columnFormat;
-            obj.VarianceTable.ColumnEditable = editableTF;
-            
             % Task selection table
-            include         = {obj.TemporaryGlobalSensitivityAnalysis.Item.Include};
-            taskNames       = {obj.TemporaryGlobalSensitivityAnalysis.Item.TaskName};
-            taskColor       = {obj.TemporaryGlobalSensitivityAnalysis.Item.Color};
-            taskDescription = {obj.TemporaryGlobalSensitivityAnalysis.Item.Description};
+            include         = {obj.GlobalSensitivityAnalysis.Item.Include};
+            taskNames       = {obj.GlobalSensitivityAnalysis.Item.TaskName};
+            taskColor       = {obj.GlobalSensitivityAnalysis.Item.Color};
+            taskDescription = {obj.GlobalSensitivityAnalysis.Item.Description};
             removeStyle(obj.PlotItemsTable)
             obj.PlotItemsTable.Data = [include(:),repmat({' '},numel(taskNames),1),taskNames(:),taskDescription(:)];
             for i = 1:numel(taskNames)
