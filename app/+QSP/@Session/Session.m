@@ -43,12 +43,13 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
     
     %% Properties
     properties
-        RootDirectory = pwd
         AutoSaveFrequency = 1 % minutes
         AutoSaveBeforeRun = true
         UseParallel = false
         ParallelCluster
         UseAutoSaveTimer = false
+        
+        RootDirectory (1,:) char = pwd
         
         AutoSaveGit = false
         GitRepo = '.git'                
@@ -58,21 +59,34 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         
         UseLogging = true
         LogFile = 'logfile.txt'
-
-        RelativeResultsPathParts = {}
-        RelativeUserDefinedFunctionsPathParts = {}
-        RelativeObjectiveFunctionsPathParts = {}
-        RelativeAutoSavePathParts = {}
-        
-        % for backwards compatibility
-        RelativeResultsPath = ''        
-        RelativeUserDefinedFunctionsPath = ''
-        RelativeObjectiveFunctionsPath = ''        
-        RelativeAutoSavePath = ''  
+    end
+    
+	properties (Access = protected)
+        % These properties need to  be (at least) protected in order for
+        % copy to work.
+        RelativeResultsPathParts = {''}
+        RelativeUserDefinedFunctionsPathParts = {''}
+        RelativeObjectiveFunctionsPathParts = {''}
+        RelativeAutoSavePathParts = {''}
         
     end
     
-    properties (Transient=true)        
+    properties (Dependent)
+        % Dependent properties on *PathParts counter parts to ensure
+        % portability between different OS.
+        RelativeResultsPath
+        RelativeUserDefinedFunctionsPath
+        RelativeObjectiveFunctionsPath        
+        RelativeAutoSavePath
+        
+        ResultsDirectory
+        ObjectiveFunctionsDirectory
+        UserDefinedFunctionsDirectory
+        AutoSaveDirectory
+        GitFiles
+    end
+    
+    properties (Transient)        
         timerObj
         dbid = []
         LogHandle = []
@@ -100,22 +114,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
     properties (Constant=true)
         DefaultColorMap = repmat(lines(10),5,1)
     end
-    
-    properties (Dependent)
-        RelativeResultsPath_new = ''        
-        RelativeUserDefinedFunctionsPath_new = ''
-        RelativeObjectiveFunctionsPath_new = ''        
-        RelativeAutoSavePath_new = ''                
-    end
-        
-    properties (Dependent=true, SetAccess='immutable')
-        ResultsDirectory
-        ObjectiveFunctionsDirectory
-        UserDefinedFunctionsDirectory
-        AutoSaveDirectory
-        GitFiles
-    end
-    
+            
     %% Constructor and Destructor
     methods
         function obj = Session(varargin)
@@ -150,28 +149,6 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
                 obj.ParallelCluster = clusters{1};
             else
                 obj.ParallelCluster = {''};
-            end
-            
-            % check if the new path fields need to be set from old
-            % properties
-            if ~isempty(obj.RelativeResultsPath)
-                obj.RelativeResultsPath_new = obj.RelativeResultsPath;
-                obj.RelativeResultsPath = [];                
-            end
-            
-            if ~isempty(obj.RelativeUserDefinedFunctionsPath)
-                obj.RelativeUserDefinedFunctionsPath_new = obj.RelativeUserDefinedFunctionsPath;
-                obj.RelativeUserDefinedFunctionsPath = [];
-            end
-            
-            if ~isempty(obj.RelativeObjectiveFunctionsPath)
-                obj.RelativeObjectiveFunctionsPath_new = obj.RelativeObjectiveFunctionsPath;
-                obj.RelativeObjectiveFunctionsPath = [];
-            end
-            
-            if ~isempty(obj.RelativeAutoSavePath)
-                obj.RelativeAutoSavePath_new = obj.RelativeAutoSavePath;
-                obj.RelativeAutoSavePath = [];
             end
             
 %             % Initialize timer - If you call initialize here, it will
@@ -351,52 +328,12 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
                 newObj.SessionName = obj.SessionName; 
                 newObj.Description = obj.Description;                
               
-                newObj.RootDirectory = obj.RootDirectory;
-                
-                if ~isempty(obj.RelativeResultsPath)
-                    if ispc
-                        newPath = strrep(obj.RelativeResultsPath, '/', '\');
-                    else
-                        newPath = strrep(obj.RelativeResultsPath, '\', '/');
-                    end
-                    newObj.RelativeResultsPath_new = newPath;
-                    
-                else
-                    newObj.RelativeResultsPath_new = obj.RelativeResultsPath_new;
-                end
-                
-               if ~isempty(obj.RelativeUserDefinedFunctionsPath)
-                    if ispc
-                        newPath = strrep(obj.RelativeUserDefinedFunctionsPath, '/', '\');
-                    else
-                        newPath = strrep(obj.RelativeUserDefinedFunctionsPath, '\', '/');
-                    end
-                    newObj.RelativeUserDefinedFunctionsPath_new = newPath;
-                else
-                    newObj.RelativeUserDefinedFunctionsPath_new = obj.RelativeUserDefinedFunctionsPath_new;
-                end
-                
-               if ~isempty(obj.RelativeObjectiveFunctionsPath)
-                    if ispc
-                        newPath = strrep(obj.RelativeObjectiveFunctionsPath, '/', '\');
-                    else
-                        newPath = strrep(obj.RelativeObjectiveFunctionsPath, '\', '/');
-                    end
-                    newObj.RelativeObjectiveFunctionsPath_new = newPath;
-                else
-                    newObj.RelativeObjectiveFunctionsPath_new = obj.RelativeObjectiveFunctionsPath_new;
-               end
-
-                if ~isempty(obj.RelativeAutoSavePath)
-                    if ispc
-                        newPath = strrep(obj.RelativeAutoSavePath, '/', '\');
-                    else
-                        newPath = strrep(obj.RelativeAutoSavePath, '\', '/');
-                    end
-                    newObj.RelativeAutoSavePath_new = newPath;
-                else
-                    newObj.RelativeAutoSavePath_new = obj.RelativeAutoSavePath_new;
-                end                                               
+                newObj.RootDirectoryParts = obj.RootDirectoryParts;
+                newObj.RelativeResultsPathParts = obj.RelativeResultsPathParts;
+                newObj.RelativeUserDefinedFunctionsPathParts = obj.RelativeUserDefinedFunctionsPathParts;
+                newObj.RelativeObjectiveFunctionsPathParts = obj.RelativeObjectiveFunctionsPathParts;
+                newObj.RelativeAutoSavePathParts = obj.RelativeAutoSavePathParts;
+                newObj.RelativeResultsPathParts = obj.RelativeResultsPathParts;
                 
                 newObj.AutoSaveFrequency = obj.AutoSaveFrequency;
                 newObj.AutoSaveBeforeRun = obj.AutoSaveBeforeRun;
@@ -882,76 +819,85 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
     
     %% Get/Set Methods
     methods
-      
-        function set.RootDirectory(obj,Value)
-            validateattributes(Value,{'char'},{});
-            obj.RootDirectory = fullfile(Value);
-        end %function
         
-        function set.RelativeResultsPath_new(obj,Value)
-            validateattributes(Value,{'char'},{});
-%             obj.RelativeResultsPath = fullfile(Value);
-            obj.RelativeResultsPathParts = strsplit(fullfile(Value), filesep);
-        end %function\
-        
-        function Value=get.RelativeResultsPath_new(obj)
-            Value = strjoin(obj.RelativeResultsPathParts, filesep);
-        end
-        
-        function set.RelativeObjectiveFunctionsPath_new(obj,Value)
-            validateattributes(Value,{'char'},{});
-%             obj.RelativeObjectiveFunctionsPath = fullfile(Value);
-            obj.RelativeObjectiveFunctionsPathParts = strsplit(fullfile(Value),filesep);
-        end %function
-        
-        function Value = get.RelativeObjectiveFunctionsPath_new(obj)
-            if ~isempty(obj.RelativeObjectiveFunctionsPathParts)
-                Value = strjoin(obj.RelativeObjectiveFunctionsPathParts, filesep);
-            else
-                Value = '';
+        function relativePath = getRelativePathPartsToRoot(obj, absolutePath)
+            % Helper function that takes an absolute path, absolutePath, as
+            % input and returns the corresponding path, relativePath, that
+            % is relative to the sessions root directory.
+            rootDirectoryParts = strsplit(obj.RootDirectory, filesep);
+            relativePathParts = strsplit(absolutePath, filesep);
+            numPathParts = numel(relativePathParts);
+            for i = 1:numPathParts
+                if isempty(rootDirectoryParts) || ~strcmp(relativePathParts{1}, rootDirectoryParts{1})
+                    relativePathParts = [repmat({'..'}, 1, numel(rootDirectoryParts)), relativePathParts]; %#ok<AGROW>
+                    break;
+                end
+                relativePathParts(1)  = [];
+                rootDirectoryParts(1) = [];
             end
+            relativePath = strjoin(relativePathParts, filesep);
         end
-        
                 
-        function set.RelativeUserDefinedFunctionsPath_new(obj,Value)
-            validateattributes(Value,{'char'},{});
-%             obj.RelativeUserDefinedFunctionsPath = fullfile(Value);
-            obj.RelativeUserDefinedFunctionsPathParts = strsplit(fullfile(Value), filesep);
-        end %function
-        
-        function Value = get.RelativeUserDefinedFunctionsPath_new(obj)
-            if ~isempty(obj.RelativeUserDefinedFunctionsPathParts)
-                Value = strjoin(obj.RelativeUserDefinedFunctionsPathParts, filesep);
-            else
-                Value = '';
+        function set.RelativeResultsPath(obj, value)
+            arguments 
+                obj   (1,1) QSP.Session
+                value (1,:) char
             end
-                
+            obj.validateRelativePath(value);
+            obj.RelativeResultsPathParts = strsplit(value, filesep);
         end
-            
-                
-        function set.RelativeAutoSavePath_new(obj,Value)
-            validateattributes(Value,{'char'},{});
-%             obj.RelativeAutoSavePath = fullfile(Value);                
-            obj.RelativeAutoSavePathParts = strsplit(fullfile(Value), filesep);           
-        end %function
-        
-        function Value = get.RelativeAutoSavePath_new(obj)
-            Value = strjoin(obj.RelativeAutoSavePathParts,filesep);
+        function value = get.RelativeResultsPath(obj)
+            value = fullfile(obj.RelativeResultsPathParts{:});
         end
         
+        function set.RelativeUserDefinedFunctionsPath(obj, value)
+            arguments 
+                obj   (1,1) QSP.Session
+                value (1,:) char
+            end
+            obj.validateRelativePath(value);
+            obj.RelativeUserDefinedFunctionsPathParts = strsplit(value, filesep);
+        end
+        function value = get.RelativeUserDefinedFunctionsPath(obj)
+            value = fullfile(obj.RelativeUserDefinedFunctionsPathParts{:});
+        end
+        
+        function set.RelativeObjectiveFunctionsPath(obj, value)
+            arguments 
+                obj   (1,1) QSP.Session
+                value (1,:) char
+            end
+            obj.validateRelativePath(value);
+            obj.RelativeObjectiveFunctionsPathParts = strsplit(value, filesep);
+        end
+        function value = get.RelativeObjectiveFunctionsPath(obj)
+            value = fullfile(obj.RelativeObjectiveFunctionsPathParts{:});
+        end
+
+        function set.RelativeAutoSavePath(obj, value)
+            arguments 
+                obj   (1,1) QSP.Session
+                value (1,:) char
+            end
+            obj.validateRelativePath(value);
+            obj.RelativeAutoSavePathParts = strsplit(value, filesep);
+        end
+        function value = get.RelativeAutoSavePath(obj)
+            value = fullfile(obj.RelativeAutoSavePathParts{:});
+        end
+
         function addUDF(obj)
             % add the UDF to the path
             p = path;
-            if isempty(obj.RelativeUserDefinedFunctionsPath_new)
+            if isempty(obj.RelativeUserDefinedFunctionsPath)
                 % don't add anything unless UDF is defined
                 return
             end
             
-            UDF = fullfile(obj.RootDirectory, obj.RelativeUserDefinedFunctionsPath_new);
+            UDF = fullfile(obj.RootDirectory, obj.RelativeUserDefinedFunctionsPath);
             
             if exist(UDF, 'dir')
-                if ~isempty(obj.RelativeUserDefinedFunctionsPath_new) && ...
-                	isempty(strfind(p, UDF))
+                if ~isempty(obj.RelativeUserDefinedFunctionsPath) && ~contains(p, UDF)
                     addpath(genpath(UDF))
                 end
             end    
@@ -964,7 +910,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
             end
                 
             % don't do anything if the UDF is empty
-            if isempty(obj.RelativeUserDefinedFunctionsPath_new)
+            if isempty(obj.RelativeUserDefinedFunctionsPath)
                 return
             end
             
@@ -972,7 +918,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
             
             p = path;
             try
-                subdirs = genpath(fullfile(obj.RootDirectory, obj.RelativeUserDefinedFunctionsPath_new));
+                subdirs = genpath(fullfile(obj.RootDirectory, obj.RelativeUserDefinedFunctionsPath));
             catch err
                 warning('Unable to remove UDF from path\n%s', err.message)
                 return
@@ -1001,28 +947,28 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         end
         
         function value = get.ResultsDirectory(obj)
-            value = fullfile(obj.RootDirectory, obj.RelativeResultsPath_new);
+            value = fullfile(obj.RootDirectory, obj.RelativeResultsPath);
             if ~isempty(getCurrentWorker)
                 value = getAttachedFilesFolder(value);
             end
         end
         
         function value = get.ObjectiveFunctionsDirectory(obj)
-            value = fullfile(obj.RootDirectory, obj.RelativeObjectiveFunctionsPath_new);
+            value = fullfile(obj.RootDirectory, obj.RelativeObjectiveFunctionsPath);
             if ~isempty(getCurrentWorker)
                 value = getAttachedFilesFolder(value);
             end            
         end
         
         function value = get.UserDefinedFunctionsDirectory(obj)
-            value = fullfile(obj.RootDirectory, obj.RelativeUserDefinedFunctionsPath_new);
+            value = fullfile(obj.RootDirectory, obj.RelativeUserDefinedFunctionsPath);
             if ~isempty(getCurrentWorker)
                 value = getAttachedFilesFolder(value);
             end            
         end
         
         function value = get.AutoSaveDirectory(obj)
-            value = fullfile(obj.RootDirectory, obj.RelativeAutoSavePath_new);
+            value = fullfile(obj.RootDirectory, obj.RelativeAutoSavePath);
             if ~isempty(getCurrentWorker)
                 value = getAttachedFilesFolder(value);
             end            
@@ -1065,7 +1011,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
             for ixObj = 1:length(objs)
                 m = objs(ixObj).ModelObj;
                 if ~isempty(m)
-                   allFiles = [allFiles, strrep( m.RelativeFilePath_new, [obj.RootDirectory filesep], '')];
+                   allFiles = [allFiles, strrep( m.RelativeFilePath, [obj.RootDirectory filesep], '')];
                 end
             end
             allFiles = unique(allFiles);
@@ -1107,8 +1053,15 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
                 sObj = obj.Simulation(MatchIdx);
             else
                 warning('Simulation %s not found in session', Name)
-	    end
-	end
+            end
+        end
+    end
+    methods (Access = private)
+        function validateRelativePath(obj, relativePath)
+            if exist(fullfile(obj.RootDirectory, relativePath), 'dir')
+                error('Specified path does not exist, it must be relative to the root directory');
+            end
+        end
     end
 
     
