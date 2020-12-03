@@ -262,11 +262,10 @@ classdef TaskPane < QSPViewerNew.Application.ViewPane
             
         end
         
-        function onProjectFileSelector(obj,fullPath,relativePath)
-            if ~strcmp(obj.TemporaryTask.FilePath,fullPath)
+        function onProjectFileSelector(obj,NewData)
+            if ~strcmp(obj.TemporaryTask.RelativeFilePath,NewData)
                 obj.invalidProject();
-                obj.TemporaryTask.FilePath = fullPath;
-                obj.TemporaryTask.RelativeFilePath = relativePath;
+                obj.TemporaryTask.RelativeFilePath = NewData;
                 if exist(obj.TemporaryTask.FilePath,'file')==2
                     obj.modelChange(obj.TemporaryTask.ModelName,true);
                     obj.ModelDropDown.Items = {obj.TemporaryTask.getModelList()};
@@ -274,6 +273,8 @@ classdef TaskPane < QSPViewerNew.Application.ViewPane
                 obj.IsDirty = true;
             end
         end
+        
+        
         
         function onModelDropDown(obj,NewValue)
             if ~strcmpi(NewValue,QSP.makeInvalid('-'))
