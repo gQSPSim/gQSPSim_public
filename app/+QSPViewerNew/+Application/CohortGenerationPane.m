@@ -381,8 +381,8 @@ classdef CohortGenerationPane < QSPViewerNew.Application.ViewPane
             obj.RNGSeedEdit.ValueChangedFcn = @(h,e) obj.onEditRNGSeed(e.Value);
             
             %Create listeners
-            obj.ResultsPathListener = addlistener(obj.ResultsPath,'StateChanged',@(src,event) obj.onEditResultsPath(event.Source.getRelativePath()));
-            obj.InitialConditionsPathListener = addlistener(obj.InitialConditionsPath,'StateChanged',@(src,event) obj.onEditInitialConditionsPath(event.Source.getRelativePath()));
+            obj.ResultsPathListener = addlistener(obj.ResultsPath,'StateChanged',@(src,event) obj.onEditResultsPath(event.Source.RelativePath));
+            obj.InitialConditionsPathListener = addlistener(obj.InitialConditionsPath,'StateChanged',@(src,event) obj.onEditInitialConditionsPath(event.Source.RelativePath));
             
             obj.VirtualItemsTableListener = addlistener(obj.VirtualItemsTable,'EditValueChange',@(src,event) obj.onEditVirtualItemsTable());
             obj.SpeciesDataTableListener = addlistener(obj.SpeciesDataTable,'EditValueChange',@(src,event) obj.onEditSpeciesDataTable());
@@ -1227,13 +1227,13 @@ classdef CohortGenerationPane < QSPViewerNew.Application.ViewPane
         end
         
         function redrawResultsPath(obj)
-            obj.ResultsPath.setRootDirectory(obj.TemporaryCohortGeneration.Session.RootDirectory);
-            obj.ResultsPath.setRelativePath(obj.TemporaryCohortGeneration.VPopResultsFolderName);
+            obj.ResultsPath.RootDirectory = obj.TemporaryCohortGeneration.Session.RootDirectory;
+            obj.ResultsPath.RelativePath = obj.TemporaryCohortGeneration.VPopResultsFolderName;
         end
         
         function redrawInitialConditionsPath(obj)
-            obj.InitialConditionsPath.setRootDirectory(obj.TemporaryCohortGeneration.Session.RootDirectory);
-            obj.InitialConditionsPath.setRelativePath(obj.TemporaryCohortGeneration.ICFileName);
+            obj.InitialConditionsPath.RootDirectory = obj.TemporaryCohortGeneration.Session.RootDirectory;
+            obj.InitialConditionsPath.RelativePath = obj.TemporaryCohortGeneration.ICFileName;
         end
         
         function redrawVirtualItemsTable(obj)

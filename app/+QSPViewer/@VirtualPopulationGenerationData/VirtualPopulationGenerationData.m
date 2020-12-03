@@ -48,7 +48,7 @@ classdef VirtualPopulationGenerationData < uix.abstract.CardViewPane
             DataFilePath = e.NewValue;
             
             % Update the relative file path
-            vObj.TempData.RelativeFilePath_new = DataFilePath;
+            vObj.TempData.RelativeFilePath = DataFilePath;
             
             if exist(vObj.TempData.FilePath,'file')==2
                 
@@ -89,7 +89,7 @@ classdef VirtualPopulationGenerationData < uix.abstract.CardViewPane
                     return
                 end
                 
-                vObj.TempData.RelativeFilePath_new = newFile ;
+                vObj.TempData.RelativeFilePath = newFile ;
                 
                 update(vObj);
                 

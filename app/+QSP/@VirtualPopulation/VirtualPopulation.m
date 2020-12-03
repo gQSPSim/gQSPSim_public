@@ -82,7 +82,7 @@ classdef VirtualPopulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 'Name',obj.Name;
                 'Last Saved',obj.LastSavedTimeStr;
                 'Description',obj.Description;
-                'File Name',obj.RelativeFilePath_new;                
+                'File Name',obj.RelativeFilePath;                
                 'No of Virtual Subjects',obj.NumVirtualPatients;
                 'No of Parameters/species',obj.NumParameters;
                 'Prevalence Weights',obj.PrevalenceWeightsStr;

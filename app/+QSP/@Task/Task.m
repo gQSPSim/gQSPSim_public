@@ -154,7 +154,7 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 'Name',obj.Name;
                 'Last Saved',obj.LastSavedTimeStr;
                 'Description',obj.Description;
-                'Model',obj.RelativeFilePath_new;                
+                'Model',obj.RelativeFilePath;                
                 'Active Variants',obj.ActiveVariantNames;
                 'Active Doses',obj.ActiveDoseNames;
                 'Active Species',obj.ActiveSpeciesNames;
@@ -473,7 +473,7 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                  % Store path
 %                fprintf('Importing %s\nRoot directory %s:', evalc('disp(ProjectPath)'), evalc('disp(obj.Session.RootDirectory)'))
                  
-                thisObj.RelativeFilePath_new = uix.utility.getRelativeFilePath(ProjectPath, obj.Session.RootDirectory, true);                
+                thisObj.RelativeFilePath = uix.utility.getRelativeFilePath(ProjectPath, obj.Session.RootDirectory, true);                
                 
                 [StatusOK,Message] = importModel(thisObj,ProjectPath,ModelName);
                

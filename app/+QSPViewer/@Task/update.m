@@ -38,7 +38,7 @@ FlagValidModel = true;
 if ~isempty(vObj.TempData)
     set(vObj.h.ProjectFileSelector,...
         'RootDirectory',vObj.TempData.Session.RootDirectory,...
-        'Value',vObj.TempData.RelativeFilePath_new)
+        'Value',vObj.TempData.RelativeFilePath)
     
     % check if the task data is out of date -- project file has changed
     

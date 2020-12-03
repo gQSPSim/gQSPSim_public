@@ -421,7 +421,7 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
         
         function createListenersAndCallbacks(obj)
         %Listeners
-        obj.ResultsPathListener = addlistener(obj.ResultsPath,'StateChanged',@(src,event) obj.onEditResultsPath(event.Source.getRelativePath()));
+        obj.ResultsPathListener = addlistener(obj.ResultsPath,'StateChanged',@(src,event) obj.onEditResultsPath(event.Source.RelativePath));
         
         obj.OptimizationTableListener = addlistener(obj.OptimizationTable,'EditValueChange',@(src,event) obj.onEditOptimItems());
         obj.SpeciesDataTableListener = addlistener(obj.SpeciesDataTable,'EditValueChange',@(src,event) obj.onEditSpecies());
@@ -1335,8 +1335,8 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
     methods (Access = private)
         
         function redrawResultsPath(obj)
-            obj.ResultsPath.setRootDirectory(obj.TemporaryOptimization.Session.RootDirectory);
-            obj.ResultsPath.setRelativePath(obj.TemporaryOptimization.OptimResultsFolderName);
+            obj.ResultsPath.RootDirectory = obj.TemporaryOptimization.Session.RootDirectory;
+            obj.ResultsPath.RelativePath  = obj.TemporaryOptimization.OptimResultsFolderName;
         end
         
         function redrawAlgorithm(obj)
