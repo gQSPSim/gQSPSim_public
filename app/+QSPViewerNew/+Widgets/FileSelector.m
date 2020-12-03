@@ -39,11 +39,11 @@ classdef FileSelector < QSPViewerNew.Widgets.Abstract.SelectorBase
             text = obj.RelativePath;
         end
         function selectedFile = startSelector(obj, startDirectory)
-            [selectedFile, seletedPath] = uigetfile(obj.FileExtension, startDirectory, 'Select a file');
+            [selectedFile, seletedPath] = uigetfile(fullfile(startDirectory, obj.FileExtension), 'Select a file');
             if ischar(selectedFile)
                 selectedFile = fullfile(seletedPath, selectedFile);
             else
-                selectedFile = '';
+                selectedFile = 0;
             end
         end
 
