@@ -456,9 +456,9 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
         
         function [StaleFlag,ValidFlag,InvalidMessages,StaleReason] = getStaleItemIndices(obj)
             
-            StaleFlag = false(1,numel(obj.Item));
-            ValidFlag = true(1,numel(obj.Item));
-            StaleReason = cell(1,numel(obj.Item));
+            StaleFlag       = false(1,numel(obj.Item));
+            ValidFlag       = true(1,numel(obj.Item));
+            StaleReason     = cell(1,numel(obj.Item));
             InvalidMessages = cell(1,numel(obj.Item));
             
             if isempty(obj.ParametersName)

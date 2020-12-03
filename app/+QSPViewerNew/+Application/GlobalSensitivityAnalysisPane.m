@@ -448,7 +448,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
         end
         
         function createListenersAndCallbacks(obj)
-            obj.ResultFolderListener = addlistener(obj.ResultFolderSelector,'StateChanged',@(src,event) obj.onResultsPath(event.Source.getRelativePath()));
+            obj.ResultFolderListener = addlistener(obj.ResultFolderSelector,'StateChanged',@(src,event) obj.onResultsPath(event.Source.RelativePath));
         end
         
     end
@@ -576,19 +576,10 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             obj.IsDirty = true;
         end
         
-        function onResultsPath(obj,eventData)
-            %The backend for the simulation objects seems to have an issue
-            %with '' even though other QSP objects can have '' as a
-            %relative path for a directory. For simulation, we need to
-            %change the value to a 0x1 instead of 0x0 char array.
-            if isempty(eventData)
-                obj.TemporaryGlobalSensitivityAnalysis.ResultsFolderName = char.empty(1,0);
-            else
-                obj.TemporaryGlobalSensitivityAnalysis.ResultsFolderName = eventData;
-            end
+        function onResultsPath(obj, resultsPath)
+            obj.TemporaryGlobalSensitivityAnalysis.ResultsFolderName = resultsPath;
             obj.IsDirty = true;
         end
-        
         
         function setPlotItemColor(obj)
             if obj.SelectedRow.PlotItemsTable > 0
@@ -693,7 +684,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
     methods (Access = public) 
 
         function Value = getRootDirectory(obj)
-            Value = obj.Simulation.Session.RootDirectory;
+            Value = obj.GlobalSensitivityAnalysis.Session.RootDirectory;
         end
 
         function showThisPane(obj)
@@ -858,7 +849,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             obj.updateSummary(obj.TemporaryGlobalSensitivityAnalysis.getSummary());
             
             obj.updateResultsDir();
-            obj.ResultFolderSelector.setRootDirectory(obj.TemporaryGlobalSensitivityAnalysis.Session.RootDirectory);
+            obj.ResultFolderSelector.RootDirectory = obj.TemporaryGlobalSensitivityAnalysis.Session.RootDirectory;
             
             obj.updateGSAConfiguration();
             obj.updateGSAItemTable();
@@ -898,7 +889,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
         
        
         function updateResultsDir(obj)
-            obj.ResultFolderSelector.setRelativePath(obj.TemporaryGlobalSensitivityAnalysis.ResultsFolderName);
+            obj.ResultFolderSelector.RelativePath = obj.TemporaryGlobalSensitivityAnalysis.ResultsFolderName;
         end
         
         function updateGSAConfiguration(obj)
