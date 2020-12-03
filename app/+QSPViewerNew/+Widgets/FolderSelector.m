@@ -37,6 +37,9 @@ classdef FolderSelector < QSPViewerNew.Widgets.Abstract.SelectorBase
                 text = obj.FullPath;
             else
                 text = obj.RelativePath;
+                if strcmp(text, '.')
+                    text = '';
+                end
             end
         end
         function selected = startSelector(~, startDirectory)

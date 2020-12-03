@@ -184,11 +184,11 @@ classdef SelectorBase < handle
         
         function set.RootDirectory(obj, newDir)
             if isfolder(newDir)
-                % Update relative path with respect to new root directory
-                if ~isempty(obj.RelativePathParts)
-                    relativePath = uix.utility.getRelativeFilePath(obj.FullPath, newDir, false);
-                    obj.RelativePathParts = strsplit(relativePath, filesep);
-                end
+%                 % Update relative path with respect to new root directory
+%                 if ~isempty(obj.RelativePathParts)
+%                     relativePath = uix.utility.getRelativeFilePath(obj.FullPath, newDir, false);
+%                     obj.RelativePathParts = strsplit(relativePath, filesep);
+%                 end
                 obj.RootDirectoryParts = strsplit(newDir, filesep);
                 obj.update();
             else
