@@ -295,6 +295,7 @@ classdef (Abstract) BaseProps < matlab.mixin.SetGet & matlab.mixin.Heterogeneous
         
         function set.RelativeFilePath(obj,value)
             validateattributes(value,{'char'},{})
+            value = obj.updatePath(value);
             obj.RelativeFilePathParts = strsplit(value,filesep);
         end
         

@@ -39,7 +39,10 @@ classdef (Abstract) BasicBaseProps < matlab.mixin.SetGet & uix.mixin.AssignPVPai
     
     %% Properties
     properties
-        Name = ''    % Name
+        Version     = [] % Version (default initialize with [] 
+                         % for backward compatibility; set version
+                         % in class constructor)
+        Name        = '' % Name
         Description = '' % Description
     end
     
@@ -60,6 +63,8 @@ classdef (Abstract) BasicBaseProps < matlab.mixin.SetGet & uix.mixin.AssignPVPai
             
             % Assign PV pairs to properties
             obj.assignPVPairs(varargin{:});
+            
+            obj.Version = 2.0;
             
         end % constructor       
                 
@@ -150,6 +155,19 @@ classdef (Abstract) BasicBaseProps < matlab.mixin.SetGet & uix.mixin.AssignPVPai
             value = datestr(obj.LastSavedTime);
         end        
         
+    end
+    
+    methods (Access = protected)
+        function value = updatePath(obj, value)
+            if isempty(obj.Version)
+                % project was saved prior to gQSPSim 2.0
+                if ispc
+                    value = strrep(value, '/', '\');
+                else
+                    value = strrep(value, '\', '/');
+                end
+            end
+        end
     end
     
 end % classdef

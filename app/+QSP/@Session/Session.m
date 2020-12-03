@@ -362,9 +362,52 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
                 newObj.Settings = sObj;
                                
                 newObj.Simulation = obj.Simulation;
+                for idxSimulation = 1:length(newObj.Simulation)
+                    if ~isempty(newObj.Simulation(idxSimulation).SimResultsFolderName)
+                            if ispc
+                                newPath = strrep(newObj.Simulation(idxSimulation).SimResultsFolderName, '/', '\');
+                            else
+                                newPath = strrep(newObj.Simulation(idxSimulation).SimResultsFolderName, '\', '/');
+                            end                        
+                        newObj.Simulation(idxSimulation).SimResultsFolderName_new = newPath;
+                    end
+                end
+                
                 newObj.Optimization = obj.Optimization;
+                for idxOptimization = 1:length(newObj.Optimization)
+                    if ~isempty(newObj.Optimization(idxOptimization).OptimResultsFolderName)
+                        if ispc
+                            newPath = strrep(newObj.Optimization(idxOptimization).OptimResultsFolderName, '/', '\');
+                        else
+                            newPath = strrep(newObj.Optimization(idxOptimization).OptimResultsFolderName, '\', '/');
+                        end     
+                        newObj.Optimization(idxOptimization).OptimResultsFolderName_new = newPath;
+                    end
+                end
+                
                 newObj.VirtualPopulationGeneration = obj.VirtualPopulationGeneration;
+                for idxVpop = 1:length(newObj.VirtualPopulationGeneration)
+                    if ~isempty(newObj.VirtualPopulationGeneration(idxVpop).VPopResultsFolderName)
+                        if ispc
+                            newPath = strrep(newObj.VirtualPopulationGeneration(idxVpop).VPopResultsFolderName, '/', '\');
+                        else
+                            newPath = strrep(newObj.VirtualPopulationGeneration(idxVpop).VPopResultsFolderName, '\', '/');
+                        end   
+                        newObj.VirtualPopulationGeneration(idxVpop).VPopResultsFolderName_new = newPath;
+                    end
+                end
+                
                 newObj.CohortGeneration = obj.CohortGeneration;
+                for idxCohort = 1:length(newObj.CohortGeneration)
+                    if ~isempty(newObj.CohortGeneration(idxCohort).VPopResultsFolderName)
+                        if ispc
+                            newPath = strrep(newObj.CohortGeneration(idxCohort).VPopResultsFolderName, '/', '\');
+                        else
+                            newPath = strrep(newObj.CohortGeneration(idxCohort).VPopResultsFolderName, '\', '/');
+                        end
+                        newObj.CohortGeneration(idxCohort).VPopResultsFolderName_new = newPath;
+                    end
+                end
                 
                 newObj.Deleted = obj.Deleted;
                 
@@ -716,6 +759,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
                 obj   (1,1) QSP.Session
                 value (1,:) char
             end
+            value = obj.updatePath(value);
             obj.RelativeResultsPathParts = strsplit(value, filesep);
         end
         function value = get.RelativeResultsPath(obj)
@@ -727,6 +771,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
                 obj   (1,1) QSP.Session
                 value (1,:) char
             end
+            value = obj.updatePath(value);
             obj.RelativeUserDefinedFunctionsPathParts = strsplit(value, filesep);
         end
         function value = get.RelativeUserDefinedFunctionsPath(obj)
@@ -738,6 +783,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
                 obj   (1,1) QSP.Session
                 value (1,:) char
             end
+            value = obj.updatePath(value);
             obj.RelativeObjectiveFunctionsPathParts = strsplit(value, filesep);
         end
         function value = get.RelativeObjectiveFunctionsPath(obj)
@@ -749,6 +795,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
                 obj   (1,1) QSP.Session
                 value (1,:) char
             end
+            value = obj.updatePath(value);
             obj.RelativeAutoSavePathParts = strsplit(value, filesep);
         end
         function value = get.RelativeAutoSavePath(obj)
