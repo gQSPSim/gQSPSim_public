@@ -1507,7 +1507,7 @@ classdef ApplicationUI < matlab.apps.AppBase
             end
             if ~isempty(app.ActivePane)
                 %Now take the pane and display it.
-                app.Panes = horzcat(app.ActivePane);
+                app.Panes = [app.Panes, app.ActivePane];
                 app.ActivePane.showThisPane();
             end
         end
@@ -1948,10 +1948,7 @@ classdef ApplicationUI < matlab.apps.AppBase
         end
         
         function value = get.PaneTypes(app)
-            value = cell(size(app.Panes));
-            for idx = 1:numel(app.Panes)
-                value{idx} = class(app.Panes);
-            end
+            value = arrayfun(@class, app.Panes, 'UniformOutput', false); 
         end
         
         function setCurrentSessionDirty(app)

@@ -1,4 +1,4 @@
-classdef ViewPane < handle
+classdef ViewPane < matlab.mixin.Heterogeneous & handle
     % ViewPane - An abstract base class for various view panes
     % ---------------------------------------------------------------------
     % Base properties that should be observed by all subclasses
