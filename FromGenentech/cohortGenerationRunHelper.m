@@ -416,8 +416,8 @@ if StatusOK && bProceed
         if ispc
             try
                 [ThisStatusOk,ThisMessage] = xlswrite(fullfile(SaveFilePath,ResultsFileName),Vpop);
-            catch error
-                fName = regexp(error.message, '(C:\\.*\.mat)', 'match');
+            catch e
+                fName = regexp(e.message, '(C:\\.*\.mat)', 'match');
                 if length(fName{1}) > 260
                     ThisMessage = sprintf('%s\n* Windows cannot save filepaths longer than 260 characters. See %s for more details.\n', ...
                        ThisMessage, 'https://www.howtogeek.com/266621/how-to-make-windows-10-accept-file-paths-over-260-characters/' );
