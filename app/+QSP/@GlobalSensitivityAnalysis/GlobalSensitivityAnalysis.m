@@ -30,14 +30,11 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
     properties
         Settings = QSP.Settings.empty(0,1)
         
-        ResultsFolderPath = {'GSAResults'}
-        ResultsFolderName = ''
-
         Item
+        SummaryType = 'mean'
                   
-        NumberSamples    = 1000
-        RandomSeed       = []
-        NumberIterations = 3
+        RandomSeed        = []
+        StoppingTolerance = 0;
         
         SelectedPlotLayout = '1x1'
 
@@ -45,16 +42,18 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
         PlotOutputs = cell(0,1) % Outputs
 
         PlotSobolIndex
-        ShowIterations = true
         
         PlotSettings = repmat(struct(),1,12)
         
-        ParametersName_I = [] % needs to be public for copy to work
+        % Properties that are NOT part of the public API
+        ParametersName_I = []        % needs to be public for copy to work
+        ResultsFolderParts_I = {''}  % needs to be public for copy to work
+
     end
       
     properties (Dependent)
         ParametersName
-        ResultsFolderName_new
+        ResultsFolder
     end
     
     properties (SetAccess = 'private')
@@ -65,6 +64,7 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
     properties (Access = private)
         ItemTemplate = struct('TaskName', [], ...
                               'NumberSamples', 0, ...
+                              'IterationInfo', [0, 5], ...
                               'Include', true, ...
                               'MATFileName', [], ...
                               'Color', [], ...
@@ -75,6 +75,7 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
                                         'Input', [], ...
                                         'Output', [], ...
                                         'Type', 'first order', ...
+                                        'Mode', 'bar plot', ...
                                         'Display', '')
 
     end
@@ -156,7 +157,7 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
                 'Name',obj.Name;
                 'Last Saved',obj.LastSavedTimeStr;
                 'Description',obj.Description;
-                'Results Path',obj.ResultsFolderName_new;
+                'Results Path',obj.ResultsFolder;
                 'Sensitivity Inputs',obj.ParametersName;
                 'Items',GlobalSensitivityAnalysisItems;
                 };
@@ -291,7 +292,7 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
             data = struct();
             for k = 1:length(Items)
                 try
-                    filePath = fullfile( obj.Session.RootDirectory, obj.ResultsFolderName_new, Items(k).MATFileName);
+                    filePath = fullfile( obj.Session.RootDirectory, obj.ResultsFolder, Items(k).MATFileName);
                     tmp = load(filePath);
                     data(k).Data = tmp.Results;
                     data(k).TaskName = Items(k).TaskName;
@@ -347,6 +348,8 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
                     nonExistingTaskNames = allTasks(~tfTaskExists);
                     obj.Item(end).TaskName = nonExistingTaskNames{1};
                     obj.Item(end).Color = itemColors(end,:);
+                    suggestedNumberOfSamples = max([1000, 10^numel(obj.PlotInputs)]);
+                    obj.Item(end).IterationInfo(1) = ceil(suggestedNumberOfSamples/obj.Item(end).IterationInfo(2));
                     obj.updateInputsOutputs();
                 case 'sobolIndex'
                     if isempty(obj.PlotInputs)
@@ -381,6 +384,22 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
                     obj.PlotSobolIndex(idx) = [];
             end            
         end
+        
+        
+        function [statusOk, message] = propagateValue(obj, property, idx)
+            if strcmp(property, 'Samples')
+                iterationsInfoIdx = 1;
+            else
+                iterationsInfoIdx = 2;
+            end
+            statusOk = true;
+            message  = '';            
+            valueToPropagate = obj.Item(idx).IterationInfo(iterationsInfoIdx);
+            for i = 1:numel(obj.Item)
+                obj.Item(i).IterationInfo(iterationsInfoIdx) = valueToPropagate;
+            end
+        end
+        
         
         function [statusOk, message] = moveUp(obj, idx)
             if idx == 0
@@ -427,8 +446,15 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
             end
         end
         
+        function removeResultsFromItem(obj, idx)
+            obj.Item(idx).MATFileName   = '';
+            obj.Item(idx).NumberSamples = 0;
+            obj.Item(idx).Results       = [];
+        end
+        
         function addResults(obj, itemIdx, results)            
             obj.Item(itemIdx).Results = [obj.Item(itemIdx).Results, results];
+            obj.Item(itemIdx).NumberSamples = results.NumberSamples;
         end    
             
         function removeResults(obj, taskName, idx)
@@ -442,11 +468,11 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
             maxDifference  = repmat({'-'}, numResults, 1);
             meanDifference = repmat({'-'}, numResults, 1);
             
-            for i = 1:numResults-1
+            for i = 2:numResults
                 differences = reshape(abs([([obj.Item(itemIdx).Results(i).SobolIndices(:).FirstOrder] - ...
-                    [obj.Item(itemIdx).Results(end).SobolIndices(:).FirstOrder]); ...
-                	([obj.Item(itemIdx).Results(i).SobolIndices(:).TotalOrder] - ...
-                    [obj.Item(itemIdx).Results(end).SobolIndices(:).TotalOrder])]), [], 1);
+                    [obj.Item(itemIdx).Results(i-1).SobolIndices(:).FirstOrder]); ...
+                    ([obj.Item(itemIdx).Results(i).SobolIndices(:).TotalOrder] - ...
+                    [obj.Item(itemIdx).Results(i-1).SobolIndices(:).TotalOrder])]), [], 1);
                 differences(isnan(differences)) = [];
                 maxDifference{i} = num2str(max(differences, [], 'all'));
                 meanDifference{i} = num2str(mean(differences, 'all'));
@@ -497,7 +523,7 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
                     end
                     
                     % Results file
-                    ThisFilePath = fullfile(obj.Session.RootDirectory,obj.ResultsFolderName_new,obj.Item(index).MATFileName);
+                    ThisFilePath = fullfile(obj.Session.RootDirectory,obj.ResultsFolder,obj.Item(index).MATFileName);
                     if exist(ThisFilePath,'file') == 2
                         FileInfo = dir(ThisFilePath);
                         ResultLastSavedTime = FileInfo.datenum;
@@ -549,13 +575,13 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
             obj.Settings = Value;
         end
         
-        function set.ResultsFolderName_new(obj,Value)
-            validateattributes(Value,{'char'},{'row'});
-            obj.ResultsFolderPath = strsplit(Value, filesep);
+        function set.ResultsFolder(obj,Value)
+            validateattributes(Value,{'char'},{});
+            obj.ResultsFolderParts_I = strsplit(Value, filesep);
         end
         
-        function Value = get.ResultsFolderName_new(obj)
-            Value = strjoin(obj.ResultsFolderPath, filesep);
+        function Value = get.ResultsFolder(obj)
+            Value = strjoin(obj.ResultsFolderParts_I, filesep);
         end
 
         function set.ParametersName(obj,parametersName)

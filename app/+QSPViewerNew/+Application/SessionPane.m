@@ -352,7 +352,7 @@ classdef SessionPane < QSPViewerNew.Application.ViewPane
             obj.AutoSaveFolderSelect.RelativePath = obj.TemporarySession.RelativeAutoSavePath;
             
             obj.UseParallelToolboxCheckBox.Value = obj.TemporarySession.UseParallel;
-
+            
             obj.AutoSavePeriodically.Value = obj.TemporarySession.UseAutoSaveTimer;
             
             obj.AutoSaveBeforeRun.Value = obj.TemporarySession.AutoSaveBeforeRun;

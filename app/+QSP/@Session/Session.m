@@ -61,7 +61,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         LogFile = 'logfile.txt'
     end
     
-	properties (Access = protected)
+	properties (Access=protected)
         % These properties need to  be (at least) protected in order for
         % copy to work.
         RelativeResultsPathParts = {''}
@@ -80,7 +80,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         RelativeAutoSavePath        
     end
     
-    properties (Dependent=true, SetAccess='immutable')
+    properties (Dependent=true, SetAccess=immutable)
         ResultsDirectory
         ObjectiveFunctionsDirectory
         UserDefinedFunctionsDirectory
@@ -184,7 +184,23 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
     methods (Static=true)
         function obj = loadobj(s)
             
-            obj = s;
+            if isa(s, 'QSP.Session')
+                obj = s;
+            else
+                obj = QSP.Session;
+                props = fields(s);
+                invalidProps = {};
+                for i = 1:numel(props)
+                    try
+                        obj.(props{i}) = s.(props{i});
+                    catch
+                        invalidProps = [invalidProps, props{i}];
+                    end
+                end
+                if ~isempty(invalidProps)
+                    warning('Unable to set properties %s.', strjoin(invalidProps, ','));
+                end
+            end
             
             % check if the root directory does not exist
             % for example if running on a worker on a remote cluster
