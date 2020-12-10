@@ -462,11 +462,10 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
             obj.Item(itemIdx).Results(idx) = [];
         end
 
-        function [maxDifference, meanDifference] = getConvergenceStats(obj, itemIdx)
+        function [numSamples, maxDifferences] = getConvergenceStats(obj, itemIdx)
             
             numResults     = numel(obj.Item(itemIdx).Results);
-            maxDifference  = repmat({'-'}, numResults, 1);
-            meanDifference = repmat({'-'}, numResults, 1);
+            maxDifferences = nan(numResults, 1);
             
             for i = 2:numResults
                 differences = reshape(abs([([obj.Item(itemIdx).Results(i).SobolIndices(:).FirstOrder] - ...
@@ -474,10 +473,13 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
                     ([obj.Item(itemIdx).Results(i).SobolIndices(:).TotalOrder] - ...
                     [obj.Item(itemIdx).Results(i-1).SobolIndices(:).TotalOrder])]), [], 1);
                 differences(isnan(differences)) = [];
-                maxDifference{i} = num2str(max(differences, [], 'all'));
-                meanDifference{i} = num2str(mean(differences, 'all'));
+                maxDifferences(i) = max(differences, [], 'all');
             end
-            
+            if numResults > 0
+                numSamples = vertcat(obj.Item(itemIdx).Results.NumberSamples);
+            else
+                numSamples = zeros(0,1);
+            end
         end
         
         function [StaleFlag,ValidFlag,InvalidMessages,StaleReason] = getStaleItemIndices(obj)

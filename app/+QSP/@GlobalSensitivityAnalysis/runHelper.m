@@ -39,9 +39,13 @@ function [statusOk, message, resultFileNames] = runHelper(obj, figureHandle, ax)
         return
     end    
     
+    modalWindow = QSPViewerNew.Widgets.GlobalSensitivityAnalysisProgress(sprintf('Running %s', obj.Name));
+    cleanupObj1 = modalWindow.open(figureHandle); %#ok<NASGU>
+       
     hWaitBar = uiprogressdlg(figureHandle, 'Indeterminate','on',...
-        'Title', sprintf('Running %s',obj.Name));
-    cleanupObj = onCleanup(@()delete(hWaitBar));
+        'Title', sprintf('Running %s',obj.Name), ...
+        'Message', 'Computing Sobol Indices');
+    cleanupObj2 = onCleanup(@()delete(hWaitBar));
 
     [statusOk, message, sensitivityInputs, transformations, ...
         distributions, samplingInfo] = obj.getParameterInfo();
@@ -49,44 +53,34 @@ function [statusOk, message, resultFileNames] = runHelper(obj, figureHandle, ax)
         return;
     end
     
-    for looopOverIterations = 1:max(iterationsInfo(:,2))
-    
-        for i = 1:numberItems
+    for i = 1:numberItems
+
+        numberOfSamplesPerIteration = obj.Item(i).IterationInfo(1);
+        modalWindow.reset(obj.StoppingTolerance, obj.Item(i).Color);
+        
+        for looopOverIterations = 1:max(iterationsInfo(:,2))
 
             if any(obj.Item(i).IterationInfo == 0)
                 obj.Item(i).IterationInfo(2) = 0;
                 continue;
             end
             
-            numberOfSamplesPerIteration = obj.Item(i).IterationInfo(1);
-
-            hWaitBar.Message = sprintf(['Task: %s\n\n', ...
-                                        'Iteration: %d of %d\nAdding %d new samples.'], ...
-                obj.Item(i).TaskName, ...
-                iterationsInfo(i,2)-obj.Item(i).IterationInfo(2)+1, ...
-                iterationsInfo(i,2), numberOfSamplesPerIteration);
-            if obj.StoppingTolerance > 0
-                if numel(obj.Item(i).Results) > 1
-                    difference = reshape(abs([([obj.Item(i).Results(end).SobolIndices(:).FirstOrder] - ...
-                        [obj.Item(i).Results(end-1).SobolIndices(:).FirstOrder]); ...
-                        ([obj.Item(i).Results(end).SobolIndices(:).TotalOrder] - ...
-                        [obj.Item(i).Results(end-1).SobolIndices(:).TotalOrder])]), [], 1);
-                    difference(isnan(difference)) = [];
-                    if isempty(difference)
-                        obj.Item(i).IterationInfo(2) = 0;
-                    else
-                        maxDiff = max(difference);
-                        if maxDiff < obj.StoppingTolerance
-                            obj.Item(i).IterationInfo(2) = 0;
-                        end
-                    end
-                    hWaitBar.Message = sprintf('%s\n\nMax. difference in previous iteration: %g\nTarget difference: %g', hWaitBar.Message, ...
-                        maxDiff, obj.StoppingTolerance);
-                else
-                    hWaitBar.Message = sprintf('%s\n\nComputing max. difference for previous iteration.\nTarget difference: %g', hWaitBar.Message, ...
-                        obj.StoppingTolerance);
-                end
+            [samples, differences] = obj.getConvergenceStats(i);
+            messages = cell(7, 1);
+            messages{1} = sprintf('Task: %s', obj.Item(i).TaskName);
+            messages{2} = '';
+            messages{3} = sprintf('Computing Sobol indices for iteration %d of %d', iterationsInfo(i,2)-obj.Item(i).IterationInfo(2)+1, iterationsInfo(i,2));
+            messages{4} = sprintf('Adding %d new sampes', numberOfSamplesPerIteration);
+            messages{5} = '';
+            if isempty(differences) || isnan(differences(end))
+                messages{6} = 'Computing max. diff. between Sobol indices';
+            else
+                messages{6} = sprintf('Max. difference in iteration %d: %g', iterationsInfo(i,2)-obj.Item(i).IterationInfo(2), differences(end));
             end
+            messages{7} = sprintf('Target difference: %d', obj.StoppingTolerance);
+            
+            modalWindow.update(messages, samples, differences);
+            
 
             if obj.Item(i).IterationInfo(2) > 0
                 

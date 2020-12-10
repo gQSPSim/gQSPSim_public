@@ -100,10 +100,10 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
         % Table for managing iteration results
         IterationsLabel             matlab.ui.control.Label
         IterationsTable             matlab.ui.control.Table
-        IterationsGrid              matlab.ui.container.GridLayout
-        IterationsButtonGrid        matlab.ui.container.GridLayout
-        RemoveIterationButton       matlab.ui.control.Button
-
+        IterationsTableContextMenu  matlab.ui.container.ContextMenu
+        IterationsTableMenu         matlab.ui.container.Menu
+        
+        
     end
         
     % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -419,6 +419,12 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             obj.IterationsTable.ColumnFormat   = {'char','numeric'};
             obj.IterationsTable.ColumnEditable = [false,false];
             obj.IterationsTable.ColumnWidth    = {'fit','auto'};
+            
+            obj.IterationsTableContextMenu = uicontextmenu(obj.getUIFigure());
+            obj.IterationsTableMenu = uimenu(obj.IterationsTableContextMenu);
+            obj.IterationsTableMenu.Label = 'Plot iterations';
+            obj.IterationsTableMenu.MenuSelectedFcn = @(h,e)obj.onIterationsTableContextMenu(h,e);
+            obj.IterationsTable.ContextMenu = obj.IterationsTableContextMenu;
 
         end
         
@@ -666,6 +672,35 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
 
         end
         
+        function onIterationsTableContextMenu(obj,~,~)
+            if isempty(obj.IterationsTable.Data)
+                return;
+            elseif obj.SelectedRow.PlotItemsTable(1) == 0
+                selectedRow = 1;
+            else
+                selectedRow = obj.SelectedRow.PlotItemsTable(1);
+            end
+            if numel(obj.TemporaryGlobalSensitivityAnalysis.Item(selectedRow).Results) < 2
+                return;
+            end
+            
+            [numSamples, maxDifferences] = obj.GlobalSensitivityAnalysis.getConvergenceStats(selectedRow);
+            modalWindow = QSPViewerNew.Widgets.GlobalSensitivityAnalysisProgress(sprintf('Showing %s', ...
+                obj.GlobalSensitivityAnalysis.Item(selectedRow).TaskName));
+            modalWindow.open(obj.getUIFigure());
+            modalWindow.customizeButton('Close', 'Close window', @()delete(modalWindow));
+            modalWindow.reset(obj.GlobalSensitivityAnalysis.StoppingTolerance, obj.GlobalSensitivityAnalysis.Item(selectedRow).Color);
+            messages = cell(1,7);
+            messages{1} = sprintf('Task: %s', obj.GlobalSensitivityAnalysis.Item(selectedRow).TaskName);
+            messages{2} = '';
+            messages{3} = sprintf('Available iterations: %d', numel(numSamples));
+            messages{4} = sprintf('Total number of samples: %d', obj.GlobalSensitivityAnalysis.Item(selectedRow).NumberSamples);
+            messages{5} = '';
+            messages{6} = '';
+            messages{7} = '';
+            modalWindow.update(messages, numSamples, maxDifferences);
+        end
+        
     end
     
     methods (Access = public) 
@@ -757,8 +792,16 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
                    ' (no iterations available)'];
                 obj.IterationsTable.Data = cell(0,2);
             else
-                maxDifference = obj.TemporaryGlobalSensitivityAnalysis.getConvergenceStats(selectedRow);
-                obj.IterationsTable.Data = [maxDifference, num2cell([item.Results.NumberSamples])'];
+                [numSamples, maxDifferences] = obj.TemporaryGlobalSensitivityAnalysis.getConvergenceStats(selectedRow);
+                maxDifferences = num2cell(maxDifferences);
+                for i = 1:numel(maxDifferences)
+                    if isnan(maxDifferences{i})
+                        maxDifferences{i} = '-';
+                    else
+                        maxDifferences{i} = num2str(maxDifferences{i});
+                    end
+                end
+                obj.IterationsTable.Data = [maxDifferences, num2cell(numSamples)];
             end
         end
         
