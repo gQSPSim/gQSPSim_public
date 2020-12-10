@@ -593,19 +593,19 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
         
         function setPlotItemColor(obj)
             if obj.SelectedRow.PlotItemsTable > 0
-                currentColor = obj.TemporaryGlobalSensitivityAnalysis.Item(obj.SelectedRow.PlotItemsTable).Color;
+                currentColor = obj.GlobalSensitivityAnalysis.Item(obj.SelectedRow.PlotItemsTable).Color;
                 newColor = uisetcolor(currentColor);
                 if isequal(newColor, currentColor)
                     return;
                 end
-                obj.TemporaryGlobalSensitivityAnalysis.Item(obj.SelectedRow.PlotItemsTable).Color = newColor;
+                obj.GlobalSensitivityAnalysis.Item(obj.SelectedRow.PlotItemsTable).Color = newColor;
                 stylesTable = obj.PlotItemsTable.StyleConfigurations;
                 idx = vertcat(stylesTable.TargetIndex{:});
                 updateIdx = find(idx(:,1)==obj.SelectedRow.PlotItemsTable,1);
                 removeStyle(obj.PlotItemsTable, updateIdx);
                 style = uistyle('BackgroundColor',newColor);
                 addStyle(obj.PlotItemsTable,style,'cell',[obj.SelectedRow.PlotItemsTable,2]);
-                plotSobolIndices(obj.TemporaryGlobalSensitivityAnalysis,obj.getPlotArray());
+                plotSobolIndices(obj.GlobalSensitivityAnalysis,obj.getPlotArray());
                 obj.updateIterationsTable();
             end
         end
@@ -680,7 +680,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             else
                 selectedRow = obj.SelectedRow.PlotItemsTable(1);
             end
-            if numel(obj.TemporaryGlobalSensitivityAnalysis.Item(selectedRow).Results) < 2
+            if numel(obj.GlobalSensitivityAnalysis.Item(selectedRow).Results) < 2
                 return;
             end
             
@@ -742,10 +742,43 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
         end
         
         function runModel(obj)
-            axs = obj.getPlotArray();
-            hold(axs(1),'on');
-            cleanupObj = onCleanup(@()hold(axs(1),'off'));
-            [StatusOK,Message] = run(obj.GlobalSensitivityAnalysis, obj.getUIFigure, axs(1));
+            succesfulSave = obj.saveBackEndInformation();
+            if ~succesfulSave
+                message = 'Unable to save configuration.';
+                uialert(obj.getUIFigure, message, 'Run Failed', 'Icon', 'error');
+                return
+            end
+            
+            iterationsInfo = vertcat(obj.GlobalSensitivityAnalysis.Item.IterationInfo);
+            if all(iterationsInfo(:,1).*iterationsInfo(:,2) == 0)
+                message = 'Set number of samples and iteration to be added to a value greater than zero for at least one task.';
+                uialert(obj.getUIFigure, message, 'Run Failed', 'Icon', 'info');
+                return
+            end  
+            
+            [tfStaleItem, tfValidItem] = obj.GlobalSensitivityAnalysis.getStaleItemIndices();
+            tfResultsOutOfDate = tfStaleItem | ~tfValidItem;
+            if any(tfResultsOutOfDate)
+                staleMessage = ['Running the sensitivity analysis requires removing stale results from', newline];
+                for i = 1:numel(tfResultsOutOfDate)
+                    if tfResultsOutOfDate(i)
+                        staleMessage = sprintf('%s\n - %s', staleMessage, obj.GlobalSensitivityAnalysis.Item(i).TaskName);
+                    end
+                end
+                selection = uiconfirm(obj.getUIFigure, staleMessage, 'Remove results',...
+                        'Options', {'Remove', 'Cancel'}, 'DefaultOption', 2, 'CancelOption',2, 'Icon', 'warning');
+                if strcmp(selection, 'Cancel')
+                    return;
+                else
+                    for i = 1:numel(tfResultsOutOfDate)
+                        if tfResultsOutOfDate(i)
+                            obj.GlobalSensitivityAnalysis.removeResultsFromItem(i);
+                        end
+                    end
+                end
+            end
+            
+            [StatusOK,Message] = run(obj.GlobalSensitivityAnalysis, obj.getUIFigure());
             if ~StatusOK
                 uialert(obj.getUIFigure,Message,'Run Failed');
             end
@@ -785,14 +818,14 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             else
                 selectedRow = obj.SelectedRow.PlotItemsTable(1);
             end
-            item = obj.TemporaryGlobalSensitivityAnalysis.Item(selectedRow);
+            item = obj.GlobalSensitivityAnalysis.Item(selectedRow);
             obj.IterationsLabel.Text = ['Iterations: ', item.TaskName];
             if isempty(item.Results)
                obj.IterationsLabel.Text = [obj.IterationsLabel.Text, ...
                    ' (no iterations available)'];
                 obj.IterationsTable.Data = cell(0,2);
             else
-                [numSamples, maxDifferences] = obj.TemporaryGlobalSensitivityAnalysis.getConvergenceStats(selectedRow);
+                [numSamples, maxDifferences] = obj.GlobalSensitivityAnalysis.getConvergenceStats(selectedRow);
                 maxDifferences = num2cell(maxDifferences);
                 for i = 1:numel(maxDifferences)
                     if isnan(maxDifferences{i})

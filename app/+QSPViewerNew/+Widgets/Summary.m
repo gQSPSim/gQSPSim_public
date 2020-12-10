@@ -98,39 +98,20 @@ classdef Summary < handle
                if isnumeric(cellArr{idx,1})
                    cellArr{idx,1} = num2str(cellArr{idx,1});
                end
-
                if isnumeric(cellArr{idx,2})
                    cellArr{idx,2} = num2str(cellArr{idx,2});
                end
-
                %If the element is another cell, then we want to display all elements of
                %the cell array in seperate lines
                if iscell(cellArr{idx,2})
-                   %Preallocate
-                   lengthCell = length(cellArr{idx,2});
-                   totalLengthOfChars =sum(cellfun(@length,cellArr{idx,2}));
-                   newLine = '<br/>';
-                   lenNewLine = length(newLine);
-                   newChars = blanks(totalLengthOfChars+((lengthCell+2)*lenNewLine));
-
-                   charPosition =1;
-                   %2 NewLines to start
-                   newChars(charPosition:charPosition+lenNewLine-1) = newLine;
-                   charPosition =charPosition+lenNewLine;
-                   newChars(charPosition:charPosition+lenNewLine-1) = newLine;
-                   charPosition =charPosition+lenNewLine;
-
                    %Add new line for each entry
-                   for jdx = 1:lengthCell
-                       newChars(charPosition:charPosition+length(cellArr{idx,2}{jdx})-1) = cellArr{idx,2}{jdx};
-                       charPosition =charPosition+length(cellArr{idx,2}{jdx});
-                       newChars(charPosition:charPosition+lenNewLine-1) = newLine;
-                       charPosition =charPosition+lenNewLine;
+                   for jdx = 1:length(cellArr{idx,2})
+                       cellArr{idx,2}{jdx} = regexprep(cellArr{idx,2}{jdx}, {'<', '>', newline}, {'&lt;', '&gt;', '<br>'});
                    end
-                   
-                   cellArr{idx,2} = newChars;
+                   cellArr{idx,2} = ['<br><br>', strjoin(cellArr{idx,2}, '<br>')];
+               elseif ~isempty(cellArr{idx,2})
+                   cellArr{idx,2} = regexprep(cellArr{idx,2}, {'<', '>', newline}, {'&lt;', '&gt;', '<br>'});
                end
-
            end
 
            %Templates for the output string

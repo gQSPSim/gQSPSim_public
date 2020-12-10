@@ -1,4 +1,4 @@
-function [statusOk, message, resultFileNames] = runHelper(obj, figureHandle, ax)
+function [statusOk, message, resultFileNames] = runHelper(obj, figureHandle)
 % Helper method to perform global sensitivity analysis.
 %
 %  Input:
@@ -27,17 +27,9 @@ function [statusOk, message, resultFileNames] = runHelper(obj, figureHandle, ax)
     
     resultFileNames = cell(numberItems, 1);
     resultsCell     = cell(numberItems, 1);
-    maxDiff         = inf(numberItems, 1);
     
     allVariants   = getvariant(modelObj);
     allDoses      = getdose(modelObj);
-    
-    iterationsInfo = vertcat(obj.Item.IterationInfo);
-    if all(iterationsInfo(:,1).*iterationsInfo(:,2) == 0)
-        statusOk = false;
-        message = 'Set number of samples and iteration to be added to a value greater than zero for at least one task.';
-        return
-    end    
     
     modalWindow = QSPViewerNew.Widgets.GlobalSensitivityAnalysisProgress(sprintf('Running %s', obj.Name));
     cleanupObj1 = modalWindow.open(figureHandle); %#ok<NASGU>
@@ -57,25 +49,29 @@ function [statusOk, message, resultFileNames] = runHelper(obj, figureHandle, ax)
 
         numberOfSamplesPerIteration = obj.Item(i).IterationInfo(1);
         modalWindow.reset(obj.StoppingTolerance, obj.Item(i).Color);
+        iterationInfo = obj.Item(i).IterationInfo;
         
-        for looopOverIterations = 1:max(iterationsInfo(:,2))
+        for looopOverIterations = 1:iterationInfo(2)
 
             if any(obj.Item(i).IterationInfo == 0)
                 obj.Item(i).IterationInfo(2) = 0;
-                continue;
+                break;
             end
             
             [samples, differences] = obj.getConvergenceStats(i);
             messages = cell(7, 1);
             messages{1} = sprintf('Task: %s', obj.Item(i).TaskName);
             messages{2} = '';
-            messages{3} = sprintf('Computing Sobol indices for iteration %d of %d', iterationsInfo(i,2)-obj.Item(i).IterationInfo(2)+1, iterationsInfo(i,2));
+            messages{3} = sprintf('Computing Sobol indices for iteration %d of %d', iterationInfo(2)-obj.Item(i).IterationInfo(2)+1, iterationInfo(2));
             messages{4} = sprintf('Adding %d new sampes', numberOfSamplesPerIteration);
             messages{5} = '';
             if isempty(differences) || isnan(differences(end))
                 messages{6} = 'Computing max. diff. between Sobol indices';
             else
-                messages{6} = sprintf('Max. difference in iteration %d: %g', iterationsInfo(i,2)-obj.Item(i).IterationInfo(2), differences(end));
+                messages{6} = sprintf('Max. difference in iteration %d: %g', iterationInfo(2)-obj.Item(i).IterationInfo(2), differences(end));
+                if differences(end) <= obj.StoppingTolerance
+                    obj.Item(i).IterationInfo(2) = 0;
+                end
             end
             messages{7} = sprintf('Target difference: %d', obj.StoppingTolerance);
             

@@ -108,8 +108,6 @@ classdef GlobalSensitivityAnalysisProgress < QSPViewerNew.Widgets.Abstract.Modal
             end
             plot(app.Axes, xData, yData, 'o-', ...
                 'Color', app.Color, 'MarkerFaceColor', app.Color);
-            xticks(app.Axes, xData);
-            xticklabels(app.Axes, arrayfun(@num2str, xData, 'UniformOutput', false));
             hold(app.Axes, 'off');
             grid(app.Axes, 'on');
             app.Axes.Visible = 'on';
@@ -121,8 +119,10 @@ classdef GlobalSensitivityAnalysisProgress < QSPViewerNew.Widgets.Abstract.Modal
         function reset(app, target, color)
             app.Target         = target;
             app.Axes.Visible   = 'off';
+            cla(app.Axes);
             app.Button.Visible = 'off';
             app.Color          = color;
+            drawnow;
         end
         
         function customizeButton(app, text, tooltip, callback)

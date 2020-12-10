@@ -128,19 +128,18 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
                 for index = 1:numel(obj.Item)
                     ThisResultFilePath = obj.Item(index).MATFileName; 
                     if isempty(ThisResultFilePath)
-                        ThisResultFilePath = 'Results: N/A';
+                        ThisResultFilePath = 'N/A';
                     end
 
                     % Default
-                    ThisItem = sprintf('%s with %d samples (%s)',obj.Item(index).TaskName,obj.Item(index).NumberSamples,ThisResultFilePath);
+                    ThisItem = sprintf('%s with %d samples (%d staged)\nResults: %s', obj.Item(index).TaskName, ...
+                        obj.Item(index).NumberSamples, prod(obj.Item(index).IterationInfo), ThisResultFilePath);
                     if StaleFlag(index)
                         % Item may be out of date
-                            ThisItem = sprintf('***WARNING*** %s\n%s',ThisItem, sprintf('***Item may be out of date %s***', StaleReasons{index}));
+                        ThisItem = sprintf('***WARNING***\n%s\n***Item may be out of date %s***', ThisItem, StaleReasons{index});
                     elseif ~ValidFlag(index)
                         % Display invalid
-                        ThisItem = sprintf('***ERROR*** %s\n***%s***',ThisItem,InvalidMessages{index});
-                    else
-                        ThisItem = sprintf('%s',ThisItem);
+                        ThisItem = sprintf('***ERROR***\n%s\n***%s***', ThisItem, InvalidMessages{index});
                     end
                     % Append \n
                     if index < numel(obj.Item)
@@ -255,7 +254,7 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
     %  Methods    
     methods
         
-        function [StatusOK, Message] = run(obj, figureHandle, ax)
+        function [StatusOK, Message] = run(obj, figureHandle)
             
             % Invoke validate
             [StatusOK, Message] = validate(obj,false);
@@ -269,7 +268,7 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
                 end
                 
                 % Run helper
-                [ThisStatusOK,thisMessage,ResultFileNames] = runHelper(obj, figureHandle, ax);
+                [ThisStatusOK,thisMessage,ResultFileNames] = runHelper(obj, figureHandle);
                 
                 if ~ThisStatusOK 
 %                     error('run: %s',Message);
@@ -456,11 +455,6 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
             obj.Item(itemIdx).Results = [obj.Item(itemIdx).Results, results];
             obj.Item(itemIdx).NumberSamples = results.NumberSamples;
         end    
-            
-        function removeResults(obj, taskName, idx)
-        	[~, itemIdx] = ismember(taskName, {obj.Item.TaskName});
-            obj.Item(itemIdx).Results(idx) = [];
-        end
 
         function [numSamples, maxDifferences] = getConvergenceStats(obj, itemIdx)
             
@@ -510,9 +504,6 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
                     
                     % Compare times
                     
-                    % Global Sensitivity Analysis object (this)
-                    GSALastSavedTime = obj.LastSavedTime;
-                    
                     % Task object (item)
                     TaskLastSavedTime = ThisTask.LastSavedTime;
                     
@@ -530,12 +521,12 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
                         FileInfo = dir(ThisFilePath);
                         ResultLastSavedTime = FileInfo.datenum;
                     elseif ~isempty(obj.Item(index).MATFileName)
-                        ResultLastSavedTime = '';
+                        ResultLastSavedTime = [];
                         % Display invalid
                         ValidFlag(index) = false;
                         InvalidMessages{index} = 'MAT file cannot be found';
                     else
-                        ResultLastSavedTime = '';
+                        ResultLastSavedTime = [];
                     end
                     
                     % Check
@@ -545,8 +536,6 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
                             STALE_REASON = '(Task has changed)';
                         elseif ~isempty(ThisParameters) && ResultLastSavedTime < ParametersFileLastSavedTime %parameters have changed
                             STALE_REASON = '(Parameters has changed)';
-                        elseif ResultLastSavedTime < GSALastSavedTime % global sensitivity analysis has changed
-                            STALE_REASON = '(Global Sensitivity Analysis has changed)';
                         elseif ResultLastSavedTime < TaskProjectLastSavedTime % sbproj has changed
                             STALE_REASON = '(Sbproj has changed)';
                         end
@@ -701,14 +690,6 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
 
         end                
     end %methods
-     
-% 	methods(Access = private)
-%         function idx = getInputOutputIndex(~, inputIdx, outputIdx, numInputs)
-%             % Get index into PlotFirstOrderInfo and PlotTotalOrderInfo
-%             % from indices if sensitivity inputs/outputs as listed in 
-%             % PlotInput and PlotOutput.
-%             idx = inputIdx + (outputIdx-1)*numInputs;
-%         end
-%     end
+
 
 end %classdef
