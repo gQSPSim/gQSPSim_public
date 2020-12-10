@@ -427,16 +427,6 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
                 end
                 
                 newObj.GlobalSensitivityAnalysis = obj.GlobalSensitivityAnalysis;
-                for idxGSA = 1:length(newObj.GlobalSensitivityAnalysis)
-                    if ~isempty(newObj.GlobalSensitivityAnalysis(idxGSA).ResultsFolderName)
-                        if ispc
-                            newPath = strrep(newObj.GlobalSensitivityAnalysis(idxGSA).ResultsFolderName, '/', '\');
-                        else
-                            newPath = strrep(newObj.GlobalSensitivityAnalysis(idxGSA).ResultsFolderName, '\', '/');
-                        end
-                        newObj.CohortGeneration(idxGSA).ResultsFolderName_new = newPath;
-                    end
-                end
                 
                 newObj.Deleted = obj.Deleted;
                 
