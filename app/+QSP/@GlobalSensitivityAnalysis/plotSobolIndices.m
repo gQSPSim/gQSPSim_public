@@ -29,10 +29,12 @@ function [hLines,hLegend,hLegendChildren] = plotSobolIndices(obj,hAxes)
     %% Turn on hold
     numAxes = numel(hAxes);
     for index = 1:numAxes
-        cla(hAxes(index));
-        legend(hAxes(index),'off')    
-
-        hold(hAxes(index),'on')        
+        if ~isempty(hAxes(index).Parent)
+            cla(hAxes(index));
+            set(hAxes(index), 'XLimMode', 'auto', 'YLimMode', 'auto');
+            legend(hAxes(index),'off')    
+            hold(hAxes(index),'on')
+        end
     end
 
     hLines = cell(1,2);
@@ -43,7 +45,7 @@ function [hLines,hLegend,hLegendChildren] = plotSobolIndices(obj,hAxes)
     axContainsVariancePlot = false(1,numAxes);
     mode = cell(1, numAxes);
 
-    % Store plot labels : text and color
+    % Store plot labels : text and line handles
     plotLabelInfo  = cell(2,numAxes);
     % Store mean bar height in bar plots for multiple tasks
     meanStatistics = cell(numAxes, numel(obj.PlotInputs)*numel(obj.PlotOutputs));
@@ -65,12 +67,17 @@ function [hLines,hLegend,hLegendChildren] = plotSobolIndices(obj,hAxes)
         [~, inputIdx]  = ismember(input, obj.PlotInputs);
 
         xIdx = numel(plotLabelInfo{1,axIdx})+1;
-        currentLabel =  display;
+        currentLabel = display;
         if isempty(currentLabel)
-            currentLabel = [output, '/', input, ' (', obj.PlotSobolIndex(tableIdx).Type, ')';];
+            if ismember(obj.PlotSobolIndex(tableIdx).Type, {'variance', 'unexpl. frc.'})
+                currentLabel = [output, ' (', obj.PlotSobolIndex(tableIdx).Type, ')';];
+            else
+                currentLabel = [output, '/', input, ' (', obj.PlotSobolIndex(tableIdx).Type, ')';];
+            end
         end
         plotLabelInfo{1, axIdx} = [plotLabelInfo{1, axIdx}, {currentLabel}];
         mode{axIdx} = obj.PlotSobolIndex(tableIdx).Mode;
+        tfLegendRecorded = false;
         
         for itemIdx = 1:numel(obj.Item)
 
@@ -83,12 +90,6 @@ function [hLines,hLegend,hLegendChildren] = plotSobolIndices(obj,hAxes)
 
             if ~tfOutputExists
                 continue;
-            end
-            
-            if isempty(plotLabelInfo{2, axIdx})
-                plotLabelInfo{2, axIdx} = obj.Item(itemIdx).Color;
-            else
-                plotLabelInfo{2, axIdx} = [0,0,0];
             end
             
             % All times are equal, so just get the first time vector.
@@ -123,10 +124,16 @@ function [hLines,hLegend,hLegendChildren] = plotSobolIndices(obj,hAxes)
                 end
             end
             if strcmp(mode{axIdx}, 'time course')
-                hLine = plot(hAxes(axIdx), time, results{1}, ...
+                plot(hAxes(axIdx), time, results{1}, ...
                     'Color', obj.Item(itemIdx).Color, ...
                     'LineStyle', style{1}, ...
-                    'LineWidth', obj.PlotSettings(axIdx).LineWidth);      
+                    'LineWidth', obj.PlotSettings(axIdx).LineWidth);
+                if ~tfLegendRecorded
+                    legendHandle = plot(hAxes(axIdx), nan, nan, ...
+                        'Color', [0, 0, 0], 'LineStyle', style{1});
+                    plotLabelInfo{2, axIdx} = [plotLabelInfo{2, axIdx}, legendHandle];
+                    tfLegendRecorded = true;
+                end
                 maxXLim(axIdx) = max(time);
             elseif strcmp(mode{axIdx}, 'bar plot')
                 barValue = getBarValue(obj, results{1});
@@ -149,6 +156,12 @@ function [hLines,hLegend,hLegendChildren] = plotSobolIndices(obj,hAxes)
                     'MarkerEdgeColor', obj.Item(itemIdx).Color, ...
                     'MarkerFaceColor', obj.Item(itemIdx).Color, ...
                     'Color', obj.Item(itemIdx).Color);
+                if ~tfLegendRecorded
+                    legendHandle = plot(hAxes(axIdx), nan, nan, ...
+                        'Color', [0, 0, 0], 'LineStyle', style{1});
+                    plotLabelInfo{2, axIdx} = [plotLabelInfo{2, axIdx}, legendHandle];
+                    tfLegendRecorded = true;
+                end
                 maxXLim(axIdx) = max(maxXLim(axIdx), obj.Item(itemIdx).Results(end).NumberSamples);
                 minXLim(axIdx) = min(minXLim(axIdx), obj.Item(itemIdx).Results(1).NumberSamples);
             end
@@ -176,13 +189,18 @@ function [hLines,hLegend,hLegendChildren] = plotSobolIndices(obj,hAxes)
         end
             
         if strcmp(mode{axIdx}, 'time course')
-            yLimValues = [-0.1, 1.1];
+            if axContainsVariancePlot(axIdx)
+                currentYLim = get(hAxes(axIdx),'YLim');
+                yLimValues = currentYLim;
+            else
+                yLimValues = [-0.1, 1.1];
+            end
             xLimValues = [0, max(maxXLim(axIdx),1)];
             if ~axContainsVariancePlot(axIdx)
                 plot(hAxes(axIdx),xLimValues,[0, 0],'k:');
                 plot(hAxes(axIdx),xLimValues,[1, 1],'k:');
             end
-            set(hAxes(axIdx), 'XTickMode', 'auto', 'XTickLabelMode', 'auto');            
+            set(hAxes(axIdx), 'XTickMode', 'auto', 'XTickLabelMode', 'auto');
         elseif strcmp(mode{axIdx}, 'bar plot')
             if axContainsVariancePlot(axIdx)
                 currentYLim = get(hAxes(axIdx),'YLim');
@@ -207,7 +225,14 @@ function [hLines,hLegend,hLegendChildren] = plotSobolIndices(obj,hAxes)
                 plot(hAxes(axIdx),xLimValues,[1, 1],'k:');
             end
             set(hAxes(axIdx), 'XTickMode', 'auto', 'XTickLabelMode', 'auto');
-
+        end
+        if ~isempty(plotLabelInfo{2, axIdx}) && ...
+                strcmp(obj.PlotSettings(axIdx).LegendVisibility, 'on')
+            legend(hAxes(axIdx), plotLabelInfo{2, axIdx}, ...
+                plotLabelInfo{1, axIdx}, ...
+                'Location', obj.PlotSettings(axIdx).LegendLocation, ...
+                'FontSize', obj.PlotSettings(axIdx).LegendFontSize, ...
+                'FontWeight',obj.PlotSettings(axIdx).LegendFontWeight);
         end
         set(hAxes(axIdx),'XLim',xLimValues);
         if strcmp(mode{axIdx}, 'bar plot') || ~axContainsVariancePlot(axIdx) 
@@ -218,6 +243,10 @@ function [hLines,hLegend,hLegendChildren] = plotSobolIndices(obj,hAxes)
     %% Turn off hold
 
     for index = 1:numAxes
+        
+        if isempty(mode{axIdx})
+            continue;
+        end
         
         title(hAxes(index),obj.PlotSettings(index).Title,...
             'FontSize',obj.PlotSettings(index).TitleFontSize,...
