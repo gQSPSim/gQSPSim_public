@@ -72,13 +72,12 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
                                         'Type', 'first order', ...
                                         'Mode', 'bar plot', ...
                                         'Display', '')
-
     end
 
     
     %% Constructor
     methods
-        function obj = GlobalSensitivityAnalysis(varargin)
+        function obj = GlobalSensitivityAnalysis()
             % GlobalSensitivityAnalysis - Constructor for QSP.GlobalSensitivityAnalysis
             % -------------------------------------------------------------------------
             % Abstract: Constructs a new QSP.GlobalSensitivityAnalysis object.
@@ -97,10 +96,7 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
             
             obj.Item           = obj.ItemTemplate([]);
             obj.PlotSobolIndex = obj.PlotSobolIndexTemplate([]);
-            
-            % Populate public properties from P-V input pairs
-            obj.assignPVPairs(varargin{:});       
-            
+                       
             % assign plot settings names
             for index = 1:length(obj.PlotSettings)
                 obj.PlotSettings(index).Title = sprintf('Plot %d', index);
@@ -126,7 +122,7 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
                         ThisResultFilePath = 'N/A';
                     end
 
-                    % Default
+                    % Item display
                     ThisItem = sprintf('%s with %d samples (%d staged)\nResults: %s', obj.Item(index).TaskName, ...
                         obj.Item(index).NumberSamples, prod(obj.Item(index).IterationInfo), ThisResultFilePath);
                     if StaleFlag(index)
@@ -158,7 +154,7 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
             
         end %function
         
-        function [StatusOK, Message] = validate(obj,FlagRemoveInvalid)
+        function [StatusOK, Message] = validate(obj, FlagRemoveInvalid)
             
             StatusOK = true;
             Message = sprintf('Global Sensitivity Analysis: %s\n%s\n',obj.Name,repmat('-',1,75));
@@ -170,16 +166,25 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
             % Validate task-parameters pair is valid
             if ~isempty(obj.Settings)
                 
-                % Remove the invalid tasks if any
+                % Remove the invalid tasks, if there are any
                 [TaskItemIndex,MatchTaskIndex] = ismember({obj.Item.TaskName},{obj.Settings.Task.Name});
                 RemoveIndices = ~TaskItemIndex;
                 if any(RemoveIndices)
                     StatusOK = false;
                     ThisMessage = sprintf('Task rows %s are invalid.',num2str(find(RemoveIndices)));
                     Message = sprintf('%s\n* %s\n',Message,ThisMessage);
-                end
-                if FlagRemoveInvalid
-                    obj.Item(RemoveIndices) = [];
+                    if FlagRemoveInvalid
+                        obj.Item(RemoveIndices) = [];
+                        allOutputs = arrayfun(@(item) ...
+                            {item.Results(1).SobolIndices(1,:).Observable}, ...
+                            obj.Item, 'UniformOutput', false);
+                        allOutputs = unique([allOutputs{:}]);
+                        for i = numel(obj.PlotSobolIndex):-1:1
+                            if ~ismember(obj.PlotSobolIndex(i).Output, allOutputs)
+                                obj.PlotSobolIndex(i) = [];
+                            end
+                        end
+                    end
                 end
                 
                 % Check Tasks                
@@ -187,6 +192,18 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
                 for index = MatchTaskIndex
                     [ThisStatusOK,ThisMessage] = validate(obj.Settings.Task(index),FlagRemoveInvalid);
                     if ~ThisStatusOK
+                        if FlagRemoveInvalid
+                            obj.Item(RemoveIndices) = [];
+                            allOutputs = arrayfun(@(item) ...
+                                {item.Results(1).SobolIndices(1,:).Observable}, ...
+                                obj.Item, 'UniformOutput', false);
+                            allOutputs = unique([allOutputs{:}]);
+                            for i = numel(obj.PlotSobolIndex):-1:1
+                                if ~ismember(obj.PlotSobolIndex(i).Output, allOutputs)
+                                    obj.PlotSobolIndex(i) = [];
+                                end
+                            end
+                        end
                         StatusOK = false;
                         Message = sprintf('%s\n* %s\n',Message,ThisMessage);
                     end
@@ -197,50 +214,67 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
                     StatusOK = false;
                     ThisMessage = 'No sensitivity inputs selected.';
                     Message = sprintf('%s\n* %s\n',Message,ThisMessage);
+                    if FlagRemoveInvalid
+                        obj.Item(1:end) = [];
+                        obj.PlotSobolIndex(1:end) = [];
+                    end
                 else
-                    [ParametersItemIndex,MatchParametersIndex] = ismember(obj.ParametersName,{obj.Settings.Parameters.Name});
-                    MatchParametersIndex(~ParametersItemIndex) = [];                
-                    for index = MatchParametersIndex
-                        [ThisStatusOK,ThisMessage] = validate(obj.Settings.Parameters(index),FlagRemoveInvalid);
+                    [tfParametersExists,MatchParametersIndex] = ismember(obj.ParametersName,{obj.Settings.Parameters.Name});
+                    if ~tfParametersExists
+                        StatusOK = false;
+                        ThisMessage = sprintf('Sensitivity inputs ''%s'' not found.', obj.ParametersName);
+                        Message = sprintf('%s\n* %s\n',Message,ThisMessage);
+                        if FlagRemoveInvalid
+                            obj.Item(1:end) = [];
+                            obj.PlotSobolIndex(1:end) = [];
+                        end
+                    else
+                        [ThisStatusOK,ThisMessage] = validate(obj.Settings.Parameters(MatchParametersIndex),FlagRemoveInvalid);
                         if ~ThisStatusOK
                             StatusOK = false;
                             Message = sprintf('%s\n* %s\n',Message,ThisMessage);
+                            if FlagRemoveInvalid
+                                obj.Item(1:end) = [];
+                                obj.PlotSobolIndex(1:end) = [];
+                            end
                         end
                     end
                 end
             end
             
             % Global Sensitivity Analysis name forbidden characters
-            if any(regexp(obj.Name,'[:*?/]'))
+            if ~isempty(regexp(obj.Name,'[:*?/]', 'once'))
                 Message = sprintf('%s\n* Invalid Global Sensitivity Analysis name.', Message);
                 StatusOK = false;
             end
             
             % Check if the same Task / Parameters is assigned more than once
-            allItems = cell2table({obj.Item.TaskName}');
-            [~,ia] = unique(allItems);
-            
-            if length(ia) < size(allItems,1) % duplicates
-                dups = setdiff(1:size(allItems,1), ia);
+            allItems = {obj.Item.TaskName};
+            [~,uniqueItemIdx] = unique(allItems);
+            if length(uniqueItemIdx) < numel(allItems) % duplicates
+                % Remove unique items to get duplicates:
+                allItems(uniqueItemIdx) = [];
+                dups = unique(allItems);
 
-                for k=1:length(dups); dups_{k} = num2str(dups(k)); end
                 if length(dups)>1
                     Message = sprintf('Items %s are duplicates. Please remove before continuing.', ...
-                        strjoin(dups_, ',') );
+                        strjoin(dups, ',') );
                 else
                     Message = sprintf('Item %s is a duplicate. Please remove before continuing.', ...
-                        dups_{1});
+                        dups{1});
                 end
                 StatusOK = false;
             end
+            
+            
             
     
         end %function
         
         function clearData(obj)
+            assert(false, "Internal error: unknown call reason.");
             for index = 1:numel(obj.Item)
                 obj.Item(index).MATFileName = [];
-                obj.Item(index).NumberSamples = 0;
             end
         end
 
@@ -266,13 +300,12 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
                 [ThisStatusOK,thisMessage,ResultFileNames] = runHelper(obj, figureHandle);
                 
                 if ~ThisStatusOK 
-%                     error('run: %s',Message);
                     StatusOK = false;
                     Message = sprintf('%s\n\n%s', Message, thisMessage);
                     return
                 end
                 
-                % Update MATFileName in the simulation items
+                % Update MATFileName in the GSA items
                 for index = 1:numel(obj.Item)
                     obj.Item(index).MATFileName = ResultFileNames{index};
                 end
@@ -288,11 +321,9 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
                 try
                     filePath = fullfile( obj.Session.RootDirectory, obj.ResultsFolder, Items(k).MATFileName);
                     tmp = load(filePath);
-                    data(k).Data = tmp.Results;
-                    data(k).TaskName = Items(k).TaskName;
+                    data(k).Data           = tmp.Results;
+                    data(k).TaskName       = Items(k).TaskName;
                     data(k).ParametersName = Items(k).ParametersName;
-                    data(k).NumberSamples = Items(k).NumberSamples;
-
                 catch err
                     warning(err.message)                    
                 end
@@ -301,17 +332,20 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
             
         end
         
-        function updateInputsOutputs(obj)
+        function [statusOk, message] = updateInputsOutputs(obj)
                       
-            if isempty(obj.Item)
-                obj.PlotInputs  = cell(0,1); % Inputs
-                obj.PlotOutputs = cell(0,1); % Outputs
+            numItems = numel(obj.Item);
+            if numItems == 0
+                obj.PlotInputs  = cell(0,1); % Sensitivity inputs to plot
+                obj.PlotOutputs = cell(0,1); % Sensitivity outputs to plot
                 return
             end
             
             [statusOk, message, sensitivityInputs] = obj.getParameterInfo();
+            if ~statusOk
+                return
+            end
             
-            numItems = numel(obj.Item);
             sensitivityOutputs = cell(numItems,1);
             for i = 1:numItems
                 task = obj.getObjectsByName(obj.Settings.Task, obj.Item(i).TaskName);
@@ -344,7 +378,7 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
                     obj.Item(end).Color = itemColors(end,:);
                     suggestedNumberOfSamples = max([1000, 10^numel(obj.PlotInputs)]);
                     obj.Item(end).IterationInfo(1) = ceil(suggestedNumberOfSamples/obj.Item(end).IterationInfo(2));
-                    obj.updateInputsOutputs();
+                    [statusOk, message] = obj.updateInputsOutputs();
                 case 'sobolIndex'
                     if isempty(obj.PlotInputs)
                         statusOk = false;
@@ -373,7 +407,7 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
             switch type
                 case 'item'
                     obj.Item(idx) = [];
-                    obj.updateInputsOutputs();
+                    [statusOk, message] = obj.updateInputsOutputs();
                 case 'sobolIndex'
                     obj.PlotSobolIndex(idx) = [];
             end            
@@ -432,11 +466,11 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
             end
         end
         
-        function updateItem(obj, idx, item)
+        function [statusOk, message] = updateItem(obj, idx, item)
             tfNeedupdateInputsOutputs = ~strcmp(item.TaskName, obj.Item(idx).TaskName);
             obj.Item(idx) = item;
             if tfNeedupdateInputsOutputs
-                obj.updateInputsOutputs();
+                [statusOk, message] = obj.updateInputsOutputs();
             end
         end
         
@@ -480,15 +514,20 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
             
             if isempty(obj.ParametersName)
                 tfParametersValid = false;
-                ThisParameters = [];
+                ThisParameters    = [];
                 ParametersFileLastSavedTime = '';
             else
                 AllParameterNames = {obj.Settings.Parameters.Name};
                 [tfParametersValid, ThisParametersIndex] = ismember(obj.ParametersName, AllParameterNames);
-                % Parameters object and file
-                ThisParameters = obj.Settings.Parameters(ThisParametersIndex);
-                FileInfo = dir(ThisParameters.FilePath);
-                ParametersFileLastSavedTime = FileInfo.datenum;
+                if tfParametersValid
+                    % Parameters object and file
+                    ThisParameters = obj.Settings.Parameters(ThisParametersIndex);
+                    FileInfo = dir(ThisParameters.FilePath);
+                    ParametersFileLastSavedTime = FileInfo.datenum;
+                else
+                    ThisParameters    = [];
+                    ParametersFileLastSavedTime = '';
+                end
             end
 
             for index = 1:numel(obj.Item)
@@ -542,7 +581,7 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
                         end                    
                     end
                     
-                elseif isempty(ThisTask) || isempty(ThisParameters)
+                elseif isempty(ThisTask) || ~tfParametersValid
                     % Display invalid
                     ValidFlag(index) = false;      
                     InvalidMessages{index} = 'Invalid Task and/or Parameters';
@@ -601,8 +640,12 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
             %  'names'  : specified as character vector or cell array of
             %             character vectors of names
 
-            [~, idx] = ismember(names, {objects.Name});
-            matchingObjects = objects(idx);
+            [tfExists, idx] = ismember(names, {objects.Name});
+            if tfExists
+                matchingObjects = objects(idx);
+            else
+                matchingObjects = [];
+            end
             % TODOGSA, this assumes that object names are unique within
             % Parameters and within Tasks. Is this assumption justified?
             % TODOGSA: this also assumes that names is a subset of all names.
@@ -642,20 +685,28 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
 
             % Import included parameter information
 
+            sensitivityInputs = {};
+            transformations = {};
+            distributions = {};
+            samplingInfo = {};
             if isempty(obj.ParametersName)
                 statusOk = false;
                 message = 'No sensitivity inputs selected.';
-                sensitivityInputs = {};
-                transformations = {};
-                distributions = {};
-                samplingInfo = {};
                 return;
             end
             parameters = obj.getObjectsByName(obj.Settings.Parameters, obj.ParametersName);
+            if isempty(parameters)
+                statusOk = false;
+                message = sprinitf('Unable to find Parameters ''%s''.', obj.ParametersName);
+                return;
+            end
             [statusOk, message, header, data] = parameters.importData(parameters.FilePath);
+            if ~statusOk
+                return;
+            end
+            
             tfInclude = strcmpi(data(:, strcmpi(header, 'include')), 'yes');
             data = data(tfInclude, :);
-
 
             sensitivityInputs = data(:, strcmpi(header, 'name'));
 

@@ -28,12 +28,15 @@ function [hLines,hLegend,hLegendChildren] = plotSobolIndices(obj,hAxes)
 
     %% Turn on hold
     numAxes = numel(hAxes);
+    tfAxesVisible = false(numAxes, 1);
     for index = 1:numAxes
-        if ~isempty(hAxes(index).Parent)
+        if ~isempty(hAxes(index).Parent) && ...
+                ~isa(hAxes(index).Parent, 'matlab.graphics.shape.internal.AxesLayoutManager')
             cla(hAxes(index));
             set(hAxes(index), 'XLimMode', 'auto', 'YLimMode', 'auto');
-            legend(hAxes(index),'off')    
+            legend(hAxes(index),'off')
             hold(hAxes(index),'on')
+            tfAxesVisible(index) = true;
         end
     end
 
@@ -55,7 +58,7 @@ function [hLines,hLegend,hLegendChildren] = plotSobolIndices(obj,hAxes)
     for tableIdx = 1:numel(obj.PlotSobolIndex)
         
         axIdx = str2double(obj.PlotSobolIndex(tableIdx).Plot);
-        if ~any([obj.Item.Include]) || isnan(axIdx)
+        if ~any([obj.Item.Include]) || isnan(axIdx) || ~tfAxesVisible(axIdx)
             continue;
         end
         
@@ -84,10 +87,8 @@ function [hLines,hLegend,hLegendChildren] = plotSobolIndices(obj,hAxes)
             if ~obj.Item(itemIdx).Include || isempty(obj.Item(itemIdx).Results)
                 continue;
             end
-
-            task = obj.getObjectsByName(obj.Settings.Task, obj.Item(itemIdx).TaskName);
-            [tfOutputExists, outputIdx] = ismember(output, task.ActiveSpeciesNames);
-
+            allOutputs = {obj.Item(itemIdx).Results(1).SobolIndices(1,:).Observable};
+            [tfOutputExists, outputIdx] = ismember(output, allOutputs);
             if ~tfOutputExists
                 continue;
             end
@@ -171,7 +172,7 @@ function [hLines,hLegend,hLegendChildren] = plotSobolIndices(obj,hAxes)
     
 	for axIdx = 1:numAxes
         
-        if isempty(mode{axIdx})
+        if ~tfAxesVisible(axIdx)
             continue;
         end
         

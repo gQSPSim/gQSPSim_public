@@ -16,21 +16,20 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
     % Status of the UI properties
     % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     properties(Access = private)
-        GlobalSensitivityAnalysis = QSP.GlobalSensitivityAnalysis.empty()
+        GlobalSensitivityAnalysis          = QSP.GlobalSensitivityAnalysis.empty()
         TemporaryGlobalSensitivityAnalysis = QSP.GlobalSensitivityAnalysis.empty()
         IsDirty = false
     end
     
     properties (Access=private)
         
-        TaskPopupTableItems = {'yellow','blue'}
-        LineStyles = {'-','--','-.',':'}
-        MarkerStyles = {'d','o','s','*','+','v','^','<','>','p','h'}
-        PlotNumber = {' ','1','2','3','4','5','6','7','8','9','10','11','12'}
-        PlotItemsColor = {}
-        Types = {'first order', 'total order', 'unexpl. frac.', 'variance'}
-        Modes = {'time course', 'bar plot', 'convergence'}
-        SummaryTypes = {'mean', 'median', 'max', 'min'}
+        SensitivityOutputs  = {}
+        LineStyles          = {'-','--','-.',':'}
+        MarkerStyles        = {'d','o','s','*','+','v','^','<','>','p','h'}
+        PlotNumber          = {' ','1','2','3','4','5','6','7','8','9','10','11','12'}
+        Types               = {'first order', 'total order', 'unexpl. frac.', 'variance'}
+        Modes               = {'time course', 'bar plot', 'convergence'}
+        SummaryTypes        = {'mean', 'median', 'max', 'min'}
         
         SelectedRow = struct('TaskTable', [0,0], ...         % selected [row, column]
                              'PlotItemsTable', 0, ...        % selected column
@@ -245,7 +244,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             obj.TaskTable.Layout.Column         = 2;
             obj.TaskTable.Data                  = cell(0,4);
             obj.TaskTable.ColumnName            = {'Task', 'Samples Per Iteration', 'Iterations', 'Total Samples'};
-            obj.TaskTable.ColumnFormat          = {obj.TaskPopupTableItems,'numeric','numeric','numeric'};
+            obj.TaskTable.ColumnFormat          = {'char','numeric','numeric','numeric'};
             obj.TaskTable.ColumnEditable        = [true,true,true,false];
             obj.TaskTable.ColumnWidth           = {'auto', 'fit', 'fit','fit'};
             obj.TaskTable.CellEditCallback      = @(h,e) obj.onTaskTableEdit(e);
@@ -344,9 +343,8 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             obj.SobolIndexTable.Layout.Column         = 2;
             obj.SobolIndexTable.Data                  = cell(0,7);
             obj.SobolIndexTable.ColumnName            = {'Plot','Style','Input','Output','Type','Mode','Display'};
-            obj.SobolIndexTable.ColumnFormat          = {obj.PlotNumber,obj.MarkerStyles, ...
-                                                         obj.TaskPopupTableItems,obj.TaskPopupTableItems, ...
-                                                         obj.Types, obj.Modes,'char'};
+            obj.SobolIndexTable.ColumnFormat          = {obj.PlotNumber, obj.MarkerStyles, ...
+                                                         'char', 'char', obj.Types, obj.Modes,'char'};
             obj.SobolIndexTable.ColumnEditable        = [true,true,true,true,true,true,true];
             obj.SobolIndexTable.ColumnWidth           = '1x';
             obj.SobolIndexTable.SelectionHighlight    = 'off';
@@ -455,7 +453,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
         end
         
         function onAddSensitivityOutput(obj)
-            if isempty(obj.TaskPopupTableItems)
+            if isempty(obj.SensitivityOutputs)
                 uialert(obj.getUIFigure(), ...
                     'At least one task must be defined in order to add a global sensitivity analysis item.',...
                     'Cannot Add');
@@ -467,7 +465,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
         end
 
         function onPropagateSensitivityOutputValue(obj)
-            if isempty(obj.TaskPopupTableItems) || ...
+            if isempty(obj.SensitivityOutputs) || ...
                     obj.SelectedRow.TaskTable(2) == 1 || ...
                     obj.SelectedRow.TaskTable(2) == 4
                 uialert(obj.getUIFigure(), ...
@@ -498,6 +496,8 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
         end
         
         function onSensitivityInputChange(obj)
+            
+            
             obj.TemporaryGlobalSensitivityAnalysis.ParametersName = obj.SensitivityInputsDropDown.Value;
             obj.IsDirty = true;
         end
@@ -579,7 +579,10 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
                     obj.TaskTable.Data{rowIdx, colIdx} = item.IterationInfo(2);
             end
             
-            obj.TemporaryGlobalSensitivityAnalysis.updateItem(rowIdx, item);
+            [statusOk, message] = obj.TemporaryGlobalSensitivityAnalysis.updateItem(rowIdx, item);
+            if ~statusOk
+                uialert(obj.getUIFigure(), message, 'Error')
+            end
             
             obj.updateTaskTable();
             obj.IsDirty = true;
@@ -806,13 +809,6 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             %DropDown Update
             obj.updatePlotConfig(obj.GlobalSensitivityAnalysis.SelectedPlotLayout);
             
-            %Determine if the values are valid
-            if ~isempty(obj.GlobalSensitivityAnalysis)
-                % Check what items are stale or invalid
-                [obj.StaleFlag,obj.ValidFlag] = getStaleItemIndices(obj.GlobalSensitivityAnalysis);
-            end
-            
-%             obj.updateTaskTable();
             obj.updatePlotTables();
             plotSobolIndices(obj.GlobalSensitivityAnalysis,obj.getPlotArray());
             
@@ -827,30 +823,30 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
         end
         
         function updateIterationsTable(obj)
+            % Update iterations table in plot panel
+            
             if isempty(obj.TaskTable.Data)
+                % No task available; no iterations to show
+                obj.IterationsLabel.Text = 'No iterations available';
                 obj.IterationsTable.Data = cell(0,2);
                 return
-            elseif obj.SelectedRow.PlotItemsTable(1) == 0
+            end
+            % Check whose task's iteration should be shown
+            if obj.SelectedRow.PlotItemsTable(1) == 0
                 selectedRow = 1;
             else
                 selectedRow = obj.SelectedRow.PlotItemsTable(1);
             end
-            item = obj.GlobalSensitivityAnalysis.Item(selectedRow);
-            obj.IterationsLabel.Text = ['Iterations: ', item.TaskName];
-            if isempty(item.Results)
-               obj.IterationsLabel.Text = [obj.IterationsLabel.Text, ...
+            % Update label and data of table:
+            obj.IterationsLabel.Text = ['Iterations: ', obj.GlobalSensitivityAnalysis.Item(selectedRow).TaskName];
+            if isempty(obj.GlobalSensitivityAnalysis.Item(selectedRow).Results)
+                obj.IterationsLabel.Text = [obj.IterationsLabel.Text, ...
                    ' (no iterations available)'];
                 obj.IterationsTable.Data = cell(0,2);
             else
                 [numSamples, maxDifferences] = obj.GlobalSensitivityAnalysis.getConvergenceStats(selectedRow);
-                maxDifferences = num2cell(maxDifferences);
-                for i = 1:numel(maxDifferences)
-                    if isnan(maxDifferences{i})
-                        maxDifferences{i} = '-';
-                    else
-                        maxDifferences{i} = num2str(maxDifferences{i});
-                    end
-                end
+                maxDifferences = arrayfun(@num2str, maxDifferences, 'UniformOutput', false);
+                maxDifferences{1} = '-'; % the first difference is reported as NaN
                 obj.IterationsTable.Data = [maxDifferences, num2cell(numSamples)];
             end
         end
@@ -902,8 +898,22 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
         end
         
         function removeInvalidVisualization(obj)
-            obj.updateTaskTable();
-            obj.updatePlotTables();
+            FlagRemoveInvalid = false;
+            statusOk = validate(obj.GlobalSensitivityAnalysis, FlagRemoveInvalid);
+            if ~statusOk
+                selection = uiconfirm(obj.getUIFigure(), ...
+                    'Removing invalid items will remove computed Sobol indices.','Remove invalid items',...
+                    'Icon','warning');
+                if strcmp(selection, 'Cancel')
+                    return;
+                end
+                FlagRemoveInvalid = true;
+                % Remove the invalid entries
+                validate(obj.GlobalSensitivityAnalysis,FlagRemoveInvalid);
+                obj.draw();
+                plotSobolIndices(obj.GlobalSensitivityAnalysis,obj.getPlotArray());
+                obj.IsDirty = true;
+            end
         end
            
         function deleteTemporary(obj)
@@ -963,6 +973,8 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
         end
         
         function updateGSAConfiguration(obj)
+            % Update general settings for the Global Sensitivity Analysis
+            % in the edit panel.
             
             if isempty(obj.TemporaryGlobalSensitivityAnalysis)
                 return;
@@ -1020,103 +1032,113 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             inputs(tfVariance) = {'-'};
             display   = {obj.GlobalSensitivityAnalysis.PlotSobolIndex.Display};
             obj.SobolIndexTable.Data = [plot(:),style(:),inputs(:),output(:),type(:),mode(:),display(:)];
-            if isempty(obj.SobolIndexTable.Data)
-                columnWidth = '1x';
-            else
-                columnWidth = {'fit','fit','auto','auto','fit','fit','auto'};
-            end
-            columnFormat = obj.SobolIndexTable.ColumnFormat;
-            editableTF   = obj.SobolIndexTable.ColumnEditable;
+            
             if isempty(obj.GlobalSensitivityAnalysis.PlotInputs) || ...
                     (obj.SelectedRow.PlotSobolIndexTable(1) > 0 && ...
                     tfVariance(obj.SelectedRow.PlotSobolIndexTable(1)))
-                columnFormat{3} = 'char';
-                editableTF(3) = false;
+                % Disable dropdown menu for sensitivity input selection if
+                %  1) there are no sensitivity inputs available
+                %  2) the plot type is variance related
+                obj.SobolIndexTable.ColumnFormat{3}   = 'char';
+                obj.SobolIndexTable.ColumnEditable(3) = false;
             else
-                columnFormat{3} = obj.GlobalSensitivityAnalysis.PlotInputs';
-                editableTF(3) = true;
+                obj.SobolIndexTable.ColumnFormat{3}   = obj.GlobalSensitivityAnalysis.PlotInputs';
+                obj.SobolIndexTable.ColumnEditable(3) = true;
             end
             if isempty(obj.GlobalSensitivityAnalysis.PlotOutputs)
-                columnFormat{4} = 'char';
-                editableTF(4) = false;
+                % Disable dropdown menu for sensitivity input selection if
+                % there are no sensitivity outputs available
+                obj.SobolIndexTable.ColumnFormat{4}   = 'char';
+                obj.SobolIndexTable.ColumnEditable(4) = false;
             else
-                columnFormat{4} = obj.GlobalSensitivityAnalysis.PlotOutputs';
-                editableTF(4) = true;
+                obj.SobolIndexTable.ColumnFormat{4}   = obj.GlobalSensitivityAnalysis.PlotOutputs';
+                obj.SobolIndexTable.ColumnEditable(4) = true;
             end
-            obj.SobolIndexTable.ColumnWidth = columnWidth;
-            obj.SobolIndexTable.ColumnFormat = columnFormat;
-            obj.SobolIndexTable.ColumnEditable = editableTF;
 
             % Task selection table
             include         = {obj.GlobalSensitivityAnalysis.Item.Include};
             taskNames       = {obj.GlobalSensitivityAnalysis.Item.TaskName};
             taskColor       = {obj.GlobalSensitivityAnalysis.Item.Color};
             taskDescription = {obj.GlobalSensitivityAnalysis.Item.Description};
+            colorPlaceholders = repmat({' '},numel(taskNames),1);
+            Data = [include(:), colorPlaceholders, taskNames(:), taskDescription(:)];
+
+            % Mark any invalid entries
+            if ~isempty(Data)
+                % Task
+                MatchIdx = find(~ismember(taskNames(:),obj.SensitivityOutputs(:)));
+                for index = MatchIdx(:)'
+                    Data{index,3} = QSP.makeInvalid(Data{index,3});
+                end        
+            end
+            obj.PlotItemsTable.Data = Data;
+            
             removeStyle(obj.PlotItemsTable)
-            obj.PlotItemsTable.Data = [include(:),repmat({' '},numel(taskNames),1),taskNames(:),taskDescription(:)];
             for i = 1:numel(taskNames)
-                style = uistyle('BackgroundColor',taskColor{i});
+                style = uistyle('BackgroundColor', taskColor{i});
                 addStyle(obj.PlotItemsTable,style,'cell',[i,2]);
             end
         end
         
         function updateTaskTable(obj)
             
-            % Find the correct set of values for the in-table popup menus
-            if ~isempty(obj.TemporaryGlobalSensitivityAnalysis)
-                ValidItemTasks = getValidSelectedTasks(obj.TemporaryGlobalSensitivityAnalysis.Settings,...
-                    {obj.TemporaryGlobalSensitivityAnalysis.Settings.Task.Name});
-                if ~isempty(ValidItemTasks)
-                    obj.TaskPopupTableItems = {ValidItemTasks.Name};
-                else
-                    obj.TaskPopupTableItems = {};
-                end
+            % Find all available tasks (sensitivity outputs)           
+            ValidItemTasks = getValidSelectedTasks(obj.TemporaryGlobalSensitivityAnalysis.Settings,...
+                {obj.TemporaryGlobalSensitivityAnalysis.Settings.Task.Name});
+            if isempty(ValidItemTasks)
+                obj.SensitivityOutputs = {};
             else
-                obj.TaskPopupTableItems = 'char';
+                obj.SensitivityOutputs = {ValidItemTasks.Name};
             end
-
             
-            %Find the correct Data to be stored
+            % Populate task table with task (sensitivity outputs)
             if ~isempty(obj.TemporaryGlobalSensitivityAnalysis.Item) 
                 
                 iterationInfo         = vertcat(obj.TemporaryGlobalSensitivityAnalysis.Item.IterationInfo);
-                ExistingNumberSamples = vertcat(obj.TemporaryGlobalSensitivityAnalysis.Item.NumberSamples);
-                AddNumberSamples      = ExistingNumberSamples + iterationInfo(:,1).*iterationInfo(:,2);
-                TaskNames             = {obj.TemporaryGlobalSensitivityAnalysis.Item.TaskName}';
-                TotalSamples          = cellfun(@(i,j) sprintf('%d/%d', i, j), ...
-                    num2cell(ExistingNumberSamples), num2cell(AddNumberSamples), 'UniformOutput', false);
+                existingNumberSamples = vertcat(obj.TemporaryGlobalSensitivityAnalysis.Item.NumberSamples);
+                totalNumberSamples    = existingNumberSamples + prod(iterationInfo, 2);
+                taskNames             = {obj.TemporaryGlobalSensitivityAnalysis.Item.TaskName}';
+                samplesInfo           = arrayfun(@(i,j) sprintf('%d/%d', i, j), ...
+                                             existingNumberSamples, totalNumberSamples, ...
+                                             'UniformOutput', false);
                 
-                Data = [TaskNames, num2cell(iterationInfo), TotalSamples];
+                Data = [taskNames, num2cell(iterationInfo), samplesInfo];
 
                 % Mark any invalid entries
                 if ~isempty(Data)
                     % Task
-                    MatchIdx = find(~ismember(TaskNames(:),obj.TaskPopupTableItems(:)));
+                    MatchIdx = find(~ismember(taskNames(:),obj.SensitivityOutputs(:)));
                     for index = MatchIdx(:)'
-                        Data{index,1} = QSP.makeInvalid(Data{index,2});
+                        Data{index,1} = QSP.makeInvalid(Data{index,1});
                     end        
                 end
             else
                 Data = cell(0,4);
             end
             
-            %First, reset the data
+            %Reset the data
             obj.TaskTable.Data = Data;
             
-            %Then, reset the pop up options.
-            %New uitable API cannot handle empty lists for table dropdowns.
-            %Instead, we need to set the format to char.
-            columnFormat = {obj.TaskPopupTableItems,'numeric','numeric','numeric'};
-            editableTF = [true,true,true,false];
-            if isempty(columnFormat{1})
-                columnFormat{1} = 'char';
-                editableTF(1) = false;
-            end
-            obj.TaskTable.ColumnFormat = columnFormat;
-            obj.TaskTable.ColumnEditable = editableTF;
+            % Dis-/enable drop down menu for sensitivity outputs if the are
+            % empty/nonempty.
+            if isempty(obj.SensitivityOutputs)
+                obj.TaskTable.ColumnFormat{1}   = 'char';
+                obj.TaskTable.ColumnEditable(1) = false;                
+            else
+                obj.TaskTable.ColumnFormat{1}   = obj.SensitivityOutputs;
+                obj.TaskTable.ColumnEditable(1) = true;                
+            end                
         end
         
         function tbl = selectRow(~, tbl, rowIdx, resetSelection)
+            % Helper method to manage row selection of tables.
+            % PlotSobolIndexTable allows reordering of rows using buttons.
+            % This causes the visually selected row to be different than 
+            % the selected row the uitable keeps track of. Clicking on a
+            % row that uitable thinks is selected does not trigger the cell
+            % selection callback. To sync the visual row selection with the
+            % uitable's row selection, we need to replace the whole uitable
+            % if necessary.
             if resetSelection
                 tmp = tbl;
                 tbl = copy(tbl);
@@ -1127,6 +1149,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
                 tmp.Parent = [];
                 drawnow;
             end
+            % Add uistyle to indicate the selected rows
             removeStyle(tbl);
             if rowIdx > 0 && rowIdx <= size(tbl.Data, 1)
                 alpha = 0.1;
