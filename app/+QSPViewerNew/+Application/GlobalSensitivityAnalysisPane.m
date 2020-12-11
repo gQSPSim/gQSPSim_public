@@ -24,7 +24,8 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
     properties (Access=private)
         
         TaskPopupTableItems = {'yellow','blue'}
-        LineStyles = {'-','--','.-',':'}
+        LineStyles = {'-','--','-.',':'}
+        MarkerStyles = {'d','o','s','*','+','v','^','<','>','p','h'}
         PlotNumber = {' ','1','2','3','4','5','6','7','8','9','10','11','12'}
         PlotItemsColor = {}
         Types = {'first order', 'total order', 'unexpl. frac.', 'variance'}
@@ -343,7 +344,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             obj.SobolIndexTable.Layout.Column         = 2;
             obj.SobolIndexTable.Data                  = cell(0,7);
             obj.SobolIndexTable.ColumnName            = {'Plot','Style','Input','Output','Type','Mode','Display'};
-            obj.SobolIndexTable.ColumnFormat          = {obj.PlotNumber,obj.LineStyles, ...
+            obj.SobolIndexTable.ColumnFormat          = {obj.PlotNumber,obj.MarkerStyles, ...
                                                          obj.TaskPopupTableItems,obj.TaskPopupTableItems, ...
                                                          obj.Types, obj.Modes,'char'};
             obj.SobolIndexTable.ColumnEditable        = [true,true,true,true,true,true,true];
@@ -513,6 +514,13 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
                 % table.
                 obj.SelectedRow.PlotSobolIndexTable = eventData.Indices(1)*[1,1];
                 obj.SobolIndexTable = obj.selectRow(obj.SobolIndexTable, obj.SelectedRow.PlotSobolIndexTable(1), false);
+                if strcmp(obj.SobolIndexTable.Data{eventData.Indices(1), 6}, 'bar plot')
+                    obj.SobolIndexTable.ColumnFormat{2} = obj.MarkerStyles;
+                    obj.SobolIndexTable.Data{eventData.Indices(1),2} = obj.GlobalSensitivityAnalysis.PlotSobolIndex(eventData.Indices(1)).Style{2};
+                else
+                    obj.SobolIndexTable.ColumnFormat{2} = obj.LineStyles;
+                    obj.SobolIndexTable.Data{eventData.Indices(1),2} = obj.GlobalSensitivityAnalysis.PlotSobolIndex(eventData.Indices(1)).Style{1};
+                end
                 obj.updatePlotTables();
             else
                 % Item (sens. outputs) selection table for plotting
@@ -616,7 +624,16 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             colIdx = indices(1,2);
             if source == obj.SobolIndexTable
                 fieldName = obj.SobolIndexTable.ColumnName{colIdx};
-                obj.GlobalSensitivityAnalysis.PlotSobolIndex(rowIdx).(fieldName) = eventData.NewData;    
+                if colIdx == 2
+                    if strcmp(obj.SobolIndexTable.Data{rowIdx, 6}, 'bar plot')
+                        styleIdx = 2;
+                    else
+                        styleIdx = 1;
+                    end
+                    obj.GlobalSensitivityAnalysis.PlotSobolIndex(rowIdx).Style{styleIdx} = eventData.NewData;    
+                else
+                    obj.GlobalSensitivityAnalysis.PlotSobolIndex(rowIdx).(fieldName) = eventData.NewData;    
+                end
             elseif source == obj.PlotItemsTable
                 fieldName = obj.PlotItemsTable.ColumnName{colIdx};
                 obj.GlobalSensitivityAnalysis.Item(rowIdx).(fieldName) = eventData.NewData;
@@ -987,15 +1004,22 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             
             % Sobol indices table
             plot      = {obj.GlobalSensitivityAnalysis.PlotSobolIndex.Plot};
-            lineStyle = {obj.GlobalSensitivityAnalysis.PlotSobolIndex.Style};
+            style     = vertcat(obj.GlobalSensitivityAnalysis.PlotSobolIndex.Style);
             inputs    = {obj.GlobalSensitivityAnalysis.PlotSobolIndex.Input};
             output    = {obj.GlobalSensitivityAnalysis.PlotSobolIndex.Output};
             type      = {obj.GlobalSensitivityAnalysis.PlotSobolIndex.Type};
             mode      = {obj.GlobalSensitivityAnalysis.PlotSobolIndex.Mode};
+            if isempty(style)
+                style = cell(0,1);
+            else
+                tfBarPlot = strcmp(mode, 'bar plot');
+                style(tfBarPlot, 1) = style(tfBarPlot, 2);
+            end
+            style = style(:, 1);
             tfVariance = ismember(type, {'variance', 'unexpl. frac.'});
             inputs(tfVariance) = {'-'};
             display   = {obj.GlobalSensitivityAnalysis.PlotSobolIndex.Display};
-            obj.SobolIndexTable.Data = [plot(:),lineStyle(:),inputs(:),output(:),type(:),mode(:),display(:)];
+            obj.SobolIndexTable.Data = [plot(:),style(:),inputs(:),output(:),type(:),mode(:),display(:)];
             if isempty(obj.SobolIndexTable.Data)
                 columnWidth = '1x';
             else

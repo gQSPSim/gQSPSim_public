@@ -51,11 +51,11 @@ classdef GlobalSensitivityAnalysisProgress < QSPViewerNew.Widgets.Abstract.Modal
             app.LabelGrid               = uigridlayout(app.LabelPanel);
             app.LabelGrid.ColumnWidth   = {'1x',50,'1x'};
             labelHeight = 20;
-            app.LabelGrid.RowHeight     = num2cell([10, ... % space to border
-                                           repmat(labelHeight, 1, app.NumLabels), ... % labels
-                                           labelHeight, ... % space between labels and button
-                                           labelHeight, ... % button
-                                           10]); % space to border
+            app.LabelGrid.RowHeight     = [{10}, ... % space to border
+                                           repmat({labelHeight}, 1, app.NumLabels), ... % labels
+                                           {'1x'}, ... % space between labels and button
+                                           {labelHeight}, ... % button
+                                           {10}]; % space to border
             app.LabelGrid.RowSpacing    = 0;
             app.LabelGrid.ColumnSpacing = 0;
                              
