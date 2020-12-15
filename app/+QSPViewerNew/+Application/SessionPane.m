@@ -84,7 +84,7 @@ classdef SessionPane < QSPViewerNew.Application.ViewPane
             obj.OuterSubGrid.RowHeight = {obj.WidgetHeight,obj.WidgetHeight,obj.WidgetHeight,obj.WidgetHeight*4,obj.WidgetHeight*5,'1x'};
             
             % Create Objective Functions Directory
-            obj.RootDirSelector = QSPViewerNew.Widgets.FolderSelector(obj.OuterSubGrid,1,1,' Root Directory:');
+            obj.RootDirSelector = QSPViewerNew.Widgets.FolderSelector(obj.OuterSubGrid,1,1,' Root Directory:',true);
             
             %Objective Fcn Dir
             obj.ObjectiveFunDirSelector = QSPViewerNew.Widgets.FolderSelector(obj.OuterSubGrid,2,1,' Objective Functions Directory:');
@@ -183,10 +183,10 @@ classdef SessionPane < QSPViewerNew.Application.ViewPane
             %changes
             
             %Listeners
-            obj.RootDirSelectorListener = addlistener(obj.RootDirSelector,'StateChanged',@(src,event) obj.onRootDirChange(event.Source.getRelativePath()));
-            obj.ObjectiveFunDirSelectorListener = addlistener(obj.ObjectiveFunDirSelector,'StateChanged',@(src,event) obj.onObjFunctionsChange(event.Source.getRelativePath()));
-            obj.UDFSelectorListener = addlistener(obj.UDFSelector,'StateChanged',@(src,event) obj.onUDFChange(event.Source.getRelativePath()));
-            obj.AutoSaveFolderSelectListener = addlistener(obj.AutoSaveFolderSelect,'StateChanged',@(src,event) obj.onAutoSaveDirChange(event.Source.getRelativePath()));
+            obj.RootDirSelectorListener = addlistener(obj.RootDirSelector,'StateChanged',@(src,event) obj.onRootDirChange(event.Source.FullPath));
+            obj.ObjectiveFunDirSelectorListener = addlistener(obj.ObjectiveFunDirSelector,'StateChanged',@(src,event) obj.onObjFunctionsChange(event.Source.RelativePath));
+            obj.UDFSelectorListener = addlistener(obj.UDFSelector,'StateChanged',@(src,event) obj.onUDFChange(event.Source.RelativePath));
+            obj.AutoSaveFolderSelectListener = addlistener(obj.AutoSaveFolderSelect,'StateChanged',@(src,event) obj.onAutoSaveDirChange(event.Source.RelativePath));
             
             %Callbacks
             obj.UseParallelToolboxCheckBox.ValueChangedFcn = @(h,e) obj.onParallelCheckbox(e.Value);
@@ -208,9 +208,9 @@ classdef SessionPane < QSPViewerNew.Application.ViewPane
            %Because the root directory changed, all other paths are
            %invalid.
            %We need to change the root directory for all others
-           obj.ObjectiveFunDirSelector.setRootDirectory(newValue);
-           obj.UDFSelector.setRootDirectory(newValue);
-           obj.AutoSaveFolderSelect.setRootDirectory(newValue);
+           obj.ObjectiveFunDirSelector.RootDirectory = newValue;
+           obj.UDFSelector.RootDirectory = newValue;
+           obj.AutoSaveFolderSelect.RootDirectory = newValue;
            obj.IsDirty = true;
         end
         
@@ -274,6 +274,7 @@ classdef SessionPane < QSPViewerNew.Application.ViewPane
         
         function attachNewSession(obj,NewSession)
             obj.Session = NewSession;
+         
             obj.TemporarySession = copy(obj.Session);
             obj.draw();
         end
@@ -338,19 +339,20 @@ classdef SessionPane < QSPViewerNew.Application.ViewPane
             obj.updateSummary(obj.TemporarySession.getSummary());
             
             %Draw the widgets for this class
-            obj.RootDirSelector.setRelativePath(obj.TemporarySession.RootDirectory);
+            obj.RootDirSelector.RootDirectory = obj.TemporarySession.RootDirectory;
+            obj.RootDirSelector.RelativePath = '';
             
-            obj.ObjectiveFunDirSelector.setRelativePath(obj.TemporarySession.RelativeObjectiveFunctionsPath);
-            obj.ObjectiveFunDirSelector.setRootDirectory(obj.TemporarySession.RootDirectory);
+            obj.ObjectiveFunDirSelector.RootDirectory = obj.TemporarySession.RootDirectory;
+            obj.ObjectiveFunDirSelector.RelativePath = obj.TemporarySession.RelativeObjectiveFunctionsPath;
             
-            obj.UDFSelector.setRelativePath(obj.TemporarySession.RelativeUserDefinedFunctionsPath);
-            obj.UDFSelector.setRootDirectory(obj.TemporarySession.RootDirectory);
+            obj.UDFSelector.RootDirectory = obj.TemporarySession.RootDirectory;
+            obj.UDFSelector.RelativePath = obj.TemporarySession.RelativeUserDefinedFunctionsPath;
             
-            obj.AutoSaveFolderSelect.setRelativePath(obj.TemporarySession.RelativeAutoSavePath);
-            obj.AutoSaveFolderSelect.setRootDirectory(obj.TemporarySession.RootDirectory);
+            obj.AutoSaveFolderSelect.RootDirectory = obj.TemporarySession.RootDirectory;
+            obj.AutoSaveFolderSelect.RelativePath = obj.TemporarySession.RelativeAutoSavePath;
             
             obj.UseParallelToolboxCheckBox.Value = obj.TemporarySession.UseParallel;
-
+            
             obj.AutoSavePeriodically.Value = obj.TemporarySession.UseAutoSaveTimer;
             
             obj.AutoSaveBeforeRun.Value = obj.TemporarySession.AutoSaveBeforeRun;

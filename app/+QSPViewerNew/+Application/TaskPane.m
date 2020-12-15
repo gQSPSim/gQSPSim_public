@@ -197,7 +197,7 @@ classdef TaskPane < QSPViewerNew.Application.ViewPane
             obj.RulestoDeactivateListener = addlistener(obj.RulestoDeactivateDoubleBox,'StateChanged',@(src,event) obj.onRulestoDeactivate(event.Source.getRightList()));
             obj.ReactionstoDeactivatexListener = addlistener(obj.ReactionstoDeactivateDoubleBox,'StateChanged',@(src,event) obj.onReactionstoDeactivate(event.Source.getRightList()));
             obj.SpeciestoIncludeListener = addlistener(obj.SpeciestoIncludeDoubleBox,'StateChanged',@(src,event) obj.onSpeciestoInclude(event.Source.getRightList()));
-            obj.ProjectFileListener = addlistener(obj.ProjectFileSelector,'StateChanged',@(src,event) obj.onProjectFileSelector(event.Source.getRelativePath()));
+            obj.ProjectFileListener = addlistener(obj.ProjectFileSelector,'StateChanged',@(src,event) obj.onProjectFileSelector(event.Source.RelativePath));
             
             %Callbacks
             obj.OutputTimesEdit.ValueChangedFcn = @(h,e) obj.onOutputTimesEdit(e.Value);
@@ -273,6 +273,8 @@ classdef TaskPane < QSPViewerNew.Application.ViewPane
                 obj.IsDirty = true;
             end
         end
+        
+        
         
         function onModelDropDown(obj,NewValue)
             if ~strcmpi(NewValue,QSP.makeInvalid('-'))
@@ -354,16 +356,16 @@ classdef TaskPane < QSPViewerNew.Application.ViewPane
             obj.updateDescriptionBox(obj.TemporaryTask.Description);
             obj.updateNameBox(obj.TemporaryTask.Name);
             obj.updateSummary(obj.TemporaryTask.getSummary());
-            obj.ProjectFileSelector.setRelativePath(obj.TemporaryTask.RelativeFilePath);
+            obj.ProjectFileSelector.RootDirectory = obj.TemporaryTask.Session.RootDirectory;
+            obj.ProjectFileSelector.RelativePath = obj.TemporaryTask.RelativeFilePath;
             if exist(obj.TemporaryTask.FilePath,'file')==2
                 
                 obj.modelChange(obj.TemporaryTask.ModelName,true)
-                obj.ProjectFileSelector.setRelativePath(obj.TemporaryTask.RelativeFilePath);
+                obj.ProjectFileSelector.RelativePath = obj.TemporaryTask.RelativeFilePath;
                 obj.ModelDropDown.Items = {obj.TemporaryTask.getModelList()};
             else
                 obj.invalidProject()
             end
-            obj.ProjectFileSelector.setRootDirectory(obj.TemporaryTask.Session.RootDirectory);
             obj.IsDirty = false;
         end
         

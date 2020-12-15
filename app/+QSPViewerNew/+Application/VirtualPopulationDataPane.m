@@ -70,7 +70,7 @@ classdef VirtualPopulationDataPane < QSPViewerNew.Application.ViewPane
         end
         
         function createListenersAndCallbacks(obj)
-            obj.VirtPopDataFileListener = addlistener(obj.VirtPopDataFileSelector,'StateChanged',@(src,event) obj.onVirtPopDataFile(event.Source.getRelativePath()));
+            obj.VirtPopDataFileListener = addlistener(obj.VirtPopDataFileSelector,'StateChanged',@(src,event) obj.onVirtPopDataFile(event.Source.RelativePath));
         end
         
     end
@@ -158,9 +158,9 @@ classdef VirtualPopulationDataPane < QSPViewerNew.Application.ViewPane
             obj.updateSummary(obj.TemporaryVirtPopData.getSummary());
             
             obj.VirtPopDataFileSelector.setFileExtension('.xlsx')
-            obj.VirtPopDataFileSelector.setRootDirectory(obj.TemporaryVirtPopData.Session.RootDirectory);
+            obj.VirtPopDataFileSelector.RootDirectory = obj.TemporaryVirtPopData.Session.RootDirectory;
             obj.VirtPopDataFileSelector.setFileTemplate(QSPViewerNew.Resources.LoadResourcePath('AcceptanceCriteria_Template.xlsx'));
-            obj.VirtPopDataFileSelector.setRelativePath(obj.TemporaryVirtPopData.RelativeFilePath);
+            obj.VirtPopDataFileSelector.RelativePath = obj.TemporaryVirtPopData.RelativeFilePath;
             obj.IsDirty = false;
         end
         

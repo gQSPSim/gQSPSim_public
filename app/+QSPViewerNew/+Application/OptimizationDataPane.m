@@ -95,7 +95,7 @@ classdef OptimizationDataPane < QSPViewerNew.Application.ViewPane
         end
         
         function createListenersAndCallbacks(obj)
-            obj.OptimFileListener = addlistener(obj.OptimFileSelector,'StateChanged',@(src,event) obj.onOptimFile(event.Source.getRelativePath()));
+            obj.OptimFileListener = addlistener(obj.OptimFileSelector,'StateChanged',@(src,event) obj.onOptimFile(event.Source.RelativePath));
             
             obj.FileTypeDropDown.ValueChangedFcn = @(h,e) obj.onFileType(e.Value);
         end
@@ -196,8 +196,8 @@ classdef OptimizationDataPane < QSPViewerNew.Application.ViewPane
             obj.FileTypeDropDown.Value = obj.TemporaryOptimizationData.DatasetType;
             
             obj.OptimFileSelector.setFileExtension('.xlsx')
-            obj.OptimFileSelector.setRootDirectory(obj.TemporaryOptimizationData.Session.RootDirectory);
-            obj.OptimFileSelector.setRelativePath(obj.TemporaryOptimizationData.RelativeFilePath);
+            obj.OptimFileSelector.RootDirectory = obj.TemporaryOptimizationData.Session.RootDirectory;
+            obj.OptimFileSelector.RelativePath = obj.TemporaryOptimizationData.RelativeFilePath;
             
             if strcmp(obj.FileTypeDropDown.Value,'wide')
                 obj.OptimFileSelector.setFileTemplate(QSPViewerNew.Resources.LoadResourcePath('DataSet_Template.xlsx'));

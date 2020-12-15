@@ -65,7 +65,7 @@ classdef VirtualPopulationGenerationData < QSP.abstract.BaseProps & uix.mixin.Ha
                 'Name',obj.Name;
                 'Last Saved',obj.LastSavedTimeStr;
                 'Description',obj.Description;
-                'File Name',obj.RelativeFilePath_new;                
+                'File Name',obj.RelativeFilePath;                
                 };
         end
         

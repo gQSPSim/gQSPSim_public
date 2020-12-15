@@ -36,7 +36,7 @@ update@uix.abstract.CardViewPane(vObj);
 if ~isempty(vObj.TempData)
     set(vObj.h.FileSelector,...
         'RootDirectory',vObj.TempData.Session.RootDirectory,...
-        'Value',vObj.TempData.RelativeFilePath_new)
+        'Value',vObj.TempData.RelativeFilePath)
 else
     set(vObj.h.FileSelector,'Value','')
 end
