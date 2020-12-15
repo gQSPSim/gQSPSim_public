@@ -638,7 +638,10 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         end %function
         
         function [Value,MatchIndex] = getInvalidInactiveRuleNames(obj)
-            MatchIndex = ~ismember(obj.InactiveRuleNames,obj.RuleNames);
+            % the format for these is not consistent. Compare only the
+            % strings after the colon on the Rulenames. 
+            cleanRuleNames = string(obj.RuleNames).extractAfter(":").strip;
+            MatchIndex = ~ismember(obj.InactiveRuleNames, cleanRuleNames);
             Value = obj.InactiveRuleNames(MatchIndex);
         end %function
         
