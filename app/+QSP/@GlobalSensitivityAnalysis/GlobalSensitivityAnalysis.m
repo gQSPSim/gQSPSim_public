@@ -471,6 +471,9 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
             obj.Item(idx) = item;
             if tfNeedupdateInputsOutputs
                 [statusOk, message] = obj.updateInputsOutputs();
+            else
+                statusOk = true;
+                message  = '';
             end
         end
         
