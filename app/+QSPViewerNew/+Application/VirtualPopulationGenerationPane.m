@@ -261,7 +261,7 @@ classdef VirtualPopulationGenerationPane < QSPViewerNew.Application.ViewPane
             obj.MaxDiversityCheckBox.ValueChangedFcn = @(h,e) obj.onEditMaxDiversity(e.Value);
 
             %Create listeners
-            obj.ResultsPathListener = addlistener(obj.ResultsPath,'StateChanged',@(src,event) obj.onEditResultsPath(event.Source.getRelativePath()));
+            obj.ResultsPathListener = addlistener(obj.ResultsPath,'StateChanged',@(src,event) obj.onEditResultsPath(event.Source.RelativePath));
 
             obj.VirtualItemsTableListener = addlistener(obj.VirtualItemsTable,'EditValueChange',@(src,event) obj.onEditVirtualItemsTable());
             obj.SpeciesDataTableListener = addlistener(obj.SpeciesDataTable,'EditValueChange',@(src,event) obj.onEditSpeciesDataTable());
@@ -541,6 +541,10 @@ classdef VirtualPopulationGenerationPane < QSPViewerNew.Application.ViewPane
     
     methods (Access = public) 
         
+        function Value = getRootDirectory(obj)
+            Value = obj.VirtualPopulationGeneration.Session.RootDirectory;
+        end
+        
         function showThisPane(obj)
             obj.showPane();
         end
@@ -755,8 +759,8 @@ classdef VirtualPopulationGenerationPane < QSPViewerNew.Application.ViewPane
     methods (Access = private)
         
         function redrawResultsPath(obj)
-            obj.ResultsPath.setRootDirectory(obj.TemporaryVirtualPopulationGeneration.Session.RootDirectory);
-            obj.ResultsPath.setRelativePath(obj.TemporaryVirtualPopulationGeneration.VPopResultsFolderName);
+            obj.ResultsPath.RootDirectory = obj.TemporaryVirtualPopulationGeneration.Session.RootDirectory;
+            obj.ResultsPath.RelativePath = obj.TemporaryVirtualPopulationGeneration.VPopResultsFolderName;
         end
         
         function redrawVirtualCohort(obj)

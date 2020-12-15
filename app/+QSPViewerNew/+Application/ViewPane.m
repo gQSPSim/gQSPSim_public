@@ -1,4 +1,4 @@
-classdef ViewPane < handle
+classdef ViewPane < matlab.mixin.Heterogeneous & handle
     % ViewPane - An abstract base class for various view panes
     % ---------------------------------------------------------------------
     % Base properties that should be observed by all subclasses
@@ -609,7 +609,7 @@ classdef ViewPane < handle
             if obj.checkDirty()
                 Options = {'Save','Don''t Save','Cancel'};
                 selection = uiconfirm(obj.getUIFigure,...
-                'Changes Have not been saved. How would you like to continue?',...
+                'Changes have not been saved. How would you like to continue?',...
                    'Continue?','Options',Options,'DefaultOption',3);
             else
                 selection = 'Don''t Save';
@@ -668,7 +668,7 @@ classdef ViewPane < handle
                         '*.eps','EPS';...
                         };
                     Title = 'Save as';
-                    SaveFilePath = pwd; 
+                    SaveFilePath = getRootDirectory(obj);
                     [SaveFileName,SavePathName] = uiputfile(Spec,Title,SaveFilePath);
                     if ~isequal(SaveFileName,0)
                         
@@ -838,6 +838,7 @@ classdef ViewPane < handle
                         obj.EditButton.Enable = 'off';
                         if obj.HasVisualization
                             obj.toggleButtonsInteraction({'on','on','on','on','on','off','off','off','off'});
+                            %obj.toggleButtonsInteraction({'off','off','off','off','off','off','off','off','off'});
                         end
                     end
                 case 'Run'
@@ -881,7 +882,7 @@ classdef ViewPane < handle
                     Figure.Pointer = 'arrow';
                     bandPlotLB = [obj.PlotSettings.BandplotLowerQuantile];
                     bandPlotUB = [obj.PlotSettings.BandplotUpperQuantile];
-                    PopUP = QSPViewerNew.Widgets.SettingsCustom(ancestor(obj.OuterGrid,'figure'),obj.PlotSettings);     
+                    PopUP = QSPViewerNew.Widgets.SettingsCustom(ancestor(obj.OuterGrid,'figure'),obj.PlotSettings);
                     [StatusOk,NewSettings]= PopUP.wait();
                     PopUP.delete();
 
@@ -903,16 +904,22 @@ classdef ViewPane < handle
                     end
                 case 'ZoomIn'
                     obj.toggleButtonsInteraction({'on','on','on','on','on','on','on','on','on'});
+                    Figure = ancestor(obj.OuterGrid,'figure');
+                    zoomObj = zoom(Figure);
                     if obj.ZoomInButton.Value
                         obj.toggleVisButtonsState([1,0,0,0]);
                         for idx = 1:numel(obj.PlotArray)
-                            matlab.graphics.interaction.webmodes.toggleMode(obj.PlotArray(idx),'zoom','on')
+                            if ~isempty(obj.PlotArray(idx).Layout)
+                                matlab.graphics.interaction.webmodes.toggleMode(obj.PlotArray(idx),'zoom','on')
+                            end
                         end
                     else
                         set(obj.PlotArray,'Interactions',[]);
                         obj.toggleVisButtonsState([0,0,0,0]);
                         for idx = 1:numel(obj.PlotArray)
-                            matlab.graphics.interaction.webmodes.toggleMode(obj.PlotArray(idx),'zoom','off')
+                            if ~isempty(obj.PlotArray(idx).Layout)
+                                matlab.graphics.interaction.webmodes.toggleMode(obj.PlotArray(idx),'zoom','off')
+                            end
                         end
                     end
                 case 'ZoomOut'
@@ -920,12 +927,16 @@ classdef ViewPane < handle
                     if obj.ZoomOutButton.Value
                         obj.toggleVisButtonsState([0,1,0,0]);
                         for idx = 1:numel(obj.PlotArray)
-                            matlab.graphics.interaction.webmodes.toggleMode(obj.PlotArray(idx),'zoomout','on')
+                            if ~isempty(obj.PlotArray(idx).Layout)
+                                matlab.graphics.interaction.webmodes.toggleMode(obj.PlotArray(idx),'zoomout','on')
+                            end
                         end
                     else
                         obj.toggleVisButtonsState([0,0,0,0]);
                         for idx = 1:numel(obj.PlotArray)
-                            matlab.graphics.interaction.webmodes.toggleMode(obj.PlotArray(idx),'zoomout','off')
+                            if ~isempty(obj.PlotArray(idx).Layout)
+                                matlab.graphics.interaction.webmodes.toggleMode(obj.PlotArray(idx),'zoomout','off')
+                            end
                         end
                     end
                     
@@ -934,12 +945,16 @@ classdef ViewPane < handle
                     if obj.PanButton.Value
                         obj.toggleVisButtonsState([0,0,1,0]);
                         for idx = 1:numel(obj.PlotArray)
-                            matlab.graphics.interaction.webmodes.toggleMode(obj.PlotArray(idx),'pan','on')
+                            if ~isempty(obj.PlotArray(idx).Layout)
+                                matlab.graphics.interaction.webmodes.toggleMode(obj.PlotArray(idx),'pan','on')
+                            end
                         end
                     else
                         obj.toggleVisButtonsState([0,0,0,0]);
                         for idx = 1:numel(obj.PlotArray)
-                            matlab.graphics.interaction.webmodes.toggleMode(obj.PlotArray(idx),'pan','off')
+                            if ~isempty(obj.PlotArray(idx).Layout)
+                                matlab.graphics.interaction.webmodes.toggleMode(obj.PlotArray(idx),'pan','off')
+                            end
                         end
                     end
                 case 'Explore'
@@ -1342,6 +1357,7 @@ classdef ViewPane < handle
         hideThisPane(obj);
         showThisPane(obj);
         checkDirty(obj);
+        getRootDirectory(obj);
     end
     
     methods (Static)

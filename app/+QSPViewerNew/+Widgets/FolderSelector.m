@@ -1,4 +1,4 @@
-classdef FolderSelector < handle
+classdef FolderSelector < QSPViewerNew.Widgets.Abstract.SelectorBase
     % FolderSelector - A widget for selecting a filename
     %----------------------------------------------------------------------
     % Create a widget that allows you to specify a filename by editable
@@ -12,190 +12,40 @@ classdef FolderSelector < handle
     %   Date: 01/16/20
     
     properties (Access = private)
-        LabelText;
-        RelativePath ='';
-        LastValidPath = '';
-        RootDirectory ='';
-        Parent 
-        Row 
-        Column
+        DisplayFullPath
     end
     
-    properties (Dependent)
-        IsValid;
-        FullPath;
-    end
-
-    properties (Access = private)
-        ButtonHandle        matlab.ui.control.Button
-        EditTextHandle      matlab.ui.control.EditField
-        InternalGrid        matlab.ui.container.GridLayout
-        Label               matlab.ui.control.Label
-    end
-    
-    events
-        StateChanged
-    end
-    
-    properties(Constant = true)
-        DescriptionSize = 200;
-        ButtonSize = 30;
-    end
-    
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    % Creation
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    methods (Access = public)
-        
-        function  obj = FolderSelector(varargin)
-            %Check input
-            if nargin ~= 4 && ~isa(varargin{1},'matlab.ui.container.GridLayout')
-                error("You need to provide the following: UIgirdlaout parent, row, column, and a label");
-            end
-            %Set the parent
-            obj.Parent = varargin{1};
-            obj.Row = varargin {2};
-            obj.Column = varargin{3};
-            obj.LabelText = varargin{4};
-            
-            %create the uiobjects
-            obj.create();
-        end
-        
-    end
-    
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    % Helpers
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    methods(Access = protected)
-        
-        function create(obj)
-            %Create GridLayout2
-            obj.InternalGrid = uigridlayout(obj.Parent);
-            obj.InternalGrid.ColumnWidth = {obj.DescriptionSize,'1x',obj.ButtonSize};
-            obj.InternalGrid.RowHeight = {obj.ButtonSize};
-            obj.InternalGrid.Padding = [0,0,0,0];
-            obj.InternalGrid.ColumnSpacing = 0;
-            obj.InternalGrid.Layout.Row = obj.Row;
-            obj.InternalGrid.Layout.Column = obj.Column;
-            
-            
-            % Create Button
-            obj.ButtonHandle = uibutton(obj.InternalGrid, 'push');
-            obj.ButtonHandle.Layout.Row = 1;
-            obj.ButtonHandle.Layout.Column = 3;
-            obj.ButtonHandle.Icon = QSPViewerNew.Resources.LoadResourcePath('folder_24.png');
-            obj.ButtonHandle.ButtonPushedFcn = @obj.onButtonPress;
-            obj.ButtonHandle.Text = '';
-            obj.ButtonHandle.Tooltip = {'Click to browse'};
-            
-            %Create Description
-            obj.Label = uilabel(obj.InternalGrid);
-            obj.Label.Layout.Row = 1;
-            obj.Label.Layout.Column = 1;
-            obj.Label.Text = obj.LabelText;
-
-            % Create EditField
-            obj.EditTextHandle = uieditfield(obj.InternalGrid, 'text');
-            obj.EditTextHandle.Tooltip = {'Edit the path'};
-            obj.EditTextHandle.Layout.Row = 1;
-            obj.EditTextHandle.Layout.Column = 2;
-            obj.EditTextHandle.ValueChangedFcn = @(h,e) obj.onEditValueChanged(e.Value);
-        end
-
-        function update(obj)
-            if obj.IsValid
-                obj.EditTextHandle.FontColor = 'k';
-            else 
-                obj.EditTextHandle.FontColor = 'r';
-            end
-            obj.EditTextHandle.Value = obj.RelativePath;
-        end
-    end
-    
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    % Callbacks
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    methods (Access = private)
-        
-        function onButtonPress(obj,~,~)
-            
-            %Determine if there is a file path to start at
-            if exist(obj.FullPath,'dir')
-                foldername = uigetdir(obj.FullPath,'Select a folder' );
-            elseif exist(obj.RootDirectory,'dir')
-                foldername = uigetdir(obj.RootDirectory,'Select a folder' );
-            else
-                foldername = uigetdir('','Select a folder' );
-            end
-            
-            if foldername ~=0
-                obj.RelativePath = obj.findRelativePath(foldername,obj.RootDirectory);
-            end
-            
-            obj.update();
-            notify(obj,'StateChanged')
-        end
-        
-        function onEditValueChanged(obj,newValue)
-            obj.RelativePath = newValue;
-            obj.update();
-            notify(obj,'StateChanged')
-        end
-     
-    end
-    
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    % Set/Get
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     methods
-        function value = get.FullPath(obj)
-            if isempty(obj.RootDirectory)
-                value = obj.RelativePath;
-            elseif ismac || isunix
-                value = [obj.RootDirectory,'/',obj.RelativePath];
+        
+        function  obj = FolderSelector(parent, row, column, labelText, displayFullPath)
+            obj@QSPViewerNew.Widgets.Abstract.SelectorBase(parent, row, column, labelText);
+            if nargin <= 4
+                obj.DisplayFullPath = false;
             else
-                value = [obj.RootDirectory,'\',obj.RelativePath];
+                obj.DisplayFullPath = displayFullPath;
             end
-        end
-             
-        function value = get.IsValid(obj)
-            value = exist(obj.FullPath,'dir'); 
-        end
-        
-        function setRootDirectory(obj,newDir)
-            if isfolder(newDir)
-                obj.RootDirectory = newDir;
-                obj.update();
-            else
-                warning("Valid Directory Not Provided")
-            end
-        end
-        
-        function setRelativePath(obj,value)
-            obj.RelativePath = value;
-            obj.update();
-        end
-        
-        function value = getRelativePath(obj)
-           value = obj.RelativePath;
         end
         
     end
     
-    methods(Static)
-        
-        function value = findRelativePath(FullPath,RootDirectory)
-            if isempty(RootDirectory)
-                value = FullPath;
-            else
-                value = erase(FullPath,RootDirectory);
-                %Eliminate the seperator character
-                value = value(2:end);
-            end
-            
+    methods (Access = protected)
+        function value = isValid(obj)
+            value = exist(obj.FullPath, 'dir') == 7; 
         end
-        
+        function text = getDisplayText(obj)
+            if obj.DisplayFullPath
+                text = obj.FullPath;
+            else
+                text = obj.RelativePath;
+                if strcmp(text, '.')
+                    text = '';
+                end
+            end
+        end
+        function selected = startSelector(~, startDirectory)
+            selected = uigetdir(startDirectory, 'Select a folder');
+        end
     end
+    
 end
 

@@ -67,7 +67,7 @@ classdef SettingsCustom < QSPViewerNew.Widgets.ModalPopup
             obj.ExitGrid.ColumnWidth = {'1x',50,50};
             obj.ExitGrid.RowHeight = {'1x'};
 
-            %Yes Button
+            %Exit Button
             obj.ExitButton= uibutton(obj.ExitGrid);
             obj.ExitButton.Layout.Row = 1;
             obj.ExitButton.Layout.Column = 3;
@@ -75,7 +75,7 @@ classdef SettingsCustom < QSPViewerNew.Widgets.ModalPopup
             obj.ExitButton.Tag = 'Exit';
             obj.ExitButton.ButtonPushedFcn = @obj.onExitButton;
             
-            %Yes Button
+            %OK Button
             obj.SaveButton= uibutton(obj.ExitGrid);
             obj.SaveButton.Layout.Row = 1;
             obj.SaveButton.Layout.Column = 2;

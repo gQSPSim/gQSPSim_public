@@ -64,6 +64,12 @@ catch err
 end
 
 if StatusOk
+    
+    % convert rules and reactions
+    
+    Session.validateRulesAndReactions();
+    
+    
     % Add the session to the app
     obj.createNewSession(Session);
 else

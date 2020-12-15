@@ -1,0 +1,19 @@
+name: Test gQSPSim
+
+on: [push, workflow_dispatch]
+
+jobs:
+  Setup-matlab:
+    runs-on: ubuntu-latest
+    steps:
+     - uses: actions/checkout@v1
+     - run: |
+        echo "Install MATLAB dependencies"
+        wget -qO- --retry-connrefused https://ssd.mathworks.com/supportfiles/ci/matlab-deps/v0/install.sh | sudo -E bash  
+     - run: |
+        echo "Install ephemeral version of MATLAB"
+        wget -qO- --retry-connrefused https://ssd.mathworks.com/supportfiles/ci/ephemeral-matlab/v0/install.sh | sudo -E bash
+       env:
+            MATHWORKS_TOKEN: ${{ secrets.MATHWORKS_TOKEN }}
+     - run: cd tests; matlab -batch "driver"
+       

@@ -294,7 +294,7 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
         end
         
         function createListenersAndCallbacks(obj)
-            obj.ResultFolderListener = addlistener(obj.ResultFolderSelector,'StateChanged',@(src,event) obj.onResultsPath(event.Source.getRelativePath()));
+            obj.ResultFolderListener = addlistener(obj.ResultFolderSelector,'StateChanged',@(src,event) obj.onResultsPath(event.Source.RelativePath));
         end
         
     end
@@ -695,6 +695,10 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
     
     methods (Access = public) 
         
+        function Value = getRootDirectory(obj)
+            Value = obj.Simulation.Session.RootDirectory;
+        end
+        
         function showThisPane(obj)
             obj.showPane();
         end
@@ -881,7 +885,7 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
             obj.updateSummary(obj.TemporarySimulation.getSummary());
             
             obj.updateResultsDir();
-            obj.ResultFolderSelector.setRootDirectory(obj.TemporarySimulation.Session.RootDirectory);
+            obj.ResultFolderSelector.RootDirectory = obj.TemporarySimulation.Session.RootDirectory;
             
             obj.updateDataset();
             obj.updateGroupColumn();
@@ -1012,7 +1016,7 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
         end
        
         function updateResultsDir(obj)
-            obj.ResultFolderSelector.setRelativePath(obj.TemporarySimulation.SimResultsFolderName);
+            obj.ResultFolderSelector.RelativePath = obj.TemporarySimulation.SimResultsFolderName;
         end
         
         function updateSimulationTable(obj)

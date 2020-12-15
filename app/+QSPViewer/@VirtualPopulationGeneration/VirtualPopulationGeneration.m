@@ -527,7 +527,10 @@ classdef VirtualPopulationGeneration < uix.abstract.CardViewPane
                 elseif ColIdx == 1
                     % Plot axes
                     sIdx = RowIdx;
-                    OldAxIdx = find(~cellfun(@isempty,vObj.h.SpeciesGroup(sIdx,:)),1,'first');
+                    OldAxIdx = [];
+                    if isfield(vObj.h, 'SpeciesGroup')    
+                        OldAxIdx = find(~cellfun(@isempty,vObj.h.SpeciesGroup(sIdx,:)),1,'first');
+                    end
                     
                     % If originally not plotted
                     if isempty(OldAxIdx) && ~isempty(NewAxIdx)

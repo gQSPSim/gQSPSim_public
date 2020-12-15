@@ -95,14 +95,16 @@ classdef DoubleSelectBox < handle
 
             %Add the left list box
             obj.ListBoxLeft = uilistbox(obj.GridMain);
-            obj.ListBoxLeft.Layout.Row =1;
-            obj.ListBoxLeft.Layout.Column =1;
+            obj.ListBoxLeft.Layout.Row = 1;
+            obj.ListBoxLeft.Layout.Column = 1;
+            obj.ListBoxLeft.Multiselect = 'on';
             obj.ListBoxLeft.ValueChangedFcn = @obj.leftListBoxValueChanged;
 
             %Add the right list box
             obj.ListBoxRight = uilistbox(obj.GridMain);
-            obj.ListBoxRight.Layout.Row =1;
-            obj.ListBoxRight.Layout.Column =3;
+            obj.ListBoxRight.Layout.Row = 1;
+            obj.ListBoxRight.Layout.Column = 3;
+            obj.ListBoxRight.Multiselect = 'on';
             obj.ListBoxRight.ValueChangedFcn = @obj.rightListBoxValueChanged;
 
             %EnterEmptyLists

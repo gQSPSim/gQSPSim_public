@@ -69,7 +69,7 @@ classdef ParametersPane < QSPViewerNew.Application.ViewPane
         end
         
         function createListenersAndCallbacks(obj)
-            obj.ParameterFileListener = addlistener(obj.ParameterFileSelector,'StateChanged',@(src,event) obj.onParameterFile(event.Source.getRelativePath()));
+            obj.ParameterFileListener = addlistener(obj.ParameterFileSelector,'StateChanged',@(src,event) obj.onParameterFile(event.Source.RelativePath));
         end
         
     end
@@ -86,6 +86,10 @@ classdef ParametersPane < QSPViewerNew.Application.ViewPane
     end
     
     methods (Access = public) 
+        
+        function Value = getRootDirectory(obj)
+            Value = obj.Parameters.Settings.Session.RootDirectory;
+        end
         
         function showThisPane(obj)
             obj.showPane();
@@ -155,9 +159,9 @@ classdef ParametersPane < QSPViewerNew.Application.ViewPane
             obj.updateSummary(obj.TemporaryParameters.getSummary());
             
             obj.ParameterFileSelector.setFileExtension('.xlsx')
-            obj.ParameterFileSelector.setRootDirectory(obj.Parameters.Session.RootDirectory);
+            obj.ParameterFileSelector.RootDirectory = obj.Parameters.Session.RootDirectory;
             obj.ParameterFileSelector.setFileTemplate(QSPViewerNew.Resources.LoadResourcePath('Parameters_Template.xlsx'));
-            obj.ParameterFileSelector.setRelativePath(obj.TemporaryParameters.RelativeFilePath);
+            obj.ParameterFileSelector.RelativePath = obj.TemporaryParameters.RelativeFilePath;
             obj.IsDirty = false;
         end
         

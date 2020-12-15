@@ -74,6 +74,7 @@ classdef ApplicationUI < matlab.apps.AppBase
         OptimizationMenu         matlab.ui.container.Menu
         CohortGenerationMenu     matlab.ui.container.Menu
         VirtualPopulationGenerationMenu  matlab.ui.container.Menu
+        GlobalSensitivityAnalysisMenu    matlab.ui.container.Menu
         DeleteSelectedItemMenu   matlab.ui.container.Menu
         RestoreSelectedItemMenu  matlab.ui.container.Menu
         HelpMenu                 matlab.ui.container.Menu
@@ -250,6 +251,11 @@ classdef ApplicationUI < matlab.apps.AppBase
             app.VirtualPopulationGenerationMenu.Text = 'Virtual Population Generation';
             app.VirtualPopulationGenerationMenu.MenuSelectedFcn = @(h,e) app.onAddItem([],'VirtualPopulationGeneration');
             
+            % Create GlobalSensitivityAnalysisMenu
+            app.GlobalSensitivityAnalysisMenu = uimenu(app.AddNewItemMenu);
+            app.GlobalSensitivityAnalysisMenu.Text = 'Global Sensitivity Analysis';
+            app.GlobalSensitivityAnalysisMenu.MenuSelectedFcn = @(h,e) app.onAddItem([],'GlobalSensitivityAnalysis');
+            
             % Create DeleteSelectedItemMenu
             app.DeleteSelectedItemMenu = uimenu(app.QSPMenu);
             app.DeleteSelectedItemMenu.Text = 'Delete Selected Item';
@@ -397,6 +403,12 @@ classdef ApplicationUI < matlab.apps.AppBase
                         thisFcn(hVPopGens, Data.VirtualPopulationGeneration);
                         hVPopGens.Tag = 'VirtualPopulationGeneration';
                         
+                        hGSA = app.createNode(hFunctionalities, Data, ...
+                            'Global Sensitivity Analyses', QSPViewerNew.Resources.LoadResourcePath('sensitivity.png'),...
+                            'Global Sensitivity Analysis', 'GlobalSensitivityAnalysis', 'Global Sensitivity Analysis');
+                        thisFcn(hGSA, Data.GlobalSensitivityAnalysis);
+                        hGSA.Tag = 'GlobalSensitivityAnalysis';                                                
+                        
                         hDeleteds = app.createNode(hSession, Data, ...
                             'Deleted Items', QSPViewerNew.Resources.LoadResourcePath('trash_24.png'),...
                             'Deleted Items', 'Deleted', 'Deleted Items');
@@ -463,10 +475,17 @@ classdef ApplicationUI < matlab.apps.AppBase
                         Data.TreeNode = hNode; %Store node in the object for cross-ref
                         
                     case 'QSP.VirtualPopulationGenerationData'
+
                         hNode = app.createNode(parent, Data, Data.Name, QSPViewerNew.Resources.LoadResourcePath('target_stats.png'),...
                             'Target Statistics', [], '');
                         Data.TreeNode = hNode; %Store node in the object for cross-ref
                         
+                    case 'QSP.GlobalSensitivityAnalysis'
+                        
+                        hNode = app.createNode(parent, Data, Data.Name, QSPViewerNew.Resources.LoadResourcePath('sensitivity.png'),...
+                            'Global Sensitivity Analysis', [], '');
+                        Data.TreeNode = hNode; %Store node in the object for cross-ref                        
+
                     otherwise
                         
                         % Skip this node
@@ -495,6 +514,7 @@ classdef ApplicationUI < matlab.apps.AppBase
                 'Optimization',                     'Optimization'
                 'Cohort Generation',                'CohortGeneration'
                 'Virtual Population Generation',    'VirtualPopulationGeneration'
+                'Global Sensitivity Analysis',      'GlobalSensitivityAnalysis'
                 };
             Index = find(strcmpi(Type,ItemTypes(:,1)));
             
@@ -801,7 +821,8 @@ classdef ApplicationUI < matlab.apps.AppBase
             % What tree branch does this go under?
             ChildNodes = ParentObj.TreeNode.Children;
             ChildTypes = {ChildNodes.UserData};
-            if any(strcmpi(itemType,{'Simulation','Optimization','CohortGeneration','VirtualPopulationGeneration'}))
+            if any(strcmpi(itemType,{'Simulation','Optimization','CohortGeneration',...
+                    'VirtualPopulationGeneration','GlobalSensitivityAnalysis'}))
                 ThisChildNode = ChildNodes(strcmpi(ChildTypes,'Functionalities'));
                 ChildNodes = ThisChildNode.Children;
                 ChildTypes = {ChildNodes.UserData};
@@ -1504,10 +1525,14 @@ classdef ApplicationUI < matlab.apps.AppBase
                 case 'QSP.VirtualPopulationGenerationData'
                     app.ActivePane = QSPViewerNew.Application.VirtualPopulationGenerationDataPane(classInputs);
                     app.ActivePane.attachNewVirtPopGenData(nodeData);
+                case 'QSP.GlobalSensitivityAnalysis'
+                    app.ActivePane = QSPViewerNew.Application.GlobalSensitivityAnalysisPane(classInputs);
+                    app.ActivePane.attachNewGlobalSensitivityAnalysis(nodeData);                    
+                    
             end
             if ~isempty(app.ActivePane)
                 %Now take the pane and display it.
-                app.Panes = horzcat(app.ActivePane);
+                app.Panes = [app.Panes, app.ActivePane];
                 app.ActivePane.showThisPane();
             end
         end
@@ -1545,6 +1570,8 @@ classdef ApplicationUI < matlab.apps.AppBase
                     app.ActivePane.attachNewSimulation(nodeData);
                 case 'QSPViewerNew.Application.CohortGenerationPane'
                     app.ActivePane.attachNewCohortGeneration(nodeData);
+                case 'QSPViewerNew.Application.GlobalSensitivityAnalysisPane'
+                    app.ActivePane.attachNewGlobalSensitivityAnalysis(nodeData);
             end
             
             app.ActivePane.showThisPane();
@@ -1605,6 +1632,8 @@ classdef ApplicationUI < matlab.apps.AppBase
                     tree.NodeData.Session = app.Sessions(app.SelectedSessionIdx);
                 case 'VirtualPopulationGeneration'
                     tree.NodeData.Session = app.Sessions(app.SelectedSessionIdx);
+                case 'GlobalSensitivityAnalysis'
+                    tree.NodeData.Session = app.Sessions(app.SelectedSessionIdx);                    
             end 
         end
         
@@ -1846,6 +1875,8 @@ classdef ApplicationUI < matlab.apps.AppBase
                     PaneClass = 'QSPViewerNew.Application.VirtualPopulationGenerationPane';
                 case 'QSP.VirtualPopulationGenerationData'
                     PaneClass = 'QSPViewerNew.Application.VirtualPopulationGenerationDataPane';
+                case 'QSP.GlobalSensitivityAnalysis'
+                    PaneClass = 'QSPViewerNew.Application.GlobalSensitivityAnalysisPane';
             end
        end
        
@@ -1948,10 +1979,7 @@ classdef ApplicationUI < matlab.apps.AppBase
         end
         
         function value = get.PaneTypes(app)
-            value = cell(size(app.Panes));
-            for idx = 1:numel(app.Panes)
-                value{idx} = class(app.Panes);
-            end
+            value = arrayfun(@class, app.Panes, 'UniformOutput', false); 
         end
         
         function setCurrentSessionDirty(app)
