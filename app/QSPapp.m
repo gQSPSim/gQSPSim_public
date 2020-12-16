@@ -111,7 +111,7 @@ for pCount = 1:size(rootDirs,1)
     rtwFilteredPath=strfind(rawPathCell,'_ert_rtw');
     
     % loop through path and remove all the .svn entries
-    for pCount=1:length(svnFilteredPath), %#ok<FXSET>
+    for pCount=1:length(svnFilteredPath) %#ok<FXSET>
         filterCheck=[svnFilteredPath{pCount},...
             slprjFilteredPath{pCount},...
             sfprjFilteredPath{pCount},...
@@ -174,6 +174,18 @@ end
 
 % run the units script
 registerUnits;
+
+% Check for product dependencies. 
+dependentProducts = {'statistics_toolbox', 'simbiology'};
+dependencyAvailable = false(size(dependentProducts));
+for i = 1:numel(dependentProducts)    
+    dependencyAvailable(i) = license('test', dependentProducts{i});
+end
+
+if any(~dependencyAvailable)
+    fprintf('Required product(s) not found.\n'); 
+    error('Missing: %s\n', dependentProducts{present});
+end       
 
 if nargout == 1
     varargout{1} = QSPViewer.App();
