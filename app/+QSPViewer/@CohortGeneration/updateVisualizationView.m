@@ -30,14 +30,7 @@ if vObj.Selection ~= 3
     return;
 end
 
-%% update plot style
-if ~isempty(vObj.Data)
-    vObj.Data.bShowTraces = vObj.bShowTraces;
-    vObj.Data.bShowQuantiles = vObj.bShowQuantiles;
-    vObj.Data.bShowMean = vObj.bShowMean;
-    vObj.Data.bShowMedian = vObj.bShowMedian;
-    vObj.Data.bShowSD = vObj.bShowSD;
-end
+
 
 
 %% Set max num traces to display
