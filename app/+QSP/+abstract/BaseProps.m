@@ -45,11 +45,11 @@ classdef (Abstract) BaseProps < matlab.mixin.SetGet & matlab.mixin.Heterogeneous
 %         Description = '' % Description
         RelativeFilePath = ''
         
-        bShowTraces = []
-        bShowQuantiles = []
-        bShowMean = []
-        bShowMedian = []
-        bShowSD = []
+        bShowTraces = false(1,12)
+        bShowQuantiles = false(1,12)
+        bShowMean = false(1,12)
+        bShowMedian = false(1,12)
+        bShowSD = false(1,12)
     end
     
     %% Dependent properties
@@ -274,6 +274,39 @@ classdef (Abstract) BaseProps < matlab.mixin.SetGet & matlab.mixin.Heterogeneous
                 end %if thisIsSettable
                 
             end %for pIdx = 1:numel(sProps)
+        end %function
+        
+        function initOptions(obj)
+            if strcmpi(class(obj),'QSP.VirtualPopulationGeneration')
+                initbShowTraces = false(1,12); % default off
+                initbShowQuantiles = true(1,12); % default on
+                initbShowMean = true(1,12); % default on
+                initbShowMedian = false(1,12); % default off
+                initbShowSD = false(1,12); % default off
+            else
+                initbShowTraces = false(1,12); % default off
+                initbShowQuantiles = true(1,12); % default on
+                initbShowMean = false(1,12); % default off
+                initbShowMedian = true(1,12); % default on
+                initbShowSD = false(1,12); % default off
+            end
+            
+            % For compatibility
+            if isempty(obj.bShowTraces)
+                obj.bShowTraces = initbShowTraces;
+            end
+            if isempty(obj.bShowQuantiles)
+                obj.bShowQuantiles = initbShowQuantiles;
+            end
+            if isempty(obj.bShowMean)
+                obj.bShowMean = initbShowMean;
+            end
+            if isempty(obj.bShowMedian)
+                obj.bShowMedian = initbShowMedian;
+            end
+            if isempty(obj.bShowSD)
+                obj.bShowSD = initbShowSD;
+            end
         end %function
         
     end % methods
