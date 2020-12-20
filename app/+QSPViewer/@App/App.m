@@ -169,7 +169,7 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
     end
     
     properties(Constant)
-        Version = 'v1.1'
+        Version = 'v2.0'
         PluginsDir = fullfile( fileparts(fileparts(fileparts(fileparts(mfilename('fullpath'))))), 'plugins');
     end
         
@@ -392,7 +392,7 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
         end %function
                 
         function onHelpAbout(obj,h,e)
-           msgbox({'gQSPsim version 1.0', ...
+           msgbox({['gQSPsim version ' obj.Version ], ...
                '', ...
                'http://www.github.com/feigelman/gQSPsim', ...
                '', ...

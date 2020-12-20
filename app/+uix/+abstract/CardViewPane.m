@@ -497,13 +497,18 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                         evt.InteractionType = sprintf('Updated %s',class(obj.Data));
                         evt.Name = obj.Data.Name;
                         evt.NameChanged = ~isequal(NewName,PreviousName);
-                        if evt.NameChanged
-                            if isa(obj.Data, 'QSP.Session')
-                                obj.Data.Log(sprintf('renamed %s %s to %s', class(obj.Data), PreviousName, NewName))
-                            else
-                                obj.Data.Session.Log(sprintf('renamed %s %s to %s', class(obj.Data), PreviousName, NewName))
-                            end
+                        if isa(obj, 'QSPViewer.Session')
+                            session = obj.Data;
+                        else
+                            session = obj.Data.Session;
                         end
+                        
+                        if evt.NameChanged
+                            session.Log(sprintf('renamed %s to %s', PreviousName, NewName))
+                        end
+                                                
+                        session.Log(sprintf('Modified %s ', obj.Data.Name))
+                        
                         obj.callCallback(evt);
                         
                         % Mark Dirty
@@ -1156,14 +1161,6 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                        if isempty(fieldnames(Summary))
                            Summary = QSP.PlotSettings.getDefaultSummary();
                        end
-                       
-                       % convert to char for summary
-                       ixOnOff = find(structfun( @(s) isa(s, 'matlab.lang.OnOffSwitchState'), Summary ));
-                       summaryFields = fields(Summary);
-                       for k = 1:length(ixOnOff)
-                            Summary.(summaryFields{ixOnOff(k)}) = char(Summary.(summaryFields{ixOnOff(k)}) );
-                       end
-                       
                        set(obj.PlotSettings(index),fieldnames(Summary),struct2cell(Summary)');
                    end
                 end
@@ -1681,7 +1678,18 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
              if ~isempty(LegendItems)
                  try
                      % Add legend
-                     [hThisLegend] = legend(hThisAxes,LegendItems,'FontSize',ThesePlotSettings.LegendFontSize,'FontWeight',ThesePlotSettings.LegendFontWeight);
+                     [hThisLegend,hThisLegendChildren] = legend(hThisAxes,LegendItems);
+                     
+                     % Color, FontSize, FontWeight
+                     for cIndex = 1:numel(hThisLegendChildren)
+                         if isprop(hThisLegendChildren(cIndex),'FontSize')
+                             hThisLegendChildren(cIndex).FontSize = ThesePlotSettings.LegendFontSize;
+                         end
+                         if isprop(hThisLegendChildren(cIndex),'FontWeight')
+                             hThisLegendChildren(cIndex).FontWeight = ThesePlotSettings.LegendFontWeight;
+                         end
+                     end
+                     
                      set(hThisLegend,...
                          'EdgeColor','none',...
                          'Visible',ThesePlotSettings.LegendVisibility,...

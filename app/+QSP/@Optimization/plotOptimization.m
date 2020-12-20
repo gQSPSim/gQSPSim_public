@@ -347,7 +347,9 @@ if any(MatchIdx)
     
     % Import
     DestDatasetType = 'wide';
-    [StatusOk,~,OptimHeader,OptimData] = importData(dObj,dObj.FilePath,DestDatasetType);
+%     [StatusOk,~,OptimHeader,OptimData] = importData(dObj,dObj.FilePath,DestDatasetType);
+    [StatusOk,~,OptimHeader,OptimData] = importData(dObj,dObj.FilePath,'tall');
+    
     % Continue if OK
     if StatusOk
         
@@ -380,48 +382,54 @@ if any(MatchIdx)
             end
             ThisName = obj.PlotSpeciesTable{dIdx,4};
             ColumnIdx = find(strcmp(OptimHeader,ThisName));
+            SpeciesColumn = string(OptimData(:,strcmpi(OptimHeader,'Species')));
+            ValueColumn = OptimData(:,strcmpi(OptimHeader,'Value'));
+            
             ThisDisplayName = obj.PlotSpeciesTable{dIdx,5};
             
-            if ~isempty(ColumnIdx) % && ~isempty(axIdx) && ~isnan(axIdx)
-                for gIdx = 1:numel(SelectedGroupIDs)
-                    
-                    if obj.PlotItemTable{gIdx,1} % ismember(gIdx,OrigIsSelected)
-                        IsVisible = true;
+%             if ~isempty(ColumnIdx) % && ~isempty(axIdx) && ~isnan(axIdx)
+            for gIdx = 1:numel(SelectedGroupIDs)
+
+                if obj.PlotItemTable{gIdx,1} % ismember(gIdx,OrigIsSelected)
+                    IsVisible = true;
+                else
+                    IsVisible = false;
+                end
+
+                % Find the GroupID match within the GroupColumn
+                MatchIdx = (GroupColumn == SelectedGroupIDs(gIdx)) & strcmp( SpeciesColumn, ThisName );
+                if ~any(MatchIdx)
+                    continue
+                end
+
+                % Create a group
+                if isempty(hDatasetGroup{dIdx,axIdx})
+                    % Un-parent if not-selected
+                    if isempty(origAxIdx) || isnan(origAxIdx)
+                        ThisParent = matlab.graphics.GraphicsPlaceholder.empty();
                     else
-                        IsVisible = false;
+                        ThisParent = hAxes(axIdx);
                     end
-                    
-                    % Find the GroupID match within the GroupColumn
-                    MatchIdx = (GroupColumn == SelectedGroupIDs(gIdx));
-                    
-                    % Create a group
-                    if isempty(hDatasetGroup{dIdx,axIdx})
-                        % Un-parent if not-selected
-                        if isempty(origAxIdx) || isnan(origAxIdx)
-                            ThisParent = matlab.graphics.GraphicsPlaceholder.empty();
-                        else
-                            ThisParent = hAxes(axIdx);
-                        end
-                        
-                        hDatasetGroup{dIdx,axIdx} = hggroup(ThisParent,...
-                            'Tag','Data',...
-                            'DisplayName',regexprep(sprintf('%s [Data]',ThisDisplayName),'_','\\_'),...
-                            'UserData',dIdx,...
-                            'HitTest','off');
-                        set(get(get(hDatasetGroup{dIdx,axIdx},'Annotation'),'LegendInformation'),'IconDisplayStyle','on')
-                        % Add dummy line for legend
-                        line(nan,nan,'Parent',hDatasetGroup{dIdx,axIdx},...
-                            'LineStyle','none',...
-                            'Marker',ThisMarker,...
-                            'Tag','DummyLine',...
-                            'Color',[0 0 0],...
-                            'UserData',dIdx);
-                    end
-                    
-                    FullDisplayName = sprintf('%s %s',ThisDisplayName,SelectedItemNames{gIdx});
-                    
-                    % Plot but remove from the legend
-                    hThis = plot(hDatasetGroup{dIdx,axIdx},TimeColumn(MatchIdx),cell2mat(OptimData(MatchIdx,ColumnIdx)),...
+
+                    hDatasetGroup{dIdx,axIdx} = hggroup(ThisParent,...
+                        'Tag','Data',...
+                        'DisplayName',regexprep(sprintf('%s [Data]',ThisDisplayName),'_','\\_'),...
+                        'UserData',dIdx,...
+                        'HitTest','off');
+                    set(get(get(hDatasetGroup{dIdx,axIdx},'Annotation'),'LegendInformation'),'IconDisplayStyle','on')
+                    % Add dummy line for legend
+                    line(nan,nan,'Parent',hDatasetGroup{dIdx,axIdx},...
+                        'LineStyle','none',...
+                        'Marker',ThisMarker,...
+                        'Tag','DummyLine',...
+                        'Color',[0 0 0],...
+                        'UserData',dIdx);
+                end
+
+                FullDisplayName = sprintf('%s %s',ThisDisplayName,SelectedItemNames{gIdx});
+
+                % Plot but remove from the legend
+                    hThis = plot(hDatasetGroup{dIdx,axIdx},TimeColumn(MatchIdx),cell2mat(ValueColumn(MatchIdx)),...
                         'Color',SelectedItemColors(gIdx,:),...
                         'LineStyle','none',...
                         'Marker',ThisMarker,...
@@ -429,11 +437,34 @@ if any(MatchIdx)
                         'UserData',[dIdx,gIdx],...
                         'HitTest','off',...
                         'DisplayName',regexprep(sprintf('%s [Data]',FullDisplayName),'_','\\_')); % For export % 'DisplayName',regexprep(ThisName,'_','\\_'));
-                    setIconDisplayStyleOff(hThis);
-                    set(hThis,'Visible',uix.utility.tf2onoff(IsVisible));                    
-                   
-                end %for gIdx
-            end %if
+                    
+
+                % mean / std err
+                [unqTimes,~,G] = unique(TimeColumn(MatchIdx));
+
+                means = splitapply( @nanmean, cell2mat(ValueColumn(MatchIdx)), G);
+                stderrs = splitapply( @nanstd, cell2mat(ValueColumn(MatchIdx)), G) ./ ...
+                    sqrt( splitapply( @length, cell2mat(ValueColumn(MatchIdx)), G)) ;
+
+                try
+                    errorbar( unqTimes, means, stderrs, 'Parent', hDatasetGroup{dIdx,axIdx}, ...
+                        'Color',SelectedItemColors(gIdx,:),...
+                        'Marker','.',...
+                        'MarkerSize',obj.PlotSettings(axIdx).DataSymbolSize,...
+                        'UserData',[dIdx,gIdx],...
+                        'HitTest','off',...
+                        'DisplayName',regexprep(sprintf('%s [Data]',FullDisplayName),'_','\\_')); % For export % 'DisplayName',regexprep(ThisName,'_','\\_'));
+                catch ME
+                    warning(ME.message)
+                    
+                end
+
+
+                setIconDisplayStyleOff(hThis);
+                set(hThis,'Visible',uix.utility.tf2onoff(IsVisible));                    
+
+            end %for gIdx
+%             end %if
         end %for dIdx
         
     end %if StatusOk

@@ -5,6 +5,34 @@
 
 function commitMsg = sbprojDiff(m1,m2,varargin)
 
+commitMsg = '';
+
+if isstruct(m1) && isstruct(m2)
+    % dealing with multiple models
+    
+    models1 = struct2cell( structfun(@(x) x.Name, m1, 'UniformOutput', false) );
+    models2 = struct2cell( structfun(@(x) x.Name, m2, 'UniformOutput', false) );    
+    f1 = fields(m1);
+    f2 = fields(m2);
+    
+    commonModels = intersect(models1,models2);
+    for k=1:length(commonModels)
+        diff = sbprojDiff_( m1.(f1{strcmp(models1,commonModels{k})}),  m2.(f2{strcmp(models2,commonModels{k})}), varargin);
+        if ~isempty(diff)
+            commitMsg = sprintf('%s\n%s %s %s', commitMsg, repmat('-', 1, 20), commonModels{k}, repmat('-', 1, 20));   
+            commitMsg = sprintf('%s\n%s', commitMsg, diff );
+        end
+    end
+elseif ~isstruct(m1) && ~isstruct(m2)
+    commitMsg = sbprojDiff_(m1,m2,varargin);
+else
+    error('Both arguments must either be Simbiology models or struct arrays of Simbiology models')
+end
+        
+    
+
+function commitMsg = sbprojDiff_(m1,m2,varargin)
+
 % generate a diff for variants, species, init conditions, reaction rates, 
 % m1: first model
 % m2: second model
@@ -322,8 +350,8 @@ end
 
 function snippet = diffRules(rules1,rules2,name1,name2,fOut)
 
-rulesNames1 = asCell(get(rules1,'Name'));
-rulesNames2 = asCell(get(rules2,'Name'));
+rulesNames1 = get(rules1,'Name');
+rulesNames2 = get(rules2,'Name');
 
 unq1 = setdiff(rulesNames1,rulesNames2);
 unq2 = setdiff(rulesNames2,rulesNames1);
@@ -349,9 +377,9 @@ if isempty(common)
 end
 
 % ixDiff = [eqn1{i1}] ~= [init2{i2}];
-ruleArray1 = asCell(get(rules1, 'Rule'));
+ruleArray1 = get(rules1, 'Rule');
 ruleArray1 = ruleArray1(i1);
-ruleArray2 = asCell(get(rules2, 'Rule'));
+ruleArray2 = get(rules2, 'Rule');
 ruleArray2 = ruleArray2(i2);
 ixDiff = arrayfun(@(k) ~strcmp(ruleArray1{k}, ruleArray2{k}), 1:length(common));
 if any(ixDiff)
@@ -363,9 +391,9 @@ if any(ixDiff)
 end
 
 % check for active/inactive across models
-ruleActArray1 = cell2mat(asCell(get(rules1, 'Active')));
+ruleActArray1 = asCell(get(rules1, 'Active'));
 ruleActArray1 = ruleActArray1(i1);
-ruleActArray2 = cell2mat(asCell(get(rules2, 'Active')));
+ruleActArray2 = asCell(get(rules2, 'Active'));
 ruleActArray2 = ruleActArray2(i2);
 ixDiff = arrayfun(@(k) ~isequal(ruleActArray1(k), ruleActArray2(k)), 1:length(common));
 if any(ixDiff)

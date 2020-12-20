@@ -32,10 +32,15 @@ if any(MatchIdx)
     if ~ThisStatusOk
         StatusOK = false;
         Message = sprintf('%s\n%s\n',Message,ThisMessage);
+        return
     end
-else
-    accCritHeader = {};
-    accCritData = {};
+    
+    if isempty(accCritHeader) || isempty(accCritData)
+        StatusOK = false;
+        Message = sprintf('%s\n%s %s\n', Message, 'Could not read from acceptance criteria file', vpopObj.FilePath);
+        return
+    end
+
 end
 
 %% Prepare species-data Mappings
@@ -49,10 +54,10 @@ end
 if ~isempty(accCritHeader) && ~isempty(accCritData)
     
     % filter out any acceptance criteria that are not included
-    includeIdx = accCritData(:,strcmp('Include',accCritHeader));
-    if ~isempty(includeIdx)
-        param_candidate = cell2mat(includeIdx);
-        accCritData = accCritData(param_candidate==1,:);
+    includeStr = accCritData(:,strcmp('Include',accCritHeader));
+    if ~isempty(includeStr)
+        includeIdx = strcmpi(includeStr, 'yes');
+        accCritData = accCritData(includeIdx,:);
     end
     
     spIdx = ismember( accCritData(:,3), Mappings(:,2));
@@ -131,7 +136,9 @@ if ~isempty(paramHeader) && ~isempty(paramData)
 
     LB(logInds) = log10(LB_params(logInds));
     UB(logInds) = log10(UB_params(logInds));
-    p0(logInds) = log10(p0(logInds));
+    
+    
+    p0(logInds & useParam) = log10(p0(logInds & useParam));
     
     % keep only those that are being sampled    
     LB = LB(useParam);
@@ -218,7 +225,7 @@ isValid = zeros(obj.MaxNumSimulations,1);
 % set up the loop for different initial conditions
 if isempty(ICTable )
     % no initial conditions specified
-    groupVec = unqGroups;
+    groupVec =  cellfun(@str2num, obj.TaskGroupItems(:,2));
     ixSpecies = [];
 else
     % initial conditions exist
@@ -233,7 +240,7 @@ ViolationTable = [];
 tmp = p0;
 logInds = strcmp(Scale, 'log');
 
-tmp(logInds) = log10(tmp(logInds));
+% tmp(logInds) = log10(tmp(logInds));
 logInds = logInds(useParam);
 
 %% MES 2/13: indicate the indices that require normal distribution

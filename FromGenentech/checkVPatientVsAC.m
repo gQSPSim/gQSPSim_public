@@ -18,6 +18,7 @@ Mappings = args.Mappings;
 P0_1 = args.P0_1;
 CV = args.CV;
 normInds = args.normInds;
+nItems = length(obj.Item);
 
 % group data
 taskObj = grpData.taskObj;
@@ -48,9 +49,8 @@ activeSpecData = [];
 
 D = 0;
 
-% loop over unique groups in the acceptance criteria file
-for grpIdx = 1:length(unqGroups) %nItems
-    
+% loop over mapped groups
+for grpIdx = 1:nItems
     % loop over initial conditions for this group
     for ixIC = 1:nIC(grpIdx)
         if ~isempty(IC_species)
