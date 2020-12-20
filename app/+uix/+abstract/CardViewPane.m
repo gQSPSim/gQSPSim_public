@@ -497,9 +497,18 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                         evt.InteractionType = sprintf('Updated %s',class(obj.Data));
                         evt.Name = obj.Data.Name;
                         evt.NameChanged = ~isequal(NewName,PreviousName);
-                        if evt.NameChanged
-                            obj.Data.Session.Log(sprintf('renamed %s to %s', PreviousName, NewName))
+                        if isa(obj, 'QSPViewer.Session')
+                            session = obj.Data;
+                        else
+                            session = obj.Data.Session;
                         end
+                        
+                        if evt.NameChanged
+                            session.Log(sprintf('renamed %s to %s', PreviousName, NewName))
+                        end
+                                                
+                        session.Log(sprintf('Modified %s ', obj.Data.Name))
+                        
                         obj.callCallback(evt);
                         
                         % Mark Dirty
