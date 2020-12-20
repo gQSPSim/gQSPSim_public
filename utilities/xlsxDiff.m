@@ -30,16 +30,16 @@ new12 = setdiff(cols1,cols2);
 new21 = setdiff(cols2,cols1);
 
 if ~isempty(new12)
-    msg = sprintf('%s\nAdded columns %s', strjoin(new12,',') );
+    msg = sprintf('%s\nAdded columns %s', msg, strjoin(new12,',') );
 end
 
 if ~isempty(new21)
-    msg = sprintf('%s\nRemoved columns %s', strjoin(new12,',') );
+    msg = sprintf('%s\nRemoved columns %s', msg, strjoin(new21,',') );
 end
 
 % new rows
 if size(D2,1) ~= size(D2,1)
-    msg = sprintf('%s\nModified rows: new rows %d previously was %d', size(D1,1), size(D2,1));
+    msg = sprintf('%s\nModified rows: new rows %d previously was %d', msg, size(D1,1), size(D2,1));
 end
 
 if nargin>2 && strcmp(varargin{1},'vpop') && size(D1,1) == size(D2,1)
