@@ -149,7 +149,7 @@ for ii = 1:nItems
     if ~isempty(FailedVpatIdx)
         ThisMessage = sprintf('Task simulation failed for virtual patients:\n%s\nPossible cause due to %s',strjoin(string(FailedVpatIdx),','),ThisTaskMessage);
         Message = sprintf('%s\n%s\n',Message,ThisMessage);
-        return;
+%         return;
     end
     
     
