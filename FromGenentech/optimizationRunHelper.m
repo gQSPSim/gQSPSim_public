@@ -19,6 +19,7 @@ hDlg = warndlg(DialogMessage,Title,'modal');
 
 StatusOK = true;
 Message = '';
+resultsArray = {};
 
 % store path & add all subdirectories of root directory
 myPath = path;
@@ -202,13 +203,13 @@ if ~isempty(optimHeader) && ~isempty(optimData)
         Exclude(strcmpi(tmp,'Yes')) = true;
     end
     
-    % check for weights column
+%     % check for weights column
     weightIdx = find(strcmpi('Weight',optimHeader));
     if ~isempty(weightIdx)
         tmp = cell2mat(optimData(:,weightIdx));
         weights(~isnan(tmp)) = tmp(~isnan(tmp));
     else
-        weights = ones(size(optimData,1));
+        weights = ones(size(optimData ));
         
     end
     
@@ -248,7 +249,7 @@ if ~isempty(optimHeader) && ~isempty(optimData)
     Time = Time(ia,:);
     IDs = IDs(ia,:);
     Groups = Groups(ia,:);
-    weights = weights(ia,:);
+%     weights = weights(ia,:);
     
 else
     StatusOK = false;
