@@ -296,9 +296,14 @@ classdef FolderSelector < uix.abstract.Editable
             end
             
             if strcmpi( obj.Enable, 'ON' )
-                foldername = uigetdir( ...
-                    StartPath, ...
-                    'Select a folder' );
+                try
+                    foldername = uigetdir( ...
+                        StartPath, ...
+                        'Select a folder' );
+                catch ME
+                    warning(ME.message)
+                    foldername = uigetdir();
+                end
                 if isempty( foldername ) || isequal( foldername, 0 )
                     % Cancelled
                 else
