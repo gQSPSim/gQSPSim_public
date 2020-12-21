@@ -858,11 +858,13 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                     set(get(get(h,'Parent'),'Children'),'Checked','off');
                     set(h,'Checked','on')
                     set(obj.h.MainAxes(axIndex),'YScale','linear');
+                    obj.Data.PlotSettings(axIndex).YScale = 'linear';
                 case 'YScaleLog'
                     % Manage context menu states here for ease
                     set(get(get(h,'Parent'),'Children'),'Checked','off');
                     set(h,'Checked','on')
-                    set(obj.h.MainAxes(axIndex),'YScale','log');                    
+                    set(obj.h.MainAxes(axIndex),'YScale','log');
+                    obj.Data.PlotSettings(axIndex).YScale = 'log';
                 case 'ExportSingleAxes'
                     % Prompt the user for a filename
                     Spec = {...
