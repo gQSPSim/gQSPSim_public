@@ -203,7 +203,7 @@ end
 if ~isempty(varElemsDiffTable)
     varElemsDiffTable.Properties.VariableNames{1} = 'Variant';
     T = varElemsDiffTable;
-    snippet = [snippet, sprintf('Change variant details for: %s\n', T.Variant)]
+    snippet = [snippet, sprintf('Change variant details for: %s\n', strjoin(T.Variant, ',') )]
     disp(T)
 end
 
