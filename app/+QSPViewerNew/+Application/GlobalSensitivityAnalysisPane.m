@@ -3,7 +3,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
     %  Analysis Pane view. This is the 'viewer' counterpart to the 'model'
     %  class QSP.GlobalSensitivityAnalysis
 
-    % Copyright 2020 The MathWorks, Inc.
+    % Copyright 2020-2021 The MathWorks, Inc.
     %
     % Auth/Revision:
     %   MathWorks
@@ -28,8 +28,9 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
         MarkerStyles        = {'d','o','s','*','+','v','^','<','>','p','h'}
         PlotNumber          = {' ','1','2','3','4','5','6','7','8','9','10','11','12'}
         Types               = {'first order', 'total order', 'unexpl. frac.', 'variance'}
-        Modes               = {'time course', 'bar plot', 'convergence'}
-        SummaryTypes        = {'mean', 'median', 'max', 'min'}
+        ExtendedTypes       = {'first order', 'total order', 'unexpl. frac.', 'variance', 'worst case Sobol index'}
+        Modes               = {'time course', 'bar plot', 'convergence', 'limit value'}
+        Metric              = {'mean', 'median', 'max', 'min'}
         
         SelectedRow = struct('TaskTable', [0,0], ...         % selected [row, column]
                              'PlotItemsTable', 0, ...        % selected column
@@ -57,7 +58,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
         SamplingConfigurationGrid   matlab.ui.container.GridLayout
         StoppingCriterionGrid       matlab.ui.container.GridLayout
         StoppingCriterionLabel      matlab.ui.control.Label
-        StoppingCriterionEditField matlab.ui.control.NumericEditField
+        StoppingCriterionEditField  matlab.ui.control.NumericEditField
         SeedSubLayout               matlab.ui.container.GridLayout
         FixSeedLabel                matlab.ui.control.Label
         FixSeedCheckBox             matlab.ui.control.CheckBox
@@ -79,12 +80,15 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
         PlotGrid                    matlab.ui.container.GridLayout
         PlotModeLabel               matlab.ui.control.Label
         PlotModeDropDown            matlab.ui.control.DropDown
+        PlotConvergenceLineCheckBox matlab.ui.control.CheckBox
         
         % Table for selecting Sobol indices for plotting
         SobolIndexLabel             matlab.ui.control.Label
         SobolIndexGrid              matlab.ui.container.GridLayout
         SobolIndexButtonGrid        matlab.ui.container.GridLayout
         NewSobolIndexButton         matlab.ui.control.Button
+        EditSobolIndexButton        matlab.ui.control.Button
+        DuplicateSobolIndexButton   matlab.ui.control.Button
         RemoveSobolIndexButton      matlab.ui.control.Button
         MoveUpSobolIndexButton      matlab.ui.control.Button
         MoveDownSobolIndexButton    matlab.ui.control.Button
@@ -301,6 +305,8 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             obj.SobolIndexButtonGrid               = uigridlayout(obj.SobolIndexGrid);
             obj.SobolIndexButtonGrid.ColumnWidth   = {'1x'};
             obj.SobolIndexButtonGrid.RowHeight     = {obj.ButtonHeight,... % add
+                                                      obj.ButtonHeight,... % edit
+                                                      obj.ButtonHeight,... % copy
                                                       obj.ButtonHeight,... % remove
                                                       obj.ButtonHeight,... % move up
                                                       obj.ButtonHeight};   % move down
@@ -316,23 +322,37 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             obj.NewSobolIndexButton.Icon            = QSPViewerNew.Resources.LoadResourcePath('add_24.png');
             obj.NewSobolIndexButton.Text            = '';
             obj.NewSobolIndexButton.ButtonPushedFcn = @(h,e)obj.onPlotTableButtonPress(h);
+            % edit Sobol index to plot
+            obj.EditSobolIndexButton                 = uibutton(obj.SobolIndexButtonGrid,'push');
+            obj.EditSobolIndexButton.Layout.Row      = 2;
+            obj.EditSobolIndexButton.Layout.Column   = 1;
+            obj.EditSobolIndexButton.Icon            = QSPViewerNew.Resources.LoadResourcePath('edit_24.png');
+            obj.EditSobolIndexButton.Text            = '';
+            obj.EditSobolIndexButton.ButtonPushedFcn = @(h,e)obj.onPlotTableButtonPress(h);
+            % copy Sobol index to plot
+            obj.DuplicateSobolIndexButton                 = uibutton(obj.SobolIndexButtonGrid,'push');
+            obj.DuplicateSobolIndexButton.Layout.Row      = 3;
+            obj.DuplicateSobolIndexButton.Layout.Column   = 1;
+            obj.DuplicateSobolIndexButton.Icon            = QSPViewerNew.Resources.LoadResourcePath('copy_24.png');
+            obj.DuplicateSobolIndexButton.Text            = '';
+            obj.DuplicateSobolIndexButton.ButtonPushedFcn = @(h,e)obj.onPlotTableButtonPress(h);
             % remove Sobol index from plot
             obj.RemoveSobolIndexButton                 = uibutton(obj.SobolIndexButtonGrid,'push');
-            obj.RemoveSobolIndexButton.Layout.Row      = 2;
+            obj.RemoveSobolIndexButton.Layout.Row      = 4;
             obj.RemoveSobolIndexButton.Layout.Column   = 1;
             obj.RemoveSobolIndexButton.Icon            = QSPViewerNew.Resources.LoadResourcePath('delete_24.png');
             obj.RemoveSobolIndexButton.Text            = '';
             obj.RemoveSobolIndexButton.ButtonPushedFcn = @(h,e)obj.onPlotTableButtonPress(h);
             % move up Sobol index up
             obj.MoveUpSobolIndexButton                 = uibutton(obj.SobolIndexButtonGrid,'push');
-            obj.MoveUpSobolIndexButton.Layout.Row      = 3;
+            obj.MoveUpSobolIndexButton.Layout.Row      = 5;
             obj.MoveUpSobolIndexButton.Layout.Column   = 1;
             obj.MoveUpSobolIndexButton.Icon            = QSPViewerNew.Resources.LoadResourcePath('arrow_up_24.png');
             obj.MoveUpSobolIndexButton.Text            = '';
             obj.MoveUpSobolIndexButton.ButtonPushedFcn = @(h,e)obj.onPlotTableButtonPress(h);
             % move up Sobol index down
             obj.MoveDownSobolIndexButton                 = uibutton(obj.SobolIndexButtonGrid,'push');
-            obj.MoveDownSobolIndexButton.Layout.Row      = 4;
+            obj.MoveDownSobolIndexButton.Layout.Row      = 6;
             obj.MoveDownSobolIndexButton.Layout.Column   = 1;
             obj.MoveDownSobolIndexButton.Icon            = QSPViewerNew.Resources.LoadResourcePath('arrow_down_24.png');
             obj.MoveDownSobolIndexButton.Text            = '';
@@ -341,26 +361,23 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             obj.SobolIndexTable                       = uitable(obj.SobolIndexGrid);
             obj.SobolIndexTable.Layout.Row            = 1;
             obj.SobolIndexTable.Layout.Column         = 2;
-            obj.SobolIndexTable.Data                  = cell(0,7);
-            obj.SobolIndexTable.ColumnName            = {'Plot','Style','Input','Output','Type','Mode','Display'};
-            obj.SobolIndexTable.ColumnFormat          = {obj.PlotNumber, obj.MarkerStyles, ...
-                                                         'char', 'char', obj.Types, obj.Modes,'char'};
-            obj.SobolIndexTable.ColumnEditable        = [true,true,true,true,true,true,true];
+            obj.SobolIndexTable.Data                  = cell(0,8);
+            obj.SobolIndexTable.ColumnName            = {'Plot','Style','Input','Output','Type','Mode','Metric','Display'};
+            obj.SobolIndexTable.ColumnFormat          = {obj.PlotNumber, obj.MarkerStyles, 'char', 'char', ...
+                                                         obj.Types, obj.Modes, obj.Metric, 'char'};
+            obj.SobolIndexTable.ColumnEditable        = [true,true,false,false,true,true,true,true];
             obj.SobolIndexTable.ColumnWidth           = '1x';
             obj.SobolIndexTable.SelectionHighlight    = 'off';
             obj.SobolIndexTable.CellEditCallback      = @(h,e) obj.onVisualizationTableEdit(h,e);
             obj.SobolIndexTable.CellSelectionCallback = @(h,e) obj.onTableSelectionChange(h,e);
 
-            % Summary mode for bar and convergence plots
-            obj.PlotModeLabel               = uilabel(obj.PlotGrid);
-            obj.PlotModeLabel.Layout.Column = 1;
-            obj.PlotModeLabel.Layout.Row    = 3;
-            obj.PlotModeLabel.Text          = 'Summary of time courses for bar and convergence plots';
-            obj.PlotModeDropDown                 = uidropdown(obj.PlotGrid);
-            obj.PlotModeDropDown.Layout.Column   = 2;
-            obj.PlotModeDropDown.Layout.Row      = 3;
-            obj.PlotModeDropDown.Items           = obj.SummaryTypes;
-            obj.PlotModeDropDown.ValueChangedFcn = @(h,e)obj.onVisualizationModeChange();
+            % Option to show/hide convergence lines
+            obj.PlotConvergenceLineCheckBox                 = uicheckbox(obj.PlotGrid);
+            obj.PlotConvergenceLineCheckBox.Text            = "Hide termination indicator line in worst case convergence plots (requires metric 'max')";
+            obj.PlotConvergenceLineCheckBox.Layout.Column   = [1,2];
+            obj.PlotConvergenceLineCheckBox.Layout.Row      = 3;
+            obj.PlotConvergenceLineCheckBox.ValueChangedFcn = @(h,e)obj.onHideConvergenceLineChange(e);
+            obj.PlotConvergenceLineCheckBox.Enable          = 'off';
             
             % Table for selecting tasks for inclusion in plots
             obj.PlotItemsLabel               = uilabel(obj.PlotGrid);
@@ -405,11 +422,11 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             obj.PlotItemsTable.CellSelectionCallback = @(h,e) obj.onTableSelectionChange(h,e);
             
             % Table for managing iteration results
-            obj.IterationsLabel = uilabel(obj.PlotGrid);
-            obj.IterationsLabel.Layout.Row = 6;
+            obj.IterationsLabel               = uilabel(obj.PlotGrid);
+            obj.IterationsLabel.Layout.Row    = 6;
             obj.IterationsLabel.Layout.Column = [1,2];
-            obj.IterationsLabel.Text = 'Iterations: select a task';
-            obj.IterationsLabel.FontWeight = 'bold';
+            obj.IterationsLabel.Text          = 'Iterations: select a task';
+            obj.IterationsLabel.FontWeight    = 'bold';
             obj.IterationsTable                = uitable(obj.PlotGrid);
             obj.IterationsTable.Layout.Row     = 7;
             obj.IterationsTable.Layout.Column  = [1,2];
@@ -446,7 +463,11 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
                      'global sensitivity analysis.'],'Selection required');
                 return;
             end
-            obj.TemporaryGlobalSensitivityAnalysis.remove('item', DeleteIdx);
+            [statusOk, message] = obj.TemporaryGlobalSensitivityAnalysis.remove('item', DeleteIdx);
+            if ~statusOk
+                uialert(obj.getUIFigure(), message, 'Error');
+                return;
+            end
             obj.updateTaskTable();
             obj.SelectedRow.TaskTable = [0, 0];
             obj.IsDirty = true;
@@ -459,7 +480,11 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
                     'Cannot Add');
                 return;
             end
-            obj.TemporaryGlobalSensitivityAnalysis.add('item');
+            [statusOk, message] = obj.TemporaryGlobalSensitivityAnalysis.add('item');
+            if ~statusOk
+                uialert(obj.getUIFigure(), message, 'Error');
+                return;
+            end
             obj.updateTaskTable();
             obj.IsDirty = true;
         end
@@ -496,8 +521,6 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
         end
         
         function onSensitivityInputChange(obj)
-            
-            
             obj.TemporaryGlobalSensitivityAnalysis.ParametersName = obj.SensitivityInputsDropDown.Value;
             obj.IsDirty = true;
         end
@@ -516,11 +539,14 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
                 obj.SobolIndexTable = obj.selectRow(obj.SobolIndexTable, obj.SelectedRow.PlotSobolIndexTable(1), false);
                 if strcmp(obj.SobolIndexTable.Data{eventData.Indices(1), 6}, 'bar plot')
                     obj.SobolIndexTable.ColumnFormat{2} = obj.MarkerStyles;
-                    obj.SobolIndexTable.Data{eventData.Indices(1),2} = obj.GlobalSensitivityAnalysis.PlotSobolIndex(eventData.Indices(1)).Style{2};
                 else
                     obj.SobolIndexTable.ColumnFormat{2} = obj.LineStyles;
-                    obj.SobolIndexTable.Data{eventData.Indices(1),2} = obj.GlobalSensitivityAnalysis.PlotSobolIndex(eventData.Indices(1)).Style{1};
                 end
+                if strcmp(obj.SobolIndexTable.Data{eventData.Indices(1), 6}, 'time course')
+                    obj.SobolIndexTable.ColumnFormat{7} = 'char';
+                else
+                    obj.SobolIndexTable.ColumnFormat{7} = obj.Metric;
+                end                
                 obj.updatePlotTables();
             else
                 % Item (sens. outputs) selection table for plotting
@@ -627,32 +653,92 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             colIdx = indices(1,2);
             if source == obj.SobolIndexTable
                 fieldName = obj.SobolIndexTable.ColumnName{colIdx};
-                if colIdx == 2
+                if colIdx == 1
+                    if ~strcmp(eventData.NewData, ' ')
+                        idxSamePlot = find(ismember({obj.GlobalSensitivityAnalysis.PlotSobolIndex.Plot}, ...
+                            eventData.NewData), 1);
+                        if ~isempty(idxSamePlot)
+                            obj.GlobalSensitivityAnalysis.PlotSobolIndex(rowIdx).Mode = ...
+                                obj.GlobalSensitivityAnalysis.PlotSobolIndex(idxSamePlot).Mode;
+                        end
+                    end
+                    obj.GlobalSensitivityAnalysis.PlotSobolIndex(rowIdx).Plot = eventData.NewData;
+                elseif colIdx == 2
                     if strcmp(obj.SobolIndexTable.Data{rowIdx, 6}, 'bar plot')
                         styleIdx = 2;
                     else
                         styleIdx = 1;
                     end
                     obj.GlobalSensitivityAnalysis.PlotSobolIndex(rowIdx).Style{styleIdx} = eventData.NewData;    
+                elseif colIdx == 6
+                    if strcmp(obj.GlobalSensitivityAnalysis.PlotSobolIndex(rowIdx).Plot, ' ')
+                        idxSamePlot = rowIdx;
+                    else
+                        idxSamePlot = find(ismember({obj.GlobalSensitivityAnalysis.PlotSobolIndex.Plot}, ...
+                            obj.GlobalSensitivityAnalysis.PlotSobolIndex(rowIdx).Plot));
+                    end
+                    for i = idxSamePlot
+                        obj.GlobalSensitivityAnalysis.PlotSobolIndex(i).Mode = eventData.NewData;
+                    end
                 else
                     obj.GlobalSensitivityAnalysis.PlotSobolIndex(rowIdx).(fieldName) = eventData.NewData;    
+                end
+                tfConvergencePlot = ismember(obj.SobolIndexTable.Data(:, 6), 'convergence');
+                if any(tfConvergencePlot) && ismember('max', obj.SobolIndexTable.Data(tfConvergencePlot, 7))
+                    obj.PlotConvergenceLineCheckBox.Enable = 'on';
+                else
+                    obj.PlotConvergenceLineCheckBox.Enable = 'off';
                 end
             elseif source == obj.PlotItemsTable
                 fieldName = obj.PlotItemsTable.ColumnName{colIdx};
                 obj.GlobalSensitivityAnalysis.Item(rowIdx).(fieldName) = eventData.NewData;
             end
             obj.updatePlotTables();
+            drawnow;
+            plotSobolIndices(obj.GlobalSensitivityAnalysis,obj.getPlotArray());
+        end
+                
+        function onHideConvergenceLineChange(obj, event)
+            obj.GlobalSensitivityAnalysis.HideConvergenceLine = event.Value;
             plotSobolIndices(obj.GlobalSensitivityAnalysis,obj.getPlotArray());
         end
         
-        function onVisualizationModeChange(obj)
-            obj.GlobalSensitivityAnalysis.SummaryType = obj.PlotModeDropDown.Value;
+        function inputOutputPlotSelectionCallback(obj, row, selections)
+            % Edit sens. inputs/outputs in table row.
+            obj.GlobalSensitivityAnalysis.PlotSobolIndex(row).Inputs = selections{1};
+            obj.GlobalSensitivityAnalysis.PlotSobolIndex(row).Outputs = selections{2};
+            
+            obj.updatePlotTables();
             plotSobolIndices(obj.GlobalSensitivityAnalysis,obj.getPlotArray());
         end
         
         function onPlotTableButtonPress(obj, src)
             if src == obj.NewSobolIndexButton
+                
                 [statusOk, message] = obj.GlobalSensitivityAnalysis.add('sobolIndex');
+                
+                if statusOk
+                    row = numel(obj.GlobalSensitivityAnalysis.PlotSobolIndex);
+                    options = {obj.GlobalSensitivityAnalysis.PlotInputs; obj.GlobalSensitivityAnalysis.PlotOutputs};
+                    selections = {{}; {}};
+                    
+                    modalWindow = QSPViewerNew.Widgets.MultiDataSelector("Select sensitivity inputs and outputs", ...
+                    ["Sensitivity Inputs", "Sensitivity Outputs"], options, selections, @(selections)obj.inputOutputPlotSelectionCallback(row, selections));
+                    modalWindow.open(obj.getUIFigure());
+                end
+            elseif src == obj.EditSobolIndexButton
+                
+                row = obj.SelectedRow.PlotSobolIndexTable(1);
+                options = {obj.GlobalSensitivityAnalysis.PlotInputs; obj.GlobalSensitivityAnalysis.PlotOutputs};
+                selections = {obj.GlobalSensitivityAnalysis.PlotSobolIndex(row).Inputs; obj.GlobalSensitivityAnalysis.PlotSobolIndex(row).Outputs};
+
+                modalWindow = QSPViewerNew.Widgets.MultiDataSelector("Select sensitivity inputs and outputs", ...
+                ["Sensitivity Inputs", "Sensitivity Outputs"], options, selections, @(selections)obj.inputOutputPlotSelectionCallback(row, selections));
+                modalWindow.open(obj.getUIFigure());
+                statusOk = true;
+                
+           elseif src == obj.DuplicateSobolIndexButton
+                [statusOk, message] = obj.GlobalSensitivityAnalysis.duplicate(obj.SelectedRow.PlotSobolIndexTable(1));
             elseif src == obj.RemoveSobolIndexButton
                 [statusOk, message] = obj.GlobalSensitivityAnalysis.remove('sobolIndex', obj.SelectedRow.PlotSobolIndexTable(1));
                 if statusOk && obj.SelectedRow.PlotSobolIndexTable(1) == size(obj.SobolIndexTable.Data,1)
@@ -798,10 +884,19 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
                 end
             end
             
-            [StatusOK,Message] = run(obj.GlobalSensitivityAnalysis, obj.getUIFigure());
+            % Open modal window for progress indication
+            modalWindow = QSPViewerNew.Widgets.GlobalSensitivityAnalysisProgress(sprintf('Running %s', obj.GlobalSensitivityAnalysis.Name));
+            modalWindow.open(obj.getUIFigure());
+            onCleanupObj1 = onCleanup(@()delete(modalWindow));
+            
+            [StatusOK, Message] = run(obj.GlobalSensitivityAnalysis, ...
+                @(tfReset, itemIdx, messages, samples, differences) ...
+                obj.runProgressIndicator(modalWindow, tfReset, itemIdx, messages, samples, differences));
             if ~StatusOK
                 uialert(obj.getUIFigure,Message,'Run Failed');
             end
+            modalWindow.customizeButton('Close', '', @()delete(modalWindow));
+            waitfor(modalWindow);
         end
         
         function drawVisualization(obj)
@@ -967,7 +1062,6 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
     
     methods (Access = private)
         
-       
         function updateResultsDir(obj)
             obj.ResultFolderSelector.RelativePath = obj.TemporaryGlobalSensitivityAnalysis.ResultsFolder;
         end
@@ -1017,10 +1111,13 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             % Sobol indices table
             plot      = {obj.GlobalSensitivityAnalysis.PlotSobolIndex.Plot};
             style     = vertcat(obj.GlobalSensitivityAnalysis.PlotSobolIndex.Style);
-            inputs    = {obj.GlobalSensitivityAnalysis.PlotSobolIndex.Input};
-            output    = {obj.GlobalSensitivityAnalysis.PlotSobolIndex.Output};
+            inputs    = {obj.GlobalSensitivityAnalysis.PlotSobolIndex.Inputs};
+            inputs = cellfun(@(in) strjoin(in, ','), inputs, "UniformOutput", false);
+            outputs    = {obj.GlobalSensitivityAnalysis.PlotSobolIndex.Outputs};
+            outputs = cellfun(@(out) strjoin(out, ','), outputs, "UniformOutput", false);
             type      = {obj.GlobalSensitivityAnalysis.PlotSobolIndex.Type};
             mode      = {obj.GlobalSensitivityAnalysis.PlotSobolIndex.Mode};
+            metric    = {obj.GlobalSensitivityAnalysis.PlotSobolIndex.Metric};
             if isempty(style)
                 style = cell(0,1);
             else
@@ -1029,31 +1126,11 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             end
             style = style(:, 1);
             tfVariance = ismember(type, {'variance', 'unexpl. frac.'});
-            inputs(tfVariance) = {'-'};
+            inputs(tfVariance) = {'n/a'};
+            tfTimeCourse = ismember(mode, {'time course'});
+            metric(tfTimeCourse) = {'n/a'};
             display   = {obj.GlobalSensitivityAnalysis.PlotSobolIndex.Display};
-            obj.SobolIndexTable.Data = [plot(:),style(:),inputs(:),output(:),type(:),mode(:),display(:)];
-            
-            if isempty(obj.GlobalSensitivityAnalysis.PlotInputs) || ...
-                    (obj.SelectedRow.PlotSobolIndexTable(1) > 0 && ...
-                    tfVariance(obj.SelectedRow.PlotSobolIndexTable(1)))
-                % Disable dropdown menu for sensitivity input selection if
-                %  1) there are no sensitivity inputs available
-                %  2) the plot type is variance related
-                obj.SobolIndexTable.ColumnFormat{3}   = 'char';
-                obj.SobolIndexTable.ColumnEditable(3) = false;
-            else
-                obj.SobolIndexTable.ColumnFormat{3}   = obj.GlobalSensitivityAnalysis.PlotInputs';
-                obj.SobolIndexTable.ColumnEditable(3) = true;
-            end
-            if isempty(obj.GlobalSensitivityAnalysis.PlotOutputs)
-                % Disable dropdown menu for sensitivity input selection if
-                % there are no sensitivity outputs available
-                obj.SobolIndexTable.ColumnFormat{4}   = 'char';
-                obj.SobolIndexTable.ColumnEditable(4) = false;
-            else
-                obj.SobolIndexTable.ColumnFormat{4}   = obj.GlobalSensitivityAnalysis.PlotOutputs';
-                obj.SobolIndexTable.ColumnEditable(4) = true;
-            end
+            obj.SobolIndexTable.Data = [plot(:),style(:),inputs(:),outputs(:),type(:),mode(:),metric(:),display(:)];
 
             % Task selection table
             include         = {obj.GlobalSensitivityAnalysis.Item.Include};
@@ -1159,6 +1236,20 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             end
         end
         
+        function runProgressIndicator(obj, modalWindow, tfReset, itemIdx, message, samples, data)
+            % Usage: progress indicator is a modal window that is open
+            % during the computation of GSA results. The modal window can
+            % be reset (tfReset == true) to clear plots when switching from
+            % on task item to another. The modal window can be updated 
+            % (tfReset == false) to show new messages and data-vs-samples 
+            % plots to indicate the progress in the computation.
+            if tfReset
+                modalWindow.reset(obj.GlobalSensitivityAnalysis.StoppingTolerance, ...
+                    obj.GlobalSensitivityAnalysis.Item(itemIdx).Color);
+            else
+                modalWindow.update(message, samples, data);
+            end            
+        end
     end
 end
 

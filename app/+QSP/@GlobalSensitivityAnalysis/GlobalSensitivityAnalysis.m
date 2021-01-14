@@ -28,22 +28,25 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
     
     % Properties
     properties
-        Settings = QSP.Settings.empty(0,1)
         
+        Settings = QSP.Settings.empty(0,1)
+        SelectedPlotLayout = '1x1'
+        PlotSettings = repmat(struct(),1,12)
+        
+        % Structure array to store task (groups of sens. outputs) specific
+        % configurations. See ItemTemplate below.
         Item
-        SummaryType = 'mean'
+        % Structure to store plot configurations for sens. inputs/outputs.
+        % See PlotSobolIndexTemplate below.
+        PlotSobolIndex
+        HideConvergenceLine = false;
                   
         RandomSeed        = []
         StoppingTolerance = 0;
-        
-        SelectedPlotLayout = '1x1'
 
+        % List all available sensitivity inputs/outputs
         PlotInputs  = cell(0,1) % Inputs
         PlotOutputs = cell(0,1) % Outputs
-
-        PlotSobolIndex
-        
-        PlotSettings = repmat(struct(),1,12)
         
         % Properties that are NOT part of the public API
         ParametersName_I = []        % needs to be public for copy to work
@@ -57,21 +60,24 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
     end
     
     properties (Access = private)
-        ItemTemplate = struct('TaskName', [], ...
-                              'NumberSamples', 0, ...
-                              'IterationInfo', [0, 5], ...
-                              'Include', true, ...
-                              'MATFileName', [], ...
-                              'Color', [], ...
-                              'Description', [], ...
-                              'Results', [])
-        PlotSobolIndexTemplate = struct('Plot', ' ', ...
-                                        'Style', {{'-', 'd'}}, ...
-                                        'Input', [], ...
-                                        'Output', [], ...
-                                        'Type', 'first order', ...
-                                        'Mode', 'bar plot', ...
-                                        'Display', '')
+        % Structure to store task (groups of sens. outputs) specific configurations
+        ItemTemplate = struct('TaskName'     , [], ...
+                              'NumberSamples', 0, ...       % total number of samples used to compute results (last iteration)
+                              'IterationInfo', [0, 5], ...  % current configuration: [number of samples per iteration, number of iterations]
+                              'Include'      , true, ...    % include item in plots
+                              'MATFileName'  , [], ...      % results file name
+                              'Color'        , [], ...      % color of results in plot
+                              'Description'  , [], ...      % description of item
+                              'Results'      , [])          % vector of results at each iteration
+        % Structure to store plot configurations for sens. inputs/outputs
+        PlotSobolIndexTemplate = struct('Plot'   , ' ', ...            % Axes for plotting
+                                        'Style'  , {{'-', 'd'}}, ...   % Line/marker size for plot types
+                                        'Inputs' , {{}}, ...           % Cell array of sensitivity inputs
+                                        'Outputs', {{}}, ...           % Cell array of sensitivity outputs
+                                        'Type'   , 'first order', ...  % Data to be plotted 
+                                        'Mode'   , 'bar plot', ...     % Plot type 
+                                        'Metric' , 'mean', ...         % Metric to summarize time courses
+                                        'Display', '')                 % Display name for legends
     end
 
     
@@ -83,21 +89,21 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
             % Abstract: Constructs a new QSP.GlobalSensitivityAnalysis object.
             %
             % Syntax:
-            %           obj = QSP.GlobalSensitivityAnalysis('Parameter1',Value1,...)
+            %           obj = QSP.GlobalSensitivityAnalysis()
             %
             % Inputs:
-            %           Parameter-value pairs
+            %           -
             %
             % Outputs:
             %           obj - QSP.GlobalSensitivityAnalysis object
             %
             % Example:
-            %    aObj = QSP.GlobalSensitivityAnalysis();
+            %    obj = QSP.GlobalSensitivityAnalysis();
             
             obj.Item           = obj.ItemTemplate([]);
             obj.PlotSobolIndex = obj.PlotSobolIndexTemplate([]);
                        
-            % assign plot settings names
+            % Assign plot settings names
             for index = 1:length(obj.PlotSettings)
                 obj.PlotSettings(index).Title = sprintf('Plot %d', index);
             end
@@ -119,12 +125,18 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
                 for index = 1:numel(obj.Item)
                     ThisResultFilePath = obj.Item(index).MATFileName; 
                     if isempty(ThisResultFilePath)
-                        ThisResultFilePath = 'N/A';
+                        resultsInfo = sprintf('\nResults: N/A');
+                    else
+                        resultsInfo = sprintf('\n Results: %s', ThisResultFilePath);
+                        [~, maxDifferences] = obj.getConvergenceStats(index);                        
+                        if ~isnan(maxDifferences(end))
+                            resultsInfo = sprintf('\nMax. difference between Sobol indices in last iteration: %g%s', maxDifferences(end), resultsInfo);
+                        end
                     end
 
                     % Item display
-                    ThisItem = sprintf('%s with %d samples (%d staged)\nResults: %s', obj.Item(index).TaskName, ...
-                        obj.Item(index).NumberSamples, prod(obj.Item(index).IterationInfo), ThisResultFilePath);
+                    ThisItem = sprintf('%s with %d samples (%d staged)%s', obj.Item(index).TaskName, ...
+                        obj.Item(index).NumberSamples, prod(obj.Item(index).IterationInfo), resultsInfo);
                     if StaleFlag(index)
                         % Item may be out of date
                         ThisItem = sprintf('***WARNING***\n%s\n***Item may be out of date %s***', ThisItem, StaleReasons{index});
@@ -149,6 +161,7 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
                 'Description',obj.Description;
                 'Results Path',obj.ResultsFolder;
                 'Sensitivity Inputs',obj.ParametersName;
+                'Termination tolerance', obj.StoppingTolerance;
                 'Items',GlobalSensitivityAnalysisItems;
                 };
             
@@ -265,9 +278,6 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
                 end
                 StatusOK = false;
             end
-            
-            
-            
     
         end %function
         
@@ -283,7 +293,7 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
     %  Methods    
     methods
         
-        function [StatusOK, Message] = run(obj, figureHandle)
+        function [StatusOK, Message] = run(obj, progressCallback)
             
             % Invoke validate
             [StatusOK, Message] = validate(obj,false);
@@ -297,17 +307,12 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
                 end
                 
                 % Run helper
-                [ThisStatusOK,thisMessage,ResultFileNames] = runHelper(obj, figureHandle);
+                [ThisStatusOK, thisMessage] = runHelper(obj, progressCallback);
                 
                 if ~ThisStatusOK 
                     StatusOK = false;
                     Message = sprintf('%s\n\n%s', Message, thisMessage);
                     return
-                end
-                
-                % Update MATFileName in the GSA items
-                for index = 1:numel(obj.Item)
-                    obj.Item(index).MATFileName = ResultFileNames{index};
                 end
                 
             end 
@@ -327,10 +332,8 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
                 catch err
                     warning(err.message)                    
                 end
-
             end
-            
-        end
+        end %function
         
         function [statusOk, message] = updateInputsOutputs(obj)
                       
@@ -338,6 +341,8 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
             if numItems == 0
                 obj.PlotInputs  = cell(0,1); % Sensitivity inputs to plot
                 obj.PlotOutputs = cell(0,1); % Sensitivity outputs to plot
+                statusOk = true;
+                message = '';
                 return
             end
             
@@ -356,7 +361,7 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
             obj.PlotInputs  = reshape(sensitivityInputs,[],1);
             obj.PlotOutputs = reshape(sensitivityOutputs,[],1);
 
-        end
+        end %function
         
         function [statusOk, message] = add(obj, type)
             statusOk = true;
@@ -391,10 +396,8 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
                         return;
                     end
                     obj.PlotSobolIndex(end+1) = obj.PlotSobolIndexTemplate;
-                    obj.PlotSobolIndex(end).Input = obj.PlotInputs{1};
-                    obj.PlotSobolIndex(end).Output = obj.PlotOutputs{1};
             end
-        end
+        end %function
         
         function [statusOk, message] = remove(obj, type, idx)
             if idx == 0
@@ -411,7 +414,20 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
                 case 'sobolIndex'
                     obj.PlotSobolIndex(idx) = [];
             end            
-        end
+        end %function
+        
+        function [statusOk, message] = duplicate(obj, idx)
+            if idx == 0
+                statusOk = false;
+                message = 'Select a row to mark it for duplication.';
+                return;
+            end
+            statusOk = true;
+            message  = '';
+            
+            numPlotSobolIndices = numel(obj.PlotSobolIndex);
+            obj.PlotSobolIndex = obj.PlotSobolIndex([1:idx, idx, idx+1:numPlotSobolIndices]);
+        end %function
         
         
         function [statusOk, message] = propagateValue(obj, property, idx)
@@ -426,8 +442,7 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
             for i = 1:numel(obj.Item)
                 obj.Item(i).IterationInfo(iterationsInfoIdx) = valueToPropagate;
             end
-        end
-        
+        end %function
         
         function [statusOk, message] = moveUp(obj, idx)
             if idx == 0
@@ -445,7 +460,7 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
             if numel(obj.PlotSobolIndex) > 1
                 obj.PlotSobolIndex([idx-1, idx]) = obj.PlotSobolIndex([idx, idx-1]);
             end
-        end
+        end %function
         
         function [statusOk, message] = moveDown(obj, idx)
             if idx == 0
@@ -464,7 +479,7 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
             if numel(obj.PlotSobolIndex) > 1
                 obj.PlotSobolIndex([idx, idx+1]) = obj.PlotSobolIndex([idx+1, idx]);
             end
-        end
+        end %function
         
         function [statusOk, message] = updateItem(obj, idx, item)
             tfNeedupdateInputsOutputs = ~strcmp(item.TaskName, obj.Item(idx).TaskName);
@@ -475,21 +490,20 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
                 statusOk = true;
                 message  = '';
             end
-        end
+        end %function
         
         function removeResultsFromItem(obj, idx)
             obj.Item(idx).MATFileName   = '';
             obj.Item(idx).NumberSamples = 0;
             obj.Item(idx).Results       = [];
-        end
+        end %function
         
         function addResults(obj, itemIdx, results)            
             obj.Item(itemIdx).Results = [obj.Item(itemIdx).Results, results];
             obj.Item(itemIdx).NumberSamples = results.NumberSamples;
-        end    
+        end %function
 
         function [numSamples, maxDifferences] = getConvergenceStats(obj, itemIdx)
-            
             numResults     = numel(obj.Item(itemIdx).Results);
             maxDifferences = nan(numResults, 1);
             
@@ -506,7 +520,7 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
             else
                 numSamples = zeros(0,1);
             end
-        end
+        end %function
         
         function [StaleFlag,ValidFlag,InvalidMessages,StaleReason] = getStaleItemIndices(obj)
             
@@ -613,7 +627,6 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
         end
 
         function set.ParametersName(obj,parametersName)
-%             validateattributes(parametersName,{'char'},{'row'});
             if ~strcmp(parametersName, obj.ParametersName_I)
                 obj.ParametersName_I = parametersName;
                 obj.updateInputsOutputs();
@@ -623,7 +636,6 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
         function Value = get.ParametersName(obj)
             Value = obj.ParametersName_I;
         end
-        
         
         function set.Item(obj,Value)
             validateattributes(Value,{'struct'},{});
@@ -689,9 +701,9 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
             % Import included parameter information
 
             sensitivityInputs = {};
-            transformations = {};
-            distributions = {};
-            samplingInfo = {};
+            transformations   = {};
+            distributions     = {};
+            samplingInfo      = {};
             if isempty(obj.ParametersName)
                 statusOk = false;
                 message = 'No sensitivity inputs selected.';
