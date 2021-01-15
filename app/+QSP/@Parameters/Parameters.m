@@ -128,15 +128,15 @@ classdef Parameters < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             StatusOk = true;
             Message = '';
             
-            if ~isempty(obj.myData) && exist(DataFilePath, 'file')
-                FileInfo = dir(DataFilePath);
-                timeStamp = FileInfo.datenum;
-                if obj.myDataTimeStamp == timeStamp %modified since storing
-                    Data = obj.myData;
-                    Header = obj.myHeader;
-                    return
-                end
-            end
+%             if ~isempty(obj.myData) && exist(DataFilePath, 'file')
+%                 FileInfo = dir(DataFilePath);
+%                 timeStamp = FileInfo.datenum;
+%                 if obj.myDataTimeStamp == timeStamp %modified since storing
+%                     Data = obj.myData;
+%                     Header = obj.myHeader;
+%                     return
+%                 end
+%             end
             
             % Load from file
 %             try            
@@ -146,6 +146,9 @@ classdef Parameters < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             [Header,Data,StatusOk,Message] = xlread(DataFilePath);
             if ~StatusOk
                 return
+            elseif ~isempty(Message)
+                StatusOk = false;
+                return;
             end
 
 %             catch ME

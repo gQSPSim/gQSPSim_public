@@ -49,11 +49,11 @@ classdef (Abstract) BaseProps < matlab.mixin.SetGet & matlab.mixin.Heterogeneous
 %         Description = '' % Description
         
         
-        bShowTraces = []
-        bShowQuantiles = []
-        bShowMean = []
-        bShowMedian = []
-        bShowSD = []
+        bShowTraces = false(1,12)
+        bShowQuantiles = false(1,12)
+        bShowMean = false(1,12)
+        bShowMedian = false(1,12)
+        bShowSD = false(1,12)
     end
     
     %% Dependent properties
@@ -283,6 +283,39 @@ classdef (Abstract) BaseProps < matlab.mixin.SetGet & matlab.mixin.Heterogeneous
             end %for pIdx = 1:numel(sProps)
         end %function
         
+        function initOptions(obj)
+            if strcmpi(class(obj),'QSP.VirtualPopulationGeneration')
+                initbShowTraces = false(1,12); % default off
+                initbShowQuantiles = true(1,12); % default on
+                initbShowMean = true(1,12); % default on
+                initbShowMedian = false(1,12); % default off
+                initbShowSD = false(1,12); % default off
+            else
+                initbShowTraces = false(1,12); % default off
+                initbShowQuantiles = true(1,12); % default on
+                initbShowMean = false(1,12); % default off
+                initbShowMedian = true(1,12); % default on
+                initbShowSD = false(1,12); % default off
+            end
+            
+            % For compatibility
+            if isempty(obj.bShowTraces)
+                obj.bShowTraces = initbShowTraces;
+            end
+            if isempty(obj.bShowQuantiles)
+                obj.bShowQuantiles = initbShowQuantiles;
+            end
+            if isempty(obj.bShowMean)
+                obj.bShowMean = initbShowMean;
+            end
+            if isempty(obj.bShowMedian)
+                obj.bShowMedian = initbShowMedian;
+            end
+            if isempty(obj.bShowSD)
+                obj.bShowSD = initbShowSD;
+            end
+        end %function
+        
     end % methods
     
     %% Get/Set methods
@@ -335,7 +368,7 @@ classdef (Abstract) BaseProps < matlab.mixin.SetGet & matlab.mixin.Heterogeneous
         function value = get.SessionRoot(obj)
             if isscalar(obj.Session)
                 value = obj.Session.RootDirectory;
-                if ~isempty(getCurrentWorker)
+                if obj.Session.UseParallel && ~isempty(getCurrentWorker)
                     newRoot = getAttachedFilesFolder(value);
                     if ~isempty(newRoot)
                         obj.Session.RootDirectory = newRoot; % update session root
@@ -347,11 +380,51 @@ classdef (Abstract) BaseProps < matlab.mixin.SetGet & matlab.mixin.Heterogeneous
             end
         end
         
+        function value = get.FilePath(obj)
+            value = fullfile(obj.SessionRoot, obj.RelativeFilePath_new);       
+            if isempty(value)
+                return
+            end
+            
+        end
+        
+        function set.FilePath(obj,value)
+            validateattributes(value,{'char'},{})
+            obj.RelativeFilePath_new = uix.utility.getRelativeFilePath(value, obj.SessionRoot, false);
+        end
+        
     end %methods
     
     
     %% API methods
     methods
+        
+        function Remove(obj)
+            
+            FuncType = class(obj);
+            Type = regexprep(FuncType,'QSP\.','');
+            
+            % Get its parent container
+            if isprop(obj,'Settings') && isprop(obj.Settings,Type)
+                containerObj = obj.Settings;
+            elseif isprop(obj,'Session') && isprop(obj.Session,Type)
+                containerObj = obj.Session;
+            elseif isprop(obj,'Session') && isprop(obj.Session.Settings,Type)
+                containerObj = obj.Session.Settings;                
+            else
+                containerObj = [];
+            end
+            
+            % Delete
+            delete(obj)
+            
+            % Remove from its parent container
+            if ~isempty(containerObj)
+                containerObj.(Type)(~isvalid(containerObj.(Type))) = [];
+            end
+            
+        end %function
+        
         function newObj = Replicate(obj)
             
             FuncType = class(obj);

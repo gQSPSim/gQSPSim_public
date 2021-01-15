@@ -204,7 +204,7 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             
             [ThisStatusOk,ThisMessage] = importModel(obj,obj.FilePath,obj.ModelName);
             obj.MaxWallClockTime = ThisMaxWallClockTime; % override model defaults
-            if ~ThisStatusOk
+            if ~ThisStatusOk || isempty(obj.ModelObj) % NOTE: isempty(obj.ModelObj) check may need to be moved into importModel
                 Message = sprintf('%s\n* Error loading model "%s" in "%s". %s\n',Message,obj.ModelName,obj.FilePath,ThisMessage);
                 return
             end            
@@ -638,7 +638,10 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         end %function
         
         function [Value,MatchIndex] = getInvalidInactiveRuleNames(obj)
-            MatchIndex = ~ismember(obj.InactiveRuleNames,obj.RuleNames);
+            % the format for these is not consistent. Compare only the
+            % strings after the colon on the Rulenames. 
+            cleanRuleNames = string(obj.RuleNames).extractAfter(":").strip;
+            MatchIndex = ~ismember(obj.InactiveRuleNames, cleanRuleNames);
             Value = obj.InactiveRuleNames(MatchIndex);
         end %function
         
@@ -902,7 +905,7 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
          function [StatusOK,Message] = SetProject(obj,RelativeFilePath)
              
              % Update the relative file path
-             obj.RelativeFilePath = RelativeFilePath;
+             obj.RelativeFilePath_new = RelativeFilePath;
              
              [StatusOK,Message] = importModelWrapper(obj);
              if nargout < 2
@@ -924,15 +927,23 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
          end %function
          
          function ActivateVariants(obj,Names)
-             obj.ActiveVariantNames = Names;
+             obj.ActiveVariantNames = cellstr(unique(Names,'stable'));
+         end %function
+         
+         function InactiveRules(obj,Names)
+             obj.InactiveRuleNames = cellstr(Names);
+         end %function
+         
+         function InactiveReactions(obj,Names)
+             obj.InactiveReactionNames = cellstr(Names);
          end %function
          
          function AddDoses(obj,Names)
-             obj.ActiveDoseNames = Names;
+             obj.ActiveDoseNames = cellstr(Names);
          end %function
          
          function IncludeSpecies(obj,Names)
-             obj.ActiveSpeciesNames = Names;
+             obj.ActiveSpeciesNames = cellstr(Names);
          end %function         
          
      end %methods (API)

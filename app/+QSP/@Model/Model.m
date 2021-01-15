@@ -326,14 +326,34 @@ classdef Model < QSP.abstract.BaseProps
         
         function Value = get.RuleNames(obj)
             if ~isempty(obj.mObj)
-                RuleString = {obj.mObj.Rules.Rule};
-                RuleName   = {obj.mObj.Rules.Name};
-                RuleName(cellfun(@isempty,RuleName)) = {'unnamed'};
+                Value = sbioselect(obj.mObj, 'Type', 'Rule');
+                Rule = get(Value,'Rule');
+                Name = get(Value,'Name');
+                
+                if isempty(Rule)
+                    Value = cell(0,1);
+                    return
+                end
+                
+                if ~iscell(Name)
+                    Name = {Name};
+                end
+                
+                if ~iscell(Rule)
+                    Rule = {Rule};
+                end
+                
+                Name(cellfun(@isempty,Name)) = {'unnamed'};
                 
                 Value = cellfun(@(name, rule) sprintf('%s: %s', name, rule), ...
                     RuleName, RuleString, 'UniformOutput', false);
                 Value = reshape(Value,[],1);
-
+                
+                if isempty(Value)
+                    Value = cell(0,1);                
+                elseif ischar(Value)
+                    Value = {Value};
+                end
             else
                 Value = cell(0,1);
             end
@@ -341,13 +361,33 @@ classdef Model < QSP.abstract.BaseProps
         
         function Value = get.ReactionNames(obj)
             if ~isempty(obj.mObj)
-                ReactionString = {obj.mObj.Reactions.Reaction};
-                ReactionName   = {obj.mObj.Reactions.Name};
-                ReactionName(cellfun(@isempty,ReactionName)) = {'unnamed'};
+                Value = sbioselect(obj.mObj, 'Type', 'Reaction');                           
+                Reaction = get(Value,'Reaction');
+                if isempty(Reaction)
+                    Value = cell(0,1);
+                    return
+                end
+                    
+                Name = get(Value,'Name');
+                if ~iscell(Name)
+                    Name = {Name};
+                end
+                
+                if ~iscell(Reaction)
+                    Reaction = {Reaction};
+                end
+                
+                Name(cellfun(@isempty,Name)) = {'unnamed'};
                 
                 Value = cellfun(@(name, reaction) sprintf('%s: %s', name, reaction), ...
                     ReactionName, ReactionString, 'UniformOutput', false);
                 Value = reshape(Value,[],1);
+                
+                if isempty(Value)
+                    Value = cell(0,1);                
+                elseif ischar(Value)
+                    Value = {Value};
+                end
             else
                 Value = cell(0,1);
             end

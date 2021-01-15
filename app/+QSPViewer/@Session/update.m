@@ -34,11 +34,9 @@ update@uix.abstract.CardViewPane(vObj);
 
 if isscalar(vObj.TempData)
     RootDir = vObj.TempData.RootDirectory;
-
     RelativeObjectiveFunctionsPath_new = vObj.TempData.RelativeObjectiveFunctionsPath_new;
     RelativeUserDefinedFunctionsPath_new = vObj.TempData.RelativeUserDefinedFunctionsPath_new;
     RelativeAutoSavePath_new = vObj.TempData.RelativeAutoSavePath_new;    
-
     UseAutoSaveTimer = vObj.TempData.UseAutoSaveTimer;
     AutoSaveFrequency = vObj.TempData.AutoSaveFrequency;
     AutoSaveBeforeRun = vObj.TempData.AutoSaveBeforeRun;
