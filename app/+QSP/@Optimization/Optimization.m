@@ -85,7 +85,6 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         SpeciesDataMapping
         OptimResultsFolderName_new
         OptimizationItems
-        SpeciesDataMapping
     end
     
     %% Constructor

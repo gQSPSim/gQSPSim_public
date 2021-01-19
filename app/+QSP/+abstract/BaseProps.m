@@ -380,19 +380,6 @@ classdef (Abstract) BaseProps < matlab.mixin.SetGet & matlab.mixin.Heterogeneous
             end
         end
         
-        function value = get.FilePath(obj)
-            value = fullfile(obj.SessionRoot, obj.RelativeFilePath_new);       
-            if isempty(value)
-                return
-            end
-            
-        end
-        
-        function set.FilePath(obj,value)
-            validateattributes(value,{'char'},{})
-            obj.RelativeFilePath_new = uix.utility.getRelativeFilePath(value, obj.SessionRoot, false);
-        end
-        
     end %methods
     
     

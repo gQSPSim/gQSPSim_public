@@ -43,16 +43,14 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
     
     %% Properties
     properties
-        RootDirectory = pwd
-
         AutoSaveFrequency = 1 % minutes
         AutoSaveBeforeRun = true
         UseParallel = false
         ParallelCluster
         UseAutoSaveTimer = false
- ShowProgressBars = true % set false for CLI, testing
-        
+
         RootDirectory = pwd
+        ShowProgressBars = true % set false for CLI, testing
         
         AutoSaveGit = false
         GitRepo = '.git'                
@@ -71,7 +69,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         RelativeUserDefinedFunctionsPathParts = {''}
         RelativeObjectiveFunctionsPathParts = {''}
         RelativeAutoSavePathParts = {''}
-        
+
     end
     
     properties (Dependent)
@@ -119,20 +117,6 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
     
     properties (Constant=true)
         DefaultColorMap = repmat(lines(10),5,1)
-    end
-    
-    properties (Dependent)
-        RelativeResultsPath_new = ''        
-        RelativeUserDefinedFunctionsPath_new = ''
-        RelativeObjectiveFunctionsPath_new = ''        
-        RelativeAutoSavePath_new = ''                
-    end
-        
-    properties (Dependent=true, SetAccess='immutable')
-        ResultsDirectory
-        ObjectiveFunctionsDirectory
-        UserDefinedFunctionsDirectory
-        AutoSaveDirectory
     end
             
     %% Constructor and Destructor
@@ -762,67 +746,59 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
     
     %% Get/Set Methods
     methods
-      
-        function set.RootDirectory(obj,Value)
-            validateattributes(Value,{'char'},{});
-            obj.RootDirectory = fullfile(Value);
-        end %function
-        
-        function set.RelativeResultsPath_new(obj,Value)
-            validateattributes(Value,{'char'},{});
-%             obj.RelativeResultsPath = fullfile(Value);
-            obj.RelativeResultsPathParts = strsplit(fullfile(Value), filesep);
-        end %function\
-        
-        function Value=get.RelativeResultsPath_new(obj)
-            Value = strjoin(obj.RelativeResultsPathParts, filesep);
-        end
-        
-        function set.RelativeObjectiveFunctionsPath_new(obj,Value)
-            validateattributes(Value,{'char'},{});
-%             obj.RelativeObjectiveFunctionsPath = fullfile(Value);
-            obj.RelativeObjectiveFunctionsPathParts = strsplit(fullfile(Value),filesep);
-        end %function
-        
-        function Value = get.RelativeObjectiveFunctionsPath_new(obj)
-            if ~isempty(obj.RelativeObjectiveFunctionsPathParts)
-                Value = strjoin(obj.RelativeObjectiveFunctionsPathParts, filesep);
-            else
-                Value = '';
+
+        function set.RelativeResultsPath(obj, value)
+            arguments 
+                obj   (1,1) QSP.Session
+                value (1,:) char
             end
+            value = obj.updatePath(value);
+            obj.RelativeResultsPathParts = strsplit(value, filesep);
         end
-        
-                
-        function set.RelativeUserDefinedFunctionsPath_new(obj,Value)
-            validateattributes(Value,{'char'},{});
-%             obj.RelativeUserDefinedFunctionsPath = fullfile(Value);
-            obj.RelativeUserDefinedFunctionsPathParts = strsplit(fullfile(Value), filesep);
-        end %function
-        
-        function Value = get.RelativeUserDefinedFunctionsPath_new(obj)
-            if ~isempty(obj.RelativeUserDefinedFunctionsPathParts)
-                Value = strjoin(obj.RelativeUserDefinedFunctionsPathParts, filesep);
-            else
-                Value = '';
+        function value = get.RelativeResultsPath(obj)
+            value = fullfile(obj.RelativeResultsPathParts{:});
+        end
+
+        function set.RelativeUserDefinedFunctionsPath(obj, value)
+            arguments 
+                obj   (1,1) QSP.Session
+                value (1,:) char
             end
-                
+            value = obj.updatePath(value);
+            obj.RelativeUserDefinedFunctionsPathParts = strsplit(value, filesep);
         end
-            
-                
-        function set.RelativeAutoSavePath_new(obj,Value)
-            validateattributes(Value,{'char'},{});
-%             obj.RelativeAutoSavePath = fullfile(Value);                
-            obj.RelativeAutoSavePathParts = strsplit(fullfile(Value), filesep);           
-        end %function
-        
-        function Value = get.RelativeAutoSavePath_new(obj)
-            Value = strjoin(obj.RelativeAutoSavePathParts,filesep);
+        function value = get.RelativeUserDefinedFunctionsPath(obj)
+            value = fullfile(obj.RelativeUserDefinedFunctionsPathParts{:});
         end
         
+        function set.RelativeObjectiveFunctionsPath(obj, value)
+            arguments 
+                obj   (1,1) QSP.Session
+                value (1,:) char
+            end
+            value = obj.updatePath(value);
+            obj.RelativeObjectiveFunctionsPathParts = strsplit(value, filesep);
+        end
+        function value = get.RelativeObjectiveFunctionsPath(obj)
+            value = fullfile(obj.RelativeObjectiveFunctionsPathParts{:});
+        end
+
+        function set.RelativeAutoSavePath(obj, value)
+            arguments 
+                obj   (1,1) QSP.Session
+                value (1,:) char
+            end
+            value = obj.updatePath(value);
+            obj.RelativeAutoSavePathParts = strsplit(value, filesep);
+        end
+        function value = get.RelativeAutoSavePath(obj)
+            value = fullfile(obj.RelativeAutoSavePathParts{:});
+        end
+
         function addUDF(obj)
             % add the UDF to the path
             p = path;
-            if isempty(obj.RelativeUserDefinedFunctionsPath_new)
+            if isempty(obj.RelativeUserDefinedFunctionsPath)
                 % don't add anything unless UDF is defined
                 return
             end
@@ -988,6 +964,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
                 warning('Simulation %s not found in session', Name)
             end
         end
+
     end
 
     
@@ -1067,66 +1044,40 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
             end            
         end
         
-       
+        function mObj = GetModelItem(obj, Name)
+            MatchIdx = strcmp(Name, {obj.Settings.Model.ModelName});
+            mObj = [];
+            if any(MatchIdx)
+                mObj = obj.Settings.Model(MatchIdx);
+            else
+                warning('Model %s not found in session', Name)
+            end            
+        end
+            
+        function sObj = getACItem(obj, Name)
+            MatchIdx = strcmp(Name, {obj.Settings.VirtualPopulationData.Name});
+            sObj = [];
+            if any(MatchIdx)
+                sObj = obj.Settings.VirtualPopulationData(MatchIdx);
+            else
+                warning('Acceptance Criteria %s not found in session', Name)
+            end
+        end           
         
+        function sObj = getDataItem(obj, Name)
+            MatchIdx = strcmp(Name, {obj.Settings.OptimizationData.Name});
+            sObj = [];
+            if any(MatchIdx)
+                sObj = obj.Settings.OptimizationData(MatchIdx);
+            else
+                warning('Optimization Data %s not found in session', Name)
+            end
+        end
+
     end %methods
-       
-    %% API methods - Helper
-    methods (Access=private)
-        function newObj = AddHelper(obj,FuncType,varargin)
-            ThisFcn = str2func(FuncType);
-            newObj = ThisFcn();
-            updateLastSavedTime(newObj);
-            
-            Type = regexprep(FuncType,'QSP\.','');
-            
-            if isprop(obj.Settings,Type)
-                AllNames = {obj.Settings.(Type).Name}; 
-            else
-                AllNames = {obj.(Type).Name};
-            end
-            
-            if isprop(newObj,'Session')
-                newObj.Session = obj;
-            end
-            
-            if isprop(newObj,'Settings')
-                newObj.Settings = obj.Settings;
-            end
-            
-            if nargin > 2
-                NewName = varargin{1};
-                if iscell(NewName)
-                    NewName = NewName{1};
-                end
-            else
-                switch Type
-                    case 'VirtualPopulationGenerationData'
-                        NewName = 'New Target Statistics';
-                    case 'VirtualPopulationData'
-                        NewName = 'New Acceptance Criteria';
-                    otherwise
-                        NewName = sprintf('New %s',Type);
-                end
-            end
-            
-            newObj.Name =  matlab.lang.makeUniqueStrings(NewName,AllNames);
-            
-            if isprop(obj.Settings,Type)
-                obj.Settings.(Type)(end+1) = newObj;
-            else
-                obj.(Type)(end+1) = newObj;
-            end
-        end %function
-    end %methods (private)
-    
     
     %% API methods
     methods 
-        function newObj = CreateTask(obj,varargin)
-            newObj = AddHelper(obj,'QSP.Task',varargin(:));
-        end %function
-        
         function thisObj = GetTask(obj,Name)
             thisObj = obj.Settings.Task(strcmp({obj.Settings.Task.Name},Name));
         end %function
@@ -1202,17 +1153,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         function thisObj = GetVirtualPopulationGeneration(obj,Name)
             thisObj = obj.VirtualPopulationGeneration(strcmp({obj.VirtualPopulationGeneration.Name},Name));
         end %function
-        
-        function thisObj = GetModelItem(obj, Name)
-            MatchIdx = strcmp(Name, {obj.Settings.Model.ModelName});
-            thisObj = [];
-            if any(MatchIdx)
-                thisObj = obj.Settings.Model(MatchIdx);
-            else
-                warning('Parameter %s not found in session', Name)
-            end            
-        end
-  
+          
         function relativePath = getTaskRelativePath(obj, taskName)
             relativePath = '';
             
