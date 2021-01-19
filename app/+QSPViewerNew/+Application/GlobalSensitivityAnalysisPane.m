@@ -725,7 +725,9 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
                     modalWindow = QSPViewerNew.Widgets.MultiDataSelector("Select sensitivity inputs and outputs", ...
                     ["Sensitivity Inputs", "Sensitivity Outputs"], options, selections, @(selections)obj.inputOutputPlotSelectionCallback(row, selections));
                     modalWindow.open(obj.getUIFigure());
+                    plotSobolIndices(obj.GlobalSensitivityAnalysis,obj.getPlotArray());
                 end
+                
             elseif src == obj.EditSobolIndexButton
                 
                 row = obj.SelectedRow.PlotSobolIndexTable(1);
@@ -737,8 +739,10 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
                 modalWindow.open(obj.getUIFigure());
                 statusOk = true;
                 
+                plotSobolIndices(obj.GlobalSensitivityAnalysis,obj.getPlotArray());
            elseif src == obj.DuplicateSobolIndexButton
                 [statusOk, message] = obj.GlobalSensitivityAnalysis.duplicate(obj.SelectedRow.PlotSobolIndexTable(1));
+                plotSobolIndices(obj.GlobalSensitivityAnalysis,obj.getPlotArray());
             elseif src == obj.RemoveSobolIndexButton
                 [statusOk, message] = obj.GlobalSensitivityAnalysis.remove('sobolIndex', obj.SelectedRow.PlotSobolIndexTable(1));
                 if statusOk && obj.SelectedRow.PlotSobolIndexTable(1) == size(obj.SobolIndexTable.Data,1)
