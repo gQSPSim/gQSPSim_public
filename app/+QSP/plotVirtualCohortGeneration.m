@@ -398,13 +398,10 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
             end
 
             % invalid lines
-            
-            % LIMIT NUMBER OF LINES PLOTTED
-            MAX_LINES = 200;            
-            
             if ~isempty(ColumnIdx_invalid)
-
-                ColumnIdx_invalid = ColumnIdx_invalid(discretesample(ones(size(ColumnIdx_invalid))/length(ColumnIdx_invalid), MAX_LINES));                
+                nInvalid = length(ColumnIdx_invalid);
+                ixSample = discretesample(ones(size(ColumnIdx_invalid))/length(ColumnIdx_invalid), min(nInvalid,obj.MaxTracesToDisplay));
+                ColumnIdx_invalid_sample = ColumnIdx_invalid(ixSample);
                 % Plot
                 hThis = plot(hSpeciesGroup{sIdx,axIdx},Results{itemIdx}.Time,thisData(:,ColumnIdx_invalid_sample),...
                     'Color',[0.5,0.5,0.5],...
@@ -436,14 +433,18 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
                 if strcmpi(Mode,'Cohort')
                     % Cohort
                     ValidIdx = setdiff(ColumnIdx, ColumnIdx_invalid);
-                    ValidIdx = ValidIdx(discretesample(ones(size(ValidIdx))/length(ValidIdx), MAX_LINES));
+                    nValid = length(ValidIdx);
+                    sampleIdx = discretesample(ones(size(ValidIdx))/length(ValidIdx), min(nValid,obj.MaxTracesToDisplay));
+                    ValidIdx = ValidIdx(sampleIdx);
                     
                     x = thisData(:,ValidIdx);
                     w = ones(size(x,2),1) * 1/size(x,2);
                 else
                     % VP
                     ValidIdx = ColumnIdx;
-                    ValidIdx = ValidIdx(discretesample(ones(size(ValidIdx))/length(ValidIdx), MAX_LINES));
+                    nValid = length(ValidIdx);
+                    sampleIdx = discretesample(ones(size(ValidIdx))/length(ValidIdx), min(nValid,obj.MaxTracesToDisplay));
+                    ValidIdx = ValidIdx(sampleIdx);
                     
                     x = thisData(:,ValidIdx);
                     w = vpopWeights(sampleIdx);                    
