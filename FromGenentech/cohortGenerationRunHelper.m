@@ -60,7 +60,7 @@ if ~isempty(accCritHeader) && ~isempty(accCritData)
         accCritData = accCritData(includeIdx,:);
     end
     
-    spIdx = ismember( accCritData(:,3), Mappings(:,2));
+    spIdx = ismember( accCritData(:,strcmp('Data',accCritHeader)), Mappings(:,2));
     % [Group, Species, Time, LB, UB]
     Groups = cell2mat(accCritData(spIdx,strcmp('Group',accCritHeader)));
     unqGroups = unique(Groups);
