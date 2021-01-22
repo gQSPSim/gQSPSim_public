@@ -774,8 +774,9 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
                 thisFile = fileChanges{k};
                 thisFile = strrep(thisFile,'\','/');
                 [~,~,ext] = fileparts(thisFile);
-                if strcmp(ext,'.xlsx')
-                    tmpFile = [tempname '.xlsx'];
+                if strcmp(ext,'.xlsx') || strcmp(ext,'.xls')
+                    
+                    tmpFile = [tempname ext];
                     tmpXlsx = git(sprintf('-C "%s" --git-dir="%s" show HEAD:"%s" > "%s" ', rootDir, ...
                         fullfile(obj.GitRepo, '.git'), thisFile, tmpFile));
                     
@@ -1104,6 +1105,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
             
             % remove . for empty items
             files = setdiff(files, {'.','./','.\'});
+            files = files( ~cellfun(@isempty,files));
             
         end
         
@@ -1112,15 +1114,18 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
     %% Utility Methods
     methods
         function sObj = getSimulationItem(obj, Name)
-            MatchIdx = strcmp(Name, {obj.Simulation.Name});
+            s = obj.Simulation;
+            
+            MatchIdx = strcmp(Name, {s.Name});
             sObj = [];
             if any(MatchIdx)
-                sObj = obj.Simulation(MatchIdx);
+                sObj = s(MatchIdx);
             else
                 warning('Simulation %s not found in session', Name)
+            end
 	    end
 	end
-    end
+    
 
     
     %% API methods - Helper
