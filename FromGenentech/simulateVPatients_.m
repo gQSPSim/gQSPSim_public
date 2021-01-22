@@ -100,7 +100,7 @@ function [Results, nFailedSims, StatusOK, Message, Cancelled, taskID] = simulate
                 end % try
 
                 % update wait bar:q
-                if ~isempty(options.WaitBar)
+                if obj.Session.ShowProgressBars && ~isempty(options.WaitBar) 
                     StatusOK = uix.utility.CustomWaitbar(jj/ItemModel.nPatients, options.WaitBar, sprintf('Simulating vpatient %d/%d', jj, ItemModel.nPatients));
                 end
                 if ~StatusOK

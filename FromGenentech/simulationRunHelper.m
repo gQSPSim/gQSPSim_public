@@ -33,7 +33,9 @@ VpopWeights = [];
 
 % Initialize waitbar
 Title1 = sprintf('Configuring models...');
-hWbar1 = uix.utility.CustomWaitbar(0,Title1,'',false);
+if obj.Session.ShowProgressBars
+    hWbar1 = uix.utility.CustomWaitbar(0,Title1,'',false);
+end
 
 nBuildItems = options.nBuildItems;
 nRunItems = options.nRunItems;
@@ -49,7 +51,9 @@ else
     
     for ii = 1:nBuildItems
         % update waitbar
-        uix.utility.CustomWaitbar(ii/nBuildItems,hWbar1,sprintf('Configuring model for task %d of %d...',ii,nBuildItems));
+        if obj.Session.ShowProgressBars
+            uix.utility.CustomWaitbar(ii/nBuildItems,hWbar1,sprintf('Configuring model for task %d of %d...',ii,nBuildItems));
+        end
 
         % grab the names of the task and vpop for the i'th simulation
         taskName = obj.Item(ii).TaskName;
@@ -110,16 +114,19 @@ else
     end % for ii...
 end
 % close waitbar
-uix.utility.CustomWaitbar(1,hWbar1,'Done.');
-if ~isempty(hWbar1) && ishandle(hWbar1)
-    delete(hWbar1);
+if obj.Session.ShowProgressBars
+    uix.utility.CustomWaitbar(1,hWbar1,'Done.');
+    if ~isempty(hWbar1) && ishandle(hWbar1)
+        delete(hWbar1);
+    end
 end
-
 
 %%%% Simulate each parameter set in the vpop %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Initialize waitbar
 Title2 = sprintf('Simulating tasks...');
-hWbar2 = uix.utility.CustomWaitbar(0,Title2,'',true);
+if obj.Session.ShowProgressBars
+    hWbar2 = uix.utility.CustomWaitbar(0,Title2,'',true);
+end
 
 %% Cell containing all results
 output = cell(1,nRunItems);
@@ -148,16 +155,21 @@ if ~isempty(ItemModels)
         UDF_files = dir(fullfile(taskObj.Session.UserDefinedFunctionsDirectory,'**','*.m'));
         UDF_files = arrayfun(@(x) fullfile(x.folder,x.name), UDF_files, 'UniformOutput', false);
 
+
         % gQSPSim paths
         paths = DefinePaths(false,false);
-        paths = horzcat(paths{:});
-        paths = strsplit(paths,pathsep);
-        paths(cellfun(@isempty,paths)) = [];
-            
+%         paths = horzcat(paths{:});
+        if ~isempty(paths)
+            paths = strsplit(paths,pathsep);
+            paths(cellfun(@isempty,paths)) = [];
+        end
+        
         RootPath = { fullfile(fileparts(fileparts(mfilename('fullpath'))),'app'); fullfile(fileparts(fileparts(mfilename('fullpath'))),'FromGenentech'); ...
             fullfile(fileparts(fileparts(mfilename('fullpath'))),'utilities')};
-        job = createJob(c, 'AttachedFiles', [taskObj.Session.UserDefinedFunctionsDirectory, paths, obj.Session.RootDirectory], 'AutoAddClientPath', false); %, 'Type', 'pool');
+        job = createJob(c, 'AttachedFiles', [UDF_files; RootPath], 'AutoAddClientPath', false); %, 'Type', 'pool');
         
+    else
+        job = [];
     end
     
     for ii = runItems
@@ -166,13 +178,17 @@ if ~isempty(ItemModels)
             break
         end
         % update waitbar
-        if isvalid(hWbar2)
-            set(hWbar2, 'Name', sprintf('Simulating task %d of %d',ii,nRunItems))
+        if obj.Session.ShowProgressBars 
+            if isvalid(hWbar2) 
+                set(hWbar2, 'Name', sprintf('Simulating task %d of %d',ii,nRunItems))
 
-            uix.utility.CustomWaitbar(0,hWbar2,'');
-            options.WaitBar = hWbar2;
+                uix.utility.CustomWaitbar(0,hWbar2,'');
+                options.WaitBar = hWbar2;
+            else
+                break % interrupted
+            end
         else
-            break % interrupted
+            options.WaitBar = [];
         end
 
         % start simulations for virtual patients
@@ -207,7 +223,9 @@ if ~isempty(ItemModels)
 
     if useCluster
         set(hWbar2, 'Name', 'Please wait')        
-        uix.utility.CustomWaitbar(0,hWbar2,sprintf('Submitted job with %d tasks to cluster %s.\nWaiting for completion.', nRunItems, ParallelCluster));        
+        if obj.Session.ShowProgressBars
+            uix.utility.CustomWaitbar(0,hWbar2,sprintf('Submitted job with %d tasks to cluster %s.\nWaiting for completion.', nRunItems, ParallelCluster));        
+        end
         submit(job)
         wait(job)
         data = fetchOutputs(job);        
@@ -228,12 +246,12 @@ if ~isempty(ItemModels)
     end
     
     % gather results
-    if isvalid(hWbar2)
+    if obj.Session.ShowProgressBars && isvalid(hWbar2) 
         set(hWbar2, 'Name', 'Processing results')
     end
     for ii = runItems        
         ItemModel = ItemModels(options.runIndices(ii));
-        if isvalid(hWbar2)
+        if obj.Session.ShowProgressBars && isvalid(hWbar2)
             uix.utility.CustomWaitbar(ii/length(runItems),hWbar2,'');
         end
         for jj=1:length(options.Pin)
@@ -342,9 +360,11 @@ end
 
 
 % close waitbar
-uix.utility.CustomWaitbar(1,hWbar2,'Done.');
-if ~isempty(hWbar2) && ishandle(hWbar2)
-    delete(hWbar2);
+if obj.Session.ShowProgressBars
+    uix.utility.CustomWaitbar(1,hWbar2,'Done.');
+    if ~isempty(hWbar2) && ishandle(hWbar2)
+        delete(hWbar2);
+    end
 end
 
 % output the results of all simulation items if Pin in provided
@@ -440,6 +460,8 @@ options.simName = simName;
 options.allTaskNames = allTaskNames;
 options.allVpopNames = allVpopNames;
 
+options.ShowProgressBars = obj.Session.ShowProgressBars;
+
 end
 
 function [StatusOK,Message] = validatePin(obj, options, StatusOK, Message)
@@ -506,12 +528,21 @@ function [ItemModel, StatusOK, Message] = constructVpopItem(taskObj, vpopObj, gr
 %             vpopTable = cell2mat(raw(2:end,:));
 %         end
         
-        [params, vpopTable, StatusOK, Message] = xlread(vpopObj.FilePath);
-        vpopTable = cell2mat(vpopTable);
+
+        StatusOK = true;
+        Message = '';
+        if verLessThan('matlab', '9.8')
+            [params, vpopTable, StatusOK, Message] = xlread(vpopObj.FilePath);
+            vpopTable = cell2mat(vpopTable);
+        else
+            vpopTable = readtable(vpopObj.FilePath,'PreserveVariableNames',true);
+            params = vpopTable.Properties.VariableNames;
+            vpopTable = table2array(vpopTable);
+        end
+        
         if ~StatusOK
             return
         end
-        
         
 %         params = params(1,:);
 %         T = readtable(vpopObj.FilePath);

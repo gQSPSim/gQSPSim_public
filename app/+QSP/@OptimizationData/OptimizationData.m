@@ -170,7 +170,9 @@ classdef OptimizationData < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             Message = '';
             
             try
-                Table = readtable(DataFilePath);                
+                opts = detectImportOptions(DataFilePath);
+                opts.VariableTypes = repmat({'double'},1,numel(opts.VariableTypes)); % Force all columns to be numeric
+                Table = readtable(DataFilePath,opts);                
             catch ME
                 Table = table;
                 StatusOk = false;
@@ -209,6 +211,10 @@ classdef OptimizationData < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                     
                 elseif strcmpi(obj.DatasetType,'tall') && strcmpi(DestDatasetType,'wide')
                     % Tall -> Wide
+                    
+                    allColNames = {'Group','ID','Time','Species','Value','Weight','Exclude'};
+                    metadataCols = ~contains( Header, allColNames,'IgnoreCase', true);
+                    
                     
                     MatchSpecies = find(strcmpi(Header,'Species'));
                     MatchValue = find(strcmpi(Header,'Value'));

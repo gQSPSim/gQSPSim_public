@@ -71,7 +71,7 @@ rootDirs={...
     
     };
 
-OutPaths = {};
+OutPaths = [ genpath(fullfile(RootPath,'app')), genpath(fullfile(RootPath,'utilities')), genpath(fullfile(RootPath,'FromGenentech')) ];
 
 %************ EDIT ABOVE %************
 
@@ -135,6 +135,8 @@ end
 
 
 %% Add java class paths
+
+addpath(genpath('GUI_Layout_Toolbox'));
 
 if EchoOutput
     disp('Initializing Java paths for UI Widgets');

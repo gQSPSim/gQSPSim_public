@@ -29,3 +29,4 @@ function [hSpeciesGroup,hDatasetGroup,hLegend,hLegendChildren] = plotVirtualPopu
 
 
 [hSpeciesGroup,hDatasetGroup,hLegend,hLegendChildren] = QSP.plotVirtualCohortGeneration(obj,hAxes,'Mode','VP');
+

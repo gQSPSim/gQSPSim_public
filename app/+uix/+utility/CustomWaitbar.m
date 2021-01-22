@@ -48,13 +48,14 @@ function varargout = CustomWaitbar(x,Name,Message,AllowCancel)
 persistent TStart hTxt
 
 % check if running on a worker thread
-if ~isempty(getCurrentWorker)
+% This method does not require PCT to answer the question, are we running on 
+% a worker or not.
+if ~isempty(java.lang.System.getProperty('java.awt.headless'))
     if nargout
         varargout{1} = [];
     end
     return
 end
-
 
 % Which syntax was used?
 if ischar(Name)
