@@ -23,14 +23,6 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
         PlotSettings = QSP.PlotSettings.empty(0,1)
     end
     
-    properties (SetAccess=protected)
-       bShowTraces = []
-       bShowQuantiles = []
-       bShowMean = []
-       bShowMedian = []
-       bShowSD = []
-    end
-    
     properties (SetAccess=private)        
         UseRunVis = false
         LastPath = pwd
@@ -207,6 +199,21 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                 obj.h.PlotGrid = uix.Grid(...
                     'Parent',obj.h.VisualizeLayout,...
                     'Padding',5);
+                
+                if strcmpi(class(obj),'QSPViewer.VirtualPopulationGeneration')
+                    initbShowTraces = false; % default off
+                    initbShowQuantiles = true; % default on
+                    initbShowMean = true; % default on
+                    initbShowMedian = false; % default off
+                    initbShowSD = false; % default off
+                else
+                    initbShowTraces = false; % default off
+                    initbShowQuantiles = true; % default on
+                    initbShowMean = false; % default off
+                    initbShowMedian = true; % default on
+                    initbShowSD = false; % default off
+                end
+                
                 for index = 1:obj.MaxNumPlots
                     % Add container and axes
                     obj.h.MainAxesContainer(index) = uicontainer(...
@@ -273,45 +280,31 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                         'Tag','ExportAllAxes',...
                         'Callback',@(h,e)onAxesContextMenu(obj,h,e,index));                    
                     
-                    if strcmpi(class(obj),'QSPViewer.VirtualPopulationGeneration')
-                        obj.bShowTraces(index) = false; % default off
-                        obj.bShowQuantiles(index) = true; % default on
-                        obj.bShowMean(index) = true; % default on
-                        obj.bShowMedian(index) = false; % default off
-                        obj.bShowSD(index) = false; % default off
-                    else
-                        obj.bShowTraces(index) = false; % default off
-                        obj.bShowQuantiles(index) = true; % default on
-                        obj.bShowMean(index) = false; % default off
-                        obj.bShowMedian(index) = true; % default on
-                        obj.bShowSD(index) = false; % default off
-                    end
-                    
                     % Show traces/quantiles/mean/median/SD
                     obj.h.ContextMenuTraces(index) = uimenu(obj.h.ContextMenu(index),...
                         'Label','Show Traces',...
-                        'Checked',uix.utility.tf2onoff(obj.bShowTraces(index)),...
+                        'Checked',uix.utility.tf2onoff(initbShowTraces),...
                         'Separator','on',...
                         'Tag','ShowTraces',...
                         'Callback',@(h,e)onAxesContextMenu(obj,h,e,index));
                      obj.h.ContextMenuQuantiles(index) = uimenu(obj.h.ContextMenu(index),...
                         'Label','Show Upper/Lower Quantiles',...
-                        'Checked',uix.utility.tf2onoff(obj.bShowQuantiles(index)),...
+                        'Checked',uix.utility.tf2onoff(initbShowQuantiles),...
                         'Tag','ShowQuantiles',...
                         'Callback',@(h,e)onAxesContextMenu(obj,h,e,index));
                     obj.h.ContextMenuMean(index) = uimenu(obj.h.ContextMenu(index),...
                         'Label','Show Mean (Weighted)',...
-                        'Checked',uix.utility.tf2onoff(obj.bShowMean(index)),...
+                        'Checked',uix.utility.tf2onoff(initbShowMean),...
                         'Tag','ShowMean',...
                         'Callback',@(h,e)onAxesContextMenu(obj,h,e,index));
                     obj.h.ContextMenuMedian(index) =uimenu(obj.h.ContextMenu(index),...
                         'Label','Show Median (Weighted)',...
-                        'Checked',uix.utility.tf2onoff(obj.bShowMedian(index)),...
+                        'Checked',uix.utility.tf2onoff(initbShowMedian),...
                         'Tag','ShowMedian',...
                         'Callback',@(h,e)onAxesContextMenu(obj,h,e,index));
                     obj.h.ContextMenuSD(index) =uimenu(obj.h.ContextMenu(index),...
                         'Label','Show Standard Deviation (Weighted)',...
-                        'Checked',uix.utility.tf2onoff(obj.bShowSD(index)),...
+                        'Checked',uix.utility.tf2onoff(initbShowSD),...
                         'Tag','ShowSD',...
                         'Callback',@(h,e)onAxesContextMenu(obj,h,e,index));
                     
@@ -877,11 +870,13 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                     set(get(get(h,'Parent'),'Children'),'Checked','off');
                     set(h,'Checked','on')
                     set(obj.h.MainAxes(axIndex),'YScale','linear');
+                    obj.Data.PlotSettings(axIndex).YScale = 'linear';
                 case 'YScaleLog'
                     % Manage context menu states here for ease
                     set(get(get(h,'Parent'),'Children'),'Checked','off');
                     set(h,'Checked','on')
-                    set(obj.h.MainAxes(axIndex),'YScale','log');                    
+                    set(obj.h.MainAxes(axIndex),'YScale','log');
+                    obj.Data.PlotSettings(axIndex).YScale = 'log';
                 case 'ExportSingleAxes'
                     % Prompt the user for a filename
                     Spec = {...
@@ -891,7 +886,8 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                         '*.fig','MATLAB Figure';...
                         };
                     Title = 'Save as';
-                    SaveFilePath = pwd; % obj.LastPath;
+                    % TODO This is not likely to be the best way to determine the Session's Root directory.
+                    SaveFilePath = obj.Data.Settings.Session.RootDirectory;
                     [SaveFileName,SavePathName] = uiputfile(Spec,Title,SaveFilePath);
                     if ~isequal(SaveFileName,0)
                         
@@ -919,7 +915,8 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                         '*.fig','MATLAB Figure'...
                         };
                     Title = 'Save as';
-                    SaveFilePath = pwd; %obj.LastPath;
+                    % TODO This is not likely to be the best way to determine the Session's Root directory.
+                    SaveFilePath = obj.Data.Settings.Session.RootDirectory;
                     [SaveFileName,SavePathName] = uiputfile(Spec,Title,SaveFilePath);
                     if ~isequal(SaveFileName,0)
                         
@@ -1111,20 +1108,20 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
 %                         end
 %                     end
                 case 'ShowTraces'
-                    obj.bShowTraces(axIndex) = ~obj.bShowTraces(axIndex);
-                    h.Checked = uix.utility.tf2onoff(obj.bShowTraces(axIndex));
+                    obj.Data.bShowTraces(axIndex) = ~obj.Data.bShowTraces(axIndex);
+                    h.Checked = uix.utility.tf2onoff(obj.Data.bShowTraces(axIndex));
                 case 'ShowQuantiles'
-                    obj.bShowQuantiles(axIndex) = ~obj.bShowQuantiles(axIndex);
-                    h.Checked = uix.utility.tf2onoff(obj.bShowQuantiles(axIndex));
+                    obj.Data.bShowQuantiles(axIndex) = ~obj.Data.bShowQuantiles(axIndex);
+                    h.Checked = uix.utility.tf2onoff(obj.Data.bShowQuantiles(axIndex));
                 case 'ShowMean'
-                    obj.bShowMean(axIndex) = ~obj.bShowMean(axIndex);
-                    h.Checked = uix.utility.tf2onoff(obj.bShowMean(axIndex));                    
+                    obj.Data.bShowMean(axIndex) = ~obj.Data.bShowMean(axIndex);
+                    h.Checked = uix.utility.tf2onoff(obj.Data.bShowMean(axIndex));                    
                 case 'ShowMedian'
-                    obj.bShowMedian(axIndex) = ~obj.bShowMedian(axIndex);
-                    h.Checked = uix.utility.tf2onoff(obj.bShowMedian(axIndex));
+                    obj.Data.bShowMedian(axIndex) = ~obj.Data.bShowMedian(axIndex);
+                    h.Checked = uix.utility.tf2onoff(obj.Data.bShowMedian(axIndex));
                 case 'ShowSD'
-                    obj.bShowSD(axIndex) = ~obj.bShowSD(axIndex);
-                    h.Checked = uix.utility.tf2onoff(obj.bShowSD(axIndex));
+                    obj.Data.bShowSD(axIndex) = ~obj.Data.bShowSD(axIndex);
+                    h.Checked = uix.utility.tf2onoff(obj.Data.bShowSD(axIndex));
             end
             
             % Update the display
@@ -1141,6 +1138,46 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                     obj.plotData();
                 end
             end
+            
+        end %function
+        
+        function onMaxTracesEdit(obj,h,e)
+            
+            NewValue = str2double(get(h,'Value'));
+            
+            % Return if value has not changed
+            if NewValue == obj.Data.MaxTracesToDisplay
+                return;
+            end
+            
+            if ~isnan(NewValue) && NewValue >= 1 && NewValue <= 200
+                    
+                % Assign value
+                obj.Data.MaxTracesToDisplay = NewValue;
+                
+                % Re-plot
+                obj.plotData();
+                
+                % Mark Dirty
+                notify(obj,'MarkDirty');
+                        
+            elseif NewValue >= 200
+                Prompt = sprintf('Plotting may take a while. Are you sure you want to continue with displaying %d traces?',NewValue);
+                Result = questdlg(Prompt,'Large number of traces to display','Continue','Cancel','Cancel');
+                if strcmpi(Result,'Continue')
+                    % Assign value
+                    obj.Data.MaxTracesToDisplay = NewValue;
+                    
+                    % Re-plot
+                    obj.plotData();
+                    
+                    % Mark Dirty
+                    notify(obj,'MarkDirty');
+                end
+            end %if
+            
+            % Update the view
+            updateVisualizationView(obj);
             
         end %function
         
@@ -1318,11 +1355,41 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                 end
                 
                 % Attach contextmenu
-                
                 for index = 1:obj.MaxNumPlots
                     hFigure = ancestor(obj.h.MainAxesContainer(index),'Figure');
                     obj.h.ContextMenu(index).Parent = hFigure;                
                     set(obj.h.MainAxes(index),'UIContextMenu',obj.h.ContextMenu(index));
+                end
+                
+                % Update contextmenu
+                if ~isempty(obj.Data)
+                    
+                    % Re-initialize
+                    initOptions(obj.Data);
+                    
+                    for index = 1:obj.MaxNumPlots
+                        
+                        % Y-Scale
+                        TheseCh = get(obj.h.ContextMenuYScale(index),'Children');
+                        set(TheseCh,'Checked','off')
+                        TheseChTags = get(TheseCh,'Tag');
+                        if strcmpi(obj.Data.PlotSettings(index).YScale,'linear')
+                            set(TheseCh(strcmpi(TheseChTags,'YScaleLinear')),'Checked','on');
+                        else
+                            set(TheseCh(strcmpi(TheseChTags,'YScaleLog')),'Checked','on');
+                        end
+                        
+                        % Traces
+                        set(obj.h.ContextMenuTraces(index),'Checked',uix.utility.tf2onoff(obj.Data.bShowTraces(index)));
+                        % Upper/lower quantiles
+                        set(obj.h.ContextMenuQuantiles(index),'Checked',uix.utility.tf2onoff(obj.Data.bShowQuantiles(index)));
+                        % Weighted mean
+                        set(obj.h.ContextMenuMean(index),'Checked',uix.utility.tf2onoff(obj.Data.bShowMean(index)));
+                        % Weighted median
+                        set(obj.h.ContextMenuMedian(index),'Checked',uix.utility.tf2onoff(obj.Data.bShowMedian(index)));
+                        % Weighted standard deviation
+                        set(obj.h.ContextMenuSD(index),'Checked',uix.utility.tf2onoff(obj.Data.bShowSD(index)));
+                    end
                 end
                 
                 % Update legends from PlotSettings

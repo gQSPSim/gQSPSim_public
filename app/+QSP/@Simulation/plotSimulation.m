@@ -205,7 +205,7 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
             ThisMarkerStyle = 'none';
         end
         N = size(ThisResult.Data,2)/length(ThisResult.SpeciesNames);
-        MAX_LINES = min(200, N) ;
+        MAX_LINES = min(obj.MaxTracesToDisplay, N) ;
         w0 = ThisResult.VpopWeights;
         if isempty(w0)
             w0 = ones(1, N);
@@ -288,6 +288,10 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
             'style',quantileStyle ...
             ); % hSpeciesGroup{sIdx,axIdx});
         
+        if isempty(SE)
+            continue
+        end
+        
         if isa(SE, 'matlab.graphics.chart.primitive.ErrorBar')
             % error bar (one time point)
             set(SE, 'Parent',hSpeciesGroup{sIdx,axIdx});
@@ -296,10 +300,7 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
             set([SE.meanLine,SE.medianLine,SE.edge,SE.patch],'Parent',hSpeciesGroup{sIdx,axIdx});
         end
         
-        if isempty(SE)
-            continue
-        end
-        
+      
         if obj.bShowMean(axIdx)
             set(SE.meanLine,'Visible','on');
         else

@@ -204,6 +204,10 @@ for ii = 1:nItems
     
     % get the task obj from the settings obj
     tskInd = find(strcmp(obj.Item(ii).TaskName,{obj.Settings.Task.Name}));
+    if length(tskInd) ~= 1
+        error('Wrong number of task objects found')
+    end
+    
     tObj_i = obj.Settings.Task(tskInd);
     
     % Validate
@@ -282,9 +286,11 @@ if obj.Session.UseParallel
             
             % gQSPSim paths
             paths = DefinePaths(false,false);
-            paths = horzcat(paths{:});
-            paths = strsplit(paths,pathsep);
-            paths(cellfun(@isempty,paths)) = [];
+%             paths = horzcat(paths{:});
+            if ~isempty(paths)
+                paths = strsplit(paths,pathsep);
+                paths(cellfun(@isempty,paths)) = [];               
+            end
                             
             
             cohortGenPaths = obj.getDependencyPaths();
@@ -356,8 +362,11 @@ end
 
 % StatusOK = all([StatusOK{:}]);
 
-if StatusOK && bProceed
-    hWbar = uix.utility.CustomWaitbar(0,'Saving virtual cohort','Saving virtual cohort...',true);
+if StatusOK && bProceed 
+    
+    if obj.Session.ShowProgressBars
+        hWbar = uix.utility.CustomWaitbar(0,'Saving virtual cohort','Saving virtual cohort...',true);
+    end
 
     SaveFlag = true;
     % add prevalence weight
@@ -406,8 +415,6 @@ if StatusOK && bProceed
     end
     
 %     obj.SimFlag = repmat(isValid, nIC, 1);
-      
- 
     
     if SaveFlag
         VpopName = ['Results - Cohort Generation = ' obj.Name ' - Date = ' datestr(now,'dd-mmm-yyyy_HH-MM-SS')];
@@ -415,8 +422,8 @@ if StatusOK && bProceed
         if ispc
             try
                 [ThisStatusOk,ThisMessage] = xlswrite(fullfile(SaveFilePath,ResultsFileName),Vpop);
-            catch error
-                fName = regexp(error.message, '(C:\\.*\.mat)', 'match');
+            catch e
+                fName = regexp(e.message, '(C:\\.*\.mat)', 'match');
                 if length(fName{1}) > 260
                     ThisMessage = sprintf('%s\n* Windows cannot save filepaths longer than 260 characters. See %s for more details.\n', ...
                        ThisMessage, 'https://www.howtogeek.com/266621/how-to-make-windows-10-accept-file-paths-over-260-characters/' );
@@ -445,8 +452,10 @@ if StatusOK && bProceed
         ThisMessage = 'Could not save the output of virtual cohort generation.';
         Message = sprintf('%s\n%s\n',Message,ThisMessage);
     end
-        
-    delete(hWbar)
+
+    if obj.Session.ShowProgressBars
+        delete(hWbar)
+    end
 end
 
 % restore path

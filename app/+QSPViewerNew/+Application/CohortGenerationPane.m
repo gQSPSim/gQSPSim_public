@@ -24,8 +24,10 @@ classdef CohortGenerationPane < QSPViewerNew.Application.ViewPane
     
     properties (Access = private)
         SelectedRow = 0;
-        SaveValues = {'Save all virtual subjects', 'Save valid virtual subjects'};
-
+        SaveValues = {
+            'Save all virtual subjects','all';
+            'Save valid virtual subjects','valid'
+            }
         
         DatasetPopupItems = {'-'}
         DatasetPopupItemsWithInvalid = {'-'}
@@ -1193,11 +1195,12 @@ classdef CohortGenerationPane < QSPViewerNew.Application.ViewPane
         end
         
         function redrawSavePref(obj)
-            obj.SavePrefDropDown.Items = obj.SaveValues;
-            if any(contains(obj.SaveValues,obj.TemporaryCohortGeneration.SaveInvalid))
+            obj.SavePrefDropDown.Items = obj.SaveValues(:,1);
+            obj.SavePrefDropDown.ItemsData = obj.SaveValues(:,2);
+            if any(contains(obj.SaveValues(:,2),obj.TemporaryCohortGeneration.SaveInvalid))
                 obj.SavePrefDropDown.Value =  obj.TemporaryCohortGeneration.SaveInvalid;
             else
-                obj.SavePrefDropDown.Value =obj.SaveValues{1};
+                obj.SavePrefDropDown.Value = obj.SaveValues{1,2};
             end
             
         end

@@ -57,6 +57,8 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
         PlotSettings = repmat(struct(),1,12)
         
         RedistributeWeights = false        
+        
+        MaxTracesToDisplay = 200
     end
     
     properties (SetAccess = 'private')
@@ -103,9 +105,11 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
             %    aObj = QSP.VirtualPopulationGeneration();
             
             % Populate public properties from P-V input pairs
-            obj.assignPVPairs(varargin{:});
+            obj.assignPVPairs(varargin{:});   
             
             % For compatibility
+            initOptions(obj);
+            
             if size(obj.PlotSpeciesTable,2) == 4
                 obj.PlotSpeciesTable(:,5) = obj.PlotSpeciesTable(:,3);
             end
@@ -758,7 +762,6 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
             validateattributes(Value,{'struct'},{});
             obj.PlotSettings = Value;
         end
-        
         
         function set.TaskGroupItems(obj,Value)
             validateattributes(Value,{'cell'},{'size',[nan,2]});

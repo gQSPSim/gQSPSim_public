@@ -212,6 +212,10 @@ classdef OptimizationData < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 elseif strcmpi(obj.DatasetType,'tall') && strcmpi(DestDatasetType,'wide')
                     % Tall -> Wide
                     
+                    allColNames = {'Group','ID','Time','Species','Value','Weight','Exclude'};
+                    metadataCols = ~contains( Header, allColNames,'IgnoreCase', true);
+                    
+                    
                     MatchSpecies = find(strcmpi(Header,'Species'));
                     MatchValue = find(strcmpi(Header,'Value'));
                     if numel(MatchSpecies) == 1 && numel(MatchValue) == 1

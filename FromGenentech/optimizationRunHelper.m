@@ -15,7 +15,9 @@ end
 % Initialize waitbar
 Title = sprintf('Run Optimization');
 DialogMessage = sprintf('Optimization in progress. Please wait...');
-hDlg = warndlg(DialogMessage,Title,'modal');
+if obj.Session.ShowProgressBars
+    hDlg = warndlg(DialogMessage,Title,'modal');
+end
 
 StatusOK = true;
 Message = '';
@@ -379,7 +381,7 @@ switch obj.AlgorithmName
         try
 %         VpopParams = lsqnonlin(@(est_p) objectiveFun(est_p,paramObj,ItemModels,Groups,IDs,Time,optimData,weights,dataNames,obj), p0, LB, UB, LSQopts);
         
-        VpopParams = fmincon(@(est_p) objectiveFun(est_p,paramObj,ItemModels,Groups,IDs,Time,optimData,weights,dataNames,obj), p0, [], [], [], [], LB, UB, [], opts);        
+        VpopParams = fmincon(@(est_p) objectiveFun(est_p,paramObj,ItemModels,Groups,IDs,Time,optimData,dataNames,obj), p0, [], [], [], [], LB, UB, [], opts);        
         VpopParams = VpopParams';
         catch err
             StatusOK = false;
@@ -553,7 +555,7 @@ end
 
 if SaveFlag
     VpopNames{end} = ['Results - Optimization = ' obj.Name ' - Date = ' timeStamp];
-    ResultsFileNames{end} = [VpopNames{end} '.xls'];
+    ResultsFileNames{end} = [VpopNames{end} '.xlsx'];
     try
         if ispc
             xlswrite(fullfile(SaveFilePath,ResultsFileNames{end}),Vpop);
@@ -797,7 +799,7 @@ end
 path(myPath);
 
 % close dialog
-if ~isempty(hDlg) && ishandle(hDlg)
+if obj.Session.ShowProgressBars && ~isempty(hDlg) && ishandle(hDlg)
     delete(hDlg);
 end
 

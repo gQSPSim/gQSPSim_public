@@ -87,7 +87,9 @@ simData = cell(nItems,1);
 unqTime = unique(cell2mat(vpopGenData(:,strcmp(vpopGenHeader,'Time'))));
 vpatData = cell(1,nItems);
 Title2 = sprintf('Simulating tasks...');
-hWbar2 = uix.utility.CustomWaitbar(0,Title2,'',true);
+if obj.Session.ShowProgressBars
+    hWbar2 = uix.utility.CustomWaitbar(0,Title2,'',true);
+end
 Cancelled = false;
 
 for ii = 1:nItems
@@ -115,13 +117,17 @@ for ii = 1:nItems
     end
         
 %     OutputTimes = union(taskObj.OutputTimes, unique(vpopGenData(:,strcmp(vpopGenHeader,'Time'))));
-    set(hWbar2, 'Name', sprintf('Simulating task %d of %d',ii,nItems))
-    uix.utility.CustomWaitbar(0,hWbar2,'');
+    if obj.Session.ShowProgressBars    
+        set(hWbar2, 'Name', sprintf('Simulating task %d of %d',ii,nItems))
+        uix.utility.CustomWaitbar(0,hWbar2,'');
+    end
     nPatients = size(Values,1);
     FailedVpatIdx = [];
     ThisTaskMessage = '';
     for vpatIdx = 1:nPatients
-        StatusOK = uix.utility.CustomWaitbar(vpatIdx/nPatients, hWbar2, sprintf('Simulating vpatient %d/%d', vpatIdx, nPatients));
+        if obj.Session.ShowProgressBars
+            StatusOK = uix.utility.CustomWaitbar(vpatIdx/nPatients, hWbar2, sprintf('Simulating vpatient %d/%d', vpatIdx, nPatients));
+        end
         
         % update wait bar
         if ~StatusOK
@@ -158,7 +164,7 @@ for ii = 1:nItems
     end
 end
 
-if ~isempty(hWbar2)
+if obj.Session.ShowProgressBars && ~isempty(hWbar2)
     delete(hWbar2)
 end
 
@@ -190,7 +196,9 @@ f = [];
 
 tic
 fprintf('Computing data statistics...')
-hWbar2 = uix.utility.CustomWaitbar(0,'Please wait', 'Computing data statistics...', false);
+if obj.Session.ShowProgressBars
+    hWbar2 = uix.utility.CustomWaitbar(0,'Please wait', 'Computing data statistics...', false);
+end
 
 for spIdx = 1:length(obj.SpeciesData)
     thisSpecies = obj.SpeciesData(spIdx).SpeciesName;
@@ -257,7 +265,9 @@ if strcmp(thisAlg, 'Maximum likelihood')
     redistributePW = obj.RedistributeWeights;
     minVpats = min(obj.MinNumVirtualPatients, nPatients);
     
-    uix.utility.CustomWaitbar(0, hWbar2, 'Computing prevalence weights...');    
+                     if obj.Session.ShowProgressBars
+    uix.utility.CustomWaitbar(0, hWbar2, 'Computing prevalence weights...');
+                     end
     
     if ~isempty(dataMatrix) 
         PW = computePW_MLE(dataMatrix,Y,diag(0.1 * abs(Y) + 1e-3),minVpats, redistributePW, M, f); 
@@ -300,7 +310,9 @@ if StatusOK
     end
         
     if SaveFlag
-        uix.utility.CustomWaitbar(0,hWbar2,'Writing vpop to disk...');    
+        if obj.Session.ShowProgressBars
+            uix.utility.CustomWaitbar(0,hWbar2,'Writing vpop to disk...');    
+        end
         
         VpopName = ['Results - Vpop Generation = ' obj.Name ' - Date = ' datestr(now,'dd-mmm-yyyy_HH-MM-SS')];
         ResultsFileName = [VpopName '.xlsx'];
@@ -327,7 +339,7 @@ if StatusOK
         Message = sprintf('%s\n%s\n',Message,ThisMessage);
     end
         
-    if ~isempty(hWbar2)
+    if obj.Session.ShowProgressBars && ~isempty(hWbar2)
         delete(hWbar2)
     end
 end

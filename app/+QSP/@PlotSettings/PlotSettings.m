@@ -617,7 +617,7 @@ classdef PlotSettings < matlab.mixin.SetGet & uix.mixin.AssignPVPairs
 %             end
         end %function
         function set.XGrid(obj,Value)
-            Value = validatestring(Value,obj.GridOptions);
+            Value = validatestring(char(Value),obj.GridOptions);
 %             if ~isempty(ancestor(obj.hAxes,'figure'))
                 set(obj.hAxes,'XGrid',Value);            
 %             end
@@ -632,7 +632,7 @@ classdef PlotSettings < matlab.mixin.SetGet & uix.mixin.AssignPVPairs
 %             end
         end %function
         function set.YGrid(obj,Value)
-            Value = validatestring(Value,obj.GridOptions);
+            Value = validatestring(char(Value),obj.GridOptions);
 %             if ~isempty(ancestor(obj.hAxes,'figure'))
                 set(obj.hAxes,'YGrid',Value);            
 %             end
@@ -647,7 +647,7 @@ classdef PlotSettings < matlab.mixin.SetGet & uix.mixin.AssignPVPairs
 %             end
         end %function
         function set.XMinorGrid(obj,Value)
-            Value = validatestring(Value,obj.GridOptions);
+            Value = validatestring(char(Value),obj.GridOptions);
 %             if ~isempty(ancestor(obj.hAxes,'figure'))
                 set(obj.hAxes,'XMinorGrid',Value);            
 %             end
@@ -662,7 +662,7 @@ classdef PlotSettings < matlab.mixin.SetGet & uix.mixin.AssignPVPairs
 %             end
         end %function
         function set.YMinorGrid(obj,Value)
-            Value = validatestring(Value,obj.GridOptions);
+            Value = validatestring(char(Value),obj.GridOptions);
 %             if ~isempty(ancestor(obj.hAxes,'figure'))
                 set(obj.hAxes,'YMinorGrid',Value);            
 %             end

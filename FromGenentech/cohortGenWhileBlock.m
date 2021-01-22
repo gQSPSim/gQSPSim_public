@@ -1,4 +1,4 @@
-function [Vpop, isValid, Results, ViolationTable, nPat, nSim, StatusOK, Message] = cohortGenWhileBlock(obj, args, hWbar, q_vp, stopFile)
+function [Vpop, isValid, Results, ViolationTable, nPat, nSim, bCancelled, StatusOK, Message] = cohortGenWhileBlock(obj, args, hWbar, q_vp, stopFile)
     
 nPat = 0;
 nSim = 0;
@@ -6,7 +6,7 @@ nError = 0;
 
 StatusOK = true;
 Message = '';
-
+bCancelled = false;
 
 % unpack args
 LB = args.LB;
@@ -47,6 +47,11 @@ LB_violation = [];
 UB_violation = [];
 ViolationTable = [];
 
+% output
+Vpop = [];
+isValid = [];
+Results = [];
+
 
 if ~isempty(setdiff(groupVec,cellfun(@str2num, obj.TaskGroupItems(:,2))))
     StatusOK = false;
@@ -82,7 +87,7 @@ for itemIdx = 1:length(obj.Item)
     UB_grp{itemIdx} = UB_accCrit(grpInds);
 
     % change output times for the exported model
-    OutputTimes{itemIdx} = sort(unique(Time_grp{itemIdx}));    
+    OutputTimes{itemIdx} = sort(union(unique(Time_grp{itemIdx}), taskObj{itemIdx}.OutputTimes));    
     
      % set the initial conditions to the value in the IC file if specified
     if ~isempty(ICTable)
@@ -140,11 +145,12 @@ waitStatus = true;
 LocalResults = cell(obj.MaxNumSimulations, length(unqGroups));
 for ixGrp = 1:length(obj.Item)
     NS(ixGrp) = length(grpData.taskObj{ixGrp}.ActiveSpeciesNames);
-    NT(ixGrp) = length(grpData.OutputTimes{ixGrp});
+    NT(ixGrp) = length(grpData.OutputTimes{ixGrp});  
     Results{ixGrp}.Data = zeros( NT(ixGrp) , NS(ixGrp) * obj.MaxNumSimulations);
 end
 VpopWeights = zeros(1,obj.MaxNumSimulations);
 Vpop = zeros(obj.MaxNumSimulations, length(perturbParamNames) + length(fixedParamNames));
+
 isValid = zeros(1,obj.MaxNumSimulations);
 
 % if ~isempty(getCurrentWorker) 
@@ -161,6 +167,7 @@ if ~isempty(stopFile)
 end
 
 param_candidate_old = P0_1;
+tune_param = obj.MCMCTuningParam;
 
 while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients % && gop(@plus, nPat) < obj.MaxNumVirtualPatients && gop(@plus,nSim) < obj.MaxNumSimulations
     
@@ -223,9 +230,8 @@ while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients % && gop(@plu
             isValid(nSim) = false; % no output produced
         end
     end
-
-
-    if ~StatusOK % exit loop if something went wrong
+    
+    if ~StatusOK % something went wrong
         isValid(nSim) = false;
         warning(Message)
         nError = nError + 1;
@@ -238,7 +244,7 @@ while nSim<obj.MaxNumSimulations && nPat<obj.MaxNumVirtualPatients % && gop(@plu
         param_candidate_old = param_candidate; % keep new candidate as starting point        
     end
     
-    if isValid(nSim) || ~strcmp(obj.SaveInvalid, 'Save valid vpatients')
+    if isValid(nSim) || ~strcmp(obj.SaveInvalid, 'Save valid virtual subjects')  
         for ixGrp = 1:length(obj.Item)
 
             dataIdx = (nSim-1)*NT(ixGrp)*NS(ixGrp) + (1:NS(ixGrp)*NT(ixGrp));
@@ -308,8 +314,6 @@ isValid = isValid(1:nSim);
 Vpop = Vpop(1:nSim,:);
 
 for ixGrp = 1:length(obj.Item)
-%     tmp = [LocalResults{:,ixGrp}];
-%     Results{ixGrp}.Data = horzcat(tmp.Data);
     Results{ixGrp}.VpopWeights = reshape(VpopWeights(1:nSim),[],1);
     Results{ixGrp}.Data = Results{ixGrp}.Data(:, 1:(NS(ixGrp)*nSim));
 end

@@ -46,6 +46,8 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         SimResultsFolderPath = {'SimResults'}
         SimResultsFolderName = ''
         
+        MaxTracesToDisplay = 200
+        
     end
       
     properties (Dependent)
@@ -64,7 +66,7 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         TaskVPopItems
     end
     
-    %% Constructor
+    % Constructor
     methods
         function obj = Simulation(varargin)
             % Simulation - Constructor for QSP.Simulation
@@ -84,9 +86,11 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             %    aObj = QSP.Simulation();
             
             % Populate public properties from P-V input pairs
-            obj.assignPVPairs(varargin{:});       
+            obj.assignPVPairs(varargin{:});   
             
             % For compatibility
+            initOptions(obj);
+            
             if size(obj.PlotSpeciesTable,2) == 3
                 obj.PlotSpeciesTable(:,4) = obj.PlotSpeciesTable(:,3);
             end

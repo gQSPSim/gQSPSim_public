@@ -66,6 +66,8 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         ShowInvalidVirtualPatients = true
         
         PlotSettings = repmat(struct(),1,12)
+        
+        MaxTracesToDisplay = 200
     end
     
     properties (SetAccess = 'private')
@@ -120,9 +122,11 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             %    aObj = QSP.CohortGeneration();
             
             % Populate public properties from P-V input pairs
-            obj.assignPVPairs(varargin{:});
+            obj.assignPVPairs(varargin{:});   
             
             % For compatibility
+            initOptions(obj);
+            
             if size(obj.PlotSpeciesTable,2) == 4
                 obj.PlotSpeciesTable(:,5) = obj.PlotSpeciesTable(:,3);
             end
@@ -660,7 +664,6 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                                         
                     % Results file - ONE file
                     ThisFilePath = fullfile(obj.Session.RootDirectory,obj.VPopResultsFolderName_new,obj.ExcelResultFileName);
-
                     if exist(ThisFilePath,'file') == 2
                         FileInfo = dir(ThisFilePath);                        
                         ResultLastSavedTime = FileInfo.datenum;
@@ -728,19 +731,19 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             files = {};
             for idxItem = 1:length(obj.Item)
 
-                % get model files
-                taskObj = obj.Session.getTaskItem(obj.Item(idxItem).TaskName );
-                mObj = obj.Session.getModelItem(taskObj.ModelName);
+                % get model files                
+                taskObj = obj.Session.GetTask(obj.Item(idxItem).TaskName);
+                mObj = obj.Session.GetModelItem(taskObj.ModelName);                
                 files = [files; mObj.FilePath];               
             end
             files = unique(files);
             
             % get acceptance criteria
-            acObj = obj.Session.getACItem(obj.DatasetName);
+            acObj = obj.Session.CreateAcceptanceCriteria(obj.DatasetName);
             files = [files; acObj.FilePath];
             
             % parameters
-            pObj = obj.Session.getParametersItem(obj.RefParamName);
+            pObj = obj.Session.GetParameter(obj.RefParamName);
             files = [files; pObj.FilePath];
 
         end

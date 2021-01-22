@@ -29,8 +29,8 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
     %% Properties
     properties
         Settings = QSP.Settings.empty(0,1)
-        OptimResultsFolderName = '' 
-        OptimResultsFolderPath = {'OptimResults'}
+        OptimResultsFolderPath = {'OptimResults'};
+        OptimResultsFolderName = ''
         
         ExcelResultFileName = {} % At least one file
         VPopName = {} % At least one Vpop
@@ -82,9 +82,9 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
     
     properties (Dependent=true)
         TaskGroupItems
+        SpeciesDataMapping
         OptimResultsFolderName_new
         OptimizationItems
-        SpeciesDataMapping
     end
     
     %% Constructor
@@ -107,9 +107,11 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             %    aObj = QSP.Optimization();
             
             % Populate public properties from P-V input pairs
-            obj.assignPVPairs(varargin{:});
+            obj.assignPVPairs(varargin{:});   
             
             % For compatibility
+            initOptions(obj);
+            
             if size(obj.PlotSpeciesTable,2) == 4
                 obj.PlotSpeciesTable(:,5) = obj.PlotSpeciesTable(:,3);
             end
