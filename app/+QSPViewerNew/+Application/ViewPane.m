@@ -691,7 +691,7 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
                         '*.eps','EPS';
                         };
                     Title = 'Save as';
-                    SaveFilePath = pwd; %obj.LastPath;
+                    SaveFilePath = getRootDirectory(obj);
                     [SaveFileName,SavePathName] = uiputfile(Spec,Title,SaveFilePath);
                     if ~isequal(SaveFileName,0)
                         
