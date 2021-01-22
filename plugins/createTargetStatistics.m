@@ -1,5 +1,19 @@
-% generate a new Target Statistics file from a Optimization Data file
+
 function createTargetStatistics(appObj, SelNodes)
+% createTargetStatistics
+%
+% Syntax:
+%       createTargetStatistics(appObj, SelNodes)
+%
+% Description:
+%           Generate a new Target Statistics file from a Optimization Data file       
+%
+% Inputs:
+%       QSPViewer.App object
+%       SelNodes
+%
+% Author:
+
 
 if length(SelNodes) ~= 1
     return

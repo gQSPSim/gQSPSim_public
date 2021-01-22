@@ -1,5 +1,17 @@
-% generate a new Target Statistics file from a Optimization Data file
 function createTargetStatistics_withDistributions(appObj, SelNodes)
+% createTargetStatistics_withDistributions
+%
+% Syntax:
+%       createTargetStatistics_withDistributions(appObj, SelNodes)
+%
+% Description:
+%           Generate a new Target Statistics file from a Optimization Data file
+%
+% Inputs:
+%       QSPViewer.App object
+%       SelNodes
+%
+% Author:
 
 hWbar = uix.utility.CustomWaitbar(0, 'Creating Target Statistics', 'Please wait', false);
 
