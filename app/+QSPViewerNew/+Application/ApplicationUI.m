@@ -1560,16 +1560,20 @@ classdef ApplicationUI < matlab.apps.AppBase
                     app.ActivePane.attachNewParameters(nodeData);
                 case 'QSPViewerNew.Application.OptimizationDataPane'
                     app.ActivePane.attachNewOptimizationData(nodeData);
-                case 'QSPViewerNew.Application.VirualPopulationDataPane'
-                    app.ActivePane.attachNewVirtPop(nodeData);
-                case 'QSPViewerNew.Application.VirualPopulationPane'
+                case 'QSPViewerNew.Application.VirtualPopulationDataPane'
                     app.ActivePane.attachNewVirtPopData(nodeData);
-                case 'QSPViewerNew.Application.VirualPopulationGenerationDataPane'
+                case 'QSPViewerNew.Application.VirtualPopulationPane'
+                    app.ActivePane.attachNewVirtualPopulation(nodeData);
+                case 'QSPViewerNew.Application.VirtualPopulationGenerationDataPane'
                     app.ActivePane.attachNewVirtPopGenData(nodeData);
                 case 'QSPViewerNew.Application.SimulationPane'
                     app.ActivePane.attachNewSimulation(nodeData);
+                case 'QSPViewerNew.Application.OptimizationPane'
+                    app.ActivePane.attachNewOptimization(nodeData);
                 case 'QSPViewerNew.Application.CohortGenerationPane'
                     app.ActivePane.attachNewCohortGeneration(nodeData);
+                case 'QSPViewerNew.Application.VirtualPopulationGenerationPane'
+                    app.ActivePane.attachNewVirtualPopulationGeneration(nodeData);
                 case 'QSPViewerNew.Application.GlobalSensitivityAnalysisPane'
                     app.ActivePane.attachNewGlobalSensitivityAnalysis(nodeData);
             end
