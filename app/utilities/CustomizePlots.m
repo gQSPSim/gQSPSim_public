@@ -272,6 +272,10 @@ if ~isempty(Settings)
         for index = 1:numel(Settings)
             ThisSummary = struct2cell(Settings(index).getSummary(PropertyGroup{pIndex}));
             ThisSummary = ThisSummary(:)';
+            ix = cellfun(@(x) isa(x, 'matlab.lang.OnOffSwitchState'), ThisSummary, 'UniformOutput', false);
+            ix = cell2mat(ix);
+            ThisSummary(ix) = cellfun(@char, ThisSummary(ix), 'UniformOutput', false);
+            
             Summary = [Summary; ThisSummary]; %#ok<AGROW>
         end
         Fields = Settings(1).(PropertyGroup{pIndex})(:,1);
