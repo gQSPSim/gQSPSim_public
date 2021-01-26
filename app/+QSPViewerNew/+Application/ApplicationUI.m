@@ -41,6 +41,19 @@ classdef ApplicationUI < matlab.apps.AppBase
         WindowButtonDownCallbacks = {};
         WindowButtonUpCallbacks = {};
         PluginFolder = fullfile(fileparts(fileparts(fileparts(fileparts(mfilename('fullpath'))))), 'plugins')
+        ItemTypes = {
+                'Dataset',                          'OptimizationData'
+                'Parameter',                        'Parameters'
+                'Task',                             'Task'
+                'Virtual Subject(s)',               'VirtualPopulation'
+                'Acceptance Criteria',              'VirtualPopulationData'
+                'Target Statistics',                'VirtualPopulationGenerationData'
+                'Simulation',                       'Simulation'
+                'Optimization',                     'Optimization'
+                'Cohort Generation',                'CohortGeneration'
+                'Virtual Population Generation',    'VirtualPopulationGeneration'
+                'Global Sensitivity Analysis',      'GlobalSensitivityAnalysis'
+                };
     end
     
     properties (SetAccess = private, Dependent = true, AbortSet = true)
@@ -145,7 +158,9 @@ classdef ApplicationUI < matlab.apps.AppBase
             setpref(app.TypeStr, 'LastFolder', app.LastFolder)
             setpref(app.TypeStr, 'RecentSessionPaths', app.RecentSessionPaths)
             setpref(app.TypeStr,'Position',app.UIFigure.Position)
-            setpref(app.TypeStr, 'PluginFolder',app.PluginManager.PluginFolder)
+            if isvalid(app.PluginManager)
+                setpref(app.TypeStr, 'PluginFolder',app.PluginManager.PluginFolder)
+            end
             
             %Delete UI
             delete(app.UIFigure)
@@ -529,24 +544,11 @@ classdef ApplicationUI < matlab.apps.AppBase
         
         function createContextMenu(app,Node,Type)
             %Determine if this ContextMenu is from QSP
-            ItemTypes = {
-                'Dataset',                          'OptimizationData'
-                'Parameter',                        'Parameters'
-                'Task',                             'Task'
-                'Virtual Subject(s)',               'VirtualPopulation'
-                'Acceptance Criteria',              'VirtualPopulationData'
-                'Target Statistics',                'VirtualPopulationGenerationData'
-                'Simulation',                       'Simulation'
-                'Optimization',                     'Optimization'
-                'Cohort Generation',                'CohortGeneration'
-                'Virtual Population Generation',    'VirtualPopulationGeneration'
-                'Global Sensitivity Analysis',      'GlobalSensitivityAnalysis'
-                };
-            Index = find(strcmpi(Type,ItemTypes(:,1)));
+            Index = find(strcmpi(Type,app.ItemTypes(:,1)));
             
             %If the Node is from a QSP class
             if ~isempty(Index)
-                ThisItemType = ItemTypes{Index,2};
+                ThisItemType = app.ItemTypes{Index,2};
                 
                 %If it is an instance of a QSP Class
                 if ~isempty(Node.UserData)
@@ -634,9 +636,10 @@ classdef ApplicationUI < matlab.apps.AppBase
         end
         
         function updateItemTypePluginMenus(app, CM, thisItemType, Node)
+%             app.PluginManager = QSPViewerNew.Dialogs.PluginManager;
             pluginTable = app.PluginManager.PluginTableData;
             
-            % Get runpluginMenu 
+            % Get runpluginMenu
             allMenuText = vertcat({vertcat(CM.Children).Text});
             runpluginMenuIdx = cellfun(@(x) contains(x, 'Run plugins...'), allMenuText);
             runpluginMenu = CM.Children(runpluginMenuIdx);
@@ -661,60 +664,33 @@ classdef ApplicationUI < matlab.apps.AppBase
                 else
                     thisItemAvailablePlugins = thisItemPlugins ;
                 end
-                [~,ia] = unique(thisItemAvailablePlugins.File, 'stable');
-                thisItemAvailablePlugins = thisItemAvailablePlugins(ia,:);
-                
-                % check if these plugins are already present
-                if ~isempty(runpluginMenu.Children)
-                    allMenuUserData = {vertcat(runpluginMenu.Children).UserData};
-                    allMenuUserData = allMenuUserData(cellfun(@(x) ~isempty(x), allMenuUserData));
-                    [~,todelIdx] = setdiff(string(allMenuUserData), thisItemAvailablePlugins.File);
-                    allMenuUserData(todelIdx) = [];
-                    [~,toaddIdx] = setdiff(thisItemAvailablePlugins.File, string(allMenuUserData));
-                    availablePluginMenus = thisItemAvailablePlugins(toaddIdx,:);
-                else
-                    availablePluginMenus = thisItemAvailablePlugins;
-                    allMenuUserData = [];
-                end
                 
                 % create a menu for every plugin for the first five
                 % plugins
                 numPlugin = 5;
-                numPlugin = min(numPlugin-length(allMenuUserData), height(availablePluginMenus));
+                numPlugin = min(numPlugin, height(thisItemAvailablePlugins));
                 
+                delete(runpluginMenu.Children);
                 for cntPlugin=1:numPlugin
                     uimenu(...
                         'Parent', runpluginMenu,...
-                        'Text', availablePluginMenus.Name(cntPlugin),...
+                        'Text', thisItemAvailablePlugins.Name(cntPlugin),...
                         'MenuSelectedFcn', @(h,e) app.applyPlugin(Node.NodeData, ...
-                        availablePluginMenus.FunctionHandle(cntPlugin)), ...
-                        'UserData', availablePluginMenus.File(cntPlugin));
+                        thisItemAvailablePlugins.FunctionHandle(cntPlugin)), ...
+                        'UserData', thisItemAvailablePlugins.File(cntPlugin));
                 end
                 
-                % check if there already is a more options menu
-                if ~isempty(runpluginMenu.Children)
-                    allMenuText = {vertcat(runpluginMenu.Children).Text};
-                    optsmenuidx = strcmp(string(allMenuText), 'More options...');
-                    if ~any(optsmenuidx)
-                        if height(thisItemAvailablePlugins)>numPlugin
-                            uimenu(...
-                                'Parent', runpluginMenu,...
-                                'Text', 'More options...',...
-                                'Separator', 'on', ...
-                                'MenuSelectedFcn', @(h,e) app.onOpenPluginListDialog(Node, thisItemAvailablePlugins));
-                        end
-                    else
-                        optsmenu = runpluginMenu.Children(optsmenuidx);
-                        if height(thisItemAvailablePlugins)>numPlugin
-                            optsmenu.MenuSelectedFcn = @(h,e) app.onOpenPluginListDialog(Node, thisItemAvailablePlugins);
-                        else
-                            delete(optsmenu);
-                        end
-                    end
+                % if more than 5 plugins, create, more options menu
+                if height(thisItemAvailablePlugins)>numPlugin
+                    uimenu(...
+                        'Parent', runpluginMenu,...
+                        'Text', 'More options...',...
+                        'Separator', 'on', ...
+                        'MenuSelectedFcn', @(h,e) app.onOpenPluginListDialog(Node, thisItemAvailablePlugins));
                 end
-                
             end
         end
+
     end
     
     % %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %%
@@ -1016,43 +992,13 @@ classdef ApplicationUI < matlab.apps.AppBase
         end
        
     function onOpenPluginManager(app)
-        if isempty(app.PluginManager.PluginFolder) || ...
-            ~exist(app.PluginManager.PluginFolder, 'dir')
-            uialert(app.UIFigure, 'Plugins folder could not be found on current path. Choose a plugins folder.', ...
-                'Warning', 'Icon', 'warning', 'Closefcn', @(s,e) choosePluginFolder(app));
-        else
-            app.PluginManager.DisplayFlag = true;
-        end
-        
-        function choosePluginFolder(app)
-            selpath = uigetdir;
-            drawnow;
-            app.UIFigure;
-            if selpath
-                app.PluginFolder = selpath;
-                app.PluginManager.PluginFolder = app.PluginFolder;
-                app.PluginManager.DisplayFlag = true;
-            end
-        end
+        app.PluginManager = QSPViewerNew.Dialogs.PluginManager;
+        app.PluginManager.PluginFolder = app.PluginFolder;
     end
     
     function updateAllPluginMenus(app, ~)
         if ~isempty(app.Sessions)
             %Determine if this ContextMenu is from QSP
-            ItemTypes = {
-                'OptimizationData'
-                'Parameters'
-                'Task'
-                'VirtualPopulation'
-                'VirtualPopulationData'
-                'VirtualPopulationGenerationData'
-                'Simulation'
-                'Optimization'
-                'CohortGeneration'
-                'VirtualPopulationGeneration'
-                'GlobalSensitivityAnalysis'
-                };
-            
             allSessions = vertcat(app.Sessions);
             allSessTreeNodes = vertcat(allSessions.TreeNode);
             allTopTreenodes = vertcat(allSessTreeNodes.Children);
@@ -1063,8 +1009,8 @@ classdef ApplicationUI < matlab.apps.AppBase
                     thisItemType = allItemTypes(i).Children(thisItemTypeIdx);
                     thisItemTypeClass = split(class(thisItemType.NodeData),'.');
                     thisItemTypeClass = string(thisItemTypeClass(end));
-                    typeIdx = cellfun(@(x) thisItemTypeClass==string(x), ItemTypes);
-                    type = ItemTypes{typeIdx};
+                    typeIdx = cellfun(@(x) thisItemTypeClass==string(x), app.ItemTypes(:,2));
+                    type = app.ItemTypes{typeIdx,2};
                     app.updateItemTypePluginMenus(thisItemType.ContextMenu, type, thisItemType);
                 end
             end
@@ -2018,18 +1964,9 @@ classdef ApplicationUI < matlab.apps.AppBase
         end
         
         function createPluginManager(app)
-            if isempty(app.PluginFolder)
-                % search for plugins folder in current directory
-                p = genpath(pwd);
-                pathStr = regexp(p,pathsep,'split');
-                ind = contains(pathStr,[filesep,'plugins']);
-                foundPath = pathStr(ind);
-                if ~isempty(foundPath)
-                    app.PluginFolder = foundPath{1};
-                end
-            end
-            
-            app.PluginManager = QSPViewerNew.Dialogs.PluginManager(app.PluginFolder, false);
+            displayFlag = false;
+            app.PluginManager = QSPViewerNew.Dialogs.PluginManager(displayFlag);
+            app.PluginManager.PluginFolder = app.PluginFolder;
             
             % Attach listener to plugin table property to update context
             % menus
