@@ -160,6 +160,7 @@ classdef ApplicationUI < matlab.apps.AppBase
             setpref(app.TypeStr,'Position',app.UIFigure.Position)
             if isvalid(app.PluginManager)
                 setpref(app.TypeStr, 'PluginFolder',app.PluginManager.PluginFolder)
+                delete(app.PluginManager);
             end
             
             %Delete UI
@@ -572,7 +573,8 @@ classdef ApplicationUI < matlab.apps.AppBase
                         'Parent', CM,...
                         'Text', 'Run plugins...',...
                         'Separator', 'on');
-                    app.updateItemTypePluginMenus(CM, ThisItemType, Node);
+                    Node.ContextMenu = CM;
+                    app.updateItemTypePluginMenus(ThisItemType, Node);
                 end
             else
                 switch Type
@@ -635,11 +637,12 @@ classdef ApplicationUI < matlab.apps.AppBase
            end
         end
         
-        function updateItemTypePluginMenus(app, CM, thisItemType, Node)
+        function updateItemTypePluginMenus(app, thisItemType, Node)
 %             app.PluginManager = QSPViewerNew.Dialogs.PluginManager;
             pluginTable = app.PluginManager.PluginTableData;
             
             % Get runpluginMenu
+            CM = Node.ContextMenu;
             allMenuText = vertcat({vertcat(CM.Children).Text});
             runpluginMenuIdx = cellfun(@(x) contains(x, 'Run plugins...'), allMenuText);
             runpluginMenu = CM.Children(runpluginMenuIdx);
@@ -654,13 +657,17 @@ classdef ApplicationUI < matlab.apps.AppBase
                 defaultPluginTable = table('Size',[0 5],...
                     'VariableTypes',{'string','string','string','string','cell'},...
                     'VariableNames',{'Name','Type','File','Description','FunctionHandle'});
-                mostRecentPlugins = getpref('pluginsRecent', thisItemType, defaultPluginTable);
+                mostRecentPlugins = getpref(app.TypeStr, strcat('recent', thisItemType), defaultPluginTable);
                 
                 % Check if most recent plugins are part of
                 % currently available plugins
                 if ~isempty(mostRecentPlugins)
-                    thisItemAvailablePlugins = mostRecentPlugins(mostRecentPlugins.File == thisItemPlugins.File,:);
-                    thisItemAvailablePlugins = vertcat(thisItemAvailablePlugins, thisItemPlugins);
+                    thisItemAvailablePlugins = vertcat(mostRecentPlugins, thisItemPlugins);
+                    
+                    % remove function handle column to get unique rows
+                    pluginT = removevars(thisItemAvailablePlugins, 'FunctionHandle');
+                    [~, ia] = unique(pluginT, 'stable', 'rows');
+                    thisItemAvailablePlugins = thisItemAvailablePlugins(ia,:);
                 else
                     thisItemAvailablePlugins = thisItemPlugins ;
                 end
@@ -675,8 +682,8 @@ classdef ApplicationUI < matlab.apps.AppBase
                     uimenu(...
                         'Parent', runpluginMenu,...
                         'Text', thisItemAvailablePlugins.Name(cntPlugin),...
-                        'MenuSelectedFcn', @(h,e) app.applyPlugin(Node.NodeData, ...
-                        thisItemAvailablePlugins.FunctionHandle(cntPlugin)), ...
+                        'MenuSelectedFcn', @(h,e) app.applyPlugin(Node, ...
+                        thisItemAvailablePlugins(cntPlugin,:)), ...
                         'UserData', thisItemAvailablePlugins.File(cntPlugin));
                 end
                 
@@ -1006,12 +1013,12 @@ classdef ApplicationUI < matlab.apps.AppBase
             
             for i = 1:length(allItemTypes)
                 for thisItemTypeIdx = 1:length(allItemTypes(i).Children)
-                    thisItemType = allItemTypes(i).Children(thisItemTypeIdx);
-                    thisItemTypeClass = split(class(thisItemType.NodeData),'.');
+                    thisItemNode = allItemTypes(i).Children(thisItemTypeIdx);
+                    thisItemTypeClass = split(class(thisItemNode.NodeData),'.');
                     thisItemTypeClass = string(thisItemTypeClass(end));
                     typeIdx = cellfun(@(x) thisItemTypeClass==string(x), app.ItemTypes(:,2));
                     type = app.ItemTypes{typeIdx,2};
-                    app.updateItemTypePluginMenus(thisItemType.ContextMenu, type, thisItemType);
+                    app.updateItemTypePluginMenus(type, thisItemNode);
                 end
             end
             
@@ -1024,12 +1031,33 @@ classdef ApplicationUI < matlab.apps.AppBase
             'OKString', 'Apply');
         
         if tf
-            applyPlugin(app, Node.NodeData, thisItemAvailablePlugins.FunctionHandle(indx));
+            applyPlugin(app, Node, thisItemAvailablePlugins(indx,:));
         end
     end
     
-    function applyPlugin(~, nodeData, plugin)
-        plugin{1}(nodeData);
+    function applyPlugin(app, Node, plugin)
+        % Get most recently used plugins for this type and 
+        % add current plugin to list 
+        defaultPluginTable = table('Size',[0 5],...
+            'VariableTypes',{'string','string','string','string','cell'},...
+            'VariableNames',{'Name','Type','File','Description','FunctionHandle'});
+        mostRecentPlugins = getpref(app.TypeStr, strcat('recent', plugin.Type), defaultPluginTable);
+        mostRecentPlugins = [plugin; mostRecentPlugins];
+        
+        % remove function handle column to get unique rows
+        pluginT = removevars(mostRecentPlugins, 'FunctionHandle');
+        [~, ia] = unique(pluginT, 'stable', 'rows');
+        mostRecentPlugins = mostRecentPlugins(ia,:);
+        
+        setpref(app.TypeStr, strcat('recent', plugin.Type), mostRecentPlugins);
+        
+        plugin.FunctionHandle{1}(Node.NodeData);
+        
+        % update context menus for all children of this node
+        thisNodeParent = Node.Parent;
+        for node =1:length(thisNodeParent.Children)
+            app.updateItemTypePluginMenus(plugin.Type, thisNodeParent.Children(node));
+        end
     end
     end
     

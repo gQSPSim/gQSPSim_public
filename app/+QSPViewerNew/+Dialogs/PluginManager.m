@@ -246,7 +246,12 @@ classdef PluginManager < matlab.apps.AppBase
             else
                 pluginTableDisplayData = app.PluginTableData(ismissing(app.PluginTableData.Type),:);
             end
+            % remove function handle for display
             app.PluginTableDisplayData = removevars(pluginTableDisplayData, 'FunctionHandle');
+            
+            % remove full file path for 'File' column while display
+            [~,name,~] = fileparts(app.PluginTableDisplayData.File);
+            app.PluginTableDisplayData.File = strcat(name, '.m');
         end
         
         function updatePluginTableData(app)
@@ -270,7 +275,7 @@ classdef PluginManager < matlab.apps.AppBase
                     pluginTable.Name(i) = extractBefore(pluginFiles(i).name, '.m');
                     
                     % File column
-                    pluginTable.File(i) = pluginFiles(i).name;
+                    pluginTable.File(i) = fileloc;
                     
                     % Type column
                     typeLineIdx = find(contains(data, 'Inputs'))+1;
