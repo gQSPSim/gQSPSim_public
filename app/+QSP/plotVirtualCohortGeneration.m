@@ -126,6 +126,7 @@ if strcmpi(Mode,'Cohort') && ~isempty(obj.MatFileName) % only cohort has MatFile
         CohortGenResults = CohortGenResults.Results;
     catch error
         warning('Error loading cached cohort generation results file %s', fullfile(obj.FilePath, obj.VPopResultsFolderName_new, obj.MatFileName))
+        CohortGenResults = {};
     end
 end
 
@@ -558,7 +559,11 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
                         set(SE, 'Visible', 'off')
                     end
                 end
-            end %if            
+            
+            else % all invalid
+                vpopWeights = zeros(1,length(ColumnIdx));
+                
+            end %if
             
             % Plot bounds - Cohort only
             if strcmpi(Mode,'Cohort')
