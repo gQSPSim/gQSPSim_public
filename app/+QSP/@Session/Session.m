@@ -801,6 +801,9 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
                             if nnz(MatchIdx) > 1
                                 warning('Multiple reactions with same equation. Please update tasks before running')
                                 continue
+                            elseif ~any(MatchIdx)
+                                warning('Invalid inactive reaction')     
+                                continue
                             end
                             obj.Settings.Task(index).InactiveReactionNames(ixReact) = obj.Settings.Task(index).ReactionNames(MatchIdx);
                         end
@@ -815,6 +818,9 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
                             MatchIdx = strcmp(obj.Settings.Task(index).ModelObj.RuleNames, obj.Settings.Task(index).InactiveRuleNames(ixRule));
                             if nnz(MatchIdx) > 1
                                 warning('Multiple rules with same equation. Please update tasks before running')
+                                continue
+                            elseif ~any(MatchIdx)
+                                warning('Invalid inactive rule')     
                                 continue
                             end                            
                             obj.Settings.Task(index).InactiveRuleNames(ixRule) = obj.Settings.Task(index).RuleNames(MatchIdx);
