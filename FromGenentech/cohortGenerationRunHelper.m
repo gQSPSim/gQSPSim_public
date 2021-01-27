@@ -375,7 +375,7 @@ if StatusOK && bProceed
 
     VpopHeader = [Names0; 'PWeight']';
 
-   if strcmp(obj.SaveInvalid, 'Save valid virtual subjects')
+   if strcmp(obj.SaveInvalid, 'valid')
         % filter out invalids
         Vpop = Vpop(isValid==1,:);
         isValid = true(size(Vpop,1),1);
