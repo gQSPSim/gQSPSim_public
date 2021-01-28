@@ -24,12 +24,7 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
         PlotSettings = QSP.PlotSettings.empty(1,0)
     end
     
-    properties (SetAccess=protected)
-       bShowTraces = [];
-       bShowQuantiles = [];
-       bShowMean = [];
-       bShowMedian = [];
-       bShowSD = [];
+    properties (SetAccess=protected)       
        PlotArray = matlab.ui.control.UIAxes.empty(12,0);
        VisDirty = false;
        AxesLegend
@@ -37,7 +32,7 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
        SpeciesGroup
        DatasetGroup
     end
-  
+    
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Graphical Components
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -454,6 +449,21 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
                obj.RemoveButton.Tooltip = 'Remove Invalid Visualization';
                obj.RemoveButton.ButtonPushedFcn = @(~,~) obj.onRemoveInvalidVisualization();
                
+               if strcmpi(class(obj),'QSPViewerNew.Application.VirtualPopulationGenerationPane')
+                    initbShowTraces = false; % default off
+                    initbShowQuantiles = true; % default on
+                    initbShowMean = true; % default on
+                    initbShowMedian = false; % default off
+                    initbShowSD = false; % default off
+                else
+                    initbShowTraces = false; % default off
+                    initbShowQuantiles = true; % default on
+                    initbShowMean = false; % default off
+                    initbShowMedian = true; % default on
+                    initbShowSD = false; % default off
+               end
+
+                
                %Create all plot objects
                for plotIndex = 1:obj.MaxNumPlots
                     obj.PlotArray(plotIndex) = uiaxes('Parent',obj.EmptyParent);
@@ -532,40 +542,34 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
                     obj.SaveFullMenu(plotIndex).Tag = 'ExportAllAxes';
                     obj.SaveFullMenu(plotIndex).MenuSelectedFcn = @(h,e) obj.onAxisContextMenu(h,e);
                     
-                    obj.bShowTraces(plotIndex) = 0; % default off
-                    obj.bShowQuantiles(plotIndex) = 0; % default on
-                    obj.bShowMean(plotIndex)= 1; % default on
-                    obj.bShowMedian(plotIndex) = 1; % default off
-                    obj.bShowSD(plotIndex) = 0; % default off
-                    
                     obj.TracesMenu(plotIndex) = uimenu(obj.ContextMenuArray(plotIndex));
                     obj.TracesMenu(plotIndex).Label = 'Show Traces';
-                    obj.TracesMenu(plotIndex).Checked = obj.bShowTraces(plotIndex);
+                    obj.TracesMenu(plotIndex).Checked = initbShowTraces;
                     obj.TracesMenu(plotIndex).Separator = 'on';
                     obj.TracesMenu(plotIndex).Tag = 'ShowTraces';
                     obj.TracesMenu(plotIndex).MenuSelectedFcn = @(h,e) obj.onAxisContextMenu(h,e);
                     
                     obj.QuantilesMenu(plotIndex) = uimenu(obj.ContextMenuArray(plotIndex));
                     obj.QuantilesMenu(plotIndex).Label = 'Show Upper/Lower Quantiles';
-                    obj.QuantilesMenu(plotIndex).Checked = obj.bShowQuantiles(plotIndex);
+                    obj.QuantilesMenu(plotIndex).Checked = initbShowQuantiles;
                     obj.QuantilesMenu(plotIndex).Tag = 'ShowQuantiles';
                     obj.QuantilesMenu(plotIndex).MenuSelectedFcn = @(h,e) obj.onAxisContextMenu(h,e);
                     
                     obj.MeanMenu(plotIndex) = uimenu(obj.ContextMenuArray(plotIndex));
                     obj.MeanMenu(plotIndex).Label = 'Show Mean (Weighted)';
-                    obj.MeanMenu(plotIndex).Checked = obj.bShowMean(plotIndex);
+                    obj.MeanMenu(plotIndex).Checked = initbShowMean;
                     obj.MeanMenu(plotIndex).Tag = 'ShowMean';
                     obj.MeanMenu(plotIndex).MenuSelectedFcn = @(h,e) obj.onAxisContextMenu(h,e);
                     
                     obj.MedianMenu(plotIndex) = uimenu(obj.ContextMenuArray(plotIndex));
                     obj.MedianMenu(plotIndex).Label = 'Show Median (Weighted)';
-                    obj.MedianMenu(plotIndex).Checked = obj.bShowMedian(plotIndex);
+                    obj.MedianMenu(plotIndex).Checked = initbShowMedian;
                     obj.MedianMenu(plotIndex).Tag = 'ShowMedian';
                     obj.MedianMenu(plotIndex).MenuSelectedFcn = @(h,e) obj.onAxisContextMenu(h,e);
                     
                     obj.StandardDeviationMenu(plotIndex) = uimenu(obj.ContextMenuArray(plotIndex));
                     obj.StandardDeviationMenu(plotIndex).Label = 'Show Standard Deviation (Weighted)';
-                    obj.StandardDeviationMenu(plotIndex).Checked = obj.bShowSD(plotIndex);
+                    obj.StandardDeviationMenu(plotIndex).Checked = initbShowSD;
                     obj.StandardDeviationMenu(plotIndex).Tag = 'ShowSD';
                     obj.StandardDeviationMenu(plotIndex).MenuSelectedFcn = @(h,e) obj.onAxisContextMenu(h,e);
                end
@@ -651,6 +655,9 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
             
             plotIndex = str2double(erase(ancestor(h,'uicontextmenu').Tag,'plot'));
             CurrentPlot = obj.PlotArray(plotIndex);
+            
+            BackEnd = obj.getBackEnd;
+            
             %Determine what our action should be
             switch h.Tag
                 case 'YScaleLinear'
@@ -766,24 +773,24 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
                         set(hFigure,'pointer','arrow');
                     end
                 case 'ShowTraces'
-                    obj.bShowTraces(plotIndex) = ~obj.bShowTraces(plotIndex);
-                    h.Checked = obj.bShowTraces(plotIndex);
+                    BackEnd.bShowTraces(plotIndex) = ~BackEnd.bShowTraces(plotIndex);
+                    h.Checked = BackEnd.bShowTraces(plotIndex);
                     obj.refreshVisualization(plotIndex);
                 case 'ShowQuantiles'
-                    obj.bShowQuantiles(plotIndex) = ~obj.bShowQuantiles(plotIndex);
-                    h.Checked = obj.bShowQuantiles(plotIndex);
+                    BackEnd.bShowQuantiles(plotIndex) = ~BackEnd.bShowQuantiles(plotIndex);
+                    h.Checked = BackEnd.bShowQuantiles(plotIndex);
                     obj.refreshVisualization(plotIndex);
                 case 'ShowMean'
-                    obj.bShowMean(plotIndex) = ~obj.bShowMean(plotIndex);
-                    h.Checked = obj.bShowMean(plotIndex);         
+                    BackEnd.bShowMean(plotIndex) = ~BackEnd.bShowMean(plotIndex);
+                    h.Checked = BackEnd.bShowMean(plotIndex);         
                     obj.refreshVisualization(plotIndex);
                 case 'ShowMedian'
-                    obj.bShowMedian(plotIndex) = ~obj.bShowMedian(plotIndex);
-                    h.Checked = obj.bShowMedian(plotIndex);
+                    BackEnd.bShowMedian(plotIndex) = ~BackEnd.bShowMedian(plotIndex);
+                    h.Checked = BackEnd.bShowMedian(plotIndex);
                     obj.refreshVisualization(plotIndex);
                 case 'ShowSD'
-                    obj.bShowSD(plotIndex) = ~obj.bShowSD(plotIndex);
-                    h.Checked = obj.bShowSD(plotIndex);
+                    BackEnd.bShowSD(plotIndex) = ~BackEnd.bShowSD(plotIndex);
+                    h.Checked = BackEnd.bShowSD(plotIndex);
                     obj.refreshVisualization(plotIndex);
             end
                       
@@ -1180,6 +1187,41 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
             end 
         end
         
+        function redrawAxesContextMenu(obj)
+        
+            BackEnd = obj.getBackEnd;
+            if ~isempty(BackEnd)
+                % Re-initialize
+                initOptions(BackEnd);
+                
+                for index = 1:obj.MaxNumPlots
+                    % Y-Scale
+                    if strcmpi(BackEnd.PlotSettings(index).YScale,'linear')
+                        obj.YLinearMenu(index).Checked = 'on';
+                        obj.YLogMenu(index).Checked = 'off';
+                    else
+                        obj.YLinearMenu(index).Checked = 'off';
+                        obj.YLogMenu(index).Checked = 'on';
+                    end
+                    
+                    % Traces
+                    obj.TracesMenu(index).Checked = BackEnd.bShowTraces(index);
+                    
+                    % Upper/Lower quantiles
+                    obj.QuantilesMenu(index).Checked = BackEnd.bShowQuantiles(index);
+                    
+                    % Weighted mean
+                    obj.MeanMenu(index).Checked = BackEnd.bShowMean(index);
+                    
+                    % Weighted median
+                    obj.MedianMenu(index).Checked = BackEnd.bShowMedian(index);
+                    
+                    % Weighted standard deviation
+                    obj.StandardDeviationMenu(index).Checked = BackEnd.bShowSD(index);
+                end
+            end
+        end
+            
     end
 
     methods(Access = public)
