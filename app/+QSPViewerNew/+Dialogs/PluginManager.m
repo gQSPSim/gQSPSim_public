@@ -52,7 +52,7 @@ classdef PluginManager < matlab.apps.AppBase
     methods
         
         % Construct app
-        function app = PluginManager(varargin)
+        function app = PluginManager()
             runningApp = getRunningApp(app);
 
             % Check for running plugin manager app
@@ -74,12 +74,12 @@ classdef PluginManager < matlab.apps.AppBase
                 app = runningApp;
             end
             
-            if nargin==1
-                displayFlag = varargin{1};
-                if ~displayFlag
-                    app.UIFigure.Visible = 'off';
-                end
-            end
+%             if nargin==1
+%                 displayFlag = varargin{1};
+%                 if ~displayFlag
+%                     app.UIFigure.Visible = 'off';
+%                 end
+%             end
             
             if nargout == 0
                 clear app
@@ -255,63 +255,7 @@ classdef PluginManager < matlab.apps.AppBase
         end
         
         function updatePluginTableData(app)
-            if ~isempty(app.PluginFolder) && exist(app.PluginFolder, 'dir')
-                pluginFiles = dir(fullfile(app.PluginFolder, '*.m'));
-                
-                % Initialize plugin table
-                pluginTable = table('Size',[length(pluginFiles) 5],...
-                    'VariableTypes',{'string','string','string','string','cell'},...
-                    'VariableNames',{'Name','Type','File','Description','FunctionHandle'});
-                
-                for i = 1:length(pluginFiles)
-                    fileloc = fullfile(app.PluginFolder, pluginFiles(i).name);
-                    fID = fopen(fileloc, 'r');
-                    fileData = fread(fID);
-                    fclose(fID);
-                    
-                    % Name column
-                    chardata = char(fileData');
-                    data = splitlines(string(chardata));
-                    pluginTable.Name(i) = extractBefore(pluginFiles(i).name, '.m');
-                    
-                    % File column
-                    pluginTable.File(i) = fileloc;
-                    
-                    % Type column
-                    typeLineIdx = find(contains(data, 'Inputs'))+1;
-                    if ~isempty(typeLineIdx)
-                        inputType =  strtrim(extractBetween(data(typeLineIdx), '%', 'object'));
-                        inputType = split(inputType,'.');
-                        if ~isempty(inputType) && inputType(end) ~= ""
-                            pluginTable.Type(i) = inputType(end);
-                        end
-                    end
-                    
-                    % Description column
-                    descriptionLineIdx = find(contains(data, 'Description'))+1;
-                    if ~isempty(descriptionLineIdx)
-                        description = strtrim(extractAfter(data(descriptionLineIdx), '%'));
-                        if ~isempty(description) && description ~= ""
-                            pluginTable.Description(i) = description;
-                        end
-                    end
-                    
-                    % Function handle column
-                    currentDir = pwd;
-                    cd(app.PluginFolder);
-                    try
-                        pluginTable.FunctionHandle{i} = str2func(pluginTable.Name(i));
-                    catch ME
-                        warning(ME.message);
-                    end
-                    cd(currentDir);
-                end
-            else
-                pluginTable = table('Size',[0 5],...
-                    'VariableTypes',{'string','string','string','string','function_handle'},...
-                    'VariableNames',{'Name','Type','File','Description','FunctionHandle'});
-            end
-            
+            pluginTable = getPlugins(app.PluginFolder);
             app.PluginTableData = pluginTable;
         end
         
@@ -397,6 +341,68 @@ classdef PluginManager < matlab.apps.AppBase
             app.FilterDropDown.Items = app.Types;
         end
         
+    end
+    
+    %% 
+    methods(Static)
+        function pluginTable = getPlugins(pluginFolder)
+            if ~isempty(pluginFolder) && exist(pluginFolder, 'dir')
+                pluginFiles = dir(fullfile(pluginFolder, '*.m'));
+                
+                % Initialize plugin table
+                pluginTable = table('Size',[length(pluginFiles) 5],...
+                    'VariableTypes',{'string','string','string','string','cell'},...
+                    'VariableNames',{'Name','Type','File','Description','FunctionHandle'});
+                
+                for i = 1:length(pluginFiles)
+                    fileloc = fullfile(pluginFolder, pluginFiles(i).name);
+                    fID = fopen(fileloc, 'r');
+                    fileData = fread(fID);
+                    fclose(fID);
+                    
+                    % Name column
+                    chardata = char(fileData');
+                    data = splitlines(string(chardata));
+                    pluginTable.Name(i) = extractBefore(pluginFiles(i).name, '.m');
+                    
+                    % File column
+                    pluginTable.File(i) = fileloc;
+                    
+                    % Type column
+                    typeLineIdx = find(contains(data, 'Inputs'))+1;
+                    if ~isempty(typeLineIdx)
+                        inputType =  strtrim(extractBetween(data(typeLineIdx), '%', 'object'));
+                        inputType = split(inputType,'.');
+                        if ~isempty(inputType) && inputType(end) ~= ""
+                            pluginTable.Type(i) = inputType(end);
+                        end
+                    end
+                    
+                    % Description column
+                    descriptionLineIdx = find(contains(data, 'Description'))+1;
+                    if ~isempty(descriptionLineIdx)
+                        description = strtrim(extractAfter(data(descriptionLineIdx), '%'));
+                        if ~isempty(description) && description ~= ""
+                            pluginTable.Description(i) = description;
+                        end
+                    end
+                    
+                    % Function handle column
+                    currentDir = pwd;
+                    cd(pluginFolder);
+                    try
+                        pluginTable.FunctionHandle{i} = str2func(pluginTable.Name(i));
+                    catch ME
+                        warning(ME.message);
+                    end
+                    cd(currentDir);
+                end
+            else
+                pluginTable = table('Size',[0 5],...
+                    'VariableTypes',{'string','string','string','string','function_handle'},...
+                    'VariableNames',{'Name','Type','File','Description','FunctionHandle'});
+            end
+        end
     end
     %% Get/Set methods
     methods

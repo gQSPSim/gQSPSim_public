@@ -124,7 +124,6 @@ classdef ApplicationUI < matlab.apps.AppBase
             % Register the app with App Designer
             app.IsConstructed = true;
             
-            
             %Save the type of the  for use in preferences
             app.Type = class(app);
             app.TypeStr = matlab.lang.makeValidName(app.Type);
@@ -142,7 +141,7 @@ classdef ApplicationUI < matlab.apps.AppBase
             
             %Create Plugin manager table
             app.PluginFolder = getpref(app.TypeStr, 'PluginFolder', app.PluginFolder);
-            app.createPluginManager();
+            app.initializePluginMenus();
             
             % Refresh the entire view
             app.refresh();
@@ -1051,12 +1050,27 @@ classdef ApplicationUI < matlab.apps.AppBase
         
         setpref(app.TypeStr, strcat('recent', plugin.Type), mostRecentPlugins);
         
-        plugin.FunctionHandle{1}(Node.NodeData);
-        
         % update context menus for all children of this node
         thisNodeParent = Node.Parent;
         for node =1:length(thisNodeParent.Children)
             app.updateItemTypePluginMenus(plugin.Type, thisNodeParent.Children(node));
+        end
+        
+        % if there are multiple selected nodes, apply plugin to all
+        % selected nodes of plugin type
+        selNodes = app.TreeRoot.SelectedNodes;
+        if length(selNodes)>1
+            selNodeData = vertcat(app.TreeRoot.SelectedNodes.NodeData);
+            selNodeClasses = arrayfun(@(x) class(x), selNodeData, 'UniformOutput', false);
+            selNodeClasses = cellfun(@(x) split(x,'.'), selNodeClasses, 'UniformOutput', false);
+            selNodeClasses = cellfun(@(x) x{end}, selNodeClasses, 'UniformOutput', false);
+            selNodesThisPluginType = selNodes(matches(string(selNodeClasses), plugin.Type));
+            
+            for i = 1:length(selNodesThisPluginType)
+                plugin.FunctionHandle{1}(selNodesThisPluginType(i).NodeData);
+            end
+        else
+            plugin.FunctionHandle{1}(Node.NodeData);
         end
     end
     end
