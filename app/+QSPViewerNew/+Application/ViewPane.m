@@ -449,20 +449,17 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
                obj.RemoveButton.Tooltip = 'Remove Invalid Visualization';
                obj.RemoveButton.ButtonPushedFcn = @(~,~) obj.onRemoveInvalidVisualization();
                
+               initbShowTraces = false; % default off
+               initbShowQuantiles = true; % default on
+               initbShowMean = false; % default off
+               initbShowMedian = true; % default on
+               initbShowSD = false; % default off
+               
+               % Override default for VirtualPopulationGenerationPane
                if strcmpi(class(obj),'QSPViewerNew.Application.VirtualPopulationGenerationPane')
-                    initbShowTraces = false; % default off
-                    initbShowQuantiles = true; % default on
-                    initbShowMean = true; % default on
-                    initbShowMedian = false; % default off
-                    initbShowSD = false; % default off
-                else
-                    initbShowTraces = false; % default off
-                    initbShowQuantiles = true; % default on
-                    initbShowMean = false; % default off
-                    initbShowMedian = true; % default on
-                    initbShowSD = false; % default off
+                   initbShowMean = true; % default on
+                   initbShowMedian = false; % default off
                end
-
                 
                %Create all plot objects
                for plotIndex = 1:obj.MaxNumPlots
@@ -1194,31 +1191,39 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
                 % Re-initialize
                 initOptions(BackEnd);
                 
-                for index = 1:obj.MaxNumPlots
-                    % Y-Scale
-                    if strcmpi(BackEnd.PlotSettings(index).YScale,'linear')
-                        obj.YLinearMenu(index).Checked = 'on';
-                        obj.YLogMenu(index).Checked = 'off';
-                    else
-                        obj.YLinearMenu(index).Checked = 'off';
-                        obj.YLogMenu(index).Checked = 'on';
-                    end
-                    
-                    % Traces
-                    obj.TracesMenu(index).Checked = BackEnd.bShowTraces(index);
-                    
-                    % Upper/Lower quantiles
-                    obj.QuantilesMenu(index).Checked = BackEnd.bShowQuantiles(index);
-                    
-                    % Weighted mean
-                    obj.MeanMenu(index).Checked = BackEnd.bShowMean(index);
-                    
-                    % Weighted median
-                    obj.MedianMenu(index).Checked = BackEnd.bShowMedian(index);
-                    
-                    % Weighted standard deviation
-                    obj.StandardDeviationMenu(index).Checked = BackEnd.bShowSD(index);
-                end
+                % Y-Scale
+                ShowLinear = strcmpi(string({BackEnd.PlotSettings.YScale}),'linear');
+                
+                set(obj.YLinearMenu(ShowLinear),'Checked','on');
+                set(obj.YLogMenu(ShowLinear),'Checked','off');
+                
+                set(obj.YLinearMenu(~ShowLinear),'Checked','off');
+                set(obj.YLogMenu(~ShowLinear),'Checked','on');
+                
+                % Traces
+                ShowTraces = logical([BackEnd.bShowTraces]);
+                set(obj.TracesMenu(ShowTraces),'Checked','on')
+                set(obj.TracesMenu(~ShowTraces),'Checked','off')
+                
+                % Upper/Lower quantiles
+                ShowQuantiles = logical([BackEnd.bShowQuantiles]);
+                set(obj.QuantilesMenu(ShowQuantiles),'Checked','on')
+                set(obj.QuantilesMenu(~ShowQuantiles),'Checked','off')
+                
+                % Weighted mean
+                ShowMean = logical([BackEnd.bShowMean]);
+                set(obj.MeanMenu(ShowMean),'Checked','on')
+                set(obj.MeanMenu(~ShowMean),'Checked','off')
+                
+                % Weighted median
+                ShowMedian = logical([BackEnd.bShowMedian]);
+                set(obj.MedianMenu(ShowMedian),'Checked','on')
+                set(obj.MedianMenu(~ShowMedian),'Checked','off')
+                
+                % Weighted standard deviation
+                ShowSD = logical([BackEnd.bShowSD]);
+                set(obj.StandardDeviationMenu(ShowSD),'Checked','on')
+                set(obj.StandardDeviationMenu(~ShowSD),'Checked','off')
             end
         end
             
