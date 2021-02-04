@@ -1,27 +1,31 @@
 classdef PluginManager < matlab.apps.AppBase
     %% Properties
     properties (SetObservable)
-        % Plugins folder
-        PluginFolder = ''
+        % QSP Sessions
+        Sessions = QSP.Session.empty(0,1)
         
-        % Display Flag
-%         DisplayFlag (1, 1) logical = true
+        % value to filter type
         TypeFilterValue (1,1) string = "all"
+        
+        % Session selected
+        SelectedSession = QSP.Session.empty(0,1)
     end
     
     properties (Access=private)
         UIFigure                    matlab.ui.Figure
         PanelMain                   matlab.ui.container.Panel
         GridMain                    matlab.ui.container.GridLayout
+        SessionLabel                matlab.ui.control.Label
+        SessionDropDown             matlab.ui.control.DropDown
         PluginFolderLabel           matlab.ui.control.Label
-        PluginFolderTextArea        matlab.ui.control.TextArea
-        BrowsePluginFolderButton    matlab.ui.control.Button
+        PluginFolderTextArea        matlab.ui.control.Label
+        PathStatusIcon              matlab.ui.control.Image
         FilterLabel                 matlab.ui.control.Label
         FilterDropDown              matlab.ui.control.DropDown
-        FilterIcon                  matlab.ui.control.Image
         PluginTable                 matlab.ui.control.Table
         AddNewButton                matlab.ui.control.Button
         UpdateButton                matlab.ui.control.Button
+        DependencyCheckbox          matlab.ui.control.CheckBox
     end
     
     properties (SetAccess=private, SetObservable, AbortSet)
@@ -32,14 +36,14 @@ classdef PluginManager < matlab.apps.AppBase
     end
     
     properties (Hidden, SetAccess = private, Transient, NonCopyable)
+        % listener handle for Sessions property
+        SessionsListener event.listener
+        
         % listener handle for PluginTableDisplayData property
         DisplayDataListener event.listener
         
-%         % listener handle for DisplayFlag property
-%         DisplayFlagListener event.listener
-        
-        % listener handle for PluginFolder property
-        PluginFolderListener event.listener
+        % listener handle for SelectedSession property
+        SelectedSessionListener event.listener
         
         % listener handle for Types property
         TypesListener event.listener
@@ -73,13 +77,6 @@ classdef PluginManager < matlab.apps.AppBase
                 
                 app = runningApp;
             end
-            
-%             if nargin==1
-%                 displayFlag = varargin{1};
-%                 if ~displayFlag
-%                     app.UIFigure.Visible = 'off';
-%                 end
-%             end
             
             if nargout == 0
                 clear app
@@ -130,25 +127,43 @@ classdef PluginManager < matlab.apps.AppBase
         end
         
         function update(app)
-            % update plugin folder text area
-            app.PluginFolderTextArea.Value = app.PluginFolder;
-            if ~exist(app.PluginFolder, 'dir')
-                app.PluginFolderTextArea.FontColor = 'r';
+            % update selected session drop-down
+            if isempty(app.Sessions)
+                app.SessionDropDown.Items = "";
+                app.SelectedSession = QSP.Session.empty(0,1);
             else
-                app.PluginFolderTextArea.FontColor = 'k';
+                app.SessionDropDown.Items = extractBefore(string({app.Sessions.SessionName}), ".mat");
+                app.SessionDropDown.ItemsData = vertcat(app.Sessions);
+                if isempty(app.SelectedSession) || ~ismember(app.SelectedSession, app.SessionDropDown.ItemsData)
+                    app.SelectedSession = app.Sessions(1);
+                end
+                app.SessionDropDown.Value = app.SelectedSession;
+                
+                % update plugin folder text area
+                app.PluginFolderTextArea.Text = app.SelectedSession.PluginsDirectory;
+                if ~exist(app.SelectedSession.PluginsDirectory, 'dir')
+                    app.PluginFolderTextArea.FontColor = 'r';
+                else
+                    app.PluginFolderTextArea.FontColor = 'k';
+                end
+                
+                if app.isPathinRootDirectory(app.SelectedSession.PluginsDirectory, app.SelectedSession.RootDirectory)
+                    app.PathStatusIcon.ImageSource = QSPViewerNew.Resources.LoadResourcePath('confirm_24.png');
+                    app.PathStatusIcon.Tooltip = "Plugin directory present within root directory";
+                else
+                    app.PathStatusIcon.ImageSource = QSPViewerNew.Resources.LoadResourcePath('warning_24.png');
+                    app.PathStatusIcon.Tooltip = "Plugin directory  not present within root directory. To change it, select Session in main app -> Edit -> Plugins Directory";
+                end
+                
+                % Update plugin table
+                app.updatePluginTableData();
+                
+                % Update Types drop-down
+                app.Types = ["all"; unique(app.PluginTableData.Type)];
+                
+                % Update plugin table
+                app.filterTableBasedonValue();
             end
-            
-            % Update plugin table 
-            app.updatePluginTableData();
-            
-            % Update Types drop-down
-            additionalTypes = setdiff(unique(app.PluginTableData.Type), app.Types);
-            if ~isempty(additionalTypes)
-                app.Types = [app.Types; additionalTypes];
-            end
-            
-            % Update plugin table 
-            app.filterTableBasedonValue();
         end
     end
     %% Private methods
@@ -159,77 +174,84 @@ classdef PluginManager < matlab.apps.AppBase
             
             % Create a parent figure
             app.UIFigure = uifigure('Name', 'Plugin Manager', 'Visible', 'off');
-            app.UIFigure.Position(3:4) = [1000, 420];
+            app.UIFigure.Position(3:4) = [1200, 500];
             typeStr = matlab.lang.makeValidName(class(app));
             app.UIFigure.Position = getpref(typeStr,'Position',app.UIFigure.Position);
             
             % Create the main grid
             app.GridMain = uigridlayout(app.UIFigure);
-            app.GridMain.ColumnWidth = {'1x','1x',ButtonSize,'1x','1x',ButtonSize,'1x','1x'};
-            app.GridMain.RowHeight = {'1x','1x','fit','1x'};
+            app.GridMain.ColumnWidth = {'1x',ButtonSize,'0.7x','1x','1x','0.7x','1.3x'};
+            app.GridMain.RowHeight = {'1x','1x','1x','fit','1x'};
+            
+            % Create Session edit field
+            app.SessionLabel = uilabel(app.GridMain, 'Text', 'Session:',...
+                'WordWrap', 'on');
+            app.SessionLabel.Layout.Row = 1;
+            app.SessionLabel.Layout.Column = 1;
+            
+            % Create Filter edit field
+            app.SessionDropDown = uidropdown(app.GridMain, 'Items', "");
+            app.SessionDropDown.Layout.Row = 1;
+            app.SessionDropDown.Layout.Column = [2, 5];
+            app.SessionDropDown.ValueChangedFcn = @(s,e) app.onSelSessionValueChanged(s,e);
             
             % Create label for plugin folder text area
             app.PluginFolderLabel = uilabel(app.GridMain, 'Text', 'Plugin Folder:',...
                 'WordWrap', 'on');
-            app.PluginFolderLabel.Layout.Row = 1;
+            app.PluginFolderLabel.Layout.Row = 2;
             app.PluginFolderLabel.Layout.Column = 1;
             
             % Create text area for plugin folder
-            app.PluginFolderTextArea = uitextarea(app.GridMain, ...
-                'Value', app.PluginFolder);
-            app.PluginFolderTextArea.Layout.Row = 1;
-            app.PluginFolderTextArea.Layout.Column = [2, 5];
-            app.PluginFolderTextArea.Editable='off';
+            app.PluginFolderTextArea = uilabel(app.GridMain, 'WordWrap', 'on');
+            app.PluginFolderTextArea.Layout.Row = 2;
+            app.PluginFolderTextArea.Layout.Column = [3, length(app.GridMain.ColumnWidth)];
             
-            % Create choose plugin folder button
-            app.BrowsePluginFolderButton = uibutton(app.GridMain, 'push', ...
-                'WordWrap', 'on');
-            app.BrowsePluginFolderButton.Layout.Row = 1;
-            app.BrowsePluginFolderButton.Layout.Column = 6;
-            app.BrowsePluginFolderButton.Text = '';
-            app.BrowsePluginFolderButton.Icon = QSPViewerNew.Resources.LoadResourcePath('folder_24.png');
-            app.BrowsePluginFolderButton.ButtonPushedFcn = @(s,e) app.onBrowsePluginFolderButtonPushed(s,e);
+            % Create a status symbol icon to check if plugin folder is
+            % present within root directory
+            app.PathStatusIcon = uiimage(app.GridMain);
+            app.PathStatusIcon.Layout.Row = 2;
+            app.PathStatusIcon.Layout.Column = 2;
             
             % Create Filter edit field
             app.FilterLabel = uilabel(app.GridMain, 'Text', 'Search  (Type):',...
                 'WordWrap', 'on');
-            app.FilterLabel.Layout.Row = 2;
+            app.FilterLabel.Layout.Row = 3;
             app.FilterLabel.Layout.Column = 1;
             
             % Create Filter edit field
             app.FilterDropDown = uidropdown(app.GridMain, 'Items', app.Types, 'Value', "all");
-            app.FilterDropDown.Layout.Row = 2;
-            app.FilterDropDown.Layout.Column = 2;
+            app.FilterDropDown.Layout.Row = 3;
+            app.FilterDropDown.Layout.Column = [2, 3];
             app.FilterDropDown.ValueChangedFcn = @(s,e) app.onFilterValueChanged(s,e);
             
-            % Create Filter icon
-            app.FilterIcon = uiimage(app.GridMain);
-            app.FilterIcon.ImageSource = QSPViewerNew.Resources.LoadResourcePath('filter_24.png');
-            app.FilterIcon.Layout.Row = 2;
-            app.FilterIcon.Layout.Column = 3;
-            
             % Create PluginTable
-            app.PluginTable = uitable(app.GridMain);
-            app.PluginTable.Layout.Row = 3;
+            app.PluginTable = uitable(app.GridMain, 'ColumnSortable', true);
+            app.PluginTable.Layout.Row = 4;
             app.PluginTable.Layout.Column = [1, length(app.GridMain.ColumnWidth)];
             
             % Create Add new button
             app.AddNewButton = uibutton(app.GridMain, 'push');
-            app.AddNewButton.Layout.Row = 4;
+            app.AddNewButton.Layout.Row = 5;
             app.AddNewButton.Layout.Column = 4;
             app.AddNewButton.Text = "Add New";
             app.AddNewButton.ButtonPushedFcn = @(s,e) app.onAddButtonPushed(s,e);
             
             % Create Update button
             app.UpdateButton = uibutton(app.GridMain, 'push');
-            app.UpdateButton.Layout.Row = 4;
+            app.UpdateButton.Layout.Row = 5;
             app.UpdateButton.Layout.Column = 5;
             app.UpdateButton.Text = "Update";
             app.UpdateButton.ButtonPushedFcn = @(s,e) app.onUpdateButtonPushed(s,e);
             
+            % create checkbox for dependencies
+            app.DependencyCheckbox = uicheckbox(app.GridMain, ...
+                'Text', 'Show dependency analysis', 'WordWrap', 'on');
+            app.DependencyCheckbox.Layout.Row = 3;
+            app.DependencyCheckbox.Layout.Column = 7;
+            app.DependencyCheckbox.ValueChangedFcn = @(s, e) app.onDependencyValueChanged(s,e);
+            
             % Populate table with plugin data
-            app.updatePluginTableData;
-            app.filterTableBasedonValue();
+            app.update();
             
             % Show the figure after all components are created
             app.UIFigure.Visible = 'on';
@@ -237,45 +259,42 @@ classdef PluginManager < matlab.apps.AppBase
         end
         
         function filterTableBasedonValue(app)
-            if strcmp(app.TypeFilterValue, "all")
-                pluginTableDisplayData = app.PluginTableData;
-            elseif ~isempty(app.TypeFilterValue) && app.TypeFilterValue~=""
-                filterstr = app.TypeFilterValue;
-                rowContainingFilter = app.PluginTableData.Type==filterstr;
-                pluginTableDisplayData = app.PluginTableData(rowContainingFilter,:);
+            if ~isempty(app.PluginTableData)
+                if strcmp(app.TypeFilterValue, "all")
+                    pluginTableDisplayData = app.PluginTableData;
+                elseif ~isempty(app.TypeFilterValue) && app.TypeFilterValue~=""
+                    filterstr = app.TypeFilterValue;
+                    rowContainingFilter = app.PluginTableData.Type==filterstr;
+                    pluginTableDisplayData = app.PluginTableData(rowContainingFilter,:);
+                else
+                    pluginTableDisplayData = app.PluginTableData(ismissing(app.PluginTableData.Type),:);
+                end
+                % remove function handle for display
+                app.PluginTableDisplayData = removevars(pluginTableDisplayData, 'FunctionHandle');
+                
+                % remove full file path for 'File' column while display
+                [~,name,~] = fileparts(app.PluginTableDisplayData.File);
+                app.PluginTableDisplayData.File = strcat(name, '.m');
             else
-                pluginTableDisplayData = app.PluginTableData(ismissing(app.PluginTableData.Type),:);
+                app.PluginTableDisplayData = removevars(app.PluginTableData, 'FunctionHandle');
             end
-            % remove function handle for display
-            app.PluginTableDisplayData = removevars(pluginTableDisplayData, 'FunctionHandle');
-            
-            % remove full file path for 'File' column while display
-            [~,name,~] = fileparts(app.PluginTableDisplayData.File);
-            app.PluginTableDisplayData.File = strcat(name, '.m');
         end
         
         function updatePluginTableData(app)
-            pluginTable = getPlugins(app.PluginFolder);
-            app.PluginTableData = pluginTable;
+            if ~isempty(app.SelectedSession)
+                pluginTable = app.getPlugins(app.SelectedSession.PluginsDirectory);
+                app.PluginTableData = pluginTable;
+            end
         end
         
-%         function displayPluginManager(obj)
-%             if obj.DisplayFlag
-%                 if isvalid(obj.UIFigure)
-%                     obj.UIFigure.Visible = 'on';
-%                 else
-%                     obj.create();
-%                 end
-%             else
-%                 if isvalid(obj.UIFigure)
-%                     obj.UIFigure.Visible = 'off';
-%                 end
-%             end
-%         end
     end
     
     %% Callback methods
     methods(Access=private)
+        
+        function onSelSessionValueChanged(app,~,~)
+            app.SelectedSession = app.SessionDropDown.Value;
+        end
         
         function onUpdateButtonPushed(app,~,~)
             app.update();
@@ -297,22 +316,52 @@ classdef PluginManager < matlab.apps.AppBase
         function onAddButtonPushed(app,~,~)
             app.addFile();
         end
+        
+        function onDependencyValueChanged(app,~,~)
+            if app.DependencyCheckbox.Value
+                % create progress dialog because this takes time
+                d = uiprogressdlg(app.UIFigure,'Title','Running dependency analysis',...
+                    'Indeterminate', 'on', 'Cancelable', 'on');
+                
+                % Run dependency
+                dependencyColumn = false(1,height(app.PluginTableData));
+                for i = 1:height(app.PluginTableData)
+                    % Check for Cancel button press
+                    if d.CancelRequested
+                        break
+                    end
+                    [fList,~] = matlab.codetools.requiredFilesAndProducts(app.PluginTableData.File(i));
+                    tf = app.isPathinRootDirectory(string(fList)',app.SelectedSession.RootDirectory);
+                    if all(tf)
+                        dependencyColumn(i) = true;
+                    end
+                end
+                app.PluginTableDisplayData.("All Dependencies within root directory") = dependencyColumn';
+                
+                close(d);
+            else
+                if any(matches(string(app.PluginTableDisplayData.Properties.VariableNames), ...
+                        "All Dependencies within root directory"))
+                    app.PluginTableDisplayData = removevars(app.PluginTableDisplayData, 'All Dependencies within root directory');
+                end
+            end
+        end
     end
     
     %% Protected methods
     methods(Access=protected)
         
         function attachListeners(app)
+            % Attach listener to SelectedSession property to update table
+            app.SessionsListener = addlistener(app, 'Sessions', ...
+                'PostSet', @(h,e) update(app));
+            
             % Attach listener to display data property to update table
             app.DisplayDataListener = addlistener(app, 'PluginTableDisplayData', ...
                 'PostSet', @(h,e)updateDisplayDataPluginTable(app,h,e));
             
-%             % Attach listener to display data property to update graphics
-%             app.DisplayFlagListener = addlistener(app, 'DisplayFlag', ...
-%                 'PostSet', @(h,e)displayPluginManager(app));
-            
-            % Attach listener to plugin folder property to update table
-            app.PluginFolderListener = addlistener(app, 'PluginFolder', ...
+            % Attach listener to SelectedSession property to update table
+            app.SelectedSessionListener = addlistener(app, 'SelectedSession', ...
                 'PostSet', @(h,e) update(app));
             
             % Attach listener to Types property to update table
@@ -403,10 +452,12 @@ classdef PluginManager < matlab.apps.AppBase
                     'VariableNames',{'Name','Type','File','Description','FunctionHandle'});
             end
         end
-    end
-    %% Get/Set methods
-    methods
         
+        function tf = isPathinRootDirectory(path, rootDir)
+            allFiles = dir(fullfile(rootDir, '**'));
+            allFiles = fullfile(string({allFiles.folder}), string({allFiles.name}))';
+            tf = matches(path, allFiles);
+        end
     end
     
 end
