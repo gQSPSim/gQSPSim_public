@@ -1172,15 +1172,7 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
                 [obj.StaleFlag,obj.ValidFlag] = getStaleItemIndices(obj.Optimization);  
             end
             
-            %Set flags for determing what to display
-            if ~isempty(obj.Optimization)
-                obj.Optimization.bShowTraces = obj.bShowTraces;
-                obj.Optimization.bShowQuantiles = obj.bShowQuantiles;
-                obj.Optimization.bShowMean = obj.bShowMean;
-                obj.Optimization.bShowMedian = obj.bShowMedian;
-                obj.Optimization.bShowSD = obj.bShowSD;
-            end
-            
+            obj.redrawAxesContextMenu();
             obj.redrawVisContextMenus();
             obj.redrawOptimItemsTable();
             obj.redrawSpeciesDataTable();
@@ -1193,14 +1185,7 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
         
         function refreshVisualization(obj,~)
             
-            %Set flags for determing what to display
-            if ~isempty(obj.Optimization)
-                obj.Optimization.bShowTraces = obj.bShowTraces;
-                obj.Optimization.bShowQuantiles = obj.bShowQuantiles;
-                obj.Optimization.bShowMean = obj.bShowMean;
-                obj.Optimization.bShowMedian = obj.bShowMedian;
-                obj.Optimization.bShowSD = obj.bShowSD;
-            end
+            obj.redrawAxesContextMenu();
             obj.redrawVisContextMenus();
             obj.redrawOptimItemsTable();
             obj.redrawSpeciesDataTable();
@@ -1214,7 +1199,6 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
         function UpdateBackendPlotSettings(obj)
             obj.Optimization.PlotSettings = getSummary(obj.getPlotSettings());
         end
-        
         
     end
        

@@ -45,8 +45,10 @@ for index = 1:numel(hAxes)
     %     XLimMode{index} = get(hAxes(index),'XLimMode');
     %     YLimMode{index} = get(hAxes(index),'YLimMode');
     cla(hAxes(index));
-    xr = get(hAxes(index),'xruler');
-    xr.TickLabelRotation = 0;
+    if isa(hAxes(index),'matlab.graphics.axis.Axes')
+        xr = get(hAxes(index),'xruler');
+        xr.TickLabelRotation = 0;
+    end
     
     legend(hAxes(index),'off')
     %     set(hAxes(index),'XLimMode',XLimMode{index},'YLimMode',YLimMode{index})

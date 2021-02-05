@@ -596,18 +596,10 @@ classdef VirtualPopulationGenerationPane < QSPViewerNew.Application.ViewPane
                 [obj.StaleFlag,obj.ValidFlag] = getStaleItemIndices(obj.VirtualPopulationGeneration);
             end
             
-            %Set flags for determing what to display
-            if ~isempty(obj.VirtualPopulationGeneration)
-                obj.VirtualPopulationGeneration.bShowTraces = obj.bShowTraces;
-                obj.VirtualPopulationGeneration.bShowQuantiles = obj.bShowQuantiles;
-                obj.VirtualPopulationGeneration.bShowMean = obj.bShowMean;
-                obj.VirtualPopulationGeneration.bShowMedian = obj.bShowMedian;
-                obj.VirtualPopulationGeneration.bShowSD = obj.bShowSD;
-            end
-            
             obj.reimport();
             obj.redrawSpeciesTable();
             obj.redrawVirtualPopTable();
+            obj.redrawAxesContextMenu();
             obj.redrawContextMenu();
             [obj.SpeciesGroup,obj.DatasetGroup,obj.AxesLegend,obj.AxesLegendChildren] = ...
                 plotVirtualPopulationGeneration(obj.VirtualPopulationGeneration,obj.PlotArray);
@@ -615,18 +607,11 @@ classdef VirtualPopulationGenerationPane < QSPViewerNew.Application.ViewPane
         end
         
         function refreshVisualization(obj,axIndex)
-             %Set flags for determing what to display
-            if ~isempty(obj.VirtualPopulationGeneration)
-                obj.VirtualPopulationGeneration.bShowTraces = obj.bShowTraces;
-                obj.VirtualPopulationGeneration.bShowQuantiles = obj.bShowQuantiles;
-                obj.VirtualPopulationGeneration.bShowMean = obj.bShowMean;
-                obj.VirtualPopulationGeneration.bShowMedian = obj.bShowMedian;
-                obj.VirtualPopulationGeneration.bShowSD = obj.bShowSD;
-            end
             
             obj.reimport();
             obj.redrawSpeciesTable();
             obj.redrawVirtualPopTable();
+            obj.redrawAxesContextMenu();
             obj.redrawContextMenu();
             
             if ~isempty(axIndex)

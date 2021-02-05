@@ -883,20 +883,12 @@ classdef CohortGenerationPane < QSPViewerNew.Application.ViewPane
                 [obj.StaleFlag,obj.ValidFlag] = getStaleItemIndices(obj.CohortGeneration);
             end
             
-            %Set flags for determing what to display
-            if ~isempty(obj.CohortGeneration)
-                obj.CohortGeneration.bShowTraces = obj.bShowTraces;
-                obj.CohortGeneration.bShowQuantiles = obj.bShowQuantiles;
-                obj.CohortGeneration.bShowMean = obj.bShowMean;
-                obj.CohortGeneration.bShowMedian = obj.bShowMedian;
-                obj.CohortGeneration.bShowSD = obj.bShowSD;
-            end
-            
             obj.reimport();
             obj.redrawPlotType();
             obj.redrawSpeciesTable();
             obj.redrawVirtualCohortTable();
             obj.redrawInvalidCheckBox();
+            obj.redrawAxesContextMenu();
             obj.redrawContextMenu();
             
             %Reset Xticks only for CohortGeneration
@@ -906,19 +898,13 @@ classdef CohortGenerationPane < QSPViewerNew.Application.ViewPane
         end
         
         function refreshVisualization(obj,axIndex)
-            if ~isempty(obj.CohortGeneration)
-                obj.CohortGeneration.bShowTraces = obj.bShowTraces;
-                obj.CohortGeneration.bShowQuantiles = obj.bShowQuantiles;
-                obj.CohortGeneration.bShowMean = obj.bShowMean;
-                obj.CohortGeneration.bShowMedian = obj.bShowMedian;
-                obj.CohortGeneration.bShowSD = obj.bShowSD;
-            end
             
             obj.reimport();
             obj.redrawPlotType();
             obj.redrawSpeciesTable();
             obj.redrawVirtualCohortTable();
             obj.redrawInvalidCheckBox();
+            obj.redrawAxesContextMenu();
             obj.redrawContextMenu();
             
             if ~isempty(axIndex)
@@ -934,7 +920,6 @@ classdef CohortGenerationPane < QSPViewerNew.Application.ViewPane
         function UpdateBackendPlotSettings(obj)
             obj.CohortGeneration.PlotSettings = getSummary(obj.getPlotSettings());
         end
-        
         
     end
     

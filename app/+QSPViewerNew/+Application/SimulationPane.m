@@ -748,16 +748,8 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
                 [obj.StaleFlag,obj.ValidFlag] = getStaleItemIndices(obj.Simulation);
             end
             
-            %Set flags for determing what to display
-            if ~isempty(obj.Simulation)
-                obj.Simulation.bShowTraces = obj.bShowTraces;
-                obj.Simulation.bShowQuantiles = obj.bShowQuantiles;
-                obj.Simulation.bShowMean = obj.bShowMean;
-                obj.Simulation.bShowMedian = obj.bShowMedian;
-                obj.Simulation.bShowSD = obj.bShowSD;
-            end
-            
             % Create context menu
+            obj.redrawAxesContextMenu();
             obj.updateCM();
             obj.updateSpeciesTable();
             obj.updateSimItemsTable();
@@ -769,15 +761,7 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
         
         function refreshVisualization(obj,axIndex)
                         
-            %Set flags for determing what to display
-            if ~isempty(obj.Simulation)
-                obj.Simulation.bShowTraces = obj.bShowTraces;
-                obj.Simulation.bShowQuantiles = obj.bShowQuantiles;
-                obj.Simulation.bShowMean = obj.bShowMean;
-                obj.Simulation.bShowMedian = obj.bShowMedian;
-                obj.Simulation.bShowSD = obj.bShowSD;
-            end
-            
+            obj.redrawAxesContextMenu();
             obj.updateCM();
             obj.updateSpeciesTable();
             obj.updateSimItemsTable();
