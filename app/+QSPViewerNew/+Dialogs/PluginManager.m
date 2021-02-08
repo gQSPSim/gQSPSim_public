@@ -189,8 +189,7 @@ classdef PluginManager < matlab.apps.AppBase
             app.GridMain.RowHeight = {'1x','1x','1x','fit','1x'};
             
             % Create Session edit field
-            app.SessionLabel = uilabel(app.GridMain, 'Text', 'Session:',...
-                'WordWrap', 'on');
+            app.SessionLabel = uilabel(app.GridMain, 'Text', 'Session:');
             app.SessionLabel.Layout.Row = 1;
             app.SessionLabel.Layout.Column = 1;
             
@@ -201,14 +200,12 @@ classdef PluginManager < matlab.apps.AppBase
             app.SessionDropDown.ValueChangedFcn = @(s,e) app.onSelSessionValueChanged(s,e);
             
             % Create label for plugin folder text area
-            app.PluginFolderLabel = uilabel(app.GridMain, 'Text', 'Plugin Folder:',...
-                'WordWrap', 'on');
+            app.PluginFolderLabel = uilabel(app.GridMain, 'Text', 'Plugin Folder:');
             app.PluginFolderLabel.Layout.Row = 2;
             app.PluginFolderLabel.Layout.Column = 1;
             
             % Create text area for plugin folder
-            app.PluginFolderTextArea = uilabel(app.GridMain, 'Text', '', ...
-                'WordWrap', 'on');
+            app.PluginFolderTextArea = uilabel(app.GridMain, 'Text', '');
             app.PluginFolderTextArea.Layout.Row = 2;
             app.PluginFolderTextArea.Layout.Column = [3, length(app.GridMain.ColumnWidth)];
             
@@ -220,8 +217,7 @@ classdef PluginManager < matlab.apps.AppBase
             app.PathStatusIcon.Visible = 'off';
             
             % Create Filter edit field
-            app.FilterLabel = uilabel(app.GridMain, 'Text', 'Search  (Type):',...
-                'WordWrap', 'on');
+            app.FilterLabel = uilabel(app.GridMain, 'Text', 'Search  (Type):');
             app.FilterLabel.Layout.Row = 3;
             app.FilterLabel.Layout.Column = 1;
             
@@ -252,7 +248,7 @@ classdef PluginManager < matlab.apps.AppBase
             
             % create checkbox for dependencies
             app.DependencyCheckbox = uicheckbox(app.GridMain, ...
-                'Text', 'Show dependency analysis', 'WordWrap', 'on');
+                'Text', 'Show dependency analysis');
             app.DependencyCheckbox.Layout.Row = 3;
             app.DependencyCheckbox.Layout.Column = 7;
             app.DependencyCheckbox.ValueChangedFcn = @(s, e) app.onDependencyValueChanged(s,e);

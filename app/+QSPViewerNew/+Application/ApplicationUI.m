@@ -1222,12 +1222,16 @@ classdef ApplicationUI < matlab.apps.AppBase
             % Add the session to the app
             app.Sessions(newIdx) = Session;
             
-            % update plugin menus for this session
-            if ~isempty(Session.PluginsDirectory)
-                pluginTable = QSPViewerNew.Dialogs.PluginManager.getPlugins(Session.PluginsDirectory);
-                updateAllPluginMenus(app, Session, pluginTable)
+            % check if an instance of plugin  manager is
+            % running
+            if isvalid(app.PluginManager)
+                app.PluginManager.Sessions = app.Sessions;
+            else
+                pluginTable = ...
+                    QSPViewerNew.Dialogs.PluginManager.getPlugins(Session.PluginsDirectory);
+                updateAllPluginMenus(app, app.Sessions(app.SelectedSessionIdx), pluginTable)
             end
-
+            
             % Start timer
             initializeTimer(Session);
         end
