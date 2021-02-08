@@ -115,7 +115,7 @@ classdef PluginManager < matlab.apps.AppBase
             codeGenerator.addLine('%           Generate a new plugin file');
             codeGenerator.addLine('%');
             codeGenerator.addLine('% Inputs:');
-            codeGenerator.addLine('%       QSP.App object');
+            codeGenerator.addLine('%       QSP.Task object');
             codeGenerator.addLine('%');
             codeGenerator.addLine('% Author:');
             codeGenerator.addLine('');
@@ -135,6 +135,14 @@ classdef PluginManager < matlab.apps.AppBase
             if isempty(app.Sessions)
                 app.SessionDropDown.Items = "";
                 app.SelectedSession = QSP.Session.empty(0,1);
+                
+                 app.PathStatusIcon.Visible = 'off';
+                
+                app.PluginFolderTextArea.Text = '';
+                
+                app.DependencyCheckbox.Value = 0;
+                
+                app.PluginTableData = table.empty();
             else
                 app.SessionDropDown.Items = extractBefore(string({app.Sessions.SessionName}), ".mat");
                 app.SessionDropDown.ItemsData = vertcat(app.Sessions);

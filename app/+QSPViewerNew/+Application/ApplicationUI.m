@@ -1007,8 +1007,10 @@ classdef ApplicationUI < matlab.apps.AppBase
         end
         
         function onPluginTableChanged(app)
-            updateAllPluginMenus(app, app.PluginManager.SelectedSession, ...
+            if ~isempty(app.PluginManager.SelectedSession)
+                updateAllPluginMenus(app, app.PluginManager.SelectedSession, ...
                     app.PluginManager.PluginTableData)
+            end
         end
         
         function updateAllPluginMenus(app, Session, pluginTable)
@@ -1387,6 +1389,11 @@ classdef ApplicationUI < matlab.apps.AppBase
             %Update selected session
             app.SelectedSessionIdx = [];
             
+            % update sessions in plugin manager if it is open
+            if isvalid(app.PluginManager)
+               app.PluginManager.Sessions = app.Sessions;
+            end
+                            
             %update app
             app.refresh();
         end
