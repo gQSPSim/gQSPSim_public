@@ -386,7 +386,12 @@ classdef PluginManager < matlab.apps.AppBase
         
         function updateDisplayDataPluginTable(app,~,~)
             app.PluginTable.Data = app.PluginTableDisplayData;
-            app.PluginTable.ColumnWidth = '1x';
+            if verLessThan('matlab','9.9')
+                app.PluginTable.ColumnWidth = 'auto';
+            else
+                app.PluginTable.ColumnWidth = '1x';
+            end
+            
         end
         
         function updateDropDownlist(app,~,~)
