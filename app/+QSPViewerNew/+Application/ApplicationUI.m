@@ -995,14 +995,20 @@ classdef ApplicationUI < matlab.apps.AppBase
             try
                 app.PluginManager = QSPViewerNew.Dialogs.PluginManager;
                 app.PluginManager.Sessions = app.Sessions;
+                
                 % Attach listener to plugin table property to update context
                 % menus
                 app.PluginTableDataListener = addlistener(app.PluginManager, 'PluginTableData', ...
-                    'PostSet', @(h,e) updateAllPluginMenus(app, app.PluginManager.SelectedSession, ...
-                    app.PluginManager.PluginTableData));
+                    'PostSet', @(h,e) onPluginTableChanged(app));
+                
             catch ME
                 uialert(app.UIFigure, ME.message, 'Error opening plugin manager');
             end
+        end
+        
+        function onPluginTableChanged(app)
+            updateAllPluginMenus(app, app.PluginManager.SelectedSession, ...
+                    app.PluginManager.PluginTableData)
         end
         
         function updateAllPluginMenus(app, Session, pluginTable)
@@ -1034,43 +1040,47 @@ classdef ApplicationUI < matlab.apps.AppBase
     end
     
     function applyPlugin(app, Node, plugin)
-        % Get most recently used plugins for this type and 
-        % add current plugin to list 
-        defaultPluginTable = table('Size',[0 5],...
-            'VariableTypes',{'string','string','string','string','cell'},...
-            'VariableNames',{'Name','Type','File','Description','FunctionHandle'});
-        mostRecentPlugins = getpref(app.TypeStr, strcat('recent', plugin.Type), defaultPluginTable);
-        mostRecentPlugins = [plugin; mostRecentPlugins];
-        
-        % remove function handle column to get unique rows
-        pluginT = removevars(mostRecentPlugins, 'FunctionHandle');
-        [~, ia] = unique(pluginT, 'stable', 'rows');
-        mostRecentPlugins = mostRecentPlugins(ia,:);
-        
-        setpref(app.TypeStr, strcat('recent', plugin.Type), mostRecentPlugins);
-        
-        % update context menus for all children of this node
-        thisNodeParent = Node.Parent;
-        for node =1:length(thisNodeParent.Children)
-            app.updateItemTypePluginMenus(plugin.Type, thisNodeParent.Children(node), ...
-                QSPViewerNew.Dialogs.PluginManager.getPlugins(app.SelectedSession.PluginsDirectory));
-        end
-        
-        % if there are multiple selected nodes, apply plugin to all
-        % selected nodes of plugin type
-        selNodes = app.TreeRoot.SelectedNodes;
-        if length(selNodes)>1
-            selNodeData = vertcat(app.TreeRoot.SelectedNodes.NodeData);
-            selNodeClasses = arrayfun(@(x) class(x), selNodeData, 'UniformOutput', false);
-            selNodeClasses = cellfun(@(x) split(x,'.'), selNodeClasses, 'UniformOutput', false);
-            selNodeClasses = cellfun(@(x) x{end}, selNodeClasses, 'UniformOutput', false);
-            selNodesThisPluginType = selNodes(matches(string(selNodeClasses), plugin.Type));
+        try
+            % Get most recently used plugins for this type and
+            % add current plugin to list
+            defaultPluginTable = table('Size',[0 5],...
+                'VariableTypes',{'string','string','string','string','cell'},...
+                'VariableNames',{'Name','Type','File','Description','FunctionHandle'});
+            mostRecentPlugins = getpref(app.TypeStr, strcat('recent', plugin.Type), defaultPluginTable);
+            mostRecentPlugins = [plugin; mostRecentPlugins];
             
-            for i = 1:length(selNodesThisPluginType)
-                plugin.FunctionHandle{1}(selNodesThisPluginType(i).NodeData);
+            % remove function handle column to get unique rows
+            pluginT = removevars(mostRecentPlugins, 'FunctionHandle');
+            [~, ia] = unique(pluginT, 'stable', 'rows');
+            mostRecentPlugins = mostRecentPlugins(ia,:);
+            
+            setpref(app.TypeStr, strcat('recent', plugin.Type), mostRecentPlugins);
+            
+            % update context menus for all children of this node
+            thisNodeParent = Node.Parent;
+            for node =1:length(thisNodeParent.Children)
+                app.updateItemTypePluginMenus(plugin.Type, thisNodeParent.Children(node), ...
+                    QSPViewerNew.Dialogs.PluginManager.getPlugins(app.SelectedSession.PluginsDirectory));
             end
-        else
-            plugin.FunctionHandle{1}(Node.NodeData);
+            
+            % if there are multiple selected nodes, apply plugin to all
+            % selected nodes of plugin type
+            selNodes = app.TreeRoot.SelectedNodes;
+            if length(selNodes)>1
+                selNodeData = vertcat(app.TreeRoot.SelectedNodes.NodeData);
+                selNodeClasses = arrayfun(@(x) class(x), selNodeData, 'UniformOutput', false);
+                selNodeClasses = cellfun(@(x) split(x,'.'), selNodeClasses, 'UniformOutput', false);
+                selNodeClasses = cellfun(@(x) x{end}, selNodeClasses, 'UniformOutput', false);
+                selNodesThisPluginType = selNodes(matches(string(selNodeClasses), plugin.Type));
+                
+                for i = 1:length(selNodesThisPluginType)
+                    plugin.FunctionHandle{1}(selNodesThisPluginType(i).NodeData);
+                end
+            else
+                plugin.FunctionHandle{1}(Node.NodeData);
+            end
+        catch ME
+            uialert(app.UIFigure, ME.message, 'Error applying plugin');
         end
     end
     end
@@ -1203,8 +1213,7 @@ classdef ApplicationUI < matlab.apps.AppBase
             % Add the session to the tree
             Root = app.TreeRoot;
             app.createTree(Root, Session);
-
-
+            
             % % Update the app state
             
             % Which session is this?

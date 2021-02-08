@@ -57,7 +57,11 @@ classdef PluginManager < matlab.apps.AppBase
         
         % Construct app
         function app = PluginManager()
-            runningApp = getRunningApp(app);
+            if verLessThan('matlab','9.9')
+                runningApp  = [];
+            else
+                runningApp = getRunningApp(app);
+            end
             
             % Check for running plugin manager app
             if isempty(runningApp)
@@ -152,7 +156,7 @@ classdef PluginManager < matlab.apps.AppBase
                     app.PathStatusIcon.Tooltip = "Plugin directory present within root directory";
                 else
                     app.PathStatusIcon.ImageSource = QSPViewerNew.Resources.LoadResourcePath('warning_24.png');
-                    app.PathStatusIcon.Tooltip = "Plugin directory  not present within root directory. To change it, select Session in main app -> Edit -> Plugins Directory";
+                    app.PathStatusIcon.Tooltip = "Plugin directory  not present within root directory. To change it, select corresponding Session in main app -> Edit -> Plugins Directory";
                 end
                 app.PathStatusIcon.Visible = 'on';
                 
