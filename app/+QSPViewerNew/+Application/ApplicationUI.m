@@ -1229,7 +1229,7 @@ classdef ApplicationUI < matlab.apps.AppBase
             else
                 pluginTable = ...
                     QSPViewerNew.Dialogs.PluginManager.getPlugins(Session.PluginsDirectory);
-                updateAllPluginMenus(app, app.Sessions(app.SelectedSessionIdx), pluginTable)
+                updateAllPluginMenus(app, app.Sessions(newIdx), pluginTable)
             end
             
             % Start timer
