@@ -58,13 +58,13 @@ classdef PluginManager < matlab.apps.AppBase
         % Construct app
         function app = PluginManager()
             runningApp = getRunningApp(app);
-
+            
             % Check for running plugin manager app
             if isempty(runningApp)
-
+                
                 % Create UIFigure and components
                 createComponents(app)
-
+                
                 % Register the app with App Designer
                 registerApp(app, app.UIFigure)
                 
@@ -94,7 +94,7 @@ classdef PluginManager < matlab.apps.AppBase
             delete(app.UIFigure)
         end % destructor
         
-    end  
+    end
     
     %% Public
     methods
@@ -154,6 +154,7 @@ classdef PluginManager < matlab.apps.AppBase
                     app.PathStatusIcon.ImageSource = QSPViewerNew.Resources.LoadResourcePath('warning_24.png');
                     app.PathStatusIcon.Tooltip = "Plugin directory  not present within root directory. To change it, select Session in main app -> Edit -> Plugins Directory";
                 end
+                app.PathStatusIcon.Visible = 'on';
                 
                 % Update plugin table
                 app.updatePluginTableData();
@@ -202,7 +203,8 @@ classdef PluginManager < matlab.apps.AppBase
             app.PluginFolderLabel.Layout.Column = 1;
             
             % Create text area for plugin folder
-            app.PluginFolderTextArea = uilabel(app.GridMain, 'WordWrap', 'on');
+            app.PluginFolderTextArea = uilabel(app.GridMain, 'Text', '', ...
+                'WordWrap', 'on');
             app.PluginFolderTextArea.Layout.Row = 2;
             app.PluginFolderTextArea.Layout.Column = [3, length(app.GridMain.ColumnWidth)];
             
@@ -211,6 +213,7 @@ classdef PluginManager < matlab.apps.AppBase
             app.PathStatusIcon = uiimage(app.GridMain);
             app.PathStatusIcon.Layout.Row = 2;
             app.PathStatusIcon.Layout.Column = 2;
+            app.PathStatusIcon.Visible = 'off';
             
             % Create Filter edit field
             app.FilterLabel = uilabel(app.GridMain, 'Text', 'Search  (Type):',...
@@ -319,26 +322,29 @@ classdef PluginManager < matlab.apps.AppBase
         
         function onDependencyValueChanged(app,~,~)
             if app.DependencyCheckbox.Value
-                % create progress dialog because this takes time
-                d = uiprogressdlg(app.UIFigure,'Title','Running dependency analysis',...
-                    'Indeterminate', 'on', 'Cancelable', 'on');
-                
-                % Run dependency
-                dependencyColumn = false(1,height(app.PluginTableData));
-                for i = 1:height(app.PluginTableData)
-                    % Check for Cancel button press
-                    if d.CancelRequested
-                        break
+                % run dependency only if plugin table is not empty
+                if ~isempty(app.PluginTableData)
+                    % create progress dialog because this takes time
+                    d = uiprogressdlg(app.UIFigure,'Title','Running dependency analysis',...
+                        'Indeterminate', 'on', 'Cancelable', 'on');
+                    
+                    % Run dependency
+                    dependencyColumn = false(1,height(app.PluginTableData));
+                    for i = 1:height(app.PluginTableData)
+                        % Check for Cancel button press
+                        if d.CancelRequested
+                            break
+                        end
+                        [fList,~] = matlab.codetools.requiredFilesAndProducts(app.PluginTableData.File(i));
+                        tf = app.isPathinRootDirectory(string(fList)',app.SelectedSession.RootDirectory);
+                        if all(tf)
+                            dependencyColumn(i) = true;
+                        end
                     end
-                    [fList,~] = matlab.codetools.requiredFilesAndProducts(app.PluginTableData.File(i));
-                    tf = app.isPathinRootDirectory(string(fList)',app.SelectedSession.RootDirectory);
-                    if all(tf)
-                        dependencyColumn(i) = true;
-                    end
+                    app.PluginTableDisplayData.("All Dependencies within root directory") = dependencyColumn';
+                    
+                    close(d);
                 end
-                app.PluginTableDisplayData.("All Dependencies within root directory") = dependencyColumn';
-                
-                close(d);
             else
                 if any(matches(string(app.PluginTableDisplayData.Properties.VariableNames), ...
                         "All Dependencies within root directory"))
@@ -392,7 +398,7 @@ classdef PluginManager < matlab.apps.AppBase
         
     end
     
-    %% 
+    %%
     methods(Static)
         function pluginTable = getPlugins(pluginFolder)
             if ~isempty(pluginFolder) && exist(pluginFolder, 'dir')

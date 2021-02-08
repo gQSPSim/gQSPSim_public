@@ -261,6 +261,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
                 'Root Directory',obj.RootDirectory;
                 'Objective Functions Directory',obj.ObjectiveFunctionsDirectory;
                 'User Functions Directory',obj.UserDefinedFunctionsDirectory;
+                'Plugins Directory',obj.PluginsDirectory;
                 'Enable Logging', mat2str(obj.UseLogging);
                 'Log file', obj.LogFile;
                 'Use Git Versioning', mat2str(obj.AutoSaveGit);
