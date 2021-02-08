@@ -284,7 +284,7 @@ classdef PluginManager < matlab.apps.AppBase
                 app.PluginTableDisplayData = removevars(pluginTableDisplayData, 'FunctionHandle');
                 
                 % remove full file path for 'File' column while display
-                [~,name,~] = fileparts(app.PluginTableDisplayData.File);
+                [~,name,~] = arrayfun(@(x) fileparts(x), app.PluginTableDisplayData.File);
                 app.PluginTableDisplayData.File = strcat(name, '.m');
             else
                 app.PluginTableDisplayData = removevars(app.PluginTableData, 'FunctionHandle');
