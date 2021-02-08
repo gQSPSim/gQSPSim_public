@@ -45,7 +45,8 @@ classdef (Abstract) BaseProps < matlab.mixin.SetGet & matlab.mixin.Heterogeneous
 %         Description = '' % Description
         RelativeFilePath = ''
         
-        bShowTraces = []
+        % Initialize settings to empty
+        bShowTraces = [] 
         bShowQuantiles = []
         bShowMean = []
         bShowMedian = []
@@ -277,37 +278,54 @@ classdef (Abstract) BaseProps < matlab.mixin.SetGet & matlab.mixin.Heterogeneous
         end %function
         
         function initOptions(obj)
-            initbShowTraces = false(1,12); % default off
-            initbShowQuantiles = true(1,12); % default on
-            initbShowSD = false(1,12); % default off
-            
-            if strcmpi(class(obj),'QSP.VirtualPopulationGeneration')
-                initbShowMean = true(1,12); % default on
-                initbShowMedian = false(1,12); % default off
-            else
-                initbShowMean = false(1,12); % default off
-                initbShowMedian = true(1,12); % default on
-            end
-            
-            % For compatibility
-            if isempty(obj.bShowTraces)
-                obj.bShowTraces = initbShowTraces;
-            end
-            if isempty(obj.bShowQuantiles)
-                obj.bShowQuantiles = initbShowQuantiles;
-            end
-            if isempty(obj.bShowMean)
-                obj.bShowMean = initbShowMean;
-            end
-            if isempty(obj.bShowMedian)
-                obj.bShowMedian = initbShowMedian;
-            end
-            if isempty(obj.bShowSD)
-                obj.bShowSD = initbShowSD;
-            end
+            initbShowTraces(obj);
+            initbShowQuantiles(obj);
+            initbShowMean(obj);
+            initbShowMedian(obj);
+            initbShowSD(obj);
         end %function
         
     end % methods
+    
+    methods (Access=private)
+        function initbShowTraces(obj)
+            if isempty(obj.bShowTraces)
+                obj.bShowTraces = false(1,12); % default off;
+            end
+        end %function
+        
+        function initbShowQuantiles(obj)
+            if isempty(obj.bShowQuantiles)
+                obj.bShowQuantiles = true(1,12); % default on;
+            end
+        end %function
+        
+        function initbShowMean(obj)
+            if isempty(obj.bShowMean)
+                if strcmpi(class(obj),'QSP.VirtualPopulationGeneration')
+                    obj.bShowMean = true(1,12); % default on;
+                else
+                    obj.bShowMean = false(1,12); % default off;
+                end
+            end
+        end %function
+        
+        function initbShowMedian(obj)
+            if isempty(obj.bShowMedian)
+                if strcmpi(class(obj),'QSP.VirtualPopulationGeneration')
+                    obj.bShowMedian = false(1,12); % default on;
+                else
+                    obj.bShowMedian = true(1,12); % default off;
+                end
+            end
+        end %function
+        
+        function initbShowSD(obj)
+            if isempty(obj.bShowSD)
+                obj.bShowSD = false(1,12); % default off;
+            end
+        end %function
+    end % methods (private)
     
     %% Get/Set methods
     methods
@@ -373,7 +391,42 @@ classdef (Abstract) BaseProps < matlab.mixin.SetGet & matlab.mixin.Heterogeneous
             validateattributes(value,{'char'},{})
             obj.RelativeFilePath_new = uix.utility.getRelativeFilePath(value, obj.SessionRoot, false);
         end
+         
+        function set.bShowTraces(obj,value)
+            % For compatibility
+            initbShowTraces(obj)
+            validateattributes(value,{'logical'},{'size',[1 12]});
+            obj.bShowTraces = value;
+        end
         
+        function set.bShowQuantiles(obj,value)
+            % For compatibility
+            initbShowQuantiles(obj)
+            validateattributes(value,{'logical'},{'size',[1 12]});
+            obj.bShowQuantiles = value;
+        end
+            
+        function set.bShowMean(obj,value)
+            % For compatibility
+            initbShowMean(obj)
+            validateattributes(value,{'logical'},{'size',[1 12]});
+            obj.bShowMean = value;
+        end
+        
+        function set.bShowMedian(obj,value)
+            % For compatibility
+            initbShowMedian(obj)
+            validateattributes(value,{'logical'},{'size',[1 12]});
+            obj.bShowMedian = value;
+        end
+        
+        function set.bShowSD(obj,value)
+            % For compatibility
+            initbShowSD(obj)
+            validateattributes(value,{'logical'},{'size',[1 12]});
+            obj.bShowSD = value;
+        end
+            
     end %methods
     
     
@@ -461,3 +514,19 @@ classdef (Abstract) BaseProps < matlab.mixin.SetGet & matlab.mixin.Heterogeneous
     end %methods (API)
     
 end % classdef
+
+
+
+if strcmpi(class(obj),'QSPViewer.VirtualPopulationGeneration')
+                    initbShowTraces = false; % default off
+                    initbShowQuantiles = true; % default on
+                    initbShowMean = true; % default on
+                    initbShowMedian = false; % default off
+                    initbShowSD = false; % default off
+                else
+                    initbShowTraces = false; % default off
+                    initbShowQuantiles = true; % default on
+                    initbShowMean = false; % default off
+                    initbShowMedian = true; % default on
+                    initbShowSD = false; % default off
+                end

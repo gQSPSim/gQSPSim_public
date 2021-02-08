@@ -200,19 +200,11 @@ classdef (Abstract) CardViewPane < uix.abstract.ViewPane
                     'Parent',obj.h.VisualizeLayout,...
                     'Padding',5);
                 
-                if strcmpi(class(obj),'QSPViewer.VirtualPopulationGeneration')
-                    initbShowTraces = false; % default off
-                    initbShowQuantiles = true; % default on
-                    initbShowMean = true; % default on
-                    initbShowMedian = false; % default off
-                    initbShowSD = false; % default off
-                else
-                    initbShowTraces = false; % default off
-                    initbShowQuantiles = true; % default on
-                    initbShowMean = false; % default off
-                    initbShowMedian = true; % default on
-                    initbShowSD = false; % default off
-                end
+                initbShowTraces = false; % default off
+                initbShowQuantiles = true; % default on
+                initbShowMean = false; % default off
+                initbShowMedian = true; % default on
+                initbShowSD = false; % default off
                 
                 for index = 1:obj.MaxNumPlots
                     % Add container and axes
