@@ -23,6 +23,19 @@ classdef ApplicationUI < matlab.apps.AppBase
     
     properties(Constant)
         Version = 'v1.0'
+        ItemTypes = {
+                'Dataset',                          'OptimizationData'
+                'Parameter',                        'Parameters'
+                'Task',                             'Task'
+                'Virtual Subject(s)',               'VirtualPopulation'
+                'Acceptance Criteria',              'VirtualPopulationData'
+                'Target Statistics',                'VirtualPopulationGenerationData'
+                'Simulation',                       'Simulation'
+                'Optimization',                     'Optimization'
+                'Cohort Generation',                'CohortGeneration'
+                'Virtual Population Generation',    'VirtualPopulationGeneration'
+                'Global Sensitivity Analysis',      'GlobalSensitivityAnalysis'
+                };
     end
     
     properties (SetAccess = private)
@@ -40,19 +53,6 @@ classdef ApplicationUI < matlab.apps.AppBase
         TypeStr
         WindowButtonDownCallbacks = {};
         WindowButtonUpCallbacks = {};
-        ItemTypes = {
-                'Dataset',                          'OptimizationData'
-                'Parameter',                        'Parameters'
-                'Task',                             'Task'
-                'Virtual Subject(s)',               'VirtualPopulation'
-                'Acceptance Criteria',              'VirtualPopulationData'
-                'Target Statistics',                'VirtualPopulationGenerationData'
-                'Simulation',                       'Simulation'
-                'Optimization',                     'Optimization'
-                'Cohort Generation',                'CohortGeneration'
-                'Virtual Population Generation',    'VirtualPopulationGeneration'
-                'Global Sensitivity Analysis',      'GlobalSensitivityAnalysis'
-                };
     end
     
     properties (SetAccess = private, Dependent = true, AbortSet = true)

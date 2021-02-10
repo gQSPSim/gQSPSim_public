@@ -103,31 +103,32 @@ classdef PluginManager < matlab.apps.AppBase
     %% Public
     methods
         function addFile(~)
-            % add M file with template
-            codeGenerator = vision.internal.calibration.tool.MCodeGenerator;
-            codeGenerator.addLine('function myPlugin(obj)');
-            codeGenerator.addLine('% myPlugin');
-            codeGenerator.addLine('%');
-            codeGenerator.addLine('% Syntax:');
-            codeGenerator.addLine('%       myPlugin(obj)');
-            codeGenerator.addLine('%');
-            codeGenerator.addLine('% Description:');
-            codeGenerator.addLine('%           Generate a new plugin file');
-            codeGenerator.addLine('%');
-            codeGenerator.addLine('% Inputs:');
-            codeGenerator.addLine('%       QSP.Task object');
-            codeGenerator.addLine('%');
-            codeGenerator.addLine('% Author:');
-            codeGenerator.addLine('');
-            codeGenerator.addLine('');
-            codeGenerator.addLine('');
-            codeGenerator.addLine('end');
-            
-            % open a new M file with above contents
-            content = codeGenerator.CodeString;
-            editorDoc = matlab.desktop.editor.newDocument(content);
-            editorDoc.smartIndentContents;
-            editorDoc.goToLine(1);
+            % prompt user for type of input to autofill template
+            [indx,~] = listdlg('ListString',QSPViewerNew.Application.ApplicationUI.ItemTypes(:,1),...
+                'SelectionMode', 'single', ...
+                'PromptString', {'Please select an input type',...
+                'for plugin'});
+            if ~isempty(indx)
+                inputType = QSPViewerNew.Application.ApplicationUI.ItemTypes{indx,2};
+                
+                editorService = com.mathworks.mlservices.MLEditorServices; %#ok<JAPIMATHWORKS>
+                editorApplication = editorService.getEditorApplication();
+                
+                % Template
+                line1 = "function myPlugin(obj)";
+                line2 = "% myPlugin";
+                line3 = "% Syntax:";
+                line4 = "%       myPlugin(obj)";
+                line5 = "% Description:";
+                line6 = sprintf("%%           Generate a plugin for %s objects",inputType);
+                line7 = "% Inputs:";
+                line8 = sprintf("%%       QSP.%s object", inputType);
+                line9 = "% Author:";
+                line10 = "end";
+                
+                editorApplication.newEditor( sprintf('%s\n%s\n\n%s\n%s\n\n%s\n%s\n\n%s\n%s\n\n%s\n\n\n\n%s\n', ...
+                    line1,line2,line3,line4,line5,line6,line7,line8,line9,line10) );
+            end
         end
         
         function update(app)
