@@ -120,7 +120,7 @@ classdef PluginManager < matlab.apps.AppBase
                 line3 = "% Syntax:";
                 line4 = "%       myPlugin(obj)";
                 line5 = "% Description:";
-                line6 = sprintf("%%           Generate a plugin for %s objects",inputType);
+                line6 = sprintf("%%           This plugin is for %s objects",inputType);
                 line7 = "% Inputs:";
                 line8 = sprintf("%%       QSP.%s object", inputType);
                 line9 = "% Author:";
@@ -466,6 +466,12 @@ classdef PluginManager < matlab.apps.AppBase
                     end
                     cd(currentDir);
                 end
+                
+                % remove rows that do not contain valid functionalities
+                allTypes = unique(pluginTable.Type);
+                isValidFunc = ismember(allTypes, QSPViewerNew.Application.ApplicationUI.ItemTypes(:,2));
+                pluginTable(matches(pluginTable.Type, allTypes(~isValidFunc)),:) = [];
+                pluginTable(ismissing(pluginTable.Type),:) = [];
             else
                 pluginTable = table('Size',[0 5],...
                     'VariableTypes',{'string','string','string','string','function_handle'},...
