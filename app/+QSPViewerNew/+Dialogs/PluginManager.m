@@ -165,7 +165,10 @@ classdef PluginManager < matlab.apps.AppBase
                     app.PathStatusIcon.Tooltip = "Plugin directory present within root directory";
                 else
                     app.PathStatusIcon.ImageSource = QSPViewerNew.Resources.LoadResourcePath('warning_24.png');
-                    app.PathStatusIcon.Tooltip = "Plugin directory  not present within root directory. To change it, select corresponding Session in main app -> Edit -> Plugins Directory";
+                    dashAscii = double('-');
+                    gtAscii = double('>');
+                    app.PathStatusIcon.Tooltip = sprintf(['Plugin directory  not present within root directory. To change it, select corresponding Session in main app ',...
+                        dashAscii, gtAscii, ' Edit ', dashAscii, gtAscii, ' Plugins Directory']);
                 end
                 app.PathStatusIcon.Visible = 'on';
                 
