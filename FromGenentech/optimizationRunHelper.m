@@ -8,7 +8,10 @@ if isempty(obj.SpeciesData)
     Message = 'At least one species-data mapping must be defined for optimization to proceed.';
     ResultsFileNames = {};
     VpopNames = {};
-   
+    resultsArray = [];
+    groupErrorCounts = [];
+    groupErrorMessages = {};
+    groupErrorMessageCounts = {};
     return 
 end
 
@@ -21,6 +24,10 @@ end
 
 StatusOK = true;
 Message = '';
+resultsArray = [];
+groupErrorCounts = [];
+groupErrorMessages = {};
+groupErrorMessageCounts = {};
 
 % store path & add all subdirectories of root directory
 myPath = path;
