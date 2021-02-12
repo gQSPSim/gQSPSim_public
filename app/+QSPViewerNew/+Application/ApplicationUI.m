@@ -1034,7 +1034,8 @@ classdef ApplicationUI < matlab.apps.AppBase
     function onOpenPluginListDialog(app, Node, thisItemAvailablePlugins)
         [indx,tf] = listdlg('ListString', thisItemAvailablePlugins.Name,...
             'SelectionMode', 'single', ...
-            'OKString', 'Apply');
+            'OKString', 'Apply', ...
+            'PromptString', 'Select a plugin to run.');
         
         if tf
             applyPlugin(app, Node, thisItemAvailablePlugins(indx,:));
@@ -1966,6 +1967,14 @@ classdef ApplicationUI < matlab.apps.AppBase
                 ParentObj.(ItemType)(end+1) = ThisObj;
                 app.createTree(ParentNode, ThisObj);
                 ParentNode.expand();
+                
+                % update plugin menus for this node
+                ThisNodeDataIdx = [ParentNode.Children.NodeData]==ThisObj;
+                pluginsDir = ParentNode.Parent.Parent.NodeData.PluginsDirectory;
+                pluginTable = ...
+                                QSPViewerNew.Dialogs.PluginManager.getPlugins(pluginsDir);
+                app.updateItemTypePluginMenus(ItemType, ...
+                    ParentNode.Children(ThisNodeDataIdx), pluginTable)
             else
                 error('Invalid tree parent');
             end
