@@ -41,7 +41,7 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         RefParamName = '' % Parameters.Name
         GroupName = ''
         Method = 'Distribution' 
-        SaveInvalid = 'all' % 'all' = 'Save all virtual subjects' or 'valid' = 'Save valid vpatients'
+        SaveInvalid = 'Save all virtual subjects' % 'all' = 'Save all virtual subjects' or 'valid' = 'Save valid virtual subjects'
         
         
         Item = QSP.TaskGroup.empty(0,1)
@@ -808,7 +808,7 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         end
         
         function set.SaveInvalid(obj,Value)
-            Value = validatestring(Value,{'valid','all'});
+            Value = validatestring(Value,{'Save all virtual subjects','Save valid virtual subjects'});
             obj.SaveInvalid = Value;
         end
         
