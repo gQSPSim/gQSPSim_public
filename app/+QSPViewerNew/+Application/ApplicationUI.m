@@ -1052,8 +1052,7 @@ classdef ApplicationUI < matlab.apps.AppBase
             mostRecentPlugins = [plugin; mostRecentPlugins];
             
             % remove function handle column to get unique rows
-            pluginT = removevars(mostRecentPlugins, 'FunctionHandle');
-            [~, ia] = unique(pluginT, 'stable', 'rows');
+            [~, ia] = unique(mostRecentPlugins.File, 'stable', 'rows');
             mostRecentPlugins = mostRecentPlugins(ia,:);
             
             setpref(app.TypeStr, strcat('recent', plugin.Type), mostRecentPlugins);
@@ -1239,16 +1238,6 @@ classdef ApplicationUI < matlab.apps.AppBase
             % Add the session to the app
             app.Sessions(newIdx) = Session;
             
-            % check if an instance of plugin  manager is
-            % running
-            if isvalid(app.PluginManager)
-                app.PluginManager.Sessions = app.Sessions;
-            else
-                pluginTable = ...
-                    QSPViewerNew.Dialogs.PluginManager.getPlugins(Session.PluginsDirectory);
-                updateAllPluginMenus(app, app.Sessions(newIdx), pluginTable)
-            end
-            
             % Start timer
             initializeTimer(Session);
         end
@@ -1298,7 +1287,7 @@ classdef ApplicationUI < matlab.apps.AppBase
                         Session = copy(loadedSession.Session);
                         Session.RootDirectory = newFilePath;
                         app.createNewSession(Session);
-
+                        
                         %Edit the app properties to reflect a new loaded session was
                         %added
                         idxNew = app.NumSessions + 1;
@@ -1306,11 +1295,21 @@ classdef ApplicationUI < matlab.apps.AppBase
                         app.IsDirty(idxNew) = false;
                         app.SelectedSessionIdx = idxNew;
                         app.addRecentSessionPath(fullFilePath);
-
+                        
                     end
                 end
             end
             app.refresh();
+            
+            % check if an instance of plugin  manager is
+            % running
+            if isvalid(app.PluginManager)
+                app.PluginManager.Sessions = app.Sessions;
+            else
+                pluginTable = ...
+                    QSPViewerNew.Dialogs.PluginManager.getPlugins(Session.PluginsDirectory);
+                updateAllPluginMenus(app, app.Sessions(newIdx), pluginTable)
+            end
         end
         
         function status = verifyValidSessionFilePath(app, fullFilePath)

@@ -143,7 +143,9 @@ classdef PluginManager < matlab.apps.AppBase
                 
                 app.DependencyCheckbox.Value = 0;
                 
-                app.PluginTableData = table.empty();
+                app.PluginTableData = table('Size',[0 5],...
+                    'VariableTypes',{'string','string','string','string','function_handle'},...
+                    'VariableNames',{'Name','Type','File','Description','FunctionHandle'});
             else
                 app.SessionDropDown.Items = {app.Sessions.SessionName};
                 app.SessionDropDown.ItemsData = vertcat(app.Sessions);
@@ -170,16 +172,15 @@ classdef PluginManager < matlab.apps.AppBase
                         'Edit, then Plugins Directory']);
                 end
                 app.PathStatusIcon.Visible = 'on';
-                
-                % Update plugin table
-                app.updatePluginTableData();
-                
-                % Update Types drop-down
-                app.Types = ["all"; unique(app.PluginTableData.Type)];
-                
-                % Update plugin table
-                app.filterTableBasedonValue();
             end
+            % Update plugin table
+            app.updatePluginTableData();
+            
+            % Update Types drop-down
+            app.Types = ["all"; unique(app.PluginTableData.Type)];
+            
+            % Update plugin table
+            app.filterTableBasedonValue();
         end
     end
     %% Private methods
