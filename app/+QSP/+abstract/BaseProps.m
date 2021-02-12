@@ -45,11 +45,11 @@ classdef (Abstract) BaseProps < matlab.mixin.SetGet & matlab.mixin.Heterogeneous
 %         Description = '' % Description
         RelativeFilePath = ''
         
-        bShowTraces = false(1,12)
-        bShowQuantiles = false(1,12)
-        bShowMean = false(1,12)
-        bShowMedian = false(1,12)
-        bShowSD = false(1,12)
+        bShowTraces = []
+        bShowQuantiles = []
+        bShowMean = []
+        bShowMedian = []
+        bShowSD = []
     end
     
     %% Dependent properties
@@ -277,18 +277,16 @@ classdef (Abstract) BaseProps < matlab.mixin.SetGet & matlab.mixin.Heterogeneous
         end %function
         
         function initOptions(obj)
+            initbShowTraces = false(1,12); % default off
+            initbShowQuantiles = true(1,12); % default on
+            initbShowSD = false(1,12); % default off
+            
             if strcmpi(class(obj),'QSP.VirtualPopulationGeneration')
-                initbShowTraces = false(1,12); % default off
-                initbShowQuantiles = true(1,12); % default on
                 initbShowMean = true(1,12); % default on
                 initbShowMedian = false(1,12); % default off
-                initbShowSD = false(1,12); % default off
             else
-                initbShowTraces = false(1,12); % default off
-                initbShowQuantiles = true(1,12); % default on
                 initbShowMean = false(1,12); % default off
                 initbShowMedian = true(1,12); % default on
-                initbShowSD = false(1,12); % default off
             end
             
             % For compatibility
