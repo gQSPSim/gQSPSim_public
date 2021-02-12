@@ -1030,20 +1030,19 @@ classdef ApplicationUI < matlab.apps.AppBase
                 end
             end
         end
-    
-    function onOpenPluginListDialog(app, Node, thisItemAvailablePlugins)
-        [indx,tf] = listdlg('ListString', thisItemAvailablePlugins.Name,...
-            'SelectionMode', 'single', ...
-            'OKString', 'Apply', ...
-            'PromptString', 'Select a plugin to run.');
         
-        if tf
-            applyPlugin(app, Node, thisItemAvailablePlugins(indx,:));
+        function onOpenPluginListDialog(app, Node, thisItemAvailablePlugins)
+            [indx,tf] = listdlg('ListString', thisItemAvailablePlugins.Name,...
+                'SelectionMode', 'single', ...
+                'OKString', 'Apply', ...
+                'PromptString', 'Select a plugin to run.');
+            
+            if tf
+                applyPlugin(app, Node, thisItemAvailablePlugins(indx,:));
+            end
         end
-    end
-    
-    function applyPlugin(app, Node, plugin)
-        try
+        
+        function applyPlugin(app, Node, plugin)
             % Get most recently used plugins for this type and
             % add current plugin to list
             defaultPluginTable = table('Size',[0 5],...
@@ -1068,6 +1067,8 @@ classdef ApplicationUI < matlab.apps.AppBase
             
             % if there are multiple selected nodes, apply plugin to all
             % selected nodes of plugin type
+            % if there are errors, collect all messages and display at last
+            errormsgs = strings; n=1;
             selNodes = app.TreeRoot.SelectedNodes;
             if length(selNodes)>1
                 selNodeData = vertcat(app.TreeRoot.SelectedNodes.NodeData);
@@ -1077,15 +1078,28 @@ classdef ApplicationUI < matlab.apps.AppBase
                 selNodesThisPluginType = selNodes(matches(string(selNodeClasses), plugin.Type));
                 
                 for i = 1:length(selNodesThisPluginType)
-                    plugin.FunctionHandle{1}(selNodesThisPluginType(i).NodeData);
+                    try
+                        plugin.FunctionHandle{1}(selNodesThisPluginType(i).NodeData);
+                    catch ME
+                        nodeName = sprintf("Error occurred when running %s on %s\n", ...
+                            plugin.Name{1}, selNodesThisPluginType(i).NodeData.Name);
+                        errormsgs(n) = strcat(nodeName, ME.message);
+                        n=n+1;
+                    end
                 end
             else
-                plugin.FunctionHandle{1}(Node.NodeData);
+                try
+                    plugin.FunctionHandle{1}(Node.NodeData);
+                catch ME
+                    nodeName = sprintf("Error occurred when running %s on %s\n", ...
+                        plugin.Name{1}, Node.NodeData.Name);
+                    errormsgs(n) = strcat(nodeName, ME.message);
+                end
             end
-        catch ME
-            uialert(app.UIFigure, ME.message, 'Error applying plugin');
+            if errormsgs~=""
+                uialert(app.UIFigure, errormsgs, 'Error applying plugins');
+            end
         end
-    end
     end
     
     % %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %%

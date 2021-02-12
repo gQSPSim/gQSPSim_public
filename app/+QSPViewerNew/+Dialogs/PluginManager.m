@@ -347,7 +347,7 @@ classdef PluginManager < matlab.apps.AppBase
                         'Indeterminate', 'on', 'Cancelable', 'on');
                     
                     % Run dependency
-                    dependencyColumn = false(1,height(app.PluginTableData));
+                    dependencyColumn = false(height(app.PluginTableData),1);
                     for i = 1:height(app.PluginTableData)
                         % Check for Cancel button press
                         if d.CancelRequested
@@ -359,7 +359,9 @@ classdef PluginManager < matlab.apps.AppBase
                             dependencyColumn(i) = true;
                         end
                     end
-                    app.PluginTableDisplayData.("All Dependencies within root directory") = dependencyColumn';
+                    dependencyColumnValues(dependencyColumn) = "Yes" ;
+                    dependencyColumnValues(~dependencyColumn) = "No" ;
+                    app.PluginTableDisplayData.("All Dependencies within root directory") = dependencyColumnValues';
                     
                     close(d);
                 end
