@@ -122,7 +122,7 @@ classdef PluginManager < matlab.apps.AppBase
                 line5 = "% Description:";
                 line6 = sprintf("%%           This plugin is for %s objects",inputType);
                 line7 = "% Inputs:";
-                line8 = sprintf("%%       QSP.%s object", inputType);
+                line8 = sprintf("%%       QSP.%s", inputType);
                 line9 = "% Author:";
                 line10 = "end";
                 
@@ -264,11 +264,11 @@ classdef PluginManager < matlab.apps.AppBase
             app.DependencyCheckbox.Layout.Column = 7;
             app.DependencyCheckbox.ValueChangedFcn = @(s, e) app.onDependencyValueChanged(s,e);
             
-            % Populate table with plugin data
-            app.update();
-            
             % Show the figure after all components are created
             app.UIFigure.Visible = 'on';
+            
+            % Populate table with plugin data
+            app.update();
             
         end
         
@@ -312,6 +312,13 @@ classdef PluginManager < matlab.apps.AppBase
         
         function onUpdateButtonPushed(app,~,~)
             app.update();
+            
+            % throw a warning if plugin table is empty
+            if isempty(app.PluginTableData)
+                uialert(app.UIFigure, ['Please change plugin directory (from main app under Session objects Edit page)',...
+                    ' or ensure appropriate Input types are entered in plugin files (use template provided by "Add New" button).'], ...
+                    'No plugin files found', 'Icon', 'warning');
+            end
         end
         
         function onBrowsePluginFolderButtonPushed(app,~,~)
@@ -442,8 +449,8 @@ classdef PluginManager < matlab.apps.AppBase
                     % Type column
                     typeLineIdx = find(contains(data, 'Inputs'))+1;
                     if ~isempty(typeLineIdx)
-                        inputType =  strtrim(extractBetween(data(typeLineIdx), '%', 'object'));
-                        inputType = split(inputType,'.');
+                        inputType =  strtrim(split(data(typeLineIdx)));
+                        inputType = split(inputType(2),'.');
                         if ~isempty(inputType) && inputType(end) ~= ""
                             pluginTable.Type(i) = inputType(end);
                         end
