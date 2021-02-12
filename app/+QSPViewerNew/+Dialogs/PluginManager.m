@@ -145,7 +145,7 @@ classdef PluginManager < matlab.apps.AppBase
                 
                 app.PluginTableData = table.empty();
             else
-                app.SessionDropDown.Items = extractBefore(string({app.Sessions.SessionName}), ".mat");
+                app.SessionDropDown.Items = {app.Sessions.SessionName};
                 app.SessionDropDown.ItemsData = vertcat(app.Sessions);
                 if isempty(app.SelectedSession) || ~ismember(app.SelectedSession, app.SessionDropDown.ItemsData)
                     app.SelectedSession = app.Sessions(1);
@@ -165,10 +165,9 @@ classdef PluginManager < matlab.apps.AppBase
                     app.PathStatusIcon.Tooltip = "Plugin directory present within root directory";
                 else
                     app.PathStatusIcon.ImageSource = QSPViewerNew.Resources.LoadResourcePath('warning_24.png');
-                    dashAscii = double('-');
-                    gtAscii = double('>');
-                    app.PathStatusIcon.Tooltip = sprintf(['Plugin directory  not present within root directory. To change it, select corresponding Session in main app ',...
-                        dashAscii, gtAscii, ' Edit ', dashAscii, gtAscii, ' Plugins Directory']);
+                    app.PathStatusIcon.Tooltip = sprintf(['Plugin directory  not present within root directory.', ...
+                        'To change it, select corresponding Session in main app, then ',...
+                        'Edit, then Plugins Directory']);
                 end
                 app.PathStatusIcon.Visible = 'on';
                 
