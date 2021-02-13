@@ -1069,6 +1069,8 @@ classdef ApplicationUI < matlab.apps.AppBase
             % if there are errors, collect all messages and display at last
             errormsgs = strings; n=1;
             selNodes = app.TreeRoot.SelectedNodes;
+            
+            d = uiprogressdlg(app.UIFigure,'Title','Running plugins');
             if length(selNodes)>1
                 selNodeData = vertcat(app.TreeRoot.SelectedNodes.NodeData);
                 selNodeClasses = arrayfun(@(x) class(x), selNodeData, 'UniformOutput', false);
@@ -1077,23 +1079,29 @@ classdef ApplicationUI < matlab.apps.AppBase
                 selNodesThisPluginType = selNodes(matches(string(selNodeClasses), plugin.Type));
                 
                 for i = 1:length(selNodesThisPluginType)
+                    d.Message = sprintf("Running %s on %s", ...
+                        plugin.Name{1}, selNodesThisPluginType(i).NodeData.Name);
                     try
                         plugin.FunctionHandle{1}(selNodesThisPluginType(i).NodeData);
                     catch ME
-                        nodeName = sprintf("Error occurred when running %s on %s\n", ...
+                        nodeName = sprintf("Error running %s on %s", ...
                             plugin.Name{1}, selNodesThisPluginType(i).NodeData.Name);
-                        errormsgs(n) = strcat(nodeName, ME.message);
+                        errormsgs(n) = sprintf("%s\n%s\n", nodeName, ME.message);
                         n=n+1;
                     end
+                    d.Value = i/length(selNodesThisPluginType);
                 end
             else
+                d.Message = sprintf("Running %s on %s", ...
+                        plugin.Name{1}, Node.NodeData.Name);
                 try
                     plugin.FunctionHandle{1}(Node.NodeData);
                 catch ME
-                    nodeName = sprintf("Error occurred when running %s on %s\n", ...
+                    nodeName = sprintf("Error running %s on %s\n", ...
                         plugin.Name{1}, Node.NodeData.Name);
                     errormsgs(n) = strcat(nodeName, ME.message);
                 end
+                d.Value = 1;
             end
             if errormsgs~=""
                 uialert(app.UIFigure, errormsgs, 'Error applying plugins');
