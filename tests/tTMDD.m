@@ -83,7 +83,7 @@ classdef tTMDD < matlab.unittest.TestCase
             VCGen1.GroupName                    = 'Group';
             VCGen1.MaxNumSimulations            = 5000;
             VCGen1.MaxNumVirtualPatients        = 500;
-            VCGen1.SaveInvalid                   = 'all'; % Save all virtual subjects
+            VCGen1.SaveInvalid                   = 'Save all virtual subjects'; % Save all virtual subjects = all
             VCGen1.Method                        = 'Distribution';
             VCGen1.TaskGroupItems = {...
                 'A_3.0 mpk','1';...

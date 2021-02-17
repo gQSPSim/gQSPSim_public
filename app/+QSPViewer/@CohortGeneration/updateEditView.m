@@ -65,6 +65,11 @@ updateMaxNumSims(vObj);
 updateMaxNumVirtualPatients(vObj);
 
 
+%% Update SaveInvalidPopup
+
+updateSaveInvalid(vObj);
+
+
 %% update RNG
 set(vObj.h.RNGSeedEdit, 'Value', vObj.TempData.RNGSeed)
 
