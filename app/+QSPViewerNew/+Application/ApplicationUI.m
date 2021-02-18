@@ -156,6 +156,11 @@ classdef ApplicationUI < matlab.apps.AppBase
             setpref(app.TypeStr, 'RecentSessionPaths', app.RecentSessionPaths)
             setpref(app.TypeStr,'Position',app.UIFigure.Position)
             
+            % close plugin manager if open
+            if isvalid(app.PluginManager)
+                delete(app.PluginManager)
+            end
+            
             %Delete UI
             delete(app.UIFigure)
         end
@@ -562,11 +567,13 @@ classdef ApplicationUI < matlab.apps.AppBase
                         'Text', ['Delete this ' ThisItemType],...
                         'Separator', 'on',...
                         'MenuSelectedFcn', @(h,e) app.onDeleteSelectedItem(h.Parent.UserData.Parent.Parent.Parent.NodeData,h.Parent.UserData));
-%                     uimenu(...
-%                         'Parent', CM,...
-%                         'Text', 'Run plugins...',...
-%                         'Separator', 'on');
+                    
                     Node.ContextMenu = CM;
+                    
+                    pluginsDir = Node.Parent.Parent.Parent.NodeData.PluginsDirectory;
+                    pluginTable = ...
+                        QSPViewerNew.Dialogs.PluginManager.getPlugins(pluginsDir);
+                    updateItemTypePluginMenus(app, ThisItemType, Node, pluginTable);
                 end
             else
                 switch Type
@@ -639,11 +646,10 @@ classdef ApplicationUI < matlab.apps.AppBase
 
             % Get plugins for this item
             thisItemPlugins = pluginTable(pluginTable.Type==thisItemType,:);
+            thisItemPlugins = removevars(thisItemPlugins, 'All Dependencies within root directory');
             if ~isempty(thisItemPlugins)
                 % Get most recently used plugins for this type
-                defaultPluginTable = table('Size',[0 5],...
-                    'VariableTypes',{'string','string','string','string','cell'},...
-                    'VariableNames',{'Name','Type','File','Description','FunctionHandle'});
+                defaultPluginTable = table.empty();
                 mostRecentPlugins = getpref(app.TypeStr, strcat('recent', thisItemType), defaultPluginTable);
                 
                 % Check if most recent plugins are part of
@@ -654,8 +660,7 @@ classdef ApplicationUI < matlab.apps.AppBase
                     thisItemAvailablePlugins = vertcat(mostRecentPlugins, thisItemPlugins);
                     
                     % remove function handle column to get unique rows
-                    pluginT = removevars(thisItemAvailablePlugins, 'FunctionHandle');
-                    [~, ia] = unique(pluginT, 'stable', 'rows');
+                    [~, ia] = unique(thisItemAvailablePlugins.File, 'stable', 'rows');
                     thisItemAvailablePlugins = thisItemAvailablePlugins(ia,:);
                 else
                     thisItemAvailablePlugins = thisItemPlugins ;
@@ -957,6 +962,7 @@ classdef ApplicationUI < matlab.apps.AppBase
             
             %Update the title of the application
             app.updateAppTitle();
+            
         end
         
         function onDuplicateItem(app,activeSession,activeNode)
@@ -1316,7 +1322,7 @@ classdef ApplicationUI < matlab.apps.AppBase
             else
                 pluginTable = ...
                     QSPViewerNew.Dialogs.PluginManager.getPlugins(Session.PluginsDirectory);
-                updateAllPluginMenus(app, app.Sessions(newIdx), pluginTable)
+                updateAllPluginMenus(app, app.Sessions(idxNew), pluginTable)
             end
         end
         
@@ -1989,13 +1995,13 @@ classdef ApplicationUI < matlab.apps.AppBase
                 app.createTree(ParentNode, ThisObj);
                 ParentNode.expand();
                 
-                % update plugin menus for this node
-                ThisNodeDataIdx = [ParentNode.Children.NodeData]==ThisObj;
-                pluginsDir = ParentNode.Parent.Parent.NodeData.PluginsDirectory;
-                pluginTable = ...
-                                QSPViewerNew.Dialogs.PluginManager.getPlugins(pluginsDir);
-                app.updateItemTypePluginMenus(ItemType, ...
-                    ParentNode.Children(ThisNodeDataIdx), pluginTable)
+%                 % update plugin menus for this node
+%                 ThisNodeDataIdx = [ParentNode.Children.NodeData]==ThisObj;
+%                 pluginsDir = ParentNode.Parent.Parent.NodeData.PluginsDirectory;
+%                 pluginTable = ...
+%                                 QSPViewerNew.Dialogs.PluginManager.getPlugins(pluginsDir);
+%                 app.updateItemTypePluginMenus(ItemType, ...
+%                     ParentNode.Children(ThisNodeDataIdx), pluginTable)
             else
                 error('Invalid tree parent');
             end

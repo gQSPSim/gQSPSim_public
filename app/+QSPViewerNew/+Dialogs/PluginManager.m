@@ -12,8 +12,7 @@ classdef PluginManager < matlab.apps.AppBase
     end
     
     properties (Access=private)
-        UIFigure                    matlab.ui.Figure
-        PanelMain                   matlab.ui.container.Panel
+        UIFigure                    matlab.ui.Figure                  
         GridMain                    matlab.ui.container.GridLayout
         SessionLabel                matlab.ui.control.Label
         SessionDropDown             matlab.ui.control.DropDown
@@ -25,7 +24,11 @@ classdef PluginManager < matlab.apps.AppBase
         PluginTable                 matlab.ui.control.Table
         AddNewButton                matlab.ui.control.Button
         UpdateButton                matlab.ui.control.Button
+        RunDependencyButton         matlab.ui.control.Button
         DependencyCheckbox          matlab.ui.control.CheckBox
+        DependencySummaryPanel      matlab.ui.container.Panel
+        DependencySummaryGrid       matlab.ui.container.GridLayout
+        DependencySummaryArea       QSPViewerNew.Widgets.Summary
     end
     
     properties (SetAccess=private, SetObservable, AbortSet)
@@ -36,12 +39,6 @@ classdef PluginManager < matlab.apps.AppBase
     end
     
     properties (Hidden, SetAccess = private, Transient, NonCopyable)
-        % listener handle for Sessions property
-        SessionsListener event.listener
-        
-        % listener handle for PluginTableDisplayData property
-        DisplayDataListener event.listener
-        
         % listener handle for SelectedSession property
         SelectedSessionListener event.listener
         
@@ -137,15 +134,11 @@ classdef PluginManager < matlab.apps.AppBase
                 app.SessionDropDown.Items = "";
                 app.SelectedSession = QSP.Session.empty(0,1);
                 
-                 app.PathStatusIcon.Visible = 'off';
+                app.PathStatusIcon.Visible = 'off';
                 
                 app.PluginFolderTextArea.Text = '';
                 
-                app.DependencyCheckbox.Value = 0;
-                
-                app.PluginTableData = table('Size',[0 5],...
-                    'VariableTypes',{'string','string','string','string','function_handle'},...
-                    'VariableNames',{'Name','Type','File','Description','FunctionHandle'});
+                app.PluginTableData = app.getPlugins('');
             else
                 app.SessionDropDown.Items = {app.Sessions.SessionName};
                 app.SessionDropDown.ItemsData = vertcat(app.Sessions);
@@ -179,8 +172,13 @@ classdef PluginManager < matlab.apps.AppBase
             % Update Types drop-down
             app.Types = ["all"; unique(app.PluginTableData.Type)];
             
-            % Update plugin table
-            app.filterTableBasedonValue();
+            % Update plugin table for display
+            app.updateDisplayDataPluginTable();
+            
+            % update dependency report area
+            app.DependencySummaryArea.Information = {'Summary of Dependency folders','';...
+                 'Summary of Dependency files','';...
+                 'Summary of Dependencies for each plugin', ''};
         end
     end
     %% Private methods
@@ -191,14 +189,14 @@ classdef PluginManager < matlab.apps.AppBase
             
             % Create a parent figure
             app.UIFigure = uifigure('Name', 'Plugin Manager', 'Visible', 'off');
-            app.UIFigure.Position(3:4) = [1200, 500];
+            app.UIFigure.Position(3:4) = [1200, 700];
             typeStr = matlab.lang.makeValidName(class(app));
             app.UIFigure.Position = getpref(typeStr,'Position',app.UIFigure.Position);
             
             % Create the main grid
             app.GridMain = uigridlayout(app.UIFigure);
-            app.GridMain.ColumnWidth = {'1x',ButtonSize,'0.7x','1x','1x','0.7x','1.3x'};
-            app.GridMain.RowHeight = {'1x','1x','1x','fit','1x'};
+            app.GridMain.ColumnWidth = {'1x',ButtonSize,'0.3x','0.4x','0.6x','1x','1x','1.4x'};
+            app.GridMain.RowHeight = {'1x','1x','1x','fit','1x','7x'};
             
             % Create Session edit field
             app.SessionLabel = uilabel(app.GridMain, 'Text', 'Session:');
@@ -236,7 +234,7 @@ classdef PluginManager < matlab.apps.AppBase
             % Create Filter edit field
             app.FilterDropDown = uidropdown(app.GridMain, 'Items', app.Types, 'Value', "all");
             app.FilterDropDown.Layout.Row = 3;
-            app.FilterDropDown.Layout.Column = [2, 3];
+            app.FilterDropDown.Layout.Column = [2, 4];
             app.FilterDropDown.ValueChangedFcn = @(s,e) app.onFilterValueChanged(s,e);
             
             % Create PluginTable
@@ -247,23 +245,39 @@ classdef PluginManager < matlab.apps.AppBase
             % Create Add new button
             app.AddNewButton = uibutton(app.GridMain, 'push');
             app.AddNewButton.Layout.Row = 5;
-            app.AddNewButton.Layout.Column = 4;
-            app.AddNewButton.Text = "Add New";
+            app.AddNewButton.Layout.Column = [4, 5];
+            app.AddNewButton.Text = "Add new plugin";
             app.AddNewButton.ButtonPushedFcn = @(s,e) app.onAddButtonPushed(s,e);
             
             % Create Update button
             app.UpdateButton = uibutton(app.GridMain, 'push');
             app.UpdateButton.Layout.Row = 5;
-            app.UpdateButton.Layout.Column = 5;
+            app.UpdateButton.Layout.Column = 6;
             app.UpdateButton.Text = "Update";
             app.UpdateButton.ButtonPushedFcn = @(s,e) app.onUpdateButtonPushed(s,e);
             
-            % create checkbox for dependencies
-            app.DependencyCheckbox = uicheckbox(app.GridMain, ...
-                'Text', 'Show dependency analysis');
-            app.DependencyCheckbox.Layout.Row = 3;
-            app.DependencyCheckbox.Layout.Column = 7;
-            app.DependencyCheckbox.ValueChangedFcn = @(s, e) app.onDependencyValueChanged(s,e);
+            % Create Run Dependency button
+            app.RunDependencyButton = uibutton(app.GridMain, 'push');
+            app.RunDependencyButton.Layout.Row = 5;
+            app.RunDependencyButton.Layout.Column = 7;
+            app.RunDependencyButton.Text = "Run Dependency";
+            app.RunDependencyButton.ButtonPushedFcn = @(s,e) app.onRunDependencyButtonPushed(s,e);
+            
+            % create panel for dependency panel
+            app.DependencySummaryPanel = uipanel(app.GridMain, ...
+                'Title', 'Summary Report of Dependencies outside Session root directory (Click Run Dependency to populate report)');
+            app.DependencySummaryPanel.Layout.Row = 6;
+            app.DependencySummaryPanel.Layout.Column = [1, length(app.GridMain.ColumnWidth)];
+            
+            % create grid for dependency grid
+            app.DependencySummaryGrid = uigridlayout(app.DependencySummaryPanel, [1 1]);
+            
+            % create textbox for showing dependency report
+            app.DependencySummaryArea = QSPViewerNew.Widgets.Summary(app.DependencySummaryGrid,...
+                1,1,...
+                {'Summary of Dependency folders','';...
+                 'Summary of Dependency files','';...
+                 'Summary of Dependencies for each plugin', ''});
             
             % Show the figure after all components are created
             app.UIFigure.Visible = 'on';
@@ -273,25 +287,15 @@ classdef PluginManager < matlab.apps.AppBase
             
         end
         
-        function filterTableBasedonValue(app)
-            if ~isempty(app.PluginTableData)
-                if strcmp(app.TypeFilterValue, "all")
-                    pluginTableDisplayData = app.PluginTableData;
-                elseif ~isempty(app.TypeFilterValue) && app.TypeFilterValue~=""
-                    filterstr = app.TypeFilterValue;
-                    rowContainingFilter = app.PluginTableData.Type==filterstr;
-                    pluginTableDisplayData = app.PluginTableData(rowContainingFilter,:);
-                else
-                    pluginTableDisplayData = app.PluginTableData(ismissing(app.PluginTableData.Type),:);
-                end
-                % remove function handle for display
-                app.PluginTableDisplayData = removevars(pluginTableDisplayData, 'FunctionHandle');
-                
-                % remove full file path for 'File' column while display
-                [~,name,~] = arrayfun(@(x) fileparts(x), app.PluginTableDisplayData.File);
-                app.PluginTableDisplayData.File = strcat(name, '.m');
+        function pluginTableDisplayData = filterTableBasedonValue(app)
+            if strcmp(app.TypeFilterValue, "all")
+                pluginTableDisplayData = app.PluginTableData;
+            elseif ~isempty(app.TypeFilterValue) && app.TypeFilterValue~=""
+                filterstr = app.TypeFilterValue;
+                rowContainingFilter = app.PluginTableData.Type==filterstr;
+                pluginTableDisplayData = app.PluginTableData(rowContainingFilter,:);
             else
-                app.PluginTableDisplayData = removevars(app.PluginTableData, 'FunctionHandle');
+                pluginTableDisplayData = app.PluginTableData(ismissing(app.PluginTableData.Type),:);
             end
         end
         
@@ -299,6 +303,39 @@ classdef PluginManager < matlab.apps.AppBase
             if ~isempty(app.SelectedSession)
                 pluginTable = app.getPlugins(app.SelectedSession.PluginsDirectory);
                 app.PluginTableData = pluginTable;
+            end
+        end
+        
+        function [dependencyFiles, dependencyValues] = getDependencyValues(app)
+            % run dependency only if plugin table is not empty
+            pluginTable = app.PluginTableData;
+            dependencyColumn = false(height(pluginTable),1);
+            dependencyFiles = cell(height(pluginTable), 2);
+            if ~isempty(pluginTable)
+                % create progress dialog because this takes time
+                d = uiprogressdlg(app.UIFigure,'Title','Running dependency analysis',...
+                    'Indeterminate', 'on', 'Cancelable', 'on');
+                
+                % Run dependency
+                
+                for i = 1:height(pluginTable)
+                    % Check for Cancel button press
+                    if d.CancelRequested
+                        break;
+                    end
+                    [fList,~] = matlab.codetools.requiredFilesAndProducts(pluginTable.File(i));
+                    tf = app.isPathinRootDirectory(string(fList)',app.SelectedSession.RootDirectory);
+                    if all(tf)
+                        dependencyColumn(i) = true;
+                    end
+                    
+                    dependencyFiles{i,1} = char(pluginTable.File(i));
+                    dependencyFiles{i,2} = fList(~tf)';
+                end
+                dependencyValues(dependencyColumn) = "Yes" ;
+                dependencyValues(~dependencyColumn) = "No" ;
+            else
+                dependencyValues = logical.empty();
             end
         end
         
@@ -322,56 +359,38 @@ classdef PluginManager < matlab.apps.AppBase
             end
         end
         
-        function onBrowsePluginFolderButtonPushed(app,~,~)
-            selpath = uigetdir(pwd, 'Select Plugin source folder');
-            figure(app.UIFigure);
-            if selpath
-                app.PluginFolder = selpath;
+        function onRunDependencyButtonPushed(app,~,~)
+            if ~isempty(app.PluginTableData)
+                [dependencyFiles, dependencyValues] = getDependencyValues(app);
+                app.PluginTableData.("All Dependencies within root directory") = dependencyValues';
+                
+                dependencySummaryFiles = vertcat(dependencyFiles{:,2});
+                dependencySummaryFiles = unique(dependencySummaryFiles);
+                [dependencySummaryFolders,~,~] = fileparts(dependencySummaryFiles);
+                if ~iscell(dependencySummaryFolders)
+                    dependencySummaryFolders = {dependencySummaryFolders};
+                end
+                dependencySummaryFolders = unique(dependencySummaryFolders);
+                
+                report = {'Summary of Dependency folders', dependencySummaryFolders; ...
+                    'Summary of Dependency files', dependencySummaryFiles; ...
+                    'Summary of Dependencies for each plugin', ''};
+                isnotemptyPluginDep = cellfun(@(x) ~isempty(x), (dependencyFiles(:,2)));
+                dependencyFiles = dependencyFiles(isnotemptyPluginDep,:);
+                report(4:3+size(dependencyFiles,1),1) = dependencyFiles(:,1);
+                report(4:3+size(dependencyFiles,1),2) = dependencyFiles(:,2);
+                
+                app.DependencySummaryArea.Information = report;
             end
         end
         
         function onFilterValueChanged(app,~,~)
             app.TypeFilterValue = app.FilterDropDown.Value;
-            app.filterTableBasedonValue();
+            app.updateDisplayDataPluginTable();
         end
         
         function onAddButtonPushed(app,~,~)
             app.addFile();
-        end
-        
-        function onDependencyValueChanged(app,~,~)
-            if app.DependencyCheckbox.Value
-                % run dependency only if plugin table is not empty
-                if ~isempty(app.PluginTableData)
-                    % create progress dialog because this takes time
-                    d = uiprogressdlg(app.UIFigure,'Title','Running dependency analysis',...
-                        'Indeterminate', 'on', 'Cancelable', 'on');
-                    
-                    % Run dependency
-                    dependencyColumn = false(height(app.PluginTableData),1);
-                    for i = 1:height(app.PluginTableData)
-                        % Check for Cancel button press
-                        if d.CancelRequested
-                            break
-                        end
-                        [fList,~] = matlab.codetools.requiredFilesAndProducts(app.PluginTableData.File(i));
-                        tf = app.isPathinRootDirectory(string(fList)',app.SelectedSession.RootDirectory);
-                        if all(tf)
-                            dependencyColumn(i) = true;
-                        end
-                    end
-                    dependencyColumnValues(dependencyColumn) = "Yes" ;
-                    dependencyColumnValues(~dependencyColumn) = "No" ;
-                    app.PluginTableDisplayData.("All Dependencies within root directory") = dependencyColumnValues';
-                    
-                    close(d);
-                end
-            else
-                if any(matches(string(app.PluginTableDisplayData.Properties.VariableNames), ...
-                        "All Dependencies within root directory"))
-                    app.PluginTableDisplayData = removevars(app.PluginTableDisplayData, 'All Dependencies within root directory');
-                end
-            end
         end
     end
     
@@ -379,14 +398,6 @@ classdef PluginManager < matlab.apps.AppBase
     methods(Access=protected)
         
         function attachListeners(app)
-            % Attach listener to SelectedSession property to update table
-            app.SessionsListener = addlistener(app, 'Sessions', ...
-                'PostSet', @(h,e) update(app));
-            
-            % Attach listener to display data property to update table
-            app.DisplayDataListener = addlistener(app, 'PluginTableDisplayData', ...
-                'PostSet', @(h,e)updateDisplayDataPluginTable(app,h,e));
-            
             % Attach listener to SelectedSession property to update table
             app.SelectedSessionListener = addlistener(app, 'SelectedSession', ...
                 'PostSet', @(h,e) update(app));
@@ -405,7 +416,23 @@ classdef PluginManager < matlab.apps.AppBase
     %% Listener methods
     methods(Access=private)
         
-        function updateDisplayDataPluginTable(app,~,~)
+        function updateDisplayDataPluginTable(app)
+            if ~isempty(app.PluginTableData)
+                pluginTableDisplayData = filterTableBasedonValue(app);
+                
+                % remove full file path for 'File' column while display
+                [~,name,~] = arrayfun(@(x) fileparts(x), pluginTableDisplayData.File);
+                pluginTableDisplayData.File = strcat(name, '.m');
+            else
+                pluginTableDisplayData = app.PluginTableData;
+            end
+            pluginTableDisplayData = removevars(pluginTableDisplayData, 'FunctionHandle');
+            
+            if all(ismissing(pluginTableDisplayData.("All Dependencies within root directory")))
+                pluginTableDisplayData = removevars(pluginTableDisplayData, 'All Dependencies within root directory');
+            end
+            
+            app.PluginTableDisplayData = pluginTableDisplayData;
             app.PluginTable.Data = app.PluginTableDisplayData;
             if verLessThan('matlab','9.9')
                 app.PluginTable.ColumnWidth = 'auto';
@@ -431,9 +458,9 @@ classdef PluginManager < matlab.apps.AppBase
                 pluginFiles = dir(fullfile(pluginFolder, '*.m'));
                 
                 % Initialize plugin table
-                pluginTable = table('Size',[length(pluginFiles) 5],...
-                    'VariableTypes',{'string','string','string','string','cell'},...
-                    'VariableNames',{'Name','Type','File','Description','FunctionHandle'});
+                pluginTable = table('Size',[length(pluginFiles) 6],...
+                    'VariableTypes',{'string','string','string','string','cell','string'},...
+                    'VariableNames',{'Name','Type','File','Description','FunctionHandle','All Dependencies within root directory'});
                 
                 for i = 1:length(pluginFiles)
                     fileloc = fullfile(pluginFolder, pluginFiles(i).name);
@@ -485,9 +512,9 @@ classdef PluginManager < matlab.apps.AppBase
                 pluginTable(matches(pluginTable.Type, allTypes(~isValidFunc)),:) = [];
                 pluginTable(ismissing(pluginTable.Type),:) = [];
             else
-                pluginTable = table('Size',[0 5],...
-                    'VariableTypes',{'string','string','string','string','function_handle'},...
-                    'VariableNames',{'Name','Type','File','Description','FunctionHandle'});
+                pluginTable = table('Size',[0 6],...
+                    'VariableTypes',{'string','string','string','string','function_handle','string'},...
+                    'VariableNames',{'Name','Type','File','Description','FunctionHandle','All Dependencies within root directory'});
             end
         end
         
@@ -496,6 +523,19 @@ classdef PluginManager < matlab.apps.AppBase
             allFiles = fullfile(string({allFiles.folder}), string({allFiles.name}))';
             tf = matches(path, allFiles);
         end
+        
+    end
+
+%% Get/Set methods
+methods
+    function set.Sessions(app, value)
+        app.Sessions = value;
+        app.update();
     end
     
+    function set.PluginTableData(app, value)
+        app.PluginTableData = value;
+        app.updateDisplayDataPluginTable();
+    end
+end
 end
