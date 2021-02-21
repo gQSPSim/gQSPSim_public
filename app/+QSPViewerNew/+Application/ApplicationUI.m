@@ -15,7 +15,7 @@ classdef ApplicationUI < matlab.apps.AppBase
     %   Copyright 2020 The MathWorks, Inc.
     %    
     
-    properties  
+    properties
         Sessions = QSP.Session.empty(0,1)
         AppName
         Title
@@ -23,6 +23,19 @@ classdef ApplicationUI < matlab.apps.AppBase
     
     properties(Constant)
         Version = 'v1.0'
+        ItemTypes = {
+                'Dataset',                          'OptimizationData'
+                'Parameter',                        'Parameters'
+                'Task',                             'Task'
+                'Virtual Subject(s)',               'VirtualPopulation'
+                'Acceptance Criteria',              'VirtualPopulationData'
+                'Target Statistics',                'VirtualPopulationGenerationData'
+                'Simulation',                       'Simulation'
+                'Optimization',                     'Optimization'
+                'Cohort Generation',                'CohortGeneration'
+                'Virtual Population Generation',    'VirtualPopulationGeneration'
+                'Global Sensitivity Analysis',      'GlobalSensitivityAnalysis'
+                };
     end
     
     properties (SetAccess = private)
@@ -40,6 +53,7 @@ classdef ApplicationUI < matlab.apps.AppBase
         TypeStr
         WindowButtonDownCallbacks = {};
         WindowButtonUpCallbacks = {};
+        LoggerDialog QSPViewerNew.Dialogs.LoggerDialog
     end
     
     properties (SetAccess = private, Dependent = true, AbortSet = true)
@@ -77,6 +91,8 @@ classdef ApplicationUI < matlab.apps.AppBase
         GlobalSensitivityAnalysisMenu    matlab.ui.container.Menu
         DeleteSelectedItemMenu   matlab.ui.container.Menu
         RestoreSelectedItemMenu  matlab.ui.container.Menu
+        ToolsMenu                matlab.ui.container.Menu
+        LoggerMenu               matlab.ui.container.Menu
         HelpMenu                 matlab.ui.container.Menu
         AboutMenu                matlab.ui.container.Menu
         FlexGridLayout           QSPViewerNew.Widgets.GridFlex
@@ -86,6 +102,11 @@ classdef ApplicationUI < matlab.apps.AppBase
         TreeMenu                 
         OpenRecentMenuArray      
     end
+    
+     properties (Hidden, SetAccess = private, Transient, NonCopyable)
+        % listener handle for Sessions property
+        SessionsListener
+     end
     
     methods (Access = public)
         
@@ -129,6 +150,11 @@ classdef ApplicationUI < matlab.apps.AppBase
             setpref(app.TypeStr, 'LastFolder', app.LastFolder)
             setpref(app.TypeStr, 'RecentSessionPaths', app.RecentSessionPaths)
             setpref(app.TypeStr,'Position',app.UIFigure.Position)
+            
+             % close logger dialog if open
+            if isvalid(app.LoggerDialog)
+                delete(app.LoggerDialog)
+            end
             
             %Delete UI
             delete(app.UIFigure)
@@ -265,6 +291,15 @@ classdef ApplicationUI < matlab.apps.AppBase
             app.RestoreSelectedItemMenu = uimenu(app.QSPMenu);
             app.RestoreSelectedItemMenu.Text = 'Restore Selected Item';
             app.RestoreSelectedItemMenu.MenuSelectedFcn =@(h,e) app.onRestoreSelectedItem([],[]);
+            
+            % Create Tools menu
+            app.ToolsMenu = uimenu(app.UIFigure);
+            app.ToolsMenu.Text = 'Tools';
+            
+            % Create logger menu
+            app.LoggerMenu = uimenu(app.ToolsMenu);
+            app.LoggerMenu.Text = 'Logger';
+            app.LoggerMenu.MenuSelectedFcn = @(h, e) app.onOpenLogger;
             
             % Create HelpMenu
             app.HelpMenu = uimenu(app.UIFigure);
@@ -900,6 +935,21 @@ classdef ApplicationUI < matlab.apps.AppBase
                 app.permDelete(activeNode,activeSession)
             end
             app.markDirty(activeSession);
+        end
+        
+        function onOpenLogger(app)
+            try
+                app.LoggerDialog = QSPViewerNew.Dialogs.LoggerDialog;
+                app.LoggerDialog.Sessions = app.Sessions;
+            catch ME
+                uialert(app.UIFigure, ME.message, 'Error opening logger dialog');
+            end
+        end
+        
+        function updateLoggerSessions(app,~,~)
+            if isvalid(app.LoggerDialog)
+                app.LoggerDialog.Sessions = app.Sessions;
+            end
         end
        
     end
@@ -1761,10 +1811,14 @@ classdef ApplicationUI < matlab.apps.AppBase
             end
             
             % Mark the current session dirty
-            app.markDirty(Node.NodeData.Session);
+            ThisSession = Node.NodeData.Session;
+            app.markDirty(ThisSession);
             
             % Update the display
             app.refresh();
+            
+            % update log
+            ThisSession.LoggerObj.write(Node.Text, ItemType, "INFO", 'duplicated item')
         end
         
         function deleteNode(app,Node,session)
@@ -1944,6 +1998,11 @@ classdef ApplicationUI < matlab.apps.AppBase
             else
                 value = app.SelectedSessionIdx;
             end
+        end
+        
+        function set.Sessions(app,value)
+            app.Sessions = value;
+            app.updateLoggerSessions();
         end
         
         function set.SelectedSessionIdx(app,value)

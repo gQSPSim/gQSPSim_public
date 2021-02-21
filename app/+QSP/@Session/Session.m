@@ -60,6 +60,10 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         
         UseLogging = true
         LogFile = 'logfile.txt'
+        
+        LoggerObj QSPViewerNew.Widgets.LoggerSubclass
+        LoggerSeverityDialog mlog.Level = mlog.Level.MESSAGE;
+        LoggerSeverityFile mlog.Level = mlog.Level.INFO;
     end
     
 	properties (Access=protected)
@@ -69,7 +73,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         RelativeUserDefinedFunctionsPathParts = {''}
         RelativeObjectiveFunctionsPathParts = {''}
         RelativeAutoSavePathParts = {''}
-
+        RelativeLoggerFilePathParts = {'session_LOG.txt'}
     end
     
     properties (Dependent)
@@ -78,7 +82,8 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         RelativeResultsPath
         RelativeUserDefinedFunctionsPath
         RelativeObjectiveFunctionsPath        
-        RelativeAutoSavePath        
+        RelativeAutoSavePath
+        RelativeLoggerFilePath
     end
     
     properties (Dependent=true, SetAccess=immutable)
@@ -86,6 +91,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         ObjectiveFunctionsDirectory
         UserDefinedFunctionsDirectory
         AutoSaveDirectory
+        LoggerFile
         GitFiles
     end
     
@@ -113,6 +119,8 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         ColorMap2 = QSP.Session.DefaultColorMap
         
         toRemove = false;
+        
+        SessionNameListener
     end
     
     properties (Constant=true)
@@ -143,6 +151,11 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
             
             % Populate public properties from P-V input pairs
             obj.assignPVPairs(varargin{:});
+            
+            % Instantiate logger object
+            obj.LoggerObj = QSPViewerNew.Widgets.LoggerSubclass(strcat(string(datetime('now', 'format', 'MMMddyyyyhhmm')), "_logger"));
+            obj.RelativeLoggerFilePath = uix.utility.getRelativeFilePath(...
+                char(obj.LoggerObj.LogFile), obj.RootDirectory);
             
             % Provide Session handle to Settings
             obj.Settings.Session = obj;
@@ -270,7 +283,10 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
                 'Use AutoSave',mat2str(obj.UseAutoSaveTimer);
                 'AutoSave Directory',obj.AutoSaveDirectory;
                 'AutoSave Frequency (min)',num2str(obj.AutoSaveFrequency);
-                'AutoSave Before Run',mat2str(obj.AutoSaveBeforeRun);                
+                'AutoSave Before Run',mat2str(obj.AutoSaveBeforeRun);  
+                'Logger File', obj.LoggerFile;
+                'Logger Level (Dialog)', sprintf('%-7s', obj.LoggerSeverityDialog);
+                'Logger Level (File)', sprintf('%-7s', obj.LoggerSeverityFile);
                 };
         end
         
@@ -354,6 +370,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
                 newObj.RelativeUserDefinedFunctionsPathParts = obj.RelativeUserDefinedFunctionsPathParts;
                 newObj.RelativeObjectiveFunctionsPathParts = obj.RelativeObjectiveFunctionsPathParts;
                 newObj.RelativeAutoSavePathParts = obj.RelativeAutoSavePathParts;
+                newObj.RelativeLoggerFilePathParts = obj.RelativeLoggerFilePathParts;
                 newObj.RelativeResultsPathParts = obj.RelativeResultsPathParts;
                 
                 newObj.AutoSaveFrequency = obj.AutoSaveFrequency;
@@ -362,6 +379,9 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
                 newObj.ParallelCluster = obj.ParallelCluster;
                 
                 newObj.UseAutoSaveTimer = obj.UseAutoSaveTimer;
+                
+                newObj.LoggerSeverityDialog = obj.LoggerSeverityDialog;
+                newObj.LoggerSeverityFile = obj.LoggerSeverityFile;
                 
                 newObj.UseLogging = obj.UseLogging;
                 newObj.AutoSaveGit = obj.AutoSaveGit;
@@ -500,6 +520,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         
         function setSessionName(obj,SessionName)
             obj.SessionName = SessionName;
+            
         end %function
         
         function Colors = getItemColors(obj,NumItems)
@@ -742,6 +763,23 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
 
         end
         
+        function updateLogger(obj)
+            obj.LoggerObj.LogFile = obj.LoggerFile;
+            obj.LoggerObj.MessageReceivedEventThreshold = obj.LoggerSeverityDialog;
+            obj.LoggerObj.FileThreshold = obj.LoggerSeverityFile;
+        end
+        
+        function loggerWrite(obj,s,e)
+            type = strsplit(class(obj),'.');
+            type = type{end};
+            msg = sprintf('Changed UDF to %s', obj.UserDefinedFunctionsDirectory);
+            write(obj.LoggerObj,obj.SessionName,type,"INFO",msg);
+        end
+        
+        function attachListeners(obj)
+            obj.SessionNameListener = addlistener(obj,'SessionName','PostSet',@(s,e) obj.loggerWrite(s,e));
+        end
+        
     end %methods    
     
     %% Get/Set Methods
@@ -766,6 +804,10 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
             end
             value = obj.updatePath(value);
             obj.RelativeUserDefinedFunctionsPathParts = strsplit(value, filesep);
+%             type = strsplit(class(obj),'.');
+%             type = type{end};
+%             msg = sprintf('Changed UDF to %s', obj.UserDefinedFunctionsDirectory);
+%             write(obj.LoggerObj,obj.SessionName,type,"INFO",msg);
         end
         function value = get.RelativeUserDefinedFunctionsPath(obj)
             value = fullfile(obj.RelativeUserDefinedFunctionsPathParts{:});
@@ -794,7 +836,20 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         function value = get.RelativeAutoSavePath(obj)
             value = fullfile(obj.RelativeAutoSavePathParts{:});
         end
-
+        
+        function set.RelativeLoggerFilePath(obj, value)
+            arguments 
+                obj   (1,1) QSP.Session
+                value (1,:) char
+            end
+            value = obj.updatePath(value);
+            obj.RelativeLoggerFilePathParts = strsplit(value, filesep);
+            obj.updateLogger();
+        end
+        function value = get.RelativeLoggerFilePath(obj)
+            value = fullfile(obj.RelativeLoggerFilePathParts{:});
+        end
+        
         function addUDF(obj)
             % add the UDF to the path
             p = path;
@@ -883,6 +938,13 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
             end            
         end
         
+        function value = get.LoggerFile(obj)
+            value = uix.utility.getAbsoluteFilePath(obj.RelativeLoggerFilePath, obj.RootDirectory);
+            if ~isempty(getCurrentWorker)
+                value = getAttachedFilesFolder(value);
+            end            
+        end
+        
         function set.UseAutoSaveTimer(obj,Value)
             validateattributes(Value,{'logical'},{'scalar'});
             obj.UseAutoSaveTimer = Value;
@@ -906,6 +968,16 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         function set.ColorMap2(obj,Value)
             validateattributes(Value,{'numeric'},{});
             obj.ColorMap2 = Value;
+        end
+        
+        function set.LoggerSeverityDialog(obj,Value)
+            obj.LoggerSeverityDialog = Value;
+            obj.updateLogger();
+        end
+        
+        function set.LoggerSeverityFile(obj,Value)
+            obj.LoggerSeverityFile = Value;
+            obj.updateLogger();
         end
         
         function files = get.GitFiles(obj)
