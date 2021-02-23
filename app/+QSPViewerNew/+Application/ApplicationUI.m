@@ -903,6 +903,9 @@ classdef ApplicationUI < matlab.apps.AppBase
             
             %Update the title of the application
             app.updateAppTitle();
+            
+            % log to logger
+            thisSession.LoggerObj.write(ParentNode.Text, itemType, "MESSAGE", 'added item')
         end
         
         function onDuplicateItem(app,activeSession,activeNode)
@@ -1723,7 +1726,7 @@ classdef ApplicationUI < matlab.apps.AppBase
         end
         
         function restoreNode(app,node,session)
-            
+            try
             % What is the data object?
             ThisObj = node.NodeData;
             
@@ -1781,6 +1784,10 @@ classdef ApplicationUI < matlab.apps.AppBase
             % Update the display
             app.refresh();
             app.markDirty(session);
+            catch ME
+                ThisSession = node.NodeData.Session;
+                ThisSession.LoggerObj.write(node.Text, ItemType ,ME)
+            end
         end
         
         function duplicateNode(app,Node,~) 
@@ -1852,6 +1859,10 @@ classdef ApplicationUI < matlab.apps.AppBase
                         
             % Update the display
             app.refresh();
+            
+            % update log
+            ThisSession = ThisObj.Session;
+            ThisSession.LoggerObj.write(Node.Text, ItemType, "WARNING", 'deleted item')
             
         end
         

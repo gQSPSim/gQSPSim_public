@@ -769,17 +769,6 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
             obj.LoggerObj.FileThreshold = obj.LoggerSeverityFile;
         end
         
-        function loggerWrite(obj,s,e)
-            type = strsplit(class(obj),'.');
-            type = type{end};
-            msg = sprintf('Changed UDF to %s', obj.UserDefinedFunctionsDirectory);
-            write(obj.LoggerObj,obj.SessionName,type,"INFO",msg);
-        end
-        
-        function attachListeners(obj)
-            obj.SessionNameListener = addlistener(obj,'SessionName','PostSet',@(s,e) obj.loggerWrite(s,e));
-        end
-        
     end %methods    
     
     %% Get/Set Methods
