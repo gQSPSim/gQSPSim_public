@@ -441,8 +441,8 @@ classdef SessionPane < QSPViewerNew.Application.ViewPane
             
             obj.LoggerFileSelector.RootDirectory = obj.TemporarySession.RootDirectory;
             obj.LoggerFileSelector.RelativePath = obj.TemporarySession.RelativeLoggerFilePath;
-            obj.LoggerSeverityFileDropDown.Value = obj.TemporarySession.LoggerSeverityDialog;
-            obj.LoggerSeverityDialogDropDown.Value = obj.TemporarySession.LoggerSeverityFile;
+            obj.LoggerSeverityFileDropDown.Value = obj.TemporarySession.LoggerSeverityFile;
+            obj.LoggerSeverityDialogDropDown.Value = obj.TemporarySession.LoggerSeverityDialog;
             
             obj.UseParallelToolboxCheckBox.Value = obj.TemporarySession.UseParallel;
             

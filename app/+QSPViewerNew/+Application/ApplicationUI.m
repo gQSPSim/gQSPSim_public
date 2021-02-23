@@ -921,7 +921,7 @@ classdef ApplicationUI < matlab.apps.AppBase
             app.markDirty(activeSession);
         end
        
-        function onEmptyDeletedItems(app,activeSession,activeNode,deleteAllTF)
+        function onEmptyDeletedItems(app,activeNode,activeSession,deleteAllTF)
             if deleteAllTF
                 TreeRoots = app.SelectedSession.TreeNode.Children;
                 ChildTags = {TreeRoots.Tag};
@@ -1094,7 +1094,7 @@ classdef ApplicationUI < matlab.apps.AppBase
             
             % Add the session to the app
             app.Sessions(newIdx) = Session;
-
+            
             % Start timer
             initializeTimer(Session);
         end
@@ -1880,6 +1880,11 @@ classdef ApplicationUI < matlab.apps.AppBase
                     ThisNode = nodes(Nodeidx);
                     ThisObj = ThisNode.NodeData;
                     
+                     % update log
+                     % What type of item?
+                     itemType = split(class(ThisObj), '.');
+                     session.LoggerObj.write(ThisNode.Text, itemType{end}, "DEBUG", 'permanently deleted item')
+                    
                     %Find the node in the deleted array
                     MatchIdx = false(size(session.Deleted));
                     for idx = 1:numel(session.Deleted)
@@ -1900,9 +1905,18 @@ classdef ApplicationUI < matlab.apps.AppBase
                 % Update the display
                 app.refresh();
             end
-                
+            
         end
-       
+        
+        function instantiateLogger(app)
+            % Instantiate logger object
+            obj.LoggerObj = QSPViewerNew.Widgets.LoggerSubclass(app.SessionPaths);
+        end
+        
+        function updateLogger(app)
+            
+        end
+        
     end
     
     % %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %%
@@ -2032,6 +2046,7 @@ classdef ApplicationUI < matlab.apps.AppBase
             else
                 app.SessionPaths = value;
             end
+            updateLogger(app);
         end
         
         function value = get.SelectedSession(app)

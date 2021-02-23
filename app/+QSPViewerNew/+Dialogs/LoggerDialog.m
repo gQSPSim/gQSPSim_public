@@ -203,27 +203,27 @@ classdef LoggerDialog < matlab.apps.AppBase
                 debugRowsIdx = loggerT.Level=="DEBUG";
                 
                 s = uistyle;
-                s.BackgroundColor = '#FFCCCB'; % light red
+                s.BackgroundColor = '#FFA09E'; % light red
                 if any(errorRowsIdx)
                     addStyle(app.LoggerTable, s, 'row', find(errorRowsIdx));
                 end
                 
-                s.BackgroundColor = '#FFFFB7'; % light yellow
+                s.BackgroundColor = '#FFFFB8'; % light yellow
                 if any(warningRowsIdx)
                     addStyle(app.LoggerTable, s, 'row', find(warningRowsIdx));
                 end
                 
-                s.BackgroundColor = '#FFECFF'; % lavendar
+                s.BackgroundColor = '#A3D8FF'; % lavendar
                 if any(infoRowsIdx)
                     addStyle(app.LoggerTable, s, 'row', find(infoRowsIdx));
                 end
                 
-                s.BackgroundColor = '#87cefa'; % light blue
+                s.BackgroundColor = '#92F0B0'; % light blue
                 if any(msgRowsIdx)
                     addStyle(app.LoggerTable, s, 'row', find(msgRowsIdx));
                 end
                 
-                s.BackgroundColor = '#D3D3D3'; % light gray
+                s.BackgroundColor = '#FFDDAB'; % light gray
                 if any(debugRowsIdx)
                     addStyle(app.LoggerTable, s, 'row', find(debugRowsIdx));
                 end

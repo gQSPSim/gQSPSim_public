@@ -73,7 +73,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         RelativeUserDefinedFunctionsPathParts = {''}
         RelativeObjectiveFunctionsPathParts = {''}
         RelativeAutoSavePathParts = {''}
-        RelativeLoggerFilePathParts = {'session_LOG.txt'}
+        RelativeLoggerFilePathParts = {'session_log.txt'}
     end
     
     properties (Dependent)
@@ -153,7 +153,8 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
             obj.assignPVPairs(varargin{:});
             
             % Instantiate logger object
-            obj.LoggerObj = QSPViewerNew.Widgets.LoggerSubclass(strcat(string(datetime('now', 'format', 'MMMddyyyyhhmm')), "_logger"));
+            obj.LoggerObj = QSPViewerNew.Widgets.LoggerSubclass(strcat(string(datetime('now', 'format', 'MMMddyyyyhhmm')), "_sessionlogger"));
+%             obj.LoggerObj = QSPViewerNew.Widgets.LoggerSubclass("session_log");
             obj.RelativeLoggerFilePath = uix.utility.getRelativeFilePath(...
                 char(obj.LoggerObj.LogFile), obj.RootDirectory);
             
@@ -764,7 +765,9 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         end
         
         function updateLogger(obj)
-            obj.LoggerObj.LogFile = obj.LoggerFile;
+            if isfile(obj.LoggerFile)
+                obj.LoggerObj.LogFile = obj.LoggerFile;
+            end
             obj.LoggerObj.MessageReceivedEventThreshold = obj.LoggerSeverityDialog;
             obj.LoggerObj.FileThreshold = obj.LoggerSeverityFile;
         end
