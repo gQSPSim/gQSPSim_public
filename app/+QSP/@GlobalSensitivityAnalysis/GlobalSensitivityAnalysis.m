@@ -30,7 +30,7 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
     properties
         
         Settings = QSP.Settings.empty(0,1)
-        SelectedPlotLayout = '1x1'
+        SelectedPlotLayout = '2x2'
         PlotSettings = repmat(struct(),1,12)
         
         % Structure array to store task (groups of sens. outputs) specific
@@ -51,6 +51,13 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
         % Properties that are NOT part of the public API
         ParametersName_I = []        % needs to be public for copy to work
         ResultsFolderParts_I = {''}  % needs to be public for copy to work
+        
+        % Map associating plotted data to table entries.
+        % When data is plotted, Plot2TableMap is a cell vector of length
+        % numel(obj.PlotSobolIndex). Each cell contains a vector of
+        % graphics handle objects associated with the corresponding
+        % PlotSobolIndex (i.e. row in the displayed Results table).
+        Plot2TableMap = {};
 
     end
       
@@ -315,6 +322,10 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
                     return
                 end
                 
+                if isempty(obj.PlotSobolIndex)
+                    createDefaultPlots(obj);
+                end
+                
             end 
             
         end %function
@@ -426,7 +437,7 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
             message  = '';
             
             numPlotSobolIndices = numel(obj.PlotSobolIndex);
-            obj.PlotSobolIndex = obj.PlotSobolIndex([1:idx, idx, idx+1:numPlotSobolIndices]);
+            obj.PlotSobolIndex = obj.PlotSobolIndex([1:numPlotSobolIndices, idx]);
         end %function
         
         
@@ -752,5 +763,40 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
         end                
     end %methods
 
+    methods (Access = private)
+        % Private helper methods
+        
+        function createDefaultPlots(obj)
 
+            numPlotOutputs = numel(obj.PlotOutputs);
+
+            plotNumbers = {'1', '2', '3', '4'};
+            plotTypes   = {'first order', 'total order', 'first order', 'unexpl. frac.'};
+            plotMode    = {'bar plot', 'bar plot', 'convergence', 'time course'};
+            plotMetrics = {'mean', 'mean', 'max', 'mean'};
+            
+%             plotTitle   = {'first order', 'total order', 'convergence', 'unexpl. frac.'};
+            
+            for groupIdx = 1:4
+                
+%                 obj.PlotSettings(groupIdx).Title = plotTitle;
+                
+                for outputIdx = 1:numPlotOutputs
+                    plotSobolIndex = obj.PlotSobolIndexTemplate;
+                    plotSobolIndex.Plot = plotNumbers{groupIdx};
+                    plotSobolIndex.Inputs = obj.PlotInputs;
+                    plotSobolIndex.Outputs = obj.PlotOutputs(outputIdx);
+                    plotSobolIndex.Type = plotTypes{groupIdx};
+                    plotSobolIndex.Mode = plotMode{groupIdx};
+                    plotSobolIndex.Metric = plotMetrics{groupIdx};
+                    if groupIdx <= 2
+                        plotSobolIndex.Display = obj.PlotOutputs{outputIdx};
+                    end
+                    obj.PlotSobolIndex(end+1) = plotSobolIndex;
+                end
+            end
+        end
+        
+    end
+    
 end %classdef

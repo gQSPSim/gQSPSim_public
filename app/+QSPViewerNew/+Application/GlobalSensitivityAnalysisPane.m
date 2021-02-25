@@ -38,6 +38,8 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
                          
         StaleFlag
         ValidFlag
+        
+        PlotSelectionCallback
     end
     
     % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -119,6 +121,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             obj = obj@QSPViewerNew.Application.ViewPane(varargin{:}{:},true);
             obj.create();
             obj.createListenersAndCallbacks();
+            obj.PlotSelectionCallback = @(src,~)obj.lineSelectionCallback(src);
         end
         
     end
@@ -642,8 +645,20 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
                 removeStyle(obj.PlotItemsTable, updateIdx);
                 style = uistyle('BackgroundColor',newColor);
                 addStyle(obj.PlotItemsTable,style,'cell',[obj.SelectedRow.PlotItemsTable,2]);
-                plotSobolIndices(obj.GlobalSensitivityAnalysis,obj.getPlotArray());
+                plotSobolIndices(obj.GlobalSensitivityAnalysis,obj.getPlotArray(),obj.PlotSelectionCallback);
                 obj.updateIterationsTable();
+            end
+        end
+        
+        function lineSelectionCallback(obj, src)
+            % Highlight row in SobolIndexTable that was clicked on in the
+            % plots.
+            obj.selectRow(obj.SobolIndexTable, obj.SelectedRow.PlotSobolIndexTable(1), false);
+            for tableIdx = 1:numel(obj.GlobalSensitivityAnalysis.PlotSobolIndex)
+                if ismember(src, obj.GlobalSensitivityAnalysis.Plot2TableMap{tableIdx})
+                    s = uistyle('FontWeight', 'bold');
+                    addStyle(obj.SobolIndexTable, s, 'row', tableIdx);
+                end
             end
         end
         
@@ -695,12 +710,12 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             end
             obj.updatePlotTables();
             drawnow;
-            plotSobolIndices(obj.GlobalSensitivityAnalysis,obj.getPlotArray());
+            plotSobolIndices(obj.GlobalSensitivityAnalysis,obj.getPlotArray(),obj.PlotSelectionCallback);
         end
                 
         function onHideConvergenceLineChange(obj, event)
             obj.GlobalSensitivityAnalysis.HideConvergenceLine = event.Value;
-            plotSobolIndices(obj.GlobalSensitivityAnalysis,obj.getPlotArray());
+            plotSobolIndices(obj.GlobalSensitivityAnalysis,obj.getPlotArray(),obj.PlotSelectionCallback);
         end
         
         function inputOutputPlotSelectionCallback(obj, row, selections)
@@ -709,7 +724,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             obj.GlobalSensitivityAnalysis.PlotSobolIndex(row).Outputs = selections{2};
             
             obj.updatePlotTables();
-            plotSobolIndices(obj.GlobalSensitivityAnalysis,obj.getPlotArray());
+            plotSobolIndices(obj.GlobalSensitivityAnalysis,obj.getPlotArray(),obj.PlotSelectionCallback);
         end
         
         function onPlotTableButtonPress(obj, src)
@@ -725,7 +740,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
                     modalWindow = QSPViewerNew.Widgets.MultiDataSelector("Select sensitivity inputs and outputs", ...
                     ["Sensitivity Inputs", "Sensitivity Outputs"], options, selections, @(selections)obj.inputOutputPlotSelectionCallback(row, selections));
                     modalWindow.open(obj.getUIFigure());
-                    plotSobolIndices(obj.GlobalSensitivityAnalysis,obj.getPlotArray());
+                    plotSobolIndices(obj.GlobalSensitivityAnalysis,obj.getPlotArray(),obj.PlotSelectionCallback);
                 end
                 
             elseif src == obj.EditSobolIndexButton
@@ -739,17 +754,17 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
                 modalWindow.open(obj.getUIFigure());
                 statusOk = true;
                 
-                plotSobolIndices(obj.GlobalSensitivityAnalysis,obj.getPlotArray());
+                plotSobolIndices(obj.GlobalSensitivityAnalysis,obj.getPlotArray(),obj.PlotSelectionCallback);
            elseif src == obj.DuplicateSobolIndexButton
                 [statusOk, message] = obj.GlobalSensitivityAnalysis.duplicate(obj.SelectedRow.PlotSobolIndexTable(1));
-                plotSobolIndices(obj.GlobalSensitivityAnalysis,obj.getPlotArray());
+                plotSobolIndices(obj.GlobalSensitivityAnalysis,obj.getPlotArray(),obj.PlotSelectionCallback);
             elseif src == obj.RemoveSobolIndexButton
                 [statusOk, message] = obj.GlobalSensitivityAnalysis.remove('sobolIndex', obj.SelectedRow.PlotSobolIndexTable(1));
                 if statusOk && obj.SelectedRow.PlotSobolIndexTable(1) == size(obj.SobolIndexTable.Data,1)
                     obj.SelectedRow.PlotSobolIndexTable = [0,0];
                     obj.SobolIndexTable = obj.selectRow(obj.SobolIndexTable, 0, false);
                 end
-                plotSobolIndices(obj.GlobalSensitivityAnalysis,obj.getPlotArray());
+                plotSobolIndices(obj.GlobalSensitivityAnalysis,obj.getPlotArray(),obj.PlotSelectionCallback);
             elseif src == obj.MoveUpSobolIndexButton
                 [statusOk, message] = obj.GlobalSensitivityAnalysis.moveUp(obj.SelectedRow.PlotSobolIndexTable(1));
                 if statusOk
@@ -759,7 +774,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
                         obj.SelectedRow.PlotSobolIndexTable(2) = 0;
                     end
                     obj.SobolIndexTable = obj.selectRow(obj.SobolIndexTable, obj.SelectedRow.PlotSobolIndexTable(1), tfRenewTable);
-                    plotSobolIndices(obj.GlobalSensitivityAnalysis,obj.getPlotArray());
+                    plotSobolIndices(obj.GlobalSensitivityAnalysis,obj.getPlotArray(),obj.PlotSelectionCallback);
                 end
             elseif src == obj.MoveDownSobolIndexButton
                 [statusOk, message] = obj.GlobalSensitivityAnalysis.moveDown(obj.SelectedRow.PlotSobolIndexTable(1));
@@ -770,7 +785,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
                         obj.SelectedRow.PlotSobolIndexTable(2) = 0;
                     end
                     obj.SobolIndexTable = obj.selectRow(obj.SobolIndexTable, obj.SelectedRow.PlotSobolIndexTable(1), tfRenewTable);
-                    plotSobolIndices(obj.GlobalSensitivityAnalysis,obj.getPlotArray());
+                    plotSobolIndices(obj.GlobalSensitivityAnalysis,obj.getPlotArray(),obj.PlotSelectionCallback);
                 end
             end
             if statusOk
@@ -901,6 +916,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             end
             modalWindow.customizeButton('Close', '', @()delete(modalWindow));
             waitfor(modalWindow);
+            
         end
         
         function drawVisualization(obj)
@@ -909,7 +925,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             obj.updatePlotConfig(obj.GlobalSensitivityAnalysis.SelectedPlotLayout);
             
             obj.updatePlotTables();
-            plotSobolIndices(obj.GlobalSensitivityAnalysis,obj.getPlotArray());
+            plotSobolIndices(obj.GlobalSensitivityAnalysis,obj.getPlotArray(),obj.PlotSelectionCallback);
             
         end
         
@@ -917,7 +933,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
                         
             obj.updateIterationsTable();
             obj.updatePlotTables();
-            plotSobolIndices(obj.GlobalSensitivityAnalysis,obj.getPlotArray());
+            plotSobolIndices(obj.GlobalSensitivityAnalysis,obj.getPlotArray(),obj.PlotSelectionCallback);
 
         end
         
@@ -1010,7 +1026,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
                 % Remove the invalid entries
                 validate(obj.GlobalSensitivityAnalysis,FlagRemoveInvalid);
                 obj.draw();
-                plotSobolIndices(obj.GlobalSensitivityAnalysis,obj.getPlotArray());
+                plotSobolIndices(obj.GlobalSensitivityAnalysis,obj.getPlotArray(),obj.PlotSelectionCallback);
                 obj.IsDirty = true;
             end
         end
