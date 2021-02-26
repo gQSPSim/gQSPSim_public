@@ -328,7 +328,7 @@ function [hLines,hLegend,hLegendChildren] = plotSobolIndices(obj,hAxes,selection
 
     for index = 1:numAxes
         
-        if isempty(mode{axIdx})
+        if isempty(mode{index})
             continue;
         end
         

@@ -775,11 +775,11 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
             plotMode    = {'bar plot', 'bar plot', 'convergence', 'time course'};
             plotMetrics = {'mean', 'mean', 'max', 'mean'};
             
-%             plotTitle   = {'first order', 'total order', 'convergence', 'unexpl. frac.'};
+            plotTitle   = {'first order', 'total order', 'convergence', 'unexpl. frac.'};
             
             for groupIdx = 1:4
                 
-%                 obj.PlotSettings(groupIdx).Title = plotTitle;
+                obj.PlotSettings(groupIdx).Title = plotTitle{groupIdx};
                 
                 for outputIdx = 1:numPlotOutputs
                     plotSobolIndex = obj.PlotSobolIndexTemplate;
