@@ -715,7 +715,7 @@ classdef ApplicationUI < matlab.apps.AppBase
             if ~isempty(activeSession)
                 
                 %Need to find the session index
-                Idx = find(strcmp(activeSession.Name,app.Sessions));
+                Idx = find(strcmp(activeSession.Name,{app.Sessions.Name}));
             else
                 Idx = app.SelectedSessionIdx;
             end
@@ -1141,8 +1141,9 @@ classdef ApplicationUI < matlab.apps.AppBase
                     %call
                     if status
                         %Copy the sessionobject, then add it the application
-                        Session = copy(loadedSession.Session);
-                        Session.RootDirectory = newFilePath;
+                        loadedSession.Session.RootDirectory = newFilePath;
+                        Session = copy(loadedSession.Session); 
+                        Session.updateLoggerName(fullFilePath);
                         app.createNewSession(Session);
 
                         %Edit the app properties to reflect a new loaded session was
@@ -1389,7 +1390,7 @@ classdef ApplicationUI < matlab.apps.AppBase
             elseif isnumeric(session)
                 app.IsDirty(session) = false;
             else
-                app.IsDirty(strcmp(ActiveSession.SessionName,{app.Sessions.SessionName})) = false;
+                app.IsDirty(strcmp(session.SessionName,{app.Sessions.SessionName})) = false;
                 %Provided session, need to find index
             end
         end
@@ -1908,13 +1909,10 @@ classdef ApplicationUI < matlab.apps.AppBase
             
         end
         
-        function instantiateLogger(app)
-            % Instantiate logger object
-            obj.LoggerObj = QSPViewerNew.Widgets.LoggerSubclass(app.SessionPaths);
-        end
-        
         function updateLogger(app)
-            
+            for i = 1:length(app.Sessions)
+                app.Sessions(i).updateLoggerName(app.SessionPaths{i});
+            end
         end
         
     end

@@ -1,4 +1,4 @@
-classdef LoggerSubclass < mlog.Logger
+classdef Logger < mlog.Logger
     
     %   Copyright 2021 The MathWorks Inc.
     
@@ -6,14 +6,14 @@ classdef LoggerSubclass < mlog.Logger
     %% Constructor / Destructor
     methods
         
-        function obj = LoggerSubclass(varargin)
+        function obj = Logger(varargin)
             % Construct the logger
             
             % Call superclass constructor with the same inputs
             obj@mlog.Logger(varargin{:});
             
             % Instruct Logger to use the message subclass
-            obj.MessageConstructor = @QSPViewerNew.Widgets.MessageSubclass;
+            obj.MessageConstructor = @QSPViewerNew.Widgets.MessageLogger;
             
             % increase buffer size
             obj.BufferSize = 1e4;

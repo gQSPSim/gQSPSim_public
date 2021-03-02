@@ -82,10 +82,17 @@ classdef LoggerDialog < matlab.apps.AppBase
                 app.SelectedSession = QSP.Session.empty(0,1);
                 app.LoggerTable.Data = table.empty();
             else
-                % update Session dropdown names 
+                % update Session dropdown names
                 app.SessionDropDown.Items = {app.Sessions.SessionName};
                 app.SessionDropDown.ItemsData = vertcat(app.Sessions);
-                if isempty(app.SelectedSession) || ~ismember(app.SelectedSession, app.SessionDropDown.ItemsData)
+                if ~isempty(app.SelectedSession)
+                    selSessionIdx = app.SelectedSession.SessionName==string(app.SessionDropDown.Items);
+                    if any(selSessionIdx)
+                        app.SelectedSession = app.Sessions(selSessionIdx);
+                    else
+                        app.SelectedSession = app.Sessions(1);
+                    end
+                else
                     app.SelectedSession = app.Sessions(1);
                 end
                 app.SessionDropDown.Value = app.SelectedSession;

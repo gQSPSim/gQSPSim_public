@@ -1,4 +1,4 @@
-classdef MessageSubclass < mlog.Message
+classdef MessageLogger < mlog.Message
     
     %   Copyright 2021 The MathWorks Inc.
     
