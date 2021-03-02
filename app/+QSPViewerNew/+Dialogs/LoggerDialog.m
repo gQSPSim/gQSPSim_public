@@ -17,6 +17,8 @@ classdef LoggerDialog < matlab.apps.AppBase
         GridMain            matlab.ui.container.GridLayout
         SessionLabel        matlab.ui.control.Label
         SessionDropDown     matlab.ui.control.DropDown
+        LogfileLabel        matlab.ui.control.Label
+        LogfileText         matlab.ui.control.TextArea
         SearchLabel         matlab.ui.control.Label
         SearchDropDown      matlab.ui.control.DropDown
         SearchEditField     matlab.ui.control.EditField
@@ -78,6 +80,7 @@ classdef LoggerDialog < matlab.apps.AppBase
         function update(app)
             if isempty(app.Sessions)
                 app.SessionDropDown.Items = "";
+                app.LogfileText.Value = '';
                 app.SearchDropDown.Items = "all";
                 app.SelectedSession = QSP.Session.empty(0,1);
                 app.LoggerTable.Data = table.empty();
@@ -96,6 +99,14 @@ classdef LoggerDialog < matlab.apps.AppBase
                     app.SelectedSession = app.Sessions(1);
                 end
                 app.SessionDropDown.Value = app.SelectedSession;
+                
+                % update logfile text area
+                app.LogfileText.Value = app.SelectedSession.LoggerFile;
+                if ~exist(app.SelectedSession.LoggerFile, 'file')
+                    app.LogfileText.FontColor = 'r';
+                else
+                    app.LogfileText.FontColor = 'k';
+                end
                 
                 % update logger table
                 logObj = app.SelectedSession.LoggerObj;
@@ -121,14 +132,14 @@ classdef LoggerDialog < matlab.apps.AppBase
         function createComponents(app)
             % Create a parent figure
             app.UIFigure = uifigure('Name', 'Logger Dialog', 'Visible', 'off');
-            app.UIFigure.Position(3:4) = [800, 400];
+            app.UIFigure.Position(3:4) = [800, 450];
             typeStr = matlab.lang.makeValidName(class(app));
             app.UIFigure.Position = getpref(typeStr,'Position',app.UIFigure.Position);
             
             % Create the main grid
             app.GridMain = uigridlayout(app.UIFigure);
             app.GridMain.ColumnWidth = {'0.5x','1x','3x'};
-            app.GridMain.RowHeight = {'1x','1x','fit'};
+            app.GridMain.RowHeight = {'1x','1x','1x','fit'};
             
             % Create Session label
             app.SessionLabel = uilabel(app.GridMain, 'Text', 'Session:');
@@ -141,26 +152,38 @@ classdef LoggerDialog < matlab.apps.AppBase
             app.SessionDropDown.Layout.Column = [2, length(app.GridMain.ColumnWidth)];
             app.SessionDropDown.ValueChangedFcn = @(s,e) app.onSelSessionValueChanged(s,e);
             
+            % Create log file label
+            app.LogfileLabel = uilabel(app.GridMain, 'Text', 'Log file:');
+            app.LogfileLabel.Layout.Row = 2;
+            app.LogfileLabel.Layout.Column = 1;
+            
+            % Create text area for plugin folder
+            app.LogfileText = uitextarea(app.GridMain, 'Value', '');
+            app.LogfileText.Layout.Row = 2;
+            app.LogfileText.Layout.Column = [2, length(app.GridMain.ColumnWidth)];
+            app.LogfileText.Editable = 'off';
+            app.LogfileText.BackgroundColor = [0.94, 0.94, 0.94];
+            
             % Create Search label
             app.SearchLabel = uilabel(app.GridMain, 'Text', 'Search:');
-            app.SearchLabel.Layout.Row = 2;
+            app.SearchLabel.Layout.Row = 3;
             app.SearchLabel.Layout.Column = 1;
             
             % Create Search dropdown
             app.SearchDropDown = uidropdown(app.GridMain, 'Items', "all");
-            app.SearchDropDown.Layout.Row = 2;
+            app.SearchDropDown.Layout.Row = 3;
             app.SearchDropDown.Layout.Column = 2;
             app.SearchDropDown.ValueChangedFcn = @(s,e) app.onFilterValueChanged(s,e);
             
             % Create Search string edit field
             app.SearchEditField = uieditfield(app.GridMain);
-            app.SearchEditField.Layout.Row = 2;
+            app.SearchEditField.Layout.Row = 3;
             app.SearchEditField.Layout.Column = 3;
             app.SearchEditField.ValueChangedFcn = @(s,e) app.onFilterValueChanged(s,e);
             
             % Create Logger Table
             app.LoggerTable = uitable(app.GridMain, 'ColumnSortable', true);
-            app.LoggerTable.Layout.Row = 3;
+            app.LoggerTable.Layout.Row = 4;
             app.LoggerTable.Layout.Column = [1, length(app.GridMain.ColumnWidth)];
             
             % Show the figure after all components are created
