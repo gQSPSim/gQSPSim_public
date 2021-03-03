@@ -18,7 +18,8 @@ classdef LoggerDialog < matlab.apps.AppBase
         SessionLabel        matlab.ui.control.Label
         SessionDropDown     matlab.ui.control.DropDown
         LogfileLabel        matlab.ui.control.Label
-        LogfileText         matlab.ui.control.TextArea
+        LogfileText         matlab.ui.control.EditField
+        OpenButton          matlab.ui.control.Button
         SearchLabel         matlab.ui.control.Label
         SearchDropDown      matlab.ui.control.DropDown
         SearchEditField     matlab.ui.control.EditField
@@ -28,6 +29,10 @@ classdef LoggerDialog < matlab.apps.AppBase
     properties (Hidden, SetAccess = private, Transient, NonCopyable)
         % logger object message listeners
         MessageListener (:,1) event.listener
+    end
+    
+    properties(Constant)
+        ButtonSize      = 30
     end
     
      %% Constructor/Destructor
@@ -138,8 +143,8 @@ classdef LoggerDialog < matlab.apps.AppBase
             
             % Create the main grid
             app.GridMain = uigridlayout(app.UIFigure);
-            app.GridMain.ColumnWidth = {'0.5x','1x','3x'};
-            app.GridMain.RowHeight = {'1x','1x','1x','fit'};
+            app.GridMain.ColumnWidth = {'0.5x','1x','2.5x',app.ButtonSize};
+            app.GridMain.RowHeight = {'fit','fit','fit','fit'};
             
             % Create Session label
             app.SessionLabel = uilabel(app.GridMain, 'Text', 'Session:');
@@ -158,11 +163,20 @@ classdef LoggerDialog < matlab.apps.AppBase
             app.LogfileLabel.Layout.Column = 1;
             
             % Create text area for plugin folder
-            app.LogfileText = uitextarea(app.GridMain, 'Value', '');
+            app.LogfileText = uieditfield(app.GridMain, 'Value', '');
             app.LogfileText.Layout.Row = 2;
-            app.LogfileText.Layout.Column = [2, length(app.GridMain.ColumnWidth)];
+            app.LogfileText.Layout.Column = [2, 3];
             app.LogfileText.Editable = 'off';
             app.LogfileText.BackgroundColor = [0.94, 0.94, 0.94];
+            
+            % create button to open log file in MATLAB editor
+            app.OpenButton = uibutton(app.GridMain, 'push');
+            app.OpenButton.Layout.Row = 2;
+            app.OpenButton.Layout.Column = 4;
+            app.OpenButton.Icon = QSPViewerNew.Resources.LoadResourcePath('openDocument_24.png');
+            app.OpenButton.ButtonPushedFcn = @app.onOpenLogfile;
+            app.OpenButton.Text = '';
+            app.OpenButton.Tooltip = {'Click to open logfile'};
             
             % Create Search label
             app.SearchLabel = uilabel(app.GridMain, 'Text', 'Search:');
@@ -178,7 +192,7 @@ classdef LoggerDialog < matlab.apps.AppBase
             % Create Search string edit field
             app.SearchEditField = uieditfield(app.GridMain);
             app.SearchEditField.Layout.Row = 3;
-            app.SearchEditField.Layout.Column = 3;
+            app.SearchEditField.Layout.Column = [3, 4];
             app.SearchEditField.ValueChangedFcn = @(s,e) app.onFilterValueChanged(s,e);
             
             % Create Logger Table
@@ -271,6 +285,12 @@ classdef LoggerDialog < matlab.apps.AppBase
         
         function onFilterValueChanged(app,~,~)
             app.update();
+        end
+        
+        function onOpenLogfile(app,~,~)
+            if ~isempty(app.SelectedSession)
+                edit(app.SelectedSession.LoggerFile);
+            end
         end
         
     end
