@@ -18,7 +18,7 @@ classdef LoggerDialog < matlab.apps.AppBase
         SessionLabel        matlab.ui.control.Label
         SessionDropDown     matlab.ui.control.DropDown
         LogfileLabel        matlab.ui.control.Label
-        LogfileText         matlab.ui.control.EditField
+        LogfileText         matlab.ui.control.TextArea
         OpenButton          matlab.ui.control.Button
         SearchLabel         matlab.ui.control.Label
         SearchDropDown      matlab.ui.control.DropDown
@@ -144,7 +144,7 @@ classdef LoggerDialog < matlab.apps.AppBase
             % Create the main grid
             app.GridMain = uigridlayout(app.UIFigure);
             app.GridMain.ColumnWidth = {'0.5x','1x','2.5x',app.ButtonSize};
-            app.GridMain.RowHeight = {'fit','fit','fit','fit'};
+            app.GridMain.RowHeight = {'fit',app.ButtonSize,'fit','fit'};
             
             % Create Session label
             app.SessionLabel = uilabel(app.GridMain, 'Text', 'Session:');
@@ -163,7 +163,7 @@ classdef LoggerDialog < matlab.apps.AppBase
             app.LogfileLabel.Layout.Column = 1;
             
             % Create text area for plugin folder
-            app.LogfileText = uieditfield(app.GridMain, 'Value', '');
+            app.LogfileText = uitextarea(app.GridMain, 'Value', '');
             app.LogfileText.Layout.Row = 2;
             app.LogfileText.Layout.Column = [2, 3];
             app.LogfileText.Editable = 'off';
@@ -229,6 +229,8 @@ classdef LoggerDialog < matlab.apps.AppBase
                     end
                     loggerT = loggerT(rowContainingFilter,:);
                 end
+                
+                loggerT = sortrows(loggerT, 1, 'descend');
             end
             
             % update logger table

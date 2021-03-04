@@ -651,6 +651,7 @@ classdef ApplicationUI < matlab.apps.AppBase
             end
             
             app.refresh();
+            app.updateLoggerSessions();
         end
         
         function onOpen(app,~,~)
@@ -1158,6 +1159,7 @@ classdef ApplicationUI < matlab.apps.AppBase
                 end
             end
             app.refresh();
+            app.updateLoggerSessions();
         end
         
         function status = verifyValidSessionFilePath(app, fullFilePath)
