@@ -156,13 +156,18 @@ classdef PluginManager < matlab.apps.AppBase
                 end
                 
                 if app.isPathinRootDirectory(app.SelectedSession.PluginsDirectory, app.SelectedSession.RootDirectory)
-                    app.PathStatusIcon.ImageSource = QSPViewerNew.Resources.LoadResourcePath('confirm_24.png');
-                    app.PathStatusIcon.Tooltip = "Plugin directory present within root directory";
+                    app.PluginFolderLabel.Text = sprintf("%s\n%s","Plugin Folder:", "(present within root directory)");
+%                     app.PathStatusIcon.ImageSource = QSPViewerNew.Resources.LoadResourcePath('confirm_24.png');
+%                     app.PathStatusIcon.Tooltip = "Plugin directory present within root directory";
                 else
-                    app.PathStatusIcon.ImageSource = QSPViewerNew.Resources.LoadResourcePath('warning_24.png');
-                    app.PathStatusIcon.Tooltip = sprintf(['Plugin directory  not present within root directory.', ...
-                        'To change it, select corresponding Session in main app, then ',...
-                        'Edit, then Plugins Directory']);
+                    app.PluginFolderLabel.Text = sprintf("%s\n%s","Plugin Folder:", ...
+                        strcat("(not present within root directory. To change it, ", ...
+                        "select corresponding Session in main app, then ", ...
+                        "Edit, then Plugins Directory"));
+%                     app.PathStatusIcon.ImageSource = QSPViewerNew.Resources.LoadResourcePath('warning_24.png');
+%                     app.PathStatusIcon.Tooltip = sprintf(['Plugin directory  not present within root directory.', ...
+%                         'To change it, select corresponding Session in main app, then ',...
+%                         'Edit, then Plugins Directory']);
                 end
                 app.PathStatusIcon.Visible = 'on';
             end
@@ -189,14 +194,14 @@ classdef PluginManager < matlab.apps.AppBase
             
             % Create a parent figure
             app.UIFigure = uifigure('Name', 'Plugin Manager', 'Visible', 'off');
-            app.UIFigure.Position(3:4) = [1200, 700];
+            app.UIFigure.Position(3:4) = [1200, 500];
             typeStr = matlab.lang.makeValidName(class(app));
             app.UIFigure.Position = getpref(typeStr,'Position',app.UIFigure.Position);
             
             % Create the main grid
             app.GridMain = uigridlayout(app.UIFigure);
-            app.GridMain.ColumnWidth = {'1x',ButtonSize,'0.3x','0.4x','0.6x','1x','1x','1.4x'};
-            app.GridMain.RowHeight = {'1x','1x','1x','fit','1x','7x'};
+            app.GridMain.ColumnWidth = {'1x','0.4x','0.4x','0.6x','1x','1x','1.4x'};
+            app.GridMain.RowHeight = {'fit',ButtonSize,'fit','fit','fit','fit'};
             
             % Create Session edit field
             app.SessionLabel = uilabel(app.GridMain, 'Text', 'Session:');
@@ -218,13 +223,13 @@ classdef PluginManager < matlab.apps.AppBase
             app.PluginFolderTextArea = uilabel(app.GridMain, 'Text', '');
             app.PluginFolderTextArea.Layout.Row = 2;
             app.PluginFolderTextArea.Layout.Column = [3, length(app.GridMain.ColumnWidth)];
-            
-            % Create a status symbol icon to check if plugin folder is
-            % present within root directory
-            app.PathStatusIcon = uiimage(app.GridMain);
-            app.PathStatusIcon.Layout.Row = 2;
-            app.PathStatusIcon.Layout.Column = 2;
-            app.PathStatusIcon.Visible = 'off';
+%             
+%             % Create a status symbol icon to check if plugin folder is
+%             % present within root directory
+%             app.PathStatusIcon = uiimage(app.GridMain);
+%             app.PathStatusIcon.Layout.Row = 2;
+%             app.PathStatusIcon.Layout.Column = 2;
+%             app.PathStatusIcon.Visible = 'off';
             
             % Create Filter edit field
             app.FilterLabel = uilabel(app.GridMain, 'Text', 'Search  (Type):');
