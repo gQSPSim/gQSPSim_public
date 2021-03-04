@@ -710,6 +710,16 @@ classdef ApplicationUI < matlab.apps.AppBase
             end
             
             app.refresh();
+            
+            % check if an instance of plugin  manager is
+            % running
+            if isvalid(app.PluginManager)
+                app.PluginManager.Sessions = app.Sessions;
+            else
+                pluginTable = ...
+                    QSPViewerNew.Dialogs.PluginManager.getPlugins(Session.PluginsDirectory);
+                updateAllPluginMenus(app, app.Sessions(idxNew), pluginTable)
+            end
         end
         
         function onOpen(app,~,~)

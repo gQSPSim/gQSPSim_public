@@ -18,7 +18,6 @@ classdef PluginManager < matlab.apps.AppBase
         SessionDropDown             matlab.ui.control.DropDown
         PluginFolderLabel           matlab.ui.control.Label
         PluginFolderTextArea        matlab.ui.control.Label
-        PathStatusIcon              matlab.ui.control.Image
         FilterLabel                 matlab.ui.control.Label
         FilterDropDown              matlab.ui.control.DropDown
         PluginTable                 matlab.ui.control.Table
@@ -134,8 +133,6 @@ classdef PluginManager < matlab.apps.AppBase
                 app.SessionDropDown.Items = "";
                 app.SelectedSession = QSP.Session.empty(0,1);
                 
-                app.PathStatusIcon.Visible = 'off';
-                
                 app.PluginFolderTextArea.Text = '';
                 
                 app.PluginTableData = app.getPlugins('');
@@ -157,19 +154,12 @@ classdef PluginManager < matlab.apps.AppBase
                 
                 if app.isPathinRootDirectory(app.SelectedSession.PluginsDirectory, app.SelectedSession.RootDirectory)
                     app.PluginFolderLabel.Text = sprintf("%s\n%s","Plugin Folder:", "(present within root directory)");
-%                     app.PathStatusIcon.ImageSource = QSPViewerNew.Resources.LoadResourcePath('confirm_24.png');
-%                     app.PathStatusIcon.Tooltip = "Plugin directory present within root directory";
                 else
-                    app.PluginFolderLabel.Text = sprintf("%s\n%s","Plugin Folder:", ...
-                        strcat("(not present within root directory. To change it, ", ...
-                        "select corresponding Session in main app, then ", ...
-                        "Edit, then Plugins Directory"));
-%                     app.PathStatusIcon.ImageSource = QSPViewerNew.Resources.LoadResourcePath('warning_24.png');
-%                     app.PathStatusIcon.Tooltip = sprintf(['Plugin directory  not present within root directory.', ...
-%                         'To change it, select corresponding Session in main app, then ',...
-%                         'Edit, then Plugins Directory']);
+                    app.PluginFolderLabel.Text = sprintf("%s\n%s\n%s\n%s","Plugin Folder:", ...
+                        "(not present within root directory.",...
+                        "Edit value under corresponding",...
+                        "session node in main app.)");
                 end
-                app.PathStatusIcon.Visible = 'on';
             end
             % Update plugin table
             app.updatePluginTableData();
@@ -190,18 +180,16 @@ classdef PluginManager < matlab.apps.AppBase
     methods(Access=private)
         
         function createComponents(app)
-            ButtonSize = 30;
-            
             % Create a parent figure
             app.UIFigure = uifigure('Name', 'Plugin Manager', 'Visible', 'off');
-            app.UIFigure.Position(3:4) = [1200, 500];
+            app.UIFigure.Position(3:4) = [1200, 750];
             typeStr = matlab.lang.makeValidName(class(app));
             app.UIFigure.Position = getpref(typeStr,'Position',app.UIFigure.Position);
             
             % Create the main grid
             app.GridMain = uigridlayout(app.UIFigure);
             app.GridMain.ColumnWidth = {'1x','0.4x','0.4x','0.6x','1x','1x','1.4x'};
-            app.GridMain.RowHeight = {'fit',ButtonSize,'fit','fit','fit','fit'};
+            app.GridMain.RowHeight = {'fit',60,'fit','fit','fit','fit'};
             
             % Create Session edit field
             app.SessionLabel = uilabel(app.GridMain, 'Text', 'Session:');
@@ -222,14 +210,7 @@ classdef PluginManager < matlab.apps.AppBase
             % Create text area for plugin folder
             app.PluginFolderTextArea = uilabel(app.GridMain, 'Text', '');
             app.PluginFolderTextArea.Layout.Row = 2;
-            app.PluginFolderTextArea.Layout.Column = [3, length(app.GridMain.ColumnWidth)];
-%             
-%             % Create a status symbol icon to check if plugin folder is
-%             % present within root directory
-%             app.PathStatusIcon = uiimage(app.GridMain);
-%             app.PathStatusIcon.Layout.Row = 2;
-%             app.PathStatusIcon.Layout.Column = 2;
-%             app.PathStatusIcon.Visible = 'off';
+            app.PluginFolderTextArea.Layout.Column = [2, length(app.GridMain.ColumnWidth)];
             
             % Create Filter edit field
             app.FilterLabel = uilabel(app.GridMain, 'Text', 'Search  (Type):');
@@ -239,7 +220,7 @@ classdef PluginManager < matlab.apps.AppBase
             % Create Filter edit field
             app.FilterDropDown = uidropdown(app.GridMain, 'Items', app.Types, 'Value', "all");
             app.FilterDropDown.Layout.Row = 3;
-            app.FilterDropDown.Layout.Column = [2, 4];
+            app.FilterDropDown.Layout.Column = [2, 3];
             app.FilterDropDown.ValueChangedFcn = @(s,e) app.onFilterValueChanged(s,e);
             
             % Create PluginTable
@@ -250,21 +231,21 @@ classdef PluginManager < matlab.apps.AppBase
             % Create Add new button
             app.AddNewButton = uibutton(app.GridMain, 'push');
             app.AddNewButton.Layout.Row = 5;
-            app.AddNewButton.Layout.Column = [4, 5];
+            app.AddNewButton.Layout.Column = [3, 4];
             app.AddNewButton.Text = "Add new plugin";
             app.AddNewButton.ButtonPushedFcn = @(s,e) app.onAddButtonPushed(s,e);
             
             % Create Update button
             app.UpdateButton = uibutton(app.GridMain, 'push');
             app.UpdateButton.Layout.Row = 5;
-            app.UpdateButton.Layout.Column = 6;
+            app.UpdateButton.Layout.Column = 5;
             app.UpdateButton.Text = "Update";
             app.UpdateButton.ButtonPushedFcn = @(s,e) app.onUpdateButtonPushed(s,e);
             
             % Create Run Dependency button
             app.RunDependencyButton = uibutton(app.GridMain, 'push');
             app.RunDependencyButton.Layout.Row = 5;
-            app.RunDependencyButton.Layout.Column = 7;
+            app.RunDependencyButton.Layout.Column = 6;
             app.RunDependencyButton.Text = "Run Dependency";
             app.RunDependencyButton.ButtonPushedFcn = @(s,e) app.onRunDependencyButtonPushed(s,e);
             
