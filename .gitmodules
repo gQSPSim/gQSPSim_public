@@ -1,0 +1,6 @@
+[submodule "app/+QSPViewerNew/+Widgets/Logger"]
+	path = app/+QSPViewerNew/+Widgets/Logger
+	url = https://github.com/mathworks/advanced-logger
+[submodule "app/+QSPViewerNew/+Widgets/AdvLogger"]
+	path = app/+QSPViewerNew/+Widgets/AdvLogger
+	url = https://github.com/mathworks/advanced-logger
