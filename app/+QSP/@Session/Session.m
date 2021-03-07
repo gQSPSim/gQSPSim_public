@@ -770,7 +770,6 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
             oldLogFile = obj.LoggerObj.LogFile;
             % incase default root directory logger file is invalid
             try
-                
                 obj.LoggerObj.LogFile = obj.LoggerFile;
             catch
                 obj.LoggerObj.LogFile = oldLogFile;

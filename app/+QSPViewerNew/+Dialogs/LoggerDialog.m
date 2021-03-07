@@ -235,6 +235,7 @@ classdef LoggerDialog < matlab.apps.AppBase
             
             % update logger table
             app.LoggerTable.Data = loggerT;
+            app.LoggerTable.RowName = [];
             app.addStylingTable();
         end
         
