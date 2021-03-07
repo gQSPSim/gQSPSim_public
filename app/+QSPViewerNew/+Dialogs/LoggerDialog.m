@@ -106,7 +106,7 @@ classdef LoggerDialog < matlab.apps.AppBase
                 app.SessionDropDown.Value = app.SelectedSession;
                 
                 % update logfile text area
-                app.LogfileText.Value = app.SelectedSession.LoggerFile;
+                app.LogfileText.Value = app.SelectedSession.RelativeLoggerFilePath;
                 if ~exist(app.SelectedSession.LoggerFile, 'file')
                     app.LogfileText.FontColor = 'r';
                 else
