@@ -854,7 +854,11 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         
         function value = get.LoggerName(obj)
             [~,name,~] = fileparts(obj.SessionName);
-            value = extractBefore(name, ".qsp");
+            if contains(name, '.qsp')
+                value = extractBefore(name, ".qsp");
+            else
+                value = name;
+            end
         end
             
         function addUDF(obj)
