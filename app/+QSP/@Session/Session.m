@@ -61,7 +61,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         UseLogging = true
         LogFile = 'logfile.txt'
         
-        LoggerObj QSPViewerNew.Widgets.Logger
+%         LoggerObj QSPViewerNew.Widgets.Logger
         LoggerSeverityDialog mlog.Level = mlog.Level.MESSAGE;
         LoggerSeverityFile mlog.Level = mlog.Level.INFO;
     end
@@ -73,7 +73,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         RelativeUserDefinedFunctionsPathParts = {''}
         RelativeObjectiveFunctionsPathParts = {''}
         RelativeAutoSavePathParts = {''}
-        RelativeLoggerFilePathParts = {[char(datetime('now', 'format', 'MMMddyyyyhhmm')), '_session_log.txt']}
+        RelativeLoggerFilePathParts = {''}
     end
     
     properties (Dependent)
@@ -84,6 +84,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         RelativeObjectiveFunctionsPath        
         RelativeAutoSavePath
         RelativeLoggerFilePath
+        LoggerName
     end
     
     properties (Dependent=true, SetAccess=immutable)
@@ -153,8 +154,8 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
             obj.assignPVPairs(varargin{:});
             
             % Instantiate logger object
-            obj.LoggerObj = QSPViewerNew.Widgets.Logger(strcat(string(datetime('now', 'format', 'MMMddyyyyhhmm')), "_session"));
-            obj.updateLogger();
+%             obj.LoggerObj = QSPViewerNew.Widgets.Logger(strcat(string(datetime('now', 'format', 'MMMddyyyyhhmm')), "_session"));
+%             obj.updateLogger();
             
             % Provide Session handle to Settings
             obj.Settings.Session = obj;
@@ -379,7 +380,6 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
                 
                 newObj.UseAutoSaveTimer = obj.UseAutoSaveTimer;
                 
-                newObj.LoggerObj = obj.LoggerObj;
                 newObj.LoggerSeverityDialog = obj.LoggerSeverityDialog;
                 newObj.LoggerSeverityFile = obj.LoggerSeverityFile;
                 
@@ -763,28 +763,23 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         end
         
         function updateLogger(obj)
-            if isempty(obj.LoggerObj)
-                obj.LoggerObj = QSPViewerNew.Widgets.Logger(strcat(string(datetime('now', 'format', 'MMMddyyyyhhmm')), "_sessionlogger"));
-            end
-            
-            oldLogFile = obj.LoggerObj.LogFile;
-            % incase default root directory logger file is invalid
-            try
-                obj.LoggerObj.LogFile = obj.LoggerFile;
-            catch
-                obj.LoggerObj.LogFile = oldLogFile;
-            end
-            obj.LoggerObj.MessageReceivedEventThreshold = obj.LoggerSeverityDialog;
-            obj.LoggerObj.FileThreshold = obj.LoggerSeverityFile;
+            loggerObj = QSPViewerNew.Widgets.Logger(obj.LoggerName);
+            loggerObj.MessageReceivedEventThreshold = obj.LoggerSeverityDialog;
+            loggerObj.FileThreshold = obj.LoggerSeverityFile;
         end
         
-        function updateLoggerName(obj, newName)
-            [~,name,~] = fileparts(newName);
-            if isempty(obj.LoggerObj)
-                obj.LoggerObj = QSPViewerNew.Widgets.Logger(name);
-                obj.updateLogger();
+        function updateLoggerName(obj)
+            loggerObj = QSPViewerNew.Widgets.Logger(obj.LoggerName);
+            obj.RelativeLoggerFilePathParts = {[obj.LoggerName, '_log.txt']};
+            
+            % check if logger file corresponds to the session name and
+            % present in root directory
+            if ~strcmp(loggerObj.LogFile, obj.LoggerFile)
+                copyfile(loggerObj.LogFile, obj.LoggerFile)
+                loggerObj.LogFile = obj.LoggerFile;
             end
-            obj.LoggerObj.Name = name;
+                
+            obj.updateLogger();
         end
         
     end %methods    
@@ -857,6 +852,11 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
             value = fullfile(obj.RelativeLoggerFilePathParts{:});
         end
         
+        function value = get.LoggerName(obj)
+            [~,name,~] = fileparts(obj.SessionName);
+            value = extractBefore(name, ".qsp");
+        end
+            
         function addUDF(obj)
             % add the UDF to the path
             p = path;

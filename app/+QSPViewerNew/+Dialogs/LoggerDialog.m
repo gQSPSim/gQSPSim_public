@@ -114,8 +114,8 @@ classdef LoggerDialog < matlab.apps.AppBase
                 end
                 
                 % update logger table
-                logObj = app.SelectedSession.LoggerObj;
-                app.LoggerTableData = logObj.MessageTable;
+                loggerObj = QSPViewerNew.Widgets.Logger(app.SelectedSession.LoggerName);
+                app.LoggerTableData = loggerObj.MessageTable;
                 
                 if ~isempty(app.LoggerTableData)
                     app.SearchDropDown.Items = ["all", string(app.LoggerTableData.Properties.VariableNames)];
@@ -304,7 +304,9 @@ classdef LoggerDialog < matlab.apps.AppBase
         function attachListeners(app)
             for i = 1:length(app.Sessions)
                 % Attach listener to every session's logger object to update logger table
-                app.MessageListener(i) = event.listener(app.Sessions(i).LoggerObj, ...
+                loggerObj = QSPViewerNew.Widgets.Logger(app.Sessions(i).LoggerName);
+                
+                app.MessageListener(i) = event.listener(loggerObj, ...
                     "MessageReceived", @(src,evt)update(app) );
             end
         end

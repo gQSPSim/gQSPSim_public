@@ -651,7 +651,6 @@ classdef ApplicationUI < matlab.apps.AppBase
             end
             
             app.refresh();
-            app.updateLoggerSessions();
         end
         
         function onOpen(app,~,~)
@@ -906,7 +905,8 @@ classdef ApplicationUI < matlab.apps.AppBase
             app.updateAppTitle();
             
             % log to logger
-            thisSession.LoggerObj.write(ParentNode.Text, itemType, "MESSAGE", 'added item')
+            loggerObj = QSPViewerNew.Widgets.Logger(thisSession.LoggerName);
+            loggerObj.write(ParentNode.Text, itemType, "MESSAGE", 'added item')
         end
         
         function onDuplicateItem(app,activeSession,activeNode)
@@ -1087,7 +1087,6 @@ classdef ApplicationUI < matlab.apps.AppBase
             Root = app.TreeRoot;
             app.createTree(Root, Session);
 
-
             % % Update the app state
             
             % Which session is this?
@@ -1143,8 +1142,7 @@ classdef ApplicationUI < matlab.apps.AppBase
                     if status
                         %Copy the sessionobject, then add it the application
                         loadedSession.Session.RootDirectory = newFilePath;
-                        Session = copy(loadedSession.Session); 
-                        Session.updateLoggerName(fullFilePath);
+                        Session = copy(loadedSession.Session);
                         app.createNewSession(Session);
 
                         %Edit the app properties to reflect a new loaded session was
@@ -1159,7 +1157,6 @@ classdef ApplicationUI < matlab.apps.AppBase
                 end
             end
             app.refresh();
-            app.updateLoggerSessions();
         end
         
         function status = verifyValidSessionFilePath(app, fullFilePath)
@@ -1715,6 +1712,8 @@ classdef ApplicationUI < matlab.apps.AppBase
 
                 %Assign the new name
                 setSessionName(app.Sessions(idx),ThisRawName);
+                updateLoggerName(app.Sessions(idx));
+                updateLoggerSessions(app);
             end
             
             %Update the selected node's name in the tree based on the
@@ -1789,7 +1788,8 @@ classdef ApplicationUI < matlab.apps.AppBase
             app.markDirty(session);
             catch ME
                 ThisSession = node.NodeData.Session;
-                ThisSession.LoggerObj.write(node.Text, ItemType ,ME)
+                loggerObj = QSPViewerNew.Widgets.Logger(ThisSession.LoggerName);
+                loggerObj.write(node.Text, ItemType ,ME)
             end
         end
         
@@ -1828,7 +1828,8 @@ classdef ApplicationUI < matlab.apps.AppBase
             app.refresh();
             
             % update log
-            ThisSession.LoggerObj.write(Node.Text, ItemType, "INFO", 'duplicated item')
+            loggerObj = QSPViewerNew.Widgets.Logger(ThisSession.LoggerName);
+            loggerObj.write(Node.Text, ItemType, "INFO", 'duplicated item')
         end
         
         function deleteNode(app,Node,session)
@@ -1864,9 +1865,8 @@ classdef ApplicationUI < matlab.apps.AppBase
             app.refresh();
             
             % update log
-            ThisSession = ThisObj.Session;
-            ThisSession.LoggerObj.write(Node.Text, ItemType, "WARNING", 'deleted item')
-            
+            loggerObj = QSPViewerNew.Widgets.Logger(ThisObj.Session.LoggerName);
+            loggerObj.write(Node.Text, ItemType, "WARNING", 'deleted item')
         end
         
         function permDelete(app,nodes,session)
@@ -1886,7 +1886,8 @@ classdef ApplicationUI < matlab.apps.AppBase
                      % update log
                      % What type of item?
                      itemType = split(class(ThisObj), '.');
-                     session.LoggerObj.write(ThisNode.Text, itemType{end}, "DEBUG", 'permanently deleted item')
+                     loggerObj = QSPViewerNew.Widgets.Logger(session.LoggerName);
+                     loggerObj.write(ThisNode.Text, itemType{end}, "DEBUG", 'permanently deleted item')
                     
                     %Find the node in the deleted array
                     MatchIdx = false(size(session.Deleted));
@@ -1909,12 +1910,6 @@ classdef ApplicationUI < matlab.apps.AppBase
                 app.refresh();
             end
             
-        end
-        
-        function updateLogger(app)
-            for i = 1:length(app.Sessions)
-                app.Sessions(i).updateLoggerName(app.SessionPaths{i});
-            end
         end
         
     end
@@ -2046,7 +2041,6 @@ classdef ApplicationUI < matlab.apps.AppBase
             else
                 app.SessionPaths = value;
             end
-            updateLogger(app);
         end
         
         function value = get.SelectedSession(app)
