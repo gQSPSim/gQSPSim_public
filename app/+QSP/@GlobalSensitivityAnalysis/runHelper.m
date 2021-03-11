@@ -28,10 +28,12 @@ function [statusOk, message] = runHelper(obj, progressCallback)
     allDoses      = getdose(modelObj);
 
     [statusOk, message, sensitivityInputs, transformations, ...
-        distributions, samplingInfo] = obj.getParameterInfo();
+        distributionNames, samplingInfo] = obj.getParameterInfo();
     if ~statusOk
         return;
     end
+    
+    tfVerAtLeastR2021b = ~verLessThan('matlab','9.11');
     
     for i = 1:numberItems
 
@@ -42,7 +44,7 @@ function [statusOk, message] = runHelper(obj, progressCallback)
         numberOfSamplesPerIteration = iterationInfo(1);
         results = [];
         
-        for looopOverIterations = 1:iterationInfo(2)
+        for loopOverIterations = 1:iterationInfo(2)
 
             if any(obj.Item(i).IterationInfo == 0)
                 obj.Item(i).IterationInfo(2) = 0;
@@ -90,9 +92,22 @@ function [statusOk, message] = runHelper(obj, progressCallback)
                         options.Variants = variantObjs;
                     end
 
-                    results = QSP.internal.gsa.TransformedSobol(modelObj, ...
-                        sensitivityInputs, sensitivityOutputs, transformations, ...
-                        distributions, samplingInfo, 'NumberSamples', numberOfSamplesPerIteration, options);
+                    if tfVerAtLeastR2021b && false
+                        % Use sbiosobol starting with Matlab release R2021b.
+                        scenarios = SimBiology.Scenarios();
+                        for j = 1:numel(distributionNames)
+                            probDistribution = getSamplingInfo(distributionNames{j}, transformations{j}, samplingInfo(j,:));
+                            scenarios = scenarios.add('elementwise', sensitivityInputs{j}, probDistribution, 'SamplingMethod', 'lhs', ...
+                                'SamplingOptions', struct('UseLhsdesign', true), 'Number', numberOfSamplesPerIteration);
+                        end
+                        results = sbiosobol(modelObj, scenarios, sensitivityOutputs, options);
+                    else
+                        % Use custom object to compute Sobol indices in 
+                        % Matlab releases prior to R2021b.
+                        results = QSP.internal.gsa.TransformedSobol(modelObj, ...
+                            sensitivityInputs, sensitivityOutputs, transformations, ...
+                            distributionNames, samplingInfo, 'NumberSamples', numberOfSamplesPerIteration, options);
+                    end
 
                     plotItems = struct('Time', results.Time, ...
                                        'SobolIndices', results.SobolIndices, ...
@@ -147,6 +162,35 @@ function tfStoppingToleranceMet = updateProgressStatus(obj, progressCallback, i,
     
     progressCallback(false, i, messages, samples, differences);
     
+end
+
+
+function [distributionObjs, samplingMethod] = createDistributions(distributionNames, scaling, samplingInfo)
+    distributionObjs = cell(1, numel(distributionNames));
+    samplingMethod   = cell(1, numel(distributionNames));
+    for i = 1:numel(distributionNames)
+        if strcmp(distributionNames{i}, 'uniform') 
+            if strcmp(scaling{i}, 'log')
+                samplingMethod{i} = 'lhs';
+                distributionObjs{i} = makedist('loguniform', 'lower', samplingInfo(i, 1), 'upper', samplingInfo(i, 2));
+            else
+                samplingMethod{i} = 'Sobol';
+                distributionObjs{i} = makedist('uniform', 'lower', samplingInfo(i, 1), 'upper', samplingInfo(i, 2));
+            end
+            
+        elseif strcmp(distributionNames{i}, 'normal')
+            if strcmp(scaling{i}, 'linear')
+                distributionObjs{i} = makedist('normal', 'mu', samplingInfo(i,1), 'sigma', samplingInfo(i,2));
+            else
+                distributionObjs{i} = makedist('lognormal', 'mu', samplingInfo(i,1), 'sigma', samplingInfo(i,2));
+            end
+            samplingMethod{i} = 'lhs';
+        else
+            assert(false, "Internal error: unknown probability distribution");
+        end
+        distributionObjs = [distributionObjs{:}];
+    end
+
 end
 
 
