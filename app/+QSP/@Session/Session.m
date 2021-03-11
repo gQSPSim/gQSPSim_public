@@ -61,7 +61,6 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         UseLogging = true
         LogFile = 'logfile.txt'
         
-%         LoggerObj QSPViewerNew.Widgets.Logger
         LoggerSeverityDialog mlog.Level = mlog.Level.MESSAGE;
         LoggerSeverityFile mlog.Level = mlog.Level.INFO;
     end

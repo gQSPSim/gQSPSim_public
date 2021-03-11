@@ -783,7 +783,7 @@ classdef ApplicationUI < matlab.apps.AppBase
         function onTreeSelectionChanged(app,handle,event)
             app.UIFigure.Pointer = 'watch';
             drawnow limitrate;
-            
+            % TODO: Finish
             %First we determine the session that is selected
             %We can select mutliple nodes at once. Therefore we need to consider if SelectedNodes is a vector
             SelectedNodes = event.SelectedNodes;
