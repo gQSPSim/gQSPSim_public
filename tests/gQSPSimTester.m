@@ -1,4 +1,4 @@
-classdef gQSPSimTester < QSPViewer.App
+classdef gQSPSimTester < QSPViewerNew.Application.ApplicationUI
     properties
         originalWarningStates = struct('state', 'off', 'identifier', '');
     end

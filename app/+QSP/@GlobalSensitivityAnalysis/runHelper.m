@@ -40,41 +40,53 @@ function [statusOk, message] = runHelper(obj, progressCallback)
         % Call callback to reset progress indication for next item.
         progressCallback(true, i, [], [], []);
 
-        iterationInfo = obj.Item(i).IterationInfo;
-        numberOfSamplesPerIteration = iterationInfo(1);
+        numSamplesPerIteration = obj.Item(i).IterationInfo(1);  
+        numIterations = obj.Item(i).IterationInfo(2);  
         results = [];
         
-        for loopOverIterations = 1:iterationInfo(2)
-
-            if any(obj.Item(i).IterationInfo == 0)
+        if numSamplesPerIteration == 0 || numIterations == 0
+            % Nothing to do
+            obj.Item(i).IterationInfo(2) = 0; % reset number of iterations to 0.
+            break;
+        elseif obj.Item(i).NumberSamples > 0
+            % Results already exists; initialize progress status with existing
+            % results:
+            tfStoppingToleranceMet = updateProgressStatus(obj, progressCallback, i, ...
+                numIterations, numSamplesPerIteration);
+            if tfStoppingToleranceMet
+                % Nothing to do: existing results already satisfy the
+                % stopping condition.
                 obj.Item(i).IterationInfo(2) = 0;
                 break;
             end
-            
-            % Call callback for progress indication
-            tfStoppingToleranceMet = updateProgressStatus(obj, progressCallback, i, ...
-                iterationInfo, numberOfSamplesPerIteration);
-            if tfStoppingToleranceMet
-                obj.Item(i).IterationInfo(2) = 0;
-            end
+        else
+            % Display progress message for first iteration in progress
+            % window.
+            messages = repmat({''}, 7,1);
+            messages{1} = sprintf('Task: %s', obj.Item(i).TaskName);
+            messages{3} = 'Please wait. Computing first iteration.';
+            progressCallback(false, i, messages, [], []);
+        end
+        
+        for loopOverIterations = 1:numIterations
 
             if obj.Item(i).IterationInfo(2) > 0
                 
                 if ~isempty(results)
-                    results = addsamples(results, numberOfSamplesPerIteration);
+                    results = addsamples(results, numSamplesPerIteration);
                     plotItems = struct('Time', results.Time, ...
                            'SobolIndices', results.SobolIndices, ...
                            'Variances', results.Variance, ...
-                           'NumberSamples', obj.Item(i).NumberSamples+numberOfSamplesPerIteration);  
+                           'NumberSamples', obj.Item(i).NumberSamples+numSamplesPerIteration);  
                 elseif obj.Item(i).NumberSamples > 0
                     loadedResults = load(fullfile(obj.Settings.Session.RootDirectory, ...
                         obj.ResultsFolder, obj.Item(i).MATFileName));
-                    results = loadedResults.results.addsamples(numberOfSamplesPerIteration);
+                    results = loadedResults.results.addsamples(numSamplesPerIteration);
                     clear loadedResults
                     plotItems = struct('Time', results.Time, ...
                            'SobolIndices', results.SobolIndices, ...
                            'Variances', results.Variance, ...
-                           'NumberSamples', obj.Item(i).NumberSamples+numberOfSamplesPerIteration);
+                           'NumberSamples', obj.Item(i).NumberSamples+numSamplesPerIteration);
                 else
                     task = obj.getObjectsByName(obj.Settings.Task, obj.Item(i).TaskName);
                     sensitivityOutputs = task.ActiveSpeciesNames;
@@ -98,7 +110,7 @@ function [statusOk, message] = runHelper(obj, progressCallback)
                         for j = 1:numel(distributionNames)
                             probDistribution = QSP.internal.gsa.SamplingInformation.getSamplingInfo(distributionNames{j}, transformations{j}, samplingInfo(j,:));
                             scenarios = scenarios.add('elementwise', sensitivityInputs{j}, probDistribution, 'SamplingMethod', 'lhs', ...
-                                'SamplingOptions', struct('UseLhsdesign', true), 'Number', numberOfSamplesPerIteration);
+                                'SamplingOptions', struct('UseLhsdesign', true), 'Number', numSamplesPerIteration);
                         end
                         results = sbiosobol(modelObj, scenarios, sensitivityOutputs, options);
                     else
@@ -106,32 +118,41 @@ function [statusOk, message] = runHelper(obj, progressCallback)
                         % Matlab releases prior to R2021b.
                         results = QSP.internal.gsa.TransformedSobol(modelObj, ...
                             sensitivityInputs, sensitivityOutputs, transformations, ...
-                            distributionNames, samplingInfo, 'NumberSamples', numberOfSamplesPerIteration, options);
+                            distributionNames, samplingInfo, 'NumberSamples', numSamplesPerIteration, options);
                     end
 
                     plotItems = struct('Time', results.Time, ...
                                        'SobolIndices', results.SobolIndices, ...
                                        'Variances', results.Variance, ...
-                                       'NumberSamples', numberOfSamplesPerIteration);  
+                                       'NumberSamples', numSamplesPerIteration);  
 
                 end
 
                 obj.addResults(i, plotItems);        
                 obj.Item(i).IterationInfo(2) = obj.Item(i).IterationInfo(2) - 1;
                 
+                % Call callback for progress indication
+                tfStoppingToleranceMet = updateProgressStatus(obj, progressCallback, i, ...
+                numIterations, numSamplesPerIteration);
+                if tfStoppingToleranceMet
+                    obj.Item(i).IterationInfo(2) = 0;
+                    break;
+                end
+                
             end
             
-            if  obj.Item(i).IterationInfo(2) == 0 && ~isempty(results)
-                resultFileName = ['Results - GSA = ' obj.Name, ...
-                                  ' - Task = ', obj.Item(i).TaskName, ...
-                                  ' - Date = ' datestr(now,'dd-mmm-yyyy_HH-MM-SS') '.mat'];
-
-                save(fullfile(obj.Settings.Session.RootDirectory, ...
-                    obj.ResultsFolder, resultFileName), 'results');
-                
-                % Update MATFileName in the GSA items
-                obj.Item(i).MATFileName = resultFileName;
-                
+            if  obj.Item(i).IterationInfo(2) == 0 
+                if ~isempty(results)
+                    resultFileName = ['Results - GSA = ' obj.Name, ...
+                                      ' - Task = ', obj.Item(i).TaskName, ...
+                                      ' - Date = ' datestr(now,'dd-mmm-yyyy_HH-MM-SS') '.mat'];
+    
+                    save(fullfile(obj.Settings.Session.RootDirectory, ...
+                        obj.ResultsFolder, resultFileName), 'results');
+                    
+                    % Update MATFileName in the GSA items
+                    obj.Item(i).MATFileName = resultFileName;
+                end
                 break;
             end
 
@@ -141,22 +162,27 @@ function [statusOk, message] = runHelper(obj, progressCallback)
 end
 
 
-function tfStoppingToleranceMet = updateProgressStatus(obj, progressCallback, i, iterationInfo, numberOfSamplesPerIteration)
+function tfStoppingToleranceMet = updateProgressStatus(obj, progressCallback, i, numIterations, numSamplesPerIteration)
     
     [samples, differences] = obj.getConvergenceStats(i);
 
     messages = cell(7, 1);    
     messages{1} = sprintf('Task: %s', obj.Item(i).TaskName);
     messages{2} = '';
-    messages{3} = sprintf('Computing Sobol indices for iteration %d of %d', iterationInfo(2)-obj.Item(i).IterationInfo(2)+1, iterationInfo(2));
-    messages{4} = sprintf('Adding %d new sampes', numberOfSamplesPerIteration);
+    currentIteration = numIterations-obj.Item(i).IterationInfo(2);
+    messages{3} = sprintf('Computed Sobol indices for iteration %d of %d', currentIteration, numIterations);
+    messages{4} = sprintf('Added %d new sampes', numSamplesPerIteration*currentIteration);
     messages{5} = '';
     if isempty(differences) || isnan(differences(end))
         messages{6} = 'Computing max. diff. between Sobol indices';
         tfStoppingToleranceMet = false;
     else
-        messages{6} = sprintf('Max. difference in iteration %d: %g', iterationInfo(2)-obj.Item(i).IterationInfo(2), differences(end));
+        messages{6} = sprintf('Max. difference in iteration %d: %g', numIterations-obj.Item(i).IterationInfo(2), differences(end));
         tfStoppingToleranceMet = differences(end) <= obj.StoppingTolerance;
+    end
+    if tfStoppingToleranceMet
+        messages{3} = sprintf('Stopping criterion met in iteration %d of %d', numIterations-obj.Item(i).IterationInfo(2), numIterations);
+        messages{4} = '';        
     end
     messages{7} = sprintf('Target difference: %d', obj.StoppingTolerance);
     

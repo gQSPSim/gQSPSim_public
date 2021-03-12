@@ -78,7 +78,7 @@ classdef GlobalSensitivityAnalysisProgress < QSPViewerNew.Widgets.Abstract.Modal
 
             app.Axes = uiaxes(app.AxesGrid, 'Visible', 'off');
             app.Axes.YScale = 'log';
-
+            
         end
         
         function update(app, messages, xData, yData)

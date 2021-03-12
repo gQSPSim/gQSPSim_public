@@ -466,7 +466,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
                      'global sensitivity analysis.'],'Selection required');
                 return;
             end
-            [statusOk, message] = obj.TemporaryGlobalSensitivityAnalysis.remove('item', DeleteIdx);
+            [statusOk, message] = obj.TemporaryGlobalSensitivityAnalysis.remove('gsaItem', DeleteIdx);
             if ~statusOk
                 uialert(obj.getUIFigure(), message, 'Error');
                 return;
@@ -483,7 +483,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
                     'Cannot Add');
                 return;
             end
-            [statusOk, message] = obj.TemporaryGlobalSensitivityAnalysis.add('item');
+            [statusOk, message] = obj.TemporaryGlobalSensitivityAnalysis.add('gsaItem');
             if ~statusOk
                 uialert(obj.getUIFigure(), message, 'Error');
                 return;
@@ -742,7 +742,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
         function onPlotTableButtonPress(obj, src)
             if src == obj.NewSobolIndexButton
                 
-                [statusOk, message] = obj.GlobalSensitivityAnalysis.add('sobolIndex');
+                [statusOk, message] = obj.GlobalSensitivityAnalysis.add('plotItem');
                 
                 if statusOk
                     row = numel(obj.GlobalSensitivityAnalysis.PlotSobolIndex);
@@ -771,7 +771,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
                 [statusOk, message] = obj.GlobalSensitivityAnalysis.duplicate(obj.SelectedRow.PlotSobolIndexTable(1));
                 plotSobolIndices(obj.GlobalSensitivityAnalysis,obj.getPlotArray(),obj.PlotSelectionCallback);
             elseif src == obj.RemoveSobolIndexButton
-                [statusOk, message] = obj.GlobalSensitivityAnalysis.remove('sobolIndex', obj.SelectedRow.PlotSobolIndexTable(1));
+                [statusOk, message] = obj.GlobalSensitivityAnalysis.remove('plotItem', obj.SelectedRow.PlotSobolIndexTable(1));
                 if statusOk && obj.SelectedRow.PlotSobolIndexTable(1) == size(obj.SobolIndexTable.Data,1)
                     obj.SelectedRow.PlotSobolIndexTable = [0,0];
                     obj.SobolIndexTable = obj.selectRow(obj.SobolIndexTable, 0, false);

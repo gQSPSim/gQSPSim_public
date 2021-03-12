@@ -18,7 +18,7 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
     %
     %
     
-    % Copyright 2020 The MathWorks, Inc.
+    % Copyright 2020-2021 The MathWorks, Inc.
     %
     % Auth/Revision:
     %   MathWorks
@@ -302,6 +302,7 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
     methods
         
         function [StatusOK, Message] = run(obj, progressCallback)
+            % Run GSA functionality.
             
             % Invoke validate
             [StatusOK, Message] = validate(obj,false);
@@ -347,71 +348,53 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
             end
         end %function
         
-        function [statusOk, message] = updateInputsOutputs(obj)
-                      
-            numItems = numel(obj.Item);
-            if numItems == 0
-                obj.PlotInputs  = cell(0,1); % Sensitivity inputs to plot
-                obj.PlotOutputs = cell(0,1); % Sensitivity outputs to plot
-                statusOk = true;
-                message = '';
-                return
-            end
-            
-            [statusOk, message, sensitivityInputs] = obj.getParameterInfo();
-            if ~statusOk
-                return
-            end
-            
-            sensitivityOutputs = cell(numItems,1);
-            for i = 1:numItems
-                task = obj.getObjectsByName(obj.Settings.Task, obj.Item(i).TaskName);
-                sensitivityOutputs{i} = task.ActiveSpeciesNames;
-            end
-            sensitivityOutputs = unique([sensitivityOutputs{:}], 'stable');
-            
-            obj.PlotInputs  = reshape(sensitivityInputs,[],1);
-            obj.PlotOutputs = reshape(sensitivityOutputs,[],1);
-
-        end %function
-        
         function [statusOk, message] = add(obj, type)
+            % Add GSA or plot item.
+            % Specify 'type' as
+            %  - 'type' == 'gsaItem' to add GSA item
+            %  - 'type' == 'plotItem' to add plot item
             statusOk = true;
             message  = '';
-            switch type
-                case 'item'
-                    existingTaskNames = {obj.Item.TaskName};
-                    allTasks = {obj.Settings.Task.Name};
-                    tfTaskExists = ismember(allTasks, existingTaskNames);
-                    if all(tfTaskExists)
-                        statusOk = false;
-                        message = 'All tasks are already selected. Add more tasks to add them to this global sensitivity analysis.';
-                        return;
-                    end
-                    obj.Item(end+1) = obj.ItemTemplate;
-                    itemColors = getItemColors(obj.Session, numel(obj.Item));                    
-                    nonExistingTaskNames = allTasks(~tfTaskExists);
-                    obj.Item(end).TaskName = nonExistingTaskNames{1};
-                    obj.Item(end).Color = itemColors(end,:);
-                    suggestedNumberOfSamples = max([1000, 10^numel(obj.PlotInputs)]);
-                    obj.Item(end).IterationInfo(1) = ceil(suggestedNumberOfSamples/obj.Item(end).IterationInfo(2));
-                    [statusOk, message] = obj.updateInputsOutputs();
-                case 'sobolIndex'
-                    if isempty(obj.PlotInputs)
-                        statusOk = false;
-                        message = 'Selection of sensitivity inputs required. Select Parameters as inputs for the global sensitivity analysis.';
-                        return;
-                    end
-                    if isempty(obj.PlotOutputs)
-                        statusOk = false;
-                        message = 'Selection of sensitivity outputs required. Select at least one Task as outputs for the global sensitivity analysis.';
-                        return;
-                    end
-                    obj.PlotSobolIndex(end+1) = obj.PlotSobolIndexTemplate;
+            if strcmp(type, 'gsaItem')
+                existingTaskNames = {obj.Item.TaskName};
+                allTasks = {obj.Settings.Task.Name};
+                tfTaskExists = ismember(allTasks, existingTaskNames);
+                if all(tfTaskExists)
+                    statusOk = false;
+                    message = 'All tasks are already selected. Add more tasks to add them to this global sensitivity analysis.';
+                    return;
+                end
+                obj.Item(end+1) = obj.ItemTemplate;
+                itemColors = getItemColors(obj.Session, numel(obj.Item));                    
+                nonExistingTaskNames = allTasks(~tfTaskExists);
+                obj.Item(end).TaskName = nonExistingTaskNames{1};
+                obj.Item(end).Color = itemColors(end,:);
+                suggestedNumberOfSamples = max([1000, 10^numel(obj.PlotInputs)]);
+                obj.Item(end).IterationInfo(1) = ceil(suggestedNumberOfSamples/obj.Item(end).IterationInfo(2));
+                [statusOk, message] = obj.updateInputsOutputsForPlotting();
+            elseif strcmp(type, 'plotItem')
+                if isempty(obj.PlotInputs)
+                    statusOk = false;
+                    message = 'Selection of sensitivity inputs required. Select Parameters as inputs for the global sensitivity analysis.';
+                    return;
+                end
+                if isempty(obj.PlotOutputs)
+                    statusOk = false;
+                    message = 'Selection of sensitivity outputs required. Select at least one Task as outputs for the global sensitivity analysis.';
+                    return;
+                end
+                obj.PlotSobolIndex(end+1) = obj.PlotSobolIndexTemplate;
+            else
+                statusOk = false;
+                message = 'Internal error.';
             end
-        end %function
+        end 
         
         function [statusOk, message] = remove(obj, type, idx)
+            % Remove GSA or plot item.
+            % Specify 'type' as
+            %  - 'type' == 'gsaItem' to remove idx-th GSA item
+            %  - 'type' == 'plotItem' to remove idx-th plot item
             if idx == 0
                 statusOk = false;
                 message = 'Select a row to mark it for removal.';
@@ -419,16 +402,19 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
             end
             statusOk = true;
             message  = '';
-            switch type
-                case 'item'
-                    obj.Item(idx) = [];
-                    [statusOk, message] = obj.updateInputsOutputs();
-                case 'sobolIndex'
-                    obj.PlotSobolIndex(idx) = [];
+            if strcmp(type, 'gsaItem')
+                obj.Item(idx) = [];
+                [statusOk, message] = obj.updateInputsOutputsForPlotting();
+            elseif strcmp(type, 'plotItem')
+                obj.PlotSobolIndex(idx) = [];
+            else
+                statusOk = false;
+                message = 'Internal error.';
             end            
-        end %function
+        end 
         
         function [statusOk, message] = duplicate(obj, idx)
+            % Duplicate a GSA item.
             if idx == 0
                 statusOk = false;
                 message = 'Select a row to mark it for duplication.';
@@ -439,10 +425,11 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
             
             numPlotSobolIndices = numel(obj.PlotSobolIndex);
             obj.PlotSobolIndex = obj.PlotSobolIndex([1:numPlotSobolIndices, idx]);
-        end %function
-        
+        end 
         
         function [statusOk, message] = propagateValue(obj, property, idx)
+            % Helper method to propagate a property value from one 
+            % GSA item (with index idx) to all other GSA items.
             if strcmp(property, 'Samples')
                 iterationsInfoIdx = 1;
             else
@@ -454,9 +441,10 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
             for i = 1:numel(obj.Item)
                 obj.Item(i).IterationInfo(iterationsInfoIdx) = valueToPropagate;
             end
-        end %function
+        end 
         
         function [statusOk, message] = moveUp(obj, idx)
+            % Helper method to reorder GSA items.
             if idx == 0
                 statusOk = false;
                 message = 'Select a row to move it up.';
@@ -472,9 +460,10 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
             if numel(obj.PlotSobolIndex) > 1
                 obj.PlotSobolIndex([idx-1, idx]) = obj.PlotSobolIndex([idx, idx-1]);
             end
-        end %function
+        end 
         
         function [statusOk, message] = moveDown(obj, idx)
+            % Helper method to reorder GSA items.
             if idx == 0
                 statusOk = false;
                 message = 'Select a row to move it down.';
@@ -491,37 +480,53 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
             if numel(obj.PlotSobolIndex) > 1
                 obj.PlotSobolIndex([idx, idx+1]) = obj.PlotSobolIndex([idx+1, idx]);
             end
-        end %function
+        end 
         
         function [statusOk, message] = updateItem(obj, idx, item)
+            % Update a GSA item. This method also updates the 
+            % sensitivity inputs and outputs available for plotting 
+            % if necessary.
             tfNeedupdateInputsOutputs = ~strcmp(item.TaskName, obj.Item(idx).TaskName);
             obj.Item(idx) = item;
             if tfNeedupdateInputsOutputs
-                [statusOk, message] = obj.updateInputsOutputs();
+                [statusOk, message] = obj.updateInputsOutputsForPlotting();
             else
                 statusOk = true;
                 message  = '';
             end
-        end %function
+        end 
         
         function removeResultsFromItem(obj, idx)
+            % Remove results from GSA item.
             obj.Item(idx).MATFileName   = '';
             obj.Item(idx).NumberSamples = 0;
             obj.Item(idx).Results       = [];
-        end %function
+        end 
         
-        function addResults(obj, itemIdx, results)            
+        function addResults(obj, itemIdx, results)
+            % Add GSA results; i.e. new results have been computed, or
+            % samples have been added to an existing result.
             obj.Item(itemIdx).Results = [obj.Item(itemIdx).Results, results];
             obj.Item(itemIdx).NumberSamples = results.NumberSamples;
-        end %function
+        end 
         
         function selectPlotItem(obj, selectedIdx)
+            % Mark plot item as selected.
             for idx = 1:numel(obj.PlotSobolIndex)
                 obj.PlotSobolIndex(idx).Selected = idx==selectedIdx;
             end
         end
         
         function [numSamples, maxDifferences] = getConvergenceStats(obj, itemIdx)
+            % Return convergence statistics. Results are computed in
+            % iterations. Each iterations adds a specified number of
+            % samples to the results. 
+            % Return arguments:
+            %  - numSamples     : vector of cumulative number of samples
+            %  - maxDifferences : max. difference of first and total order
+            %                     Sobol indices accross all times between
+            %                     two consecutive iterations. The first
+            %                     first entry is always nan.
             numResults     = numel(obj.Item(itemIdx).Results);
             maxDifferences = nan(numResults, 1);
             
@@ -538,7 +543,7 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
             else
                 numSamples = zeros(0,1);
             end
-        end %function
+        end 
         
         function [StaleFlag,ValidFlag,InvalidMessages,StaleReason] = getStaleItemIndices(obj)
             
@@ -627,7 +632,7 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
     end %methods
     
     
-    %  Set Methods
+    %  Set/Get Methods
     methods
         
         function set.Settings(obj,Value)
@@ -647,7 +652,7 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
         function set.ParametersName(obj,parametersName)
             if ~strcmp(parametersName, obj.ParametersName_I)
                 obj.ParametersName_I = parametersName;
-                obj.updateInputsOutputs();
+                obj.updateInputsOutputsForPlotting();
             end
         end
         
@@ -664,24 +669,45 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
             validateattributes(Value,{'struct'},{});
             obj.PlotSettings = Value;
         end
-        
-        function matchingObjects = getObjectsByName(~, objects, names)
-            % Filter objects by name and return matchingObjects whose Name property
-            % matches entries in 'names'. The order of returned objects matches the
-            % order of 'names'. 
-            %  'objects': specified as vector of objects with a Name property
-            %  'names'  : specified as character vector or cell array of
-            %             character vectors of names
 
-            [tfExists, idx] = ismember(names, {objects.Name});
-            if tfExists
-                matchingObjects = objects(idx);
-            else
-                matchingObjects = [];
+    end %Set/Get Methods
+
+    methods (Access = private)
+        % Private helper methods
+        
+        function [statusOk, message] = updateInputsOutputsForPlotting(obj)
+            % Helper method to update properties PlotInputs and Plot
+            % Outputs. Call this method if Items property changed.
+                      
+            numItems = numel(obj.Item);
+            if numItems == 0
+                % There are no GSA items, set PlotInputs and PlotOutputs
+                % to empty.
+                obj.PlotInputs  = cell(0,1); % Sensitivity inputs to plot
+                obj.PlotOutputs = cell(0,1); % Sensitivity outputs to plot
+                statusOk = true;
+                message = '';
+                return
             end
-            % TODOGSA, this assumes that object names are unique within
-            % Parameters and within Tasks. Is this assumption justified?
-            % TODOGSA: this also assumes that names is a subset of all names.
+            
+            % Get new parameter information: new sensitivity inputs
+            [statusOk, message, sensitivityInputs] = obj.getParameterInfo();
+            if ~statusOk
+                return
+            end
+            
+            % Get new task information: new sensitivity outputs
+            sensitivityOutputs = cell(numItems,1);
+            for i = 1:numItems
+                task = obj.getObjectsByName(obj.Settings.Task, obj.Item(i).TaskName);
+                sensitivityOutputs{i} = task.ActiveSpeciesNames;
+            end
+            sensitivityOutputs = unique([sensitivityOutputs{:}], 'stable');
+            
+            % Update properties PlotInputs and PlotOutputs with the
+            % current valid sensitivity inputs and outputs.
+            obj.PlotInputs  = reshape(sensitivityInputs,[],1);
+            obj.PlotOutputs = reshape(sensitivityOutputs,[],1);
 
         end
         
@@ -730,7 +756,7 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
             parameters = obj.getObjectsByName(obj.Settings.Parameters, obj.ParametersName);
             if isempty(parameters)
                 statusOk = false;
-                message = sprinitf('Unable to find Parameters ''%s''.', obj.ParametersName);
+                message = sprinf('Unable to find Parameters ''%s''.', obj.ParametersName);
                 return;
             end
             [statusOk, message, header, data] = parameters.importData(parameters.FilePath);
@@ -768,12 +794,34 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
             statusOk = statusOk && ~any(isnan(samplingInfo), 'all');
 
         end                
-    end %methods
+        
+        function matchingObjects = getObjectsByName(~, objects, names)
+            % Filter objects by name and return matchingObjects whose Name property
+            % matches entries in 'names'. The order of returned objects matches the
+            % order of 'names'. 
+            %  'objects': specified as vector of objects with a Name property
+            %  'names'  : specified as character vector or cell array of
+            %             character vectors of names
 
-    methods (Access = private)
-        % Private helper methods
+            [tfExists, idx] = ismember(names, {objects.Name});
+            if tfExists
+                matchingObjects = objects(idx);
+            else
+                matchingObjects = [];
+            end
+            % TODOGSA, this assumes that object names are unique within
+            % Parameters and within Tasks. Is this assumption justified?
+            % TODOGSA: this also assumes that names is a subset of all names.
+
+        end
         
         function createDefaultPlots(obj)
+            % Create default plots for GSA.
+            % The default plot consists of four axes showing groups
+            % (grouped by sensitivity outputs) of first and total order
+            % indices, as well as a convergence plot (for first order 
+            % Sobol indices with metrix 'max') and the unexplained
+            % variantes.
 
             numPlotOutputs = numel(obj.PlotOutputs);
 

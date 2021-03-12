@@ -18,12 +18,8 @@ function [hLines,hLegend,hLegendChildren] = plotSobolIndices(obj,hAxes,selection
 % Notes: none
 %
 
-% Copyright 2020 The MathWorks, Inc.
-%
-% Auth/Revision:
-%   MathWorks 
-%   $Author: faugusti $
-%   $Revision: 1 $  $Date: 2020-11-13 16:56$
+% Copyright 2020-2021 The MathWorks, Inc.
+
 % ---------------------------------------------------------------------
 
     %% Turn on hold
