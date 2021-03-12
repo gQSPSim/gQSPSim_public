@@ -45,6 +45,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
     properties
         AutoSaveFrequency = 1 % minutes
         AutoSaveBeforeRun = true
+        AutoSaveSingleFile = false
         UseParallel = false
         ParallelCluster
         UseAutoSaveTimer = false
@@ -269,6 +270,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
                 'Parallel cluster', obj.ParallelCluster;
                 'Use AutoSave',mat2str(obj.UseAutoSaveTimer);
                 'AutoSave Directory',obj.AutoSaveDirectory;
+                'AutoSave to Single File',mat2str(obj.AutoSaveSingleFile);
                 'AutoSave Frequency (min)',num2str(obj.AutoSaveFrequency);
                 'AutoSave Before Run',mat2str(obj.AutoSaveBeforeRun);                
                 };
@@ -356,6 +358,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
                 newObj.RelativeAutoSavePathParts = obj.RelativeAutoSavePathParts;
                 newObj.RelativeResultsPathParts = obj.RelativeResultsPathParts;
                 
+                newObj.AutoSaveSingleFile = obj.AutoSaveSingleFile;
                 newObj.AutoSaveFrequency = obj.AutoSaveFrequency;
                 newObj.AutoSaveBeforeRun = obj.AutoSaveBeforeRun;
                 newObj.UseParallel = obj.UseParallel;
@@ -540,15 +543,21 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
             
             try
                 % Save when fired
-                s.Session = obj; %#ok<STRNU>
+                s.Session = obj; 
                 % Remove .qsp.mat from name temporarily
                 ThisName = regexprep(obj.SessionName,'\.qsp\.mat','');
-                TimeStamp = datestr(now,'dd-mmm-yyyy_HH-MM-SS');
-                if ~isempty(Tag)
-                    FileName = sprintf('%s_%s_%s.qsp.mat',ThisName,TimeStamp,Tag);
+                
+                if ~obj.AutoSaveSingleFile
+                    TimeStamp = datestr(now,'dd-mmm-yyyy_HH-MM-SS');
+                    if ~isempty(Tag)
+                        FileName = sprintf('%s_%s_%s.qsp.mat',ThisName,TimeStamp,Tag);
+                    else
+                        FileName = sprintf('%s_%s.qsp.mat',ThisName,TimeStamp);
+                    end
                 else
-                    FileName = sprintf('%s_%s.qsp.mat',ThisName,TimeStamp);
+                    FileName = sprintf('%s_autosave.qsp.mat', ThisName);
                 end
+                
                 if ~exist(obj.AutoSaveDirectory, 'dir')
                     mkdir(obj.AutoSaveDirectory)
                     warning('Creating autosave directory %s', obj.AutoSaveDirectory)
@@ -886,6 +895,11 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         function set.UseAutoSaveTimer(obj,Value)
             validateattributes(Value,{'logical'},{'scalar'});
             obj.UseAutoSaveTimer = Value;
+        end
+        
+        function set.AutoSaveSingleFile(obj,Value)
+            validateattributes(Value,{'logical'},{'scalar'});
+            obj.AutoSaveSingleFile = Value;
         end
         
         function set.AutoSaveFrequency(obj,Value)

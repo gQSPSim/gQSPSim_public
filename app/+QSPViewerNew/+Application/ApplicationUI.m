@@ -1054,6 +1054,28 @@ classdef ApplicationUI < matlab.apps.AppBase
             if sessionStatus
                 %Try to load the session
                 try
+                   % check if autosave more recent than session file exists 
+                   [filepath,autosaveSessName,ext] = fileparts(fullFilePath);
+                   autosaveSessName = insertBefore(autosaveSessName, ".qsp", "_autosave");
+                   asvFullPath = fullfile(filepath, [autosaveSessName, ext]);
+                   
+                   if exist(asvFullPath, 'file') && ~ismember(asvFullPath, app.SessionPaths)
+                       asvMeta = dir(asvFullPath);
+                       sessionMeta = dir(fullFilePath);
+                       
+                       if asvMeta.datenum > sessionMeta.datenum
+                           selection = uiconfirm(app.UIFigure, ...
+                               "There exists a more recent autosave for the session. Do you want to load it instead?", ...
+                               "Load autosave", ...
+                               'Options', {'Yes', 'No (Open original Session)'},...
+                               'DefaultOption',2);
+                           
+                           if strcmp(selection, 'Yes')
+                               fullFilePath = asvFullPath;
+                           end
+                       end
+                   end
+                       
                    loadedSession = load(fullFilePath, 'Session');
                 catch err
                     StatusOk = false;
