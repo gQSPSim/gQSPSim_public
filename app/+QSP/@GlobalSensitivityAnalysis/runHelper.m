@@ -92,11 +92,11 @@ function [statusOk, message] = runHelper(obj, progressCallback)
                         options.Variants = variantObjs;
                     end
 
-                    if tfVerAtLeastR2021b && false
+                    if tfVerAtLeastR2021b
                         % Use sbiosobol starting with Matlab release R2021b.
                         scenarios = SimBiology.Scenarios();
                         for j = 1:numel(distributionNames)
-                            probDistribution = getSamplingInfo(distributionNames{j}, transformations{j}, samplingInfo(j,:));
+                            probDistribution = QSP.internal.gsa.SamplingInformation.getSamplingInfo(distributionNames{j}, transformations{j}, samplingInfo(j,:));
                             scenarios = scenarios.add('elementwise', sensitivityInputs{j}, probDistribution, 'SamplingMethod', 'lhs', ...
                                 'SamplingOptions', struct('UseLhsdesign', true), 'Number', numberOfSamplesPerIteration);
                         end

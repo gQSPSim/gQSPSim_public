@@ -540,6 +540,8 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
                 % table.
                 obj.SelectedRow.PlotSobolIndexTable = eventData.Indices(1)*[1,1];
                 obj.SobolIndexTable = obj.selectRow(obj.SobolIndexTable, obj.SelectedRow.PlotSobolIndexTable(1), false);
+                selectPlotItem(obj.GlobalSensitivityAnalysis, obj.SelectedRow.PlotSobolIndexTable(1));
+                plotSobolIndices(obj.GlobalSensitivityAnalysis,obj.getPlotArray(),obj.PlotSelectionCallback);
                 if strcmp(obj.SobolIndexTable.Data{eventData.Indices(1), 6}, 'bar plot')
                     obj.SobolIndexTable.ColumnFormat{2} = obj.MarkerStyles;
                 else
@@ -654,12 +656,22 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             % Highlight row in SobolIndexTable that was clicked on in the
             % plots.
             obj.selectRow(obj.SobolIndexTable, obj.SelectedRow.PlotSobolIndexTable(1), false);
+            tfSetHightlightInPlot = false;
             for tableIdx = 1:numel(obj.GlobalSensitivityAnalysis.PlotSobolIndex)
                 if ismember(src, obj.GlobalSensitivityAnalysis.Plot2TableMap{tableIdx})
-                    s = uistyle('FontWeight', 'bold');
-                    addStyle(obj.SobolIndexTable, s, 'row', tableIdx);
+                    obj.SelectedRow.PlotSobolIndexTable(1) = tableIdx;
+                    obj.selectRow(obj.SobolIndexTable, obj.SelectedRow.PlotSobolIndexTable(1), false);
+                    selectPlotItem(obj.GlobalSensitivityAnalysis, obj.SelectedRow.PlotSobolIndexTable(1));
+%                     s = uistyle('FontWeight', 'bold');
+%                     addStyle(obj.SobolIndexTable, s, 'row', tableIdx);
+                    tfSetHightlightInPlot = true;
+                    break;
                 end
             end
+            if ~tfSetHightlightInPlot
+                selectPlotItem(obj.GlobalSensitivityAnalysis, 0);
+            end
+            plotSobolIndices(obj.GlobalSensitivityAnalysis,obj.getPlotArray(),obj.PlotSelectionCallback);
         end
         
         function onVisualizationTableEdit(obj, source, eventData)

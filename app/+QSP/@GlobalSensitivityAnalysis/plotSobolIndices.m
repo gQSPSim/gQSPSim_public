@@ -73,6 +73,7 @@ function [hLines,hLegend,hLegendChildren] = plotSobolIndices(obj,hAxes,selection
         style       = obj.PlotSobolIndex(tableIdx).Style;
         display     = obj.PlotSobolIndex(tableIdx).Display;
         mode{axIdx} = obj.PlotSobolIndex(tableIdx).Mode;
+        selected    = obj.PlotSobolIndex(tableIdx).Selected;
                 
         outputs    = obj.PlotSobolIndex(tableIdx).Outputs;
         inputs     = obj.PlotSobolIndex(tableIdx).Inputs;
@@ -123,8 +124,6 @@ function [hLines,hLegend,hLegendChildren] = plotSobolIndices(obj,hAxes,selection
                     plotLabelInfo{1, axIdx} = [plotLabelInfo{1, axIdx}, {currentLabel}];
                 end
                 
-                
-                
                 if ~strcmp(mode{axIdx}, 'bar plot')
                     legendHandle = plot(hAxes(axIdx), nan, nan, 'Color', [0, 0, 0], 'LineStyle', style{1});
                     plotLabelInfo{2, axIdx} = [plotLabelInfo{2, axIdx}, legendHandle];
@@ -137,7 +136,7 @@ function [hLines,hLegend,hLegendChildren] = plotSobolIndices(obj,hAxes,selection
                 meanStatistics{axIdx} = [meanStatistics{axIdx}; {[], xIdx, barWidth}];
  
                 for itemIdx = 1:numel(obj.Item)
-
+                    
                     if ~obj.Item(itemIdx).Include || isempty(obj.Item(itemIdx).Results)
                         continue;
                     end
@@ -145,6 +144,13 @@ function [hLines,hLegend,hLegendChildren] = plotSobolIndices(obj,hAxes,selection
                     [tfOutputExists, outputIdx] = ismember(output, allOutputs);
                     if ~tfOutputExists
                         continue;
+                    end
+                    
+                    % Set item color
+                    itemColor = obj.Item(itemIdx).Color;
+                    if selected
+                        factor = 0.5;
+                        itemColor = factor*itemColor + (1-factor)*[1 1 1];
                     end
 
                     % All times are equal, so just get the first time vector.
@@ -180,7 +186,7 @@ function [hLines,hLegend,hLegendChildren] = plotSobolIndices(obj,hAxes,selection
                     end
                     if strcmp(mode{axIdx}, 'time course')
                         h = plot(hAxes(axIdx), time, results{1}, ...
-                            'Color', obj.Item(itemIdx).Color, ...
+                            'Color', itemColor, ...
                             'LineStyle', style{1}, ...
                             'LineWidth', obj.PlotSettings(axIdx).LineWidth);
                         maxXLim(axIdx) = max(time);
@@ -188,8 +194,8 @@ function [hLines,hLegend,hLegendChildren] = plotSobolIndices(obj,hAxes,selection
                         barValue = getBarValue(obj, results{1}, metric);
                         h = plot(hAxes(axIdx), xIdx, barValue, style{2}, ...
                             'MarkerSize', 10, ...
-                            'MarkerEdgeColor', obj.Item(itemIdx).Color, ...
-                            'MarkerFaceColor', obj.Item(itemIdx).Color);
+                            'MarkerEdgeColor', itemColor, ...
+                            'MarkerFaceColor', itemColor);
                         if i == resultsRange(end)
                             meanStatistics{axIdx}{end,1} = ...
                             [meanStatistics{axIdx}{end,1}, barValue];
@@ -207,9 +213,9 @@ function [hLines,hLegend,hLegendChildren] = plotSobolIndices(obj,hAxes,selection
                         h = plot(hAxes(axIdx), numSamplesPerIteration(2:end), barValue(1:end-1), ...
                             'LineStyle', style{1}, ...
                             'LineWidth', obj.PlotSettings(axIdx).LineWidth, ...
-                            'MarkerEdgeColor', obj.Item(itemIdx).Color, ...
-                            'MarkerFaceColor', obj.Item(itemIdx).Color, ...
-                            'Color', obj.Item(itemIdx).Color);
+                            'MarkerEdgeColor', itemColor, ...
+                            'MarkerFaceColor', itemColor, ...
+                            'Color', itemColor);
                         maxXLim(axIdx) = max(maxXLim(axIdx), obj.Item(itemIdx).Results(end).NumberSamples);
                         minXLim(axIdx) = min(minXLim(axIdx), obj.Item(itemIdx).Results(1).NumberSamples);
                     elseif strcmp(mode{axIdx}, 'limit value')
@@ -219,9 +225,9 @@ function [hLines,hLegend,hLegendChildren] = plotSobolIndices(obj,hAxes,selection
                         h = plot(hAxes(axIdx), [obj.Item(itemIdx).Results.NumberSamples], barValue, ...
                             'LineStyle', style{1}, ...
                             'LineWidth', obj.PlotSettings(axIdx).LineWidth, ...
-                            'MarkerEdgeColor', obj.Item(itemIdx).Color, ...
-                            'MarkerFaceColor', obj.Item(itemIdx).Color, ...
-                            'Color', obj.Item(itemIdx).Color);
+                            'MarkerEdgeColor', itemColor, ...
+                            'MarkerFaceColor', itemColor, ...
+                            'Color', itemColor);
                         maxXLim(axIdx) = max(maxXLim(axIdx), obj.Item(itemIdx).Results(end).NumberSamples);
                         minXLim(axIdx) = min(minXLim(axIdx), obj.Item(itemIdx).Results(1).NumberSamples);
                     end

@@ -28,13 +28,19 @@ classdef SamplingInformation
             useScaling = false;
             if strcmp(distribution, 'uniform') 
                 if nargout >= 2
+                    % Use separate scaling to log transformation
                     if strcmp(scaling, 'log')
                         useScaling = true;
                         samplingInfo = log(samplingInfo);
                     end
                     distObj = makedist('uniform', 'lower', samplingInfo(1), 'upper', samplingInfo(2));
                 else
-                    distObj = makedist('loguniform', 'lower', samplingInfo(1), 'upper', samplingInfo(2));
+                    % Use loguniform distributions directly
+                    if strcmp(scaling, 'linear')
+                        distObj = makedist('uniform', 'lower', samplingInfo(1), 'upper', samplingInfo(2));
+                    else
+                        distObj = makedist('loguniform', 'lower', samplingInfo(1), 'upper', samplingInfo(2));
+                    end
                 end
             elseif strcmp(distribution, 'normal')
                 if strcmp(scaling, 'linear')

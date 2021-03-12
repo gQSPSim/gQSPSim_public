@@ -77,14 +77,15 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
                               'Description'  , [], ...      % description of item
                               'Results'      , [])          % vector of results at each iteration
         % Structure to store plot configurations for sens. inputs/outputs
-        PlotSobolIndexTemplate = struct('Plot'   , ' ', ...            % Axes for plotting
-                                        'Style'  , {{'-', 'd'}}, ...   % Line/marker size for plot types
-                                        'Inputs' , {{}}, ...           % Cell array of sensitivity inputs
-                                        'Outputs', {{}}, ...           % Cell array of sensitivity outputs
-                                        'Type'   , 'first order', ...  % Data to be plotted 
-                                        'Mode'   , 'bar plot', ...     % Plot type 
-                                        'Metric' , 'mean', ...         % Metric to summarize time courses
-                                        'Display', '')                 % Display name for legends
+        PlotSobolIndexTemplate = struct('Plot'    , ' ', ...            % Axes for plotting
+                                        'Style'   , {{'-', 'd'}}, ...   % Line/marker size for plot types
+                                        'Inputs'  , {{}}, ...           % Cell array of sensitivity inputs
+                                        'Outputs' , {{}}, ...           % Cell array of sensitivity outputs
+                                        'Type'    , 'first order', ...  % Data to be plotted 
+                                        'Mode'    , 'bar plot', ...     % Plot type 
+                                        'Metric'  , 'mean', ...         % Metric to summarize time courses
+                                        'Display' , '', ...             % Display name for legends
+                                        'Selected', false);             % Mark plot item as selected
     end
 
     
@@ -513,7 +514,13 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
             obj.Item(itemIdx).Results = [obj.Item(itemIdx).Results, results];
             obj.Item(itemIdx).NumberSamples = results.NumberSamples;
         end %function
-
+        
+        function selectPlotItem(obj, selectedIdx)
+            for idx = 1:numel(obj.PlotSobolIndex)
+                obj.PlotSobolIndex(idx).Selected = idx==selectedIdx;
+            end
+        end
+        
         function [numSamples, maxDifferences] = getConvergenceStats(obj, itemIdx)
             numResults     = numel(obj.Item(itemIdx).Results);
             maxDifferences = nan(numResults, 1);
