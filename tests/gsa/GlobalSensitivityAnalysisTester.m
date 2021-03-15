@@ -44,4 +44,5 @@ methods
         gsaObject = testCase.QSPSession.GlobalSensitivityAnalysis;
     end
 end
+
 end

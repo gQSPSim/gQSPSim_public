@@ -711,90 +711,6 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
 
         end
         
-        function [statusOk, message, sensitivityInputs, transformations, ...
-            distributions, samplingInfo] = getParameterInfo(obj)
-            % Get parameter information from a QSP.Parameters object. Only
-            % information for parameters whose are specified to include in the
-            % analysis are returned.
-            %  'statusOk'         : logical scalar indicating if parameter import
-            %                       was successful 
-            %  'message'          : character vector containing information about
-            %                       parameter import failure
-            %  'sensitivityInputs': cell array of character vectors specifying 
-            %                       names of parameters to include as sensitivity
-            %                       inputs in the global sensitivity analysis
-            %  'transformations'  : cell array of character vectors specifying 
-            %                       transformations; 'linear' and 'log'
-            %                       transformations are supported
-            %  'distributions'    : cell array of character vectors specifying 
-            %                       distributions; 'uniform' and 'normal'
-            %                       distributions are supported. 
-            %  'samplingInfo'     : numeric matrix with two columns. There is one
-            %                       row per sensitivityInput. The values in each
-            %                       row are interpreted as follows, dependent on
-            %                       {transformation, distribution}:
-            %                       - 'linear' & 'uniform' : [lb, ub]
-            %                         meaning the values specified in the xlsx sheet
-            %                         determine the sampling range
-            %                       - 'linear' & 'log'     : [exp(lb), exp(ub)],
-            %                         meaning the values specified in the xlsx sheet
-            %                         determine the sampling range
-            %                       - 'normal' & 'uniform' : [mu, sig] of normal distribution
-            %                       - 'normal' & 'log'     : [mu, sig] of (non-log) normal distribution
-
-            % Import included parameter information
-
-            sensitivityInputs = {};
-            transformations   = {};
-            distributions     = {};
-            samplingInfo      = {};
-            if isempty(obj.ParametersName)
-                statusOk = false;
-                message = 'No sensitivity inputs selected.';
-                return;
-            end
-            parameters = obj.getObjectsByName(obj.Settings.Parameters, obj.ParametersName);
-            if isempty(parameters)
-                statusOk = false;
-                message = sprinf('Unable to find Parameters ''%s''.', obj.ParametersName);
-                return;
-            end
-            [statusOk, message, header, data] = parameters.importData(parameters.FilePath);
-            if ~statusOk
-                return;
-            end
-            
-            tfInclude = strcmpi(data(:, strcmpi(header, 'include')), 'yes');
-            data = data(tfInclude, :);
-
-            sensitivityInputs = data(:, strcmpi(header, 'name'));
-
-            if nargout <= 3
-                return
-            end
-
-            transformations = data(:, strcmpi(header, 'scale'));
-
-            distributions = data(:, strcmpi(header, 'dist'));
-            tfNormalDistribution = strcmp(distributions, 'normal');
-
-            lb = data(:, strcmpi(header, 'lb'));
-            ub = data(:, strcmpi(header, 'ub'));
-
-            p0_1 = cell2mat(data(:, strcmpi(header, 'p0_1')));
-            cv = nan(size(lb));
-            if ismember('cv', header)
-                cv = cell2mat(data(:, strcmpi(header, 'cv')));
-            end
-
-            samplingInfo = cell2mat([lb, ub]);
-            samplingInfo(tfNormalDistribution, 1) = p0_1(tfNormalDistribution);
-            samplingInfo(tfNormalDistribution, 2) = cv(tfNormalDistribution);
-
-            statusOk = statusOk && ~any(isnan(samplingInfo), 'all');
-
-        end                
-        
         function matchingObjects = getObjectsByName(~, objects, names)
             % Filter objects by name and return matchingObjects whose Name property
             % matches entries in 'names'. The order of returned objects matches the
@@ -852,6 +768,202 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
             end
         end
         
+    end
+    
+    methods (Access = protected)
+        % Protected helper methods to allow access during testing.
+        
+        function [statusOk, message, sensitivityInputs, transformations, ...
+            distributions, samplingInfo] = getParameterInfo(obj)
+            % Get parameter information from a QSP.Parameters object. Only
+            % information for parameters whose are specified to include in the
+            % analysis are returned.
+            %  'statusOk'         : logical scalar indicating if parameter import
+            %                       was successful 
+            %  'message'          : character vector containing information about
+            %                       parameter import failure
+            %  'sensitivityInputs': cell array of character vectors specifying 
+            %                       names of parameters to include as sensitivity
+            %                       inputs in the global sensitivity analysis
+            %  'transformations'  : cell array of character vectors specifying 
+            %                       transformations; 'linear' and 'log'
+            %                       transformations are supported
+            %  'distributions'    : cell array of character vectors specifying 
+            %                       distributions; 'uniform' and 'normal'
+            %                       distributions are supported. 
+            %  'samplingInfo'     : numeric matrix with two columns. There is one
+            %                       row per sensitivityInput. The values in each
+            %                       row are interpreted as follows, dependent on
+            %                       {transformation, distribution}:
+            %                       - 'linear' & 'uniform' : [lb, ub]
+            %                         meaning the values specified in the xlsx sheet
+            %                         determine the sampling range
+            %                       - 'linear' & 'log'     : [exp(lb), exp(ub)],
+            %                         meaning the values specified in the xlsx sheet
+            %                         determine the sampling range
+            %                       - 'normal' & 'uniform' : [mu, sig] of normal distribution
+            %                       - 'normal' & 'log'     : [mu, sig] of (non-log) normal distribution
+
+            % Import included parameter information
+
+            sensitivityInputs = {};
+            transformations   = {};
+            distributions     = {};
+            samplingInfo      = [];
+            if isempty(obj.ParametersName)
+                statusOk = false;
+                message = 'No sensitivity inputs selected.';
+                return;
+            end
+            parameters = obj.getObjectsByName(obj.Settings.Parameters, obj.ParametersName);
+            if isempty(parameters)
+                statusOk = false;
+                message = sprinf('Unable to find Parameters ''%s''.', obj.ParametersName);
+                return;
+            end
+            [statusOk, message, header, data] = parameters.importData(parameters.FilePath);
+            if ~statusOk
+                return;
+            end
+            
+            % Validate and process "Include" column in Parameters table
+            tfIncludeCol = strcmpi(header, 'include');
+            if sum(tfIncludeCol) ~= 1
+                % Error: multiple columns specify names.
+                statusOk = false;
+                message = 'Multiple columns in parameter table that specify whether or not to include sensitivity inputs.';
+                return;                
+            elseif ~all(tfIncludeCol)
+                % Omit some sensitivity inputs
+                tfYesInclude = strcmpi(data(:, tfIncludeCol), 'yes');
+                tfNoInclude = strcmpi(data(:, tfIncludeCol), 'no');
+                if ~all(tfYesInclude | tfNoInclude)
+                    statusOk = false;
+                    message = 'Unexpected value in Include column. Expect value ''yes'' or ''no''.';
+                    return; 
+                end
+                data = data(tfYesInclude, :);
+            end
+
+            % Validate and process "Name" column in Parameters table
+            tfNameCol = strcmpi(header, 'name');
+            if sum(tfNameCol) ~= 1
+                % Error: multiple columns specify names.
+                statusOk = false;
+                message = 'Multiple columns in parameter table that specify names for sensitivity inputs.';
+                return;                
+            elseif ~any(tfNameCol)
+                statusOk = false;
+                message = 'At least one column in parameter table must specify names of sensitivity inputs.';
+                return;                
+            end
+            sensitivityInputs = data(:, tfNameCol);
+
+            if nargout <= 3
+                return
+            end
+
+            % Validate and process "Scale" column in Parameters table
+            tfScaleCol = strcmpi(header, 'scale');
+            if sum(tfScaleCol) > 1
+                % Error: multiple columns specify scaling information.
+                statusOk = false;
+                message = 'Multiple columns in parameter table that specify scaling detected.';
+                return;                
+            elseif ~any(tfScaleCol) || all(cellfun(@(d)ismissing(string(d)), data(:, tfScaleCol)))
+                % Use linear scaling by default:
+                transformations = repmat({'linear'}, size(data, 1), 1);
+            else
+                transformations = data(:, tfScaleCol);
+                tfLinearScale = strcmpi(transformations, 'linear');
+                tfLogScale = strcmpi(transformations, 'log');
+                if ~all(tfLinearScale | tfLogScale)
+                    % If some scalings are specified, then all scalings
+                    % must be specified.
+                    statusOk = false;
+                    message = 'Unexpected scaling of parameters. Expected ''linear'' or ''log''.';
+                    return;
+                end
+                % Standardize transformations
+                transformations(tfLinearScale) = {'linear'};
+                transformations(tfLogScale) = {'log'};
+            end
+            
+            % Validate and process "Dist"/"Distribution" column in Parameters table
+            tfDistCol = strcmpi(header, 'dist') | strcmpi(header, 'distribution');
+            if sum(tfDistCol) > 1
+                statusOk = false;
+                message = 'Multiple columns in parameter table that specify distributions detected.';
+                return;
+            elseif ~any(tfDistCol) || all(cellfun(@(d)ismissing(string(d)), data(:, tfDistCol)))
+                distributions = repmat({'uniform'}, size(data, 1), 1);
+                tfUniformDistribution = true(numel(distributions), 1);
+                tfNormalDistribution = false(numel(distributions), 1);
+            else
+                distributions = data(:, tfDistCol);
+                tfUniformDistribution = strcmpi(distributions, 'uniform');
+                tfNormalDistribution = strcmpi(distributions, 'normal');
+                if ~all(tfUniformDistribution | tfNormalDistribution)
+                    % If some distributions are specified, then
+                    % distributions for all parameters must be specified.
+                    statusOk = false;
+                    message = 'Unexpected distribution names. Expected ''uniform'' or ''normal''.';
+                    return;
+                end
+                % Standardize distribution names
+                distributions(tfUniformDistribution) = {'uniform'};
+                distributions(tfNormalDistribution) = {'normal'};
+            end
+
+            % Validate and process lower and upper bounds for uniform
+            % distributions
+            tfLowerBound = strcmpi(header, 'lb');
+            tfUpperBound = strcmpi(header, 'ub');
+            if any(tfUniformDistribution) && (~any(tfLowerBound) || ~any(tfUpperBound))
+                statusOk = false;
+                message = 'Missing lower or upper bounds for parameters with uniform distribution.';
+                return; 
+            end
+            lb = data(:, tfLowerBound);
+            ub = data(:, tfUpperBound);
+            if ~all(isnumeric([lb{:}])) || ~all(isnumeric([ub{:}])) 
+                statusOk = false;
+                message = 'Lower and upper bounds of uniform distributions must be numeric values.';
+                return;
+            elseif any([lb{tfUniformDistribution}] >= [ub{tfUniformDistribution}])
+                statusOk = false;
+                message = 'Lower bounds of uniform distributions must be smaller than upper bounds.';
+                return;                
+            end
+            samplingInfo = cell2mat([lb, ub]);
+
+            % Validate and process mu and sigma for normal distributions
+            tfMu = strcmpi(header, 'p0_1');
+            tfSigma = strcmpi(header, 'cv');
+            if any(tfNormalDistribution) && (~any(tfMu) || ~any(tfSigma))
+                statusOk = false;
+                samplingInfo = [];
+                message = 'Missing mean or standard deviation for parameters with normal distribution.';
+                return; 
+            end
+            p0_1 = data(tfNormalDistribution, tfMu);
+            cv = data(tfNormalDistribution, tfSigma);
+            if ~all(isnumeric([p0_1{:}])) || ~all(isnumeric([cv{:}])) 
+                statusOk = false;
+                samplingInfo = [];
+                message = 'Mean and standard deviation must be numeric values.';
+                return;
+            end
+            samplingInfo(tfNormalDistribution, :) = cell2mat([p0_1, cv]);
+            if any(isnan(samplingInfo), 'all') || any(~isfinite(samplingInfo), 'all') ...
+                    || any(~isreal(samplingInfo), 'all') 
+                statusOk = false;
+                samplingInfo = [];
+                message = 'All parameter values must be finite, real numeric values.';
+                return;
+            end
+
+        end               
     end
     
 end %classdef

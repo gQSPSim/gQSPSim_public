@@ -12,10 +12,11 @@ DefinePaths;
 % available on the path.
 addpath(genpath('tests'));
 
-disp('NOTE: Only running simulation tests.')
+disp('NOTE: Only running GSA tests.')
 
 try
-    results = runtests('tgQSPSim', 'ProcedureName', 'tSimulations');
+    results = runtests('gsa/tGlobalSensitivityAnalysis.m');
+%     results = runtests('tgQSPSim', 'ProcedureName', 'tSimulations');
 catch e
     results.Failed = true;
     genericError = e.message;
@@ -28,7 +29,7 @@ if any([results.Failed])
     if ~isempty(genericError)
         warning(genericError);
     end
-    exit(1)
+%     exit(1)
 else
-    exit
+%     exit
 end

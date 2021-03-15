@@ -27,6 +27,10 @@ classdef gQSPSimTester < QSPViewerNew.Application.ApplicationUI
             close all force
         end
         
+        function testCase = runGlobalSensitivityAnalysisTests(obj, testCase)
+            
+        end
+        
         function testCase = runSimulations(obj, testCase)            
             for i = 1:numel(obj.Session.Simulation)
                 simResultsFolder = string(obj.Session.Simulation(i).SimResultsFolderName);
