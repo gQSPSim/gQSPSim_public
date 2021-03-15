@@ -61,6 +61,8 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         
         UseLogging = true
         LogFile = 'logfile.txt'
+        
+        isClosedSafe = true
     end
     
 	properties (Access=protected)
@@ -155,6 +157,10 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
             else
                 obj.ParallelCluster = {''};
             end
+            
+            % initialize it to false in the beginning and change to true
+            % when closing it
+            obj.isClosedSafe = false;
             
 %             % Initialize timer - If you call initialize here, it will
 %             enter a recursive loop. Do not call here. Instead, invoke

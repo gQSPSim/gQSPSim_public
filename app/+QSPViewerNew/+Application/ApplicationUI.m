@@ -1059,24 +1059,28 @@ classdef ApplicationUI < matlab.apps.AppBase
                    autosaveSessName = insertBefore(autosaveSessName, ".qsp", "_autosave");
                    asvFullPath = fullfile(filepath, [autosaveSessName, ext]);
                    
+                   loadedSession = load(fullFilePath, 'Session');
+                   
                    if exist(asvFullPath, 'file') && ~ismember(asvFullPath, app.SessionPaths)
                        asvMeta = dir(asvFullPath);
                        sessionMeta = dir(fullFilePath);
                        
-                       if asvMeta.datenum > sessionMeta.datenum
+                       if asvMeta.datenum > sessionMeta.datenum || ...
+                               ~loadedSession.isClosedSafe
                            selection = uiconfirm(app.UIFigure, ...
-                               "There exists a more recent autosave for the session. Do you want to load it instead?", ...
+                               "The session wasn't closed properly and/or there exists a more recent autosave for the session. Do you want to load it instead?", ...
                                "Load autosave", ...
                                'Options', {'Yes', 'No (Open original Session)'},...
                                'DefaultOption',2);
                            
                            if strcmp(selection, 'Yes')
                                fullFilePath = asvFullPath;
+                               loadedSession = load(asvFullPath, 'Session');
                            end
                        end
                    end
                        
-                   loadedSession = load(fullFilePath, 'Session');
+                   
                 catch err
                     StatusOk = false;
                     Message = sprintf('The file %s could not be loaded:\n%s', fullFilePath, err.message);
@@ -1210,6 +1214,7 @@ classdef ApplicationUI < matlab.apps.AppBase
             delete(app.Sessions(sessionIdx).TreeNode);
             
             % Remove the session object
+            app.Sessions(sessionIdx).isClosedSafe = true;
             app.Sessions(sessionIdx) = [];
             
             %Update paths and dirtyTF
