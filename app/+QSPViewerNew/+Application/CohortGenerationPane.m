@@ -519,7 +519,7 @@ classdef CohortGenerationPane < QSPViewerNew.Application.ViewPane
                 obj.TemporaryCohortGeneration.SpeciesData(Row).SpeciesName = Value;
             elseif Column == 4
                 obj.TemporaryCohortGeneration.SpeciesData(Row).FunctionExpression = Value;
-            elseif ColColumnIdx == 1
+            elseif Column == 1
                 obj.TemporaryCohortGeneration.SpeciesData(Row).DataName = Value;
             elseif Column == 5
                 obj.TemporaryCohortGeneration.SpeciesData(Row).ObjectiveName = Value;

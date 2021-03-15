@@ -44,6 +44,7 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
         PlotGroupInvalidRowIndices = []
         
         SelectedRow =0;
+        SelectedCol=0;
         
         SelectedGroup
         SelectedData
@@ -79,6 +80,8 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
         NewButton                   matlab.ui.control.Button
         RemoveButton                matlab.ui.control.Button
         SimItemsTable               matlab.ui.control.Table
+        SimItemsTableContextMenu    matlab.ui.container.ContextMenu
+        ApplyToAllMenu              matlab.ui.container.Menu
         SimulationVisualizationGrid matlab.ui.container.GridLayout
         SpeciesLabel                matlab.ui.control.Label
         SpeciesTable                matlab.ui.control.Table
@@ -229,6 +232,12 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
            obj.SimItemsTable.CellEditCallback = @(h,e) obj.onTableSelectionEdit(e);
            obj.SimItemsTable.CellSelectionCallback = @(h,e) obj.onTableSelectionChange(e);
            
+           % create ApplytoAll context menu for sim items table
+           obj.SimItemsTableContextMenu = uicontextmenu(obj.getUIFigure);
+           obj.SimItemsTable.ContextMenu = obj.SimItemsTableContextMenu;
+           obj.ApplyToAllMenu = uimenu(obj.SimItemsTableContextMenu, 'Label', "Apply to all");
+           obj.ApplyToAllMenu.MenuSelectedFcn = @(h,e) obj.onApplyToAllSelected(h,e);
+
            %VisualizationPanel Items
            obj.SimulationVisualizationGrid = uigridlayout(obj.getVisualizationGrid());
            obj.SimulationVisualizationGrid.Layout.Row = 2;
@@ -347,6 +356,7 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
         
         function onTableSelectionChange(obj,eventData)
             obj.SelectedRow = eventData.Indices(1);
+            obj.SelectedCol = eventData.Indices(:,2);
             obj.IsDirty = true;
         end
         
@@ -359,7 +369,8 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
             RowIdx = Indices(1,1);
             ColIdx = Indices(1,2);
             
-            obj.SelectedRow = RowIdx;
+            obj.SelectedRow = Indices(1);
+            obj.SelectedCol = Indices(:,2);
             
             % Update entry
             HasChanged = false;
@@ -369,7 +380,7 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
                 end
                 obj.TemporarySimulation.Item(RowIdx).TaskName = eventData.NewData;
             elseif ColIdx == 3 % Group
-                if ~isequal(obj.TemporarySimulation.Item(RowIdx).VPopName,eventData.NewData)
+                if ~isequal(obj.TemporarySimulation.Item(RowIdx).Group,eventData.NewData)
                     HasChanged = true;                    
                 end
                 obj.TemporarySimulation.Item(RowIdx).Group = eventData.NewData;                
@@ -381,6 +392,37 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
             end
             if HasChanged
                 obj.TemporarySimulation.Item(RowIdx).MATFileName = '';
+            end
+            
+            obj.updateSimulationTable();
+            obj.IsDirty = true;
+        end
+        
+        function onApplyToAllSelected(obj,~,~)
+            if numel(obj.SelectedCol)>1 || obj.SelectedCol~=0 || ...
+                    ~ismember(obj.SelectedRow, 1:length(obj.TemporarySimulation.Item)) ...
+                    || ~ismember(obj.SelectedCol, [1, 2, 3])
+                uialert(obj.getUIFigure, "Please make sure to select one valid editable cell before calling 'Apply to All'.", ...
+                    'Invalid cell(s) selected', 'Icon', 'warning');
+                return;
+            end
+            
+            % Update entry
+            if obj.SelectedCol == 1
+                colName = "TaskName";
+            elseif obj.SelectedCol == 2 % Group
+                colName = "VPopName";               
+            elseif obj.SelectedCol == 3 % Vpop
+                colName = "Group";
+            end
+            
+            for rowIdx = 1:length(obj.TemporarySimulation.Item)
+                if rowIdx == obj.SelectedRow
+                    continue;
+                end
+                obj.TemporarySimulation.Item(rowIdx).(colName) = ...
+                    obj.TemporarySimulation.Item(obj.SelectedRow).(colName);
+                obj.TemporarySimulation.Item(rowIdx).MATFileName = '';
             end
             
             obj.updateSimulationTable();
