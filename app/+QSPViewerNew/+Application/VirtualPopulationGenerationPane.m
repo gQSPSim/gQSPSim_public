@@ -231,7 +231,7 @@ classdef VirtualPopulationGenerationPane < QSPViewerNew.Application.ViewPane
             obj.VisSpeciesDataTableLabel.Layout.Row = 1;
             obj.VisSpeciesDataTableLabel.Layout.Column = 1;
             
-            obj.VisSpeciesDataTable = uitable(obj.VisLayout);
+            obj.VisSpeciesDataTable = uitable(obj.VisLayout, 'ColumnSortable', true);
             obj.VisSpeciesDataTable.Layout.Row = 2;
             obj.VisSpeciesDataTable.Layout.Column = 1;
             obj.VisSpeciesDataTable.ColumnEditable = false;
@@ -243,7 +243,7 @@ classdef VirtualPopulationGenerationPane < QSPViewerNew.Application.ViewPane
             obj.VisVirtPopItemsTableLabel.Layout.Row = 3;
             obj.VisVirtPopItemsTableLabel.Layout.Column = 1;
             
-            obj.VisVirtPopItemsTable = uitable(obj.VisLayout);
+            obj.VisVirtPopItemsTable = uitable(obj.VisLayout, 'ColumnSortable', true);
             obj.VisVirtPopItemsTable.Layout.Row = 4;
             obj.VisVirtPopItemsTable.Layout.Column = 1;
             obj.VisVirtPopItemsTable.ColumnEditable = false;

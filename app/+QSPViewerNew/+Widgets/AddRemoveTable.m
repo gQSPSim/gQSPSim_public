@@ -79,7 +79,7 @@ classdef AddRemoveTable < handle
             obj.GridMain.RowSpacing = pad;
 
             %Add the left list box
-            obj.TableMain = uitable(obj.GridMain);
+            obj.TableMain = uitable(obj.GridMain, 'ColumnSortable', true);
             obj.TableMain.Layout.Row =[1,3];
             obj.TableMain.Layout.Column =2;
             obj.TableMain.CellSelectionCallback = @obj.onSelectionChange;
