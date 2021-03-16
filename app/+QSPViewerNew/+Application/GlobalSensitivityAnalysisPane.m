@@ -665,22 +665,25 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
                 addStyle(obj.PlotItemsTable,style,'cell',[obj.SelectedRow.PlotItemsTable,2]);
                 plotSobolIndices(obj.GlobalSensitivityAnalysis,obj.getPlotArray(),obj.PlotSelectionCallback);
                 obj.updateIterationsTable();
+            else
+                uialert(obj.getUIFigure(),'Specify a finite, non-nan value for the stopping criterion.','Select item');
             end
         end
         
         function lineSelectionCallback(obj, src)
             % Highlight row in SobolIndexTable that was clicked on in the
             % plots.
-            obj.selectRow(obj.SobolIndexTable, obj.SelectedRow.PlotSobolIndexTable(1), false);
             tfSetHightlightInPlot = false;
             for tableIdx = 1:numel(obj.GlobalSensitivityAnalysis.PlotSobolIndex)
                 if ismember(src, obj.GlobalSensitivityAnalysis.Plot2TableMap{tableIdx})
-                    obj.SelectedRow.PlotSobolIndexTable(1) = tableIdx;
-                    obj.selectRow(obj.SobolIndexTable, obj.SelectedRow.PlotSobolIndexTable(1), false);
-                    selectPlotItem(obj.GlobalSensitivityAnalysis, obj.SelectedRow.PlotSobolIndexTable(1));
-%                     s = uistyle('FontWeight', 'bold');
-%                     addStyle(obj.SobolIndexTable, s, 'row', tableIdx);
-                    tfSetHightlightInPlot = true;
+                    if ~obj.GlobalSensitivityAnalysis.PlotSobolIndex(tableIdx).Selected
+                        obj.SelectedRow.PlotSobolIndexTable(1) = tableIdx;
+                        obj.selectRow(obj.SobolIndexTable, obj.SelectedRow.PlotSobolIndexTable(1), false);
+                        selectPlotItem(obj.GlobalSensitivityAnalysis, obj.SelectedRow.PlotSobolIndexTable(1));
+    %                     s = uistyle('FontWeight', 'bold');
+    %                     addStyle(obj.SobolIndexTable, s, 'row', tableIdx);
+                        tfSetHightlightInPlot = true;
+                    end
                     break;
                 end
             end

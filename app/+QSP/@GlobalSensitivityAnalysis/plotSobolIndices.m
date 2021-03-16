@@ -30,7 +30,8 @@ function [hLines,hLegend,hLegendChildren] = plotSobolIndices(obj,hAxes,selection
                 ~isa(hAxes(index).Parent, 'matlab.graphics.shape.internal.AxesLayoutManager')
             cla(hAxes(index));
             set(hAxes(index), 'XLimMode', 'auto', 'YLimMode', 'auto');
-            set(hAxes(index), 'ButtonDownFcn', @(~, ~)selectionCallback([]));
+            set(hAxes(index).Parent.Parent.Parent.Parent.Parent.Parent, 'ButtonDownFcn', @(~, ~)selectionCallback([]));
+%             set(hAxes(index), 'ButtonDownFcn', @(~, ~)selectionCallback([]));
             legend(hAxes(index),'off')
             hold(hAxes(index),'on')
             tfAxesVisible(index) = true;

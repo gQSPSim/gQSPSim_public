@@ -48,7 +48,7 @@ function varargout = CustomWaitbar(x,Name,Message,AllowCancel)
 persistent TStart hTxt
 
 % check if running on a worker thread or without Matlab's GUI
-if ~isempty(getCurrentWorker) || ~matlab.internal.display.isHot
+if ~isempty(getCurrentWorker)
     if nargout
         varargout{1} = [];
     end
