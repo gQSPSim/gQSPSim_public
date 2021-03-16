@@ -33,7 +33,7 @@ classdef tGlobalSensitivityAnalysis < GlobalSensitivityAnalysisTester
         end
 
         function tAddRemoveGSAItem(testCase)
-            % Test for add method for adding GSA items.
+            % Test for add/remove method for adding/removing GSA items.
 
             % Get GlobalSensitivityAnalysis object
             gsa = testCase.getGSAObject();
@@ -92,6 +92,82 @@ classdef tGlobalSensitivityAnalysis < GlobalSensitivityAnalysisTester
             testCase.verifyEmpty(gsa.PlotSobolIndex);
             testCase.verifyEmpty(gsa.Plot2TableMap);
 
+        end
+        
+        function tChangeParameters(testCase)
+            % Test if sensitivity inputs are updated when changing input
+            % parameters.
+            
+            % Get GlobalSensitivityAnalysis object
+            gsa = testCase.getGSAObject();
+            % Test setup: add new GSA item (contains two parameters)
+            gsa.add('gsaItem');
+            testCase.verifyNumElements(gsa.Item, 1);
+            expectedItem = testCase.ExpectedGSAItemTemplate;
+            expectedItem.TaskName = 'TestTask1';
+            testCase.verifyGSAItemFields(gsa, 1, expectedItem);
+            % Verify that plot information for sensitivity inputs/outputs has
+            % been updated.
+            testCase.verifyEqual(gsa.PlotInputs, {'y1'; 'y2'});
+            testCase.verifyEqual(gsa.PlotOutputs, {'y1'; 'y2'});
+            % Verify no plot items have been added
+            testCase.verifyEmpty(gsa.PlotSobolIndex);
+            testCase.verifyEmpty(gsa.Plot2TableMap);
+            
+            % Change parameters: contains four parameters
+            gsa.ParametersName = 'Test1';
+            testCase.verifyNumElements(gsa.Item, 1);
+            expectedItem = testCase.ExpectedGSAItemTemplate;
+            expectedItem.TaskName = 'TestTask1';
+            testCase.verifyGSAItemFields(gsa, 1, expectedItem);
+            % Verify that plot information for sensitivity inputs/outputs has
+            % been updated.
+            testCase.verifyEqual(gsa.PlotInputs, {'y1'; 'y2'; 'x'; 'z'});
+            testCase.verifyEqual(gsa.PlotOutputs, {'y1'; 'y2'});
+            % Verify no plot items have been added
+            testCase.verifyEmpty(gsa.PlotSobolIndex);
+            testCase.verifyEmpty(gsa.Plot2TableMap);
+            
+        end
+        
+        function tUpdateGSAItem(testCase)
+            % Test for update method for updating GSA items.
+
+            % Get GlobalSensitivityAnalysis object
+            gsa = testCase.getGSAObject();
+
+            % Test setup: add new GSA item (contains two parameters)
+            gsa.add('gsaItem');
+            testCase.verifyNumElements(gsa.Item, 1);
+            expectedItem = testCase.ExpectedGSAItemTemplate;
+            expectedItem.TaskName = 'TestTask1';
+            testCase.verifyGSAItemFields(gsa, 1, expectedItem);
+            % Verify that plot information for sensitivity inputs/outputs has
+            % been updated.
+            testCase.verifyEqual(gsa.PlotInputs, {'y1'; 'y2'});
+            testCase.verifyEqual(gsa.PlotOutputs, {'y1'; 'y2'});
+            % Verify no plot items have been added
+            testCase.verifyEmpty(gsa.PlotSobolIndex);
+            testCase.verifyEmpty(gsa.Plot2TableMap);
+            
+            % Set Parameters 'Test1': contains four parameters
+            gsa.ParametersName = 'Test1';
+            item = gsa.Item(1);
+            item.IterationInfo = [500, 2];
+            gsa.updateItem(1, item);
+            testCase.verifyNumElements(gsa.Item, 1);
+            expectedItem = testCase.ExpectedGSAItemTemplate;
+            expectedItem.TaskName = 'TestTask1';
+            expectedItem.IterationInfo = [500, 2];
+            testCase.verifyGSAItemFields(gsa, 1, expectedItem);
+            % Verify that plot information for sensitivity inputs/outputs has
+            % been updated.
+            testCase.verifyEqual(gsa.PlotInputs, {'y1'; 'y2'; 'x'; 'z'});
+            testCase.verifyEqual(gsa.PlotOutputs, {'y1'; 'y2'});
+            % Verify no plot items have been added
+            testCase.verifyEmpty(gsa.PlotSobolIndex);
+            testCase.verifyEmpty(gsa.Plot2TableMap);
+            
         end
 
         function tSensitivityInputs(testCase)
@@ -171,7 +247,7 @@ classdef tGlobalSensitivityAnalysis < GlobalSensitivityAnalysisTester
             % Add new GSA items
             gsa.add('gsaItem');
             item = gsa.Item(1);
-            item.IterationInfo = [3, 10];
+            item.IterationInfo = [10, 3];
             gsa.updateItem(1, item);
 
             % Get parameter information:
@@ -191,10 +267,6 @@ classdef tGlobalSensitivityAnalysis < GlobalSensitivityAnalysisTester
             testCase.verifyEqual(distributionNames, {'uniform'; 'uniform'});
             testCase.verifyEqual(samplingInfo, [850, 950; 870, 930]);
 
-            testCase.applyFixture(...
-                matlab.unittest.fixtures.SuppressedWarningsFixture(...
-                "SimBiology:CodeGeneration:CoderInternalError"));
-
             [statusOK, statusMessage] = gsa.runHelper(...
                 @(tfReset, itemIdx, message, samples, data) ...
                 testCase.progressCallbackMockup(1, tfReset, itemIdx, message, samples, data));
@@ -203,70 +275,39 @@ classdef tGlobalSensitivityAnalysis < GlobalSensitivityAnalysisTester
             testCase.verifyNotEmpty(gsa.Item(1).MATFileName);
 
             testCase.verifyGSAResultsFile(gsa.Item(1).MATFileName, ...
-                prod(item.IterationInfo), sensitivityInputs, distributionNames, samplingInfo);
+                prod(item.IterationInfo), sensitivityInputs, distributionNames, ...
+                transformations, samplingInfo);
 
+            % Remove results for first GSA item.
+            gsa.removeResultsFromItem(1);
+            
+            % Set Parameters 'Test1': contains four parameters with all
+            % different distributions and scales.
+            gsa.ParametersName = 'Test1';
+            item = gsa.Item(1);
+            item.IterationInfo = [500, 2];
+            gsa.updateItem(1, item);
+            
+            
+            [statusOk, message, sensitivityInputs, transformations, ...
+                distributionNames, samplingInfo] = hGSAObject.executeMethodHelper(...
+                gsa, "getParameterInfo");
+            testCase.assertTrue(statusOk);
+            testCase.assertEmpty(message);
+            
+            [statusOK, statusMessage] = gsa.runHelper(...
+                @(tfReset, itemIdx, message, samples, data) ...
+                testCase.progressCallbackMockup(1, tfReset, itemIdx, message, samples, data));
+            testCase.verifyTrue(statusOK);
+            testCase.verifyEmpty(statusMessage);
+            testCase.verifyNotEmpty(gsa.Item(1).MATFileName);
+
+            testCase.verifyGSAResultsFile(gsa.Item(1).MATFileName, ...
+                prod(item.IterationInfo), sensitivityInputs, distributionNames, ...
+                transformations, samplingInfo);
+            
         end
     end
 
-    methods
-
-        function verifyGSAItemFields(testCase, gsaObject, idx, expectedValues)
-            fieldNames = fields(expectedValues);
-            for i = 1:numel(fieldNames)
-                testCase.assertTrue(isfield(gsaObject.Item(idx), fieldNames{i}), ...
-                    "The GSA item is missing the expected field " + fieldNames{i});
-                testCase.verifyEqual(gsaObject.Item(idx).(fieldNames{i}), ...
-                    expectedValues.(fieldNames{i}), "Unexpected value of field " + ...
-                    fieldNames{i} + " in GSA item number " + idx);
-            end
-        end
-
-        function verifyGSAResultsFile(testCase, resultsFilename, expNumSamples, ...
-                sensitivityInputs, distributionNames, samplingInfo)
-            % Verification helper for computed GSA results file.
-
-            % Load computed results
-            loadStruct = load(resultsFilename);
-            testCase.assertTrue(isfield(loadStruct, "results"));
-            results = loadStruct.results;
-            testCase.assertClass(results, "SimBiology.gsa.Sobol");
-
-            % Verify expected parameter samples
-            numSensitivityInputs = numel(sensitivityInputs);
-            testCase.verifyEqual(results.ParameterSamples.Properties.VariableDescriptions, sensitivityInputs');
-            testCase.verifySize(results.ParameterSamples, [expNumSamples, numSensitivityInputs]);
-            % Verify paraemter bounds
-            for i = 1:numSensitivityInputs
-                if strcmp(distributionNames{i}, 'uniform')
-                    testCase.verifyGreaterThanOrEqual(results.ParameterSamples{:,i}, samplingInfo(i,1), ...
-                        "Uniform parameter samples must be larger than or equal to the lower bound.");
-                    testCase.verifyGreaterThanOrEqual(results.SimulationInfo.SupportSamples{:,i}, samplingInfo(i,1), ...
-                        "Uniform parameter samples must be larger than or equal to the lower bound.");
-                    testCase.verifyLessThanOrEqual(results.ParameterSamples{:,i}, samplingInfo(i,2), ...
-                        "Uniform parameter samples must be smaller than or equal to the upper bound.");
-                    testCase.verifyLessThanOrEqual(results.SimulationInfo.SupportSamples{:,i}, samplingInfo(i,2), ...
-                        "Uniform parameter samples must be smaller than or equal to the upper bound.");
-                else
-                    % Verification of (log-)normal samples?
-                end
-            end
-
-        end
-
-        function progressCallbackMockup(testCase, expectedItemIdx, tfReset, itemIdx, message, samples, data)
-            testCase.verifyEqual(itemIdx, expectedItemIdx);
-            if tfReset
-                testCase.verifyEmpty(message);
-                testCase.verifyEmpty(samples);
-                testCase.verifyEmpty(data);
-            else
-                testCase.verifyClass(message, "cell");
-                testCase.verifySize(message, [7,1]);
-                testCase.verifyClass(samples, "double");
-                testCase.verifyClass(data, "double");
-                testCase.verifySize(data, size(samples));
-            end
-        end
-    end
 
 end

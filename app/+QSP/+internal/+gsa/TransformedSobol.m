@@ -8,28 +8,24 @@ classdef TransformedSobol < QSP.internal.gsa.SamplingInformation & SimBiology.gs
     end
     methods(Access=protected)
         %------------------------------------------------------------------
-        function samples = sampleParameters(obj, m, numSamples, bounds, method)
-            if isempty(obj.gQSPSimProperties.Scenarios)
-                samples = sampleParameters@SimBiology.gsa.Sobol(obj, m, numSamples, bounds, method);
-            else
+        function samples = sampleParameters(obj, ~, numSamples, ~, ~)
                 
-                distributions = obj.gQSPSimProperties.Distributions;
-                numDistributions = numel(distributions);
-                samples = nan(numSamples, numDistributions);
-                
-                % Get random values from uniform distribution on [0,1]
-                for i = 1:numDistributions                
-                    currentSamples = lhsdesign(numDistributions, 2);
-                    currentSamples = bounds(i,1) + currentSamples * diff(bounds(i,:));
-                    if obj.gQSPSimProperties.Scaling(i)
-                        currentSamples = exp(currentSamples);
-                    end
-                    % Compute random sample by inverting the cdf
-                    samples(:, i) = icdf(distributions(i), currentSamples(:, 1));
-                    samples(:, i+numDistributions) = icdf(distributions(i), currentSamples(:, 2));
-                end
+            distributions = obj.gQSPSimProperties.Distributions;
+            numDistributions = numel(distributions);
+            samples = nan(numSamples, 2*numDistributions);
 
+            for i = 1:numDistributions                
+                % Get random values from uniform distribution on [0,1]
+                currentSamples = lhsdesign(numSamples, 2);
+                % Compute random sample by inverting the cdf
+                samples(:, i) = icdf(distributions(i), currentSamples(:, 1));
+                samples(:, i+numDistributions) = icdf(distributions(i), currentSamples(:, 2));
+                if obj.gQSPSimProperties.Scaling(i)
+                    samples(:, [i,i+numDistributions]) = ...
+                        exp(samples(:, [i,i+numDistributions]));
+                end
             end
+
         end
     end
 end

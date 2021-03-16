@@ -17,7 +17,6 @@ function [statusOk, message] = runHelper(obj, progressCallback)
 % Auth/Revision:
 %   MathWorks
 %   $Author: faugusti $
-%   $Revision: 1 $  $Date: Sat, 07 Nov 2020 $
 % ---------------------------------------------------------------------
 
     modelObj = obj.Settings.Model.mObj;

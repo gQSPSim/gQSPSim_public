@@ -253,7 +253,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             obj.TaskTable.ColumnName            = {'Task', 'Samples Per Iteration', 'Iterations', 'Total Samples'};
             obj.TaskTable.ColumnFormat          = {'char','numeric','numeric','numeric'};
             obj.TaskTable.ColumnEditable        = [true,true,true,false];
-            obj.TaskTable.ColumnWidth           = {'auto', 'fit', 'fit','fit'};
+            obj.TaskTable.ColumnWidth           = {'auto', 'auto', 'auto','auto'};
             obj.TaskTable.CellEditCallback      = @(h,e) obj.onTaskTableEdit(e);
             obj.TaskTable.CellSelectionCallback = @(h,e) obj.onTableSelectionChange(h,e);
             s = uistyle;
@@ -369,7 +369,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             obj.SobolIndexTable.ColumnFormat          = {obj.PlotNumber, obj.MarkerStyles, 'char', 'char', ...
                                                          obj.Types, obj.Modes, obj.Metric, 'char'};
             obj.SobolIndexTable.ColumnEditable        = [true,true,false,false,true,true,true,true];
-            obj.SobolIndexTable.ColumnWidth           = '1x';
+            obj.SobolIndexTable.ColumnWidth           = 'auto';
             obj.SobolIndexTable.SelectionHighlight    = 'off';
             obj.SobolIndexTable.CellEditCallback      = @(h,e) obj.onVisualizationTableEdit(h,e);
             obj.SobolIndexTable.CellSelectionCallback = @(h,e) obj.onTableSelectionChange(h,e);
@@ -420,7 +420,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             obj.PlotItemsTable.ColumnName            = {'Include','Color','Task','Description'};
             obj.PlotItemsTable.ColumnFormat          = {'logical','char','char'};
             obj.PlotItemsTable.ColumnEditable        = [true,false,false,true];
-            obj.PlotItemsTable.ColumnWidth           = {'fit','fit','auto','auto'};
+            obj.PlotItemsTable.ColumnWidth           = {'auto','auto','auto','auto'};
             obj.PlotItemsTable.CellEditCallback      = @(h,e) obj.onVisualizationTableEdit(h,e);
             obj.PlotItemsTable.CellSelectionCallback = @(h,e) obj.onTableSelectionChange(h,e);
             
@@ -437,7 +437,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             obj.IterationsTable.ColumnName     = {'Maximum of maximal difference between Sobol indices', 'Samples'};
             obj.IterationsTable.ColumnFormat   = {'char','numeric'};
             obj.IterationsTable.ColumnEditable = [false,false];
-            obj.IterationsTable.ColumnWidth    = {'fit','auto'};
+            obj.IterationsTable.ColumnWidth    = {'auto','auto'};
             
             obj.IterationsTableContextMenu = uicontextmenu(obj.getUIFigure());
             obj.IterationsTableMenu = uimenu(obj.IterationsTableContextMenu);
@@ -524,6 +524,22 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
         end
         
         function onSensitivityInputChange(obj)
+            if any(arrayfun(@(item) item.NumberSamples > 0, obj.GlobalSensitivityAnalysis.Item))
+                staleMessage = sprintf(['Global sensitivity analysis results for sensitivity inputs ''%s'' already exist. ', ...
+                    'If you change the sensitivity inputs to ''%s'', all existing results will be removed. Do you want to change ', ...
+                    'the sensitivity inputs and remove existing results?'], obj.TemporaryGlobalSensitivityAnalysis.ParametersName, ...
+                    obj.SensitivityInputsDropDown.Value);
+                selection = uiconfirm(obj.getUIFigure, staleMessage, 'Remove results',...
+                    'Options', {'Remove', 'Cancel'}, 'DefaultOption', 2, 'CancelOption',2, 'Icon', 'warning');
+                if strcmp(selection, 'Cancel')
+                    obj.SensitivityInputsDropDown.Value = obj.TemporaryGlobalSensitivityAnalysis.ParametersName;
+                    return;
+                else
+                    for i = 1:numel(obj.TemporaryGlobalSensitivityAnalysis.Item)
+                        obj.TemporaryGlobalSensitivityAnalysis.removeResultsFromItem(i);
+                    end
+                end
+            end
             obj.TemporaryGlobalSensitivityAnalysis.ParametersName = obj.SensitivityInputsDropDown.Value;
             obj.IsDirty = true;
         end
