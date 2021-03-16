@@ -37,6 +37,11 @@ methods (TestClassTeardown)
             delete(newlyCreatedSimBiologyModels);
         end
     end
+    function cleanupResultsFolder(testCase)
+        % Delete results files that have been created during tests.
+        gsaResults = fullfile(testCase.TestRootDirectory, "lotka", "gsaResults", "*.mat");
+        delete(gsaResults)
+    end    
 end
 
 methods 

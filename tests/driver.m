@@ -29,7 +29,7 @@ if any([results.Failed])
     if ~isempty(genericError)
         warning(genericError);
     end
-    exit(1)
+%     exit(1)
 else
-    exit
+%     exit
 end
