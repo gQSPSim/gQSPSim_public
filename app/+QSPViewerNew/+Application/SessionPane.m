@@ -47,7 +47,7 @@ classdef SessionPane < QSPViewerNew.Application.ViewPane
         ParallelOptionsPanel            matlab.ui.container.Panel
         AutoSaveFolderSelect            QSPViewerNew.Widgets.FolderSelector
         AutoSaveOptionsGrid             matlab.ui.container.GridLayout
-        AutoSaveSingleFile              matlab.ui.control.CheckBox
+        EnableCheckpoints               matlab.ui.control.CheckBox
         AutoSavePeriodically            matlab.ui.control.CheckBox
         AutoSaveBeforeRun               matlab.ui.control.CheckBox
         AutoSaveFreqLabel               matlab.ui.control.Label
@@ -155,10 +155,10 @@ classdef SessionPane < QSPViewerNew.Application.ViewPane
             obj.AutoSaveOptionsGrid.Layout.Column = 1;
             
             %AutoSave single file Checkbox
-            obj.AutoSaveSingleFile = uicheckbox(obj.AutoSaveOptionsGrid);
-            obj.AutoSaveSingleFile.Text = 'Autosave to Single File';
-            obj.AutoSaveSingleFile.Layout.Row = 1;
-            obj.AutoSaveSingleFile.Layout.Column = 1;
+            obj.EnableCheckpoints = uicheckbox(obj.AutoSaveOptionsGrid);
+            obj.EnableCheckpoints.Text = 'Enable Checkpoints';
+            obj.EnableCheckpoints.Layout.Row = 1;
+            obj.EnableCheckpoints.Layout.Column = 1;
             
             %AutoSave periodically Checkbox
             obj.AutoSavePeriodically = uicheckbox(obj.AutoSaveOptionsGrid);
@@ -365,6 +365,8 @@ classdef SessionPane < QSPViewerNew.Application.ViewPane
             obj.AutoSaveFolderSelect.RelativePath = obj.TemporarySession.RelativeAutoSavePath;
             
             obj.UseParallelToolboxCheckBox.Value = obj.TemporarySession.UseParallel;
+            
+            obj.EnableCheckpoints.Value = obj.TemporarySession.AutoSaveSingleFile;
             
             obj.AutoSavePeriodically.Value = obj.TemporarySession.UseAutoSaveTimer;
             

@@ -1046,87 +1046,98 @@ classdef ApplicationUI < matlab.apps.AppBase
             initializeTimer(Session);
         end
         
-        function loadSessionFromPath(app, fullFilePath)  
-            % Loads a session file from disk found at fullFilePath.
-            
-            sessionStatus = app.verifyValidSessionFilePath(fullFilePath);
+        function [StatusOk, Message, Session] = verifyValidSession(app, fullFilePath)
             StatusOk = true;
+            Message='';
+            Session=[];
+            
+            %Try to load the session
+            try
+                loadedSession = load(fullFilePath, 'Session');
+            catch err
+                StatusOk = false;
+                Message = sprintf('The file %s could not be loaded:\n%s', fullFilePath, err.message);
+            end
+            
+            %Verify that the Session file has the correct atrributes
+            try
+                validateattributes(loadedSession.Session, {'QSP.Session'}, {'scalar'});
+            catch err
+                StatusOk =false;
+                Message = sprintf(['The file %s did not contain a valid '...
+                    'Session object:\n%s'], fullFilePath, err.message);
+            end
+            
+            %Check if the file is supposed to be removed
+            if StatusOk && loadedSession.Session.toRemove
+                StatusOk = false;
+                Message = sprintf(['The file %s did not contain a valid '...
+                    'Session object:\n%s'], fullFilePath, err.message);
+            end
+            
+            %If any of the above failed, we exit and disply why
+            if StatusOk == false
+                uialert(app.UIFigure, Message, 'Invalid File')
+            else
+                %We have verified the session path, now verify the root
+                %directory
+                [StatusOk,newRootDir] = app.getValidSessionRootDirectory(loadedSession.Session.RootDirectory);
+                Session = copy(loadedSession.Session);
+                Session.RootDirectory = newRootDir;
+            end
+        end
+        
+        function loadSessionFromPath(app, fullFilePath)
+            % Loads a session file from disk found at fullFilePath.
+            sessionStatus = app.verifyValidSessionFilePath(fullFilePath);
+            
             if sessionStatus
                 %Try to load the session
-                try
-                   % check if autosave more recent than session file exists 
-                   [filepath,autosaveSessName,ext] = fileparts(fullFilePath);
-                   autosaveSessName = insertBefore(autosaveSessName, ".qsp", "_autosave");
-                   asvFullPath = fullfile(filepath, [autosaveSessName, ext]);
-                   
-                   loadedSession = load(fullFilePath, 'Session');
-                   
-                   if exist(asvFullPath, 'file') && ~ismember(asvFullPath, app.SessionPaths)
-                       asvMeta = dir(asvFullPath);
-                       sessionMeta = dir(fullFilePath);
-                       
-                       if asvMeta.datenum > sessionMeta.datenum || ...
-                               ~loadedSession.isClosedSafe
-                           selection = uiconfirm(app.UIFigure, ...
-                               "The session wasn't closed properly and/or there exists a more recent autosave for the session. Do you want to load it instead?", ...
-                               "Load autosave", ...
-                               'Options', {'Yes', 'No (Open original Session)'},...
-                               'DefaultOption',2);
-                           
-                           if strcmp(selection, 'Yes')
-                               fullFilePath = asvFullPath;
-                               loadedSession = load(asvFullPath, 'Session');
-                           end
-                       end
-                   end
-                       
-                   
-                catch err
-                    StatusOk = false;
-                    Message = sprintf('The file %s could not be loaded:\n%s', fullFilePath, err.message);
-                end
-
-                %Verify that the Session file has the correct atrributes
-                try
-                    validateattributes(loadedSession.Session, {'QSP.Session'}, {'scalar'});
-                catch err
-                     StatusOk =false;
-                     Message = sprintf(['The file %s did not contain a valid '...
-                        'Session object:\n%s'], fullFilePath, err.message);
-                end
-
-                %Check if the file is supposed to be removed
-                if StatusOk && loadedSession.Session.toRemove
-                   StatusOk = false;
-                   Message = sprintf(['The file %s did not contain a valid '...
-                        'Session object:\n%s'], fullFilePath, err.message);
-                end
-
-                %If any of the above failed, we exit and disply why
+                [StatusOk, Message, Session] = verifyValidSession(app, fullFilePath);
                 if StatusOk == false
                     uialert(app.UIFigure, Message, 'Invalid File')
                 else
-                    %We have verified the session path, now verify the root
-                    %directory
-                    [status,newFilePath] = app.getValidSessionRootDirectory(loadedSession.Session.RootDirectory);
-
-                    %If the status is false, we cannot find a valid root. Abandon
-                    %call
-                    if status
-                        %Copy the sessionobject, then add it the application
-                        Session = copy(loadedSession.Session);
-                        Session.RootDirectory = newFilePath;
-                        app.createNewSession(Session);
-
-                        %Edit the app properties to reflect a new loaded session was
-                        %added
-                        idxNew = app.NumSessions + 1;
-                        app.SessionPaths{idxNew} = fullFilePath;
-                        app.IsDirty(idxNew) = false;
-                        app.SelectedSessionIdx = idxNew;
-                        app.addRecentSessionPath(fullFilePath);
-
+                    % check if autosave more recent than session file exists
+                    [~,autosaveSessName,ext] = fileparts(fullFilePath);
+                    autosaveSessName = insertBefore(autosaveSessName, ".qsp", "_autosave");
+                    
+                    asvFullPath = fullfile(Session.AutoSaveDirectory, [autosaveSessName, ext]);
+                    
+                    % if autosave exists and not already loaded in the app
+                    if exist(asvFullPath, 'file') && ~ismember(asvFullPath, app.SessionPaths)
+                        asvMeta = dir(asvFullPath);
+                        sessionMeta = dir(fullFilePath);
+                        
+                        % if more autosave is more recent than session
+                        if asvMeta.datenum > sessionMeta.datenum
+                            selection = uiconfirm(app.UIFigure, ...
+                                "The there exists a more recent autosave for the session. Do you want to load it instead?", ...
+                                "Load autosave", ...
+                                'Options', {'Yes', 'No (Open original Session)'},...
+                                'DefaultOption',2);
+                            
+                            if strcmp(selection, 'Yes')
+                                [StatusOk, Message, asvSession] = verifyValidSession(app, asvFullPath);
+                                if StatusOk == false
+                                    uialert(app.UIFigure, strcat(Message, " Using original session file."), ...
+                                        'Invalid Autosave File');
+                                else
+                                    fullFilePath = asvFullPath;
+                                    Session = asvSession;
+                                end
+                            end
+                        end
                     end
+                    
+                    app.createNewSession(Session);
+                    
+                    %Edit the app properties to reflect a new loaded session was
+                    %added
+                    idxNew = app.NumSessions + 1;
+                    app.SessionPaths{idxNew} = fullFilePath;
+                    app.IsDirty(idxNew) = false;
+                    app.SelectedSessionIdx = idxNew;
+                    app.addRecentSessionPath(fullFilePath);
                 end
             end
             app.refresh();
@@ -1214,7 +1225,6 @@ classdef ApplicationUI < matlab.apps.AppBase
             delete(app.Sessions(sessionIdx).TreeNode);
             
             % Remove the session object
-            app.Sessions(sessionIdx).isClosedSafe = true;
             app.Sessions(sessionIdx) = [];
             
             %Update paths and dirtyTF
