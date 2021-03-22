@@ -1193,33 +1193,8 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
                 % Check which results files are invalid
                 ResultsDir = fullfile(obj.Simulation.Session.RootDirectory,obj.Simulation.SimResultsFolderName);
 
-                % Only make the "valids" missing. Leave the invalids as is
+                
                 TableData = obj.PlotItemAsInvalidTable;
-
-                if ~isempty(TableData)
-                    TaskNames = {obj.Simulation.Item.TaskName};
-                    VPopNames = {obj.Simulation.Item.VPopName};
-                    Groups = {obj.Simulation.Item.Group};
-
-                    for index = 1:size(obj.Simulation.PlotItemTable,1)
-                        % Check to see if this row is invalid. If it is not invalid,
-                        % check to see if we need to mark the corresponding file as missing
-                        if ~ismember(obj.PlotItemInvalidRowIndices,index)
-                            ThisTaskName = obj.Simulation.PlotItemTable{index,3};
-                            ThisVPopName = obj.Simulation.PlotItemTable{index,4};
-                            ThisGroup = obj.Simulation.PlotItemTable{index,5};
-                            MatchIdx = strcmp(ThisTaskName,TaskNames) & strcmp(ThisVPopName,VPopNames) & strcmp(ThisGroup, Groups);
-                            if any(MatchIdx)
-                                ThisFileName = obj.Simulation.Item(MatchIdx).MATFileName;
-                                % Mark results file as missing
-                                if ~isequal(exist(fullfile(ResultsDir,ThisFileName),'file'),2)
-                                    TableData{index,3} = QSP.makeItalicized(TableData{index,3});
-                                    TableData{index,4} = QSP.makeItalicized(TableData{index,4});
-                                end
-                            end %if
-                        end %if
-                    end %for
-                end %if
 
                 % Update Colors column
                 % Items table
@@ -1239,6 +1214,32 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
                 obj.SimulationItemsTable.ColumnName = {'Include','Color','Task','Virtual Subject(s)','Group','Display'};
                 obj.SimulationItemsTable.ColumnFormat = {'logical','char','char','char','numeric','char'};
                 obj.SimulationItemsTable.ColumnEditable = [true,false,false,false,false,true];
+                
+                % Only make the "valids" missing. Leave the invalids as is
+                if ~isempty(TableData)
+                    TaskNames = {obj.Simulation.Item.TaskName};
+                    VPopNames = {obj.Simulation.Item.VPopName};
+                    Groups = {obj.Simulation.Item.Group};
+
+                    for index = 1:size(obj.Simulation.PlotItemTable,1)
+                        % Check to see if this row is invalid. If it is not invalid,
+                        % check to see if we need to mark the corresponding file as missing
+                        if ~ismember(obj.PlotItemInvalidRowIndices,index)
+                            ThisTaskName = obj.Simulation.PlotItemTable{index,3};
+                            ThisVPopName = obj.Simulation.PlotItemTable{index,4};
+                            ThisGroup = obj.Simulation.PlotItemTable{index,5};
+                            MatchIdx = strcmp(ThisTaskName,TaskNames) & strcmp(ThisVPopName,VPopNames) & strcmp(ThisGroup, Groups);
+                            if any(MatchIdx)
+                                ThisFileName = obj.Simulation.Item(MatchIdx).MATFileName;
+                                % Mark results file as missing
+                                if ~isequal(exist(fullfile(ResultsDir,ThisFileName),'file'),2)
+                                    QSP.makeItalicized(obj.SimulationItemsTable, [index,3]);
+                                    QSP.makeItalicized(obj.SimulationItemsTable, [index,4]);
+                                end
+                            end %if
+                        end %if
+                    end %for
+                end %if
                 
                 % Set cell color
                 for index = 1:size(TableData,1)

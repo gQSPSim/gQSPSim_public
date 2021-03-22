@@ -1098,18 +1098,9 @@ classdef VirtualPopulationGenerationPane < QSPViewerNew.Application.ViewPane
                     FlagIsInvalidResultFile = true;
                 end
                 
-                % Only make the "valids" missing. Leave the invalids as is
+                
                 TableData = obj.PlotItemAsInvalidTable;
-                if ~isempty(TableData)
-                    for index = 1:size(obj.VirtualPopulationGeneration.PlotItemTable,1)
-                        % If results file is missing and it's not already an invalid
-                        % row, then mark as missing
-                        if FlagIsInvalidResultFile && any(~ismember(obj.PlotItemInvalidRowIndices,index))
-                            TableData{index,3} = QSP.makeItalicized(TableData{index,3});
-                            TableData{index,4} = QSP.makeItalicized(TableData{index,4});
-                        end 
-                    end 
-                end 
+                
                 
                 % Update Colors column
                 TableData(:,2) = repmat({''},size(TableData,1),1);
@@ -1120,6 +1111,18 @@ classdef VirtualPopulationGenerationPane < QSPViewerNew.Application.ViewPane
                 obj.VisVirtPopItemsTable.ColumnFormat = {'logical','char','char','char','char'};
                 obj.VisVirtPopItemsTable.ColumnEditable = [true,false,false,false,true];
                 
+                % Only make the "valids" missing. Leave the invalids as is
+                if ~isempty(TableData)
+                    for index = 1:size(obj.VirtualPopulationGeneration.PlotItemTable,1)
+                        % If results file is missing and it's not already an invalid
+                        % row, then mark as missing
+                        if FlagIsInvalidResultFile && any(~ismember(obj.PlotItemInvalidRowIndices,index))
+                            QSP.makeItalicized(obj.VisVirtPopItemsTable, [index,3]);
+                            QSP.makeItalicized(obj.VisVirtPopItemsTable, [index,4]);
+                        end
+                    end
+                end
+                
                 %Fill in the colors of the table
                 for index = 1:size(TableData,1)
                     ThisColor = obj.VirtualPopulationGeneration.PlotItemTable{index,2};
@@ -1127,7 +1130,7 @@ classdef VirtualPopulationGenerationPane < QSPViewerNew.Application.ViewPane
                         addStyle(obj.VisVirtPopItemsTable,uistyle('BackgroundColor',ThisColor),'cell',[index,2])
                     end
                 end
-            else         
+            else
                 %Fill in items information and edit limitations
                 obj.VisVirtPopItemsTable.Data = cell(0,5);
                 obj.VisVirtPopItemsTable.ColumnName = {'Include','Color','Task','Group','Display'};
@@ -1181,7 +1184,7 @@ classdef VirtualPopulationGenerationPane < QSPViewerNew.Application.ViewPane
                 else
                     NewPlotTable = cell(numel(SpeciesNames),5);
                     NewPlotTable(:,1) = {' '};
-                    NewPlotTable(:,2) = {'-'}; 
+                    NewPlotTable(:,2) = {'-'};
                     NewPlotTable(:,3) = SpeciesNames;
                     NewPlotTable(:,4) = DataNames;
                     NewPlotTable(:,5) = SpeciesNames;
@@ -1191,7 +1194,7 @@ classdef VirtualPopulationGenerationPane < QSPViewerNew.Application.ViewPane
                         obj.VirtualPopulationGeneration.PlotSpeciesTable(:,5) = obj.VirtualPopulationGeneration.PlotSpeciesTable(:,3);
                         obj.VirtualPopulationGeneration.PlotSpeciesTable(:,4) = obj.VirtualPopulationGeneration.PlotSpeciesTable(:,3);
                         obj.VirtualPopulationGeneration.PlotSpeciesTable(:,3) = obj.VirtualPopulationGeneration.PlotSpeciesTable(:,2);
-                        obj.VirtualPopulationGeneration.PlotSpeciesTable(:,2) = {'-'}; 
+                        obj.VirtualPopulationGeneration.PlotSpeciesTable(:,2) = {'-'};
                     elseif size(obj.VirtualPopulationGeneration.PlotSpeciesTable,2) == 4
                         obj.VirtualPopulationGeneration.PlotSpeciesTable(:,5) = obj.VirtualPopulationGeneration.PlotSpeciesTable(:,3);
                     end

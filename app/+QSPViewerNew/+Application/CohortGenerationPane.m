@@ -1591,18 +1591,7 @@ classdef CohortGenerationPane < QSPViewerNew.Application.ViewPane
                     FlagIsInvalidResultFile = true;
                 end
                 
-                % Only make the "valids" missing. Leave the invalids as is
                 TableData = obj.PlotItemAsInvalidTable;
-                if ~isempty(TableData)
-                    for index = 1:size(obj.CohortGeneration.PlotItemTable,1)
-                        % If results file is missing and it's not already an invalid
-                        % row, then mark as missing
-                        if FlagIsInvalidResultFile && any(~ismember(obj.PlotItemInvalidRowIndices,index))
-                            TableData{index,3} = QSP.makeItalicized(TableData{index,3});
-                            TableData{index,4} = QSP.makeItalicized(TableData{index,4});
-                        end 
-                    end 
-                end 
                 
                 % Update Colors column
                 TableData(:,2) = repmat({''},size(TableData,1),1);
@@ -1611,6 +1600,19 @@ classdef CohortGenerationPane < QSPViewerNew.Application.ViewPane
                 obj.VisVirtCohortItemsTable.ColumnName = {'Include','Color','Task','Group','Display'};
                 obj.VisVirtCohortItemsTable.ColumnFormat = {'logical','char','char','char','char'};
                 obj.VisVirtCohortItemsTable.ColumnEditable =[true,false,false,false,true];
+                
+                % Only make the "valids" missing. Leave the invalids as is
+                if ~isempty(TableData)
+                    for index = 1:size(obj.CohortGeneration.PlotItemTable,1)
+                        % If results file is missing and it's not already an invalid
+                        % row, then mark as missing
+                        if FlagIsInvalidResultFile && any(~ismember(obj.PlotItemInvalidRowIndices,index))
+                            QSP.makeItalicized(obj.VisVirtCohortItemsTable, [index,3]);
+                            QSP.makeItalicized(obj.VisVirtCohortItemsTable, [index,4]);
+                        end 
+                    end 
+                end 
+                
                 
                 for index = 1:size(TableData,1)
                     ThisColor = obj.CohortGeneration.PlotItemTable{index,2};

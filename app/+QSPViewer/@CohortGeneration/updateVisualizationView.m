@@ -200,6 +200,8 @@ if ~isempty(vObj.Data)
         'ColumnFormat',{'boolean','char','char','char','char'},...
         'ColumnEditable',[true,false,false,false,true]...
         );
+    
+    
     % Set cell color
     for index = 1:size(TableData,1)
         ThisColor = vObj.Data.PlotItemTable{index,2};
