@@ -1711,8 +1711,9 @@ classdef ApplicationUI < matlab.apps.AppBase
                 app.SessionNode(idx).Text = ThisName;
 
                 %Assign the new name
+                oldSessionName = app.Sessions(idx).SessionName;
                 setSessionName(app.Sessions(idx),ThisRawName);
-                updateLoggerName(app.Sessions(idx));
+                updateLoggerName(app.Sessions(idx), oldSessionName);
                 updateLoggerSessions(app);
             end
             

@@ -519,7 +519,6 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         
         function setSessionName(obj,SessionName)
             obj.SessionName = SessionName;
-            
         end %function
         
         function Colors = getItemColors(obj,NumItems)
@@ -767,17 +766,26 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
             loggerObj.FileThreshold = obj.LoggerSeverityFile;
         end
         
-        function updateLoggerName(obj)
+        function updateLoggerName(obj, oldSessionName)
             loggerObj = QSPViewerNew.Widgets.Logger(obj.LoggerName);
             obj.RelativeLoggerFilePathParts = {[obj.LoggerName, '_log.txt']};
             
+            % check if an old logger file existed for session
+            if contains(oldSessionName, '.qsp')
+                oldLoggerName = extractBefore(oldSessionName, ".qsp");
+            else
+                oldLoggerName = oldSessionName;
+            end
+            oldLoggerFile = fullfile(obj.RootDirectory, [oldLoggerName, '_log.txt']);
+            if exist(oldLoggerFile, 'file') && ~isequal(oldLoggerFile, obj.LoggerFile)
+                copyfile(oldLoggerFile, obj.LoggerFile)
             % check if logger file corresponds to the session name and
             % present in root directory
-            if ~strcmp(loggerObj.LogFile, obj.LoggerFile)
+            elseif ~strcmp(loggerObj.LogFile, obj.LoggerFile)
                 copyfile(loggerObj.LogFile, obj.LoggerFile)
-                loggerObj.LogFile = obj.LoggerFile;
             end
-                
+            
+            loggerObj.LogFile = obj.LoggerFile;
             obj.updateLogger();
         end
         
