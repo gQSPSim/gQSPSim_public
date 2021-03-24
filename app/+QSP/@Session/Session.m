@@ -768,7 +768,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         
         function updateLoggerName(obj, oldSessionName)
             loggerObj = QSPViewerNew.Widgets.Logger(obj.LoggerName);
-            obj.RelativeLoggerFilePathParts = {[obj.LoggerName, '_log.txt']};
+            obj.RelativeLoggerFilePathParts = {[obj.LoggerName, '_log.csv']};
             
             % check if an old logger file existed for session
             if contains(oldSessionName, '.qsp')
@@ -776,7 +776,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
             else
                 oldLoggerName = oldSessionName;
             end
-            oldLoggerFile = fullfile(obj.RootDirectory, [oldLoggerName, '_log.txt']);
+            oldLoggerFile = fullfile(obj.RootDirectory, [oldLoggerName, '_log.csv']);
             if exist(oldLoggerFile, 'file') && ~isequal(oldLoggerFile, obj.LoggerFile)
                 copyfile(oldLoggerFile, obj.LoggerFile)
             % check if logger file corresponds to the session name and

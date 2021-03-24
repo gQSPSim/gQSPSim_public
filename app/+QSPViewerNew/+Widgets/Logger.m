@@ -6,17 +6,26 @@ classdef Logger < mlog.Logger
     %% Constructor / Destructor
     methods
         
-        function obj = Logger(varargin)
+        function obj = Logger(name, filepath)
+            
+            arguments
+                name (1,1) string = "Advanced_Logger_for_MATLAB"
+                filepath (1,1) string = fullfile(tempdir, "templogFile.csv")
+            end
+            
             % Construct the logger
             
             % Call superclass constructor with the same inputs
-            obj@mlog.Logger(varargin{:});
+            obj@mlog.Logger(name, filepath);
             
             % Instruct Logger to use the message subclass
             obj.MessageConstructor = @QSPViewerNew.Widgets.MessageLogger;
             
             % increase buffer size
             obj.BufferSize = 1e4;
+            
+            % assign logfile
+            obj.LogFile = filepath;
             
         end %function
         
@@ -68,6 +77,36 @@ classdef Logger < mlog.Logger
         
     end %methods
     
+    %% Protected methods
+    methods (Access = protected)
+        function writeToLogFile(obj, msgObj)
+            % Writes a log message
+            
+            arguments
+                obj
+                msgObj (1,1) mlog.Message
+            end
+            
+            try
+                T = readtable(obj.LogFile);
+                
+                towriteT = table(msgObj.Level, msgObj.Name, msgObj.Type, msgObj.Text, ...
+                    'VariableNames', {'Level', 'Name', 'Type', 'Text'});
+                
+                if isempty(T)
+                    writetable(towriteT, obj.LogFile);
+                else
+                    writetable(towriteT, obj.LogFile, 'WriteMode','Append',...
+                        'WriteVariableNames',false);
+                end
+                
+            catch err
+                warning(err.identifier, '%s', err.message);
+            end %try
+            
+        end %function
+        
+    end
     
 end %classdef
 
