@@ -23,6 +23,7 @@ classdef LoggerDialog < matlab.apps.AppBase
         SearchLabel         matlab.ui.control.Label
         SearchDropDown      matlab.ui.control.DropDown
         SearchEditField     matlab.ui.control.EditField
+        SearchColumnDropDown matlab.ui.control.DropDown
         LoggerTable         matlab.ui.control.Table        
     end
     
@@ -185,13 +186,20 @@ classdef LoggerDialog < matlab.apps.AppBase
             app.SearchDropDown = uidropdown(app.GridMain, 'Items', "all");
             app.SearchDropDown.Layout.Row = 3;
             app.SearchDropDown.Layout.Column = 2;
-            app.SearchDropDown.ValueChangedFcn = @(s,e) app.onFilterValueChanged(s,e);
+            app.SearchDropDown.ValueChangedFcn = @(s,e) app.onSearchDropdownChanged(s,e);
             
             % Create Search string edit field
             app.SearchEditField = uieditfield(app.GridMain);
             app.SearchEditField.Layout.Row = 3;
             app.SearchEditField.Layout.Column = [3, 4];
             app.SearchEditField.ValueChangedFcn = @(s,e) app.onFilterValueChanged(s,e);
+            
+            % Create search drop-down for column-specific items
+            app.SearchColumnDropDown = uidropdown(app.GridMain, 'Items', "all");
+            app.SearchColumnDropDown.Layout.Row = 3;
+            app.SearchColumnDropDown.Layout.Column = [3, 4];
+            app.SearchColumnDropDown.ValueChangedFcn = @(s,e) app.onFilterValueChanged(s,e);
+            app.SearchColumnDropDown.Visible = 'off';
             
             % Create Logger Table
             app.LoggerTable = uitable(app.GridMain, 'ColumnSortable', true);
@@ -211,7 +219,12 @@ classdef LoggerDialog < matlab.apps.AppBase
                 loggerT.Level = string(loggerT.Level);
                 
                 % filter based on strings
-                searchStr = app.SearchEditField.Value;
+                if strcmp(app.SearchEditField.Visible, 'on')
+                    searchStr = app.SearchEditField.Value;
+                else
+                    searchStr = app.SearchColumnDropDown.Value;
+                end
+                
                 if ~isempty(searchStr) || searchStr~=""
                     rowContainingFilter = false(height(loggerT),1);
                     if app.SearchDropDown.Value=="all"
@@ -281,6 +294,22 @@ classdef LoggerDialog < matlab.apps.AppBase
         
         function onSelSessionValueChanged(app,~,~)
             app.SelectedSession = app.SessionDropDown.Value;
+            app.update();
+        end
+        
+        function onSearchDropdownChanged(app,~,~)
+            columnSearch = app.SearchDropDown.Value;
+            loggerT = app.LoggerTableData;
+            
+            if strcmp(columnSearch, "Level") || strcmp(columnSearch, "Name") || ...
+                    strcmp(columnSearch, "Type")
+                app.SearchColumnDropDown.Items = [""; unique(string(loggerT.(columnSearch)))];
+                app.SearchColumnDropDown.Visible = 'on';
+                app.SearchEditField.Visible = 'off';
+            else
+                app.SearchColumnDropDown.Visible = 'off';
+                app.SearchEditField.Visible = 'on';
+            end
             app.update();
         end
         

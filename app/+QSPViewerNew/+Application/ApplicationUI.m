@@ -1887,7 +1887,7 @@ classdef ApplicationUI < matlab.apps.AppBase
                      % update log
                      % What type of item?
                      itemType = split(class(ThisObj), '.');
-                     loggerObj = QSPViewerNew.Widgets.Logger(session.LoggerName);
+                     loggerObj = QSPViewerNew.Widgets.Logger(session.Session.LoggerName);
                      loggerObj.write(ThisNode.Text, itemType{end}, "DEBUG", 'permanently deleted item')
                     
                     %Find the node in the deleted array
