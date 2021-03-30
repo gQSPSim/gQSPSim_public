@@ -1117,8 +1117,8 @@ classdef VirtualPopulationGenerationPane < QSPViewerNew.Application.ViewPane
                         % If results file is missing and it's not already an invalid
                         % row, then mark as missing
                         if FlagIsInvalidResultFile && any(~ismember(obj.PlotItemInvalidRowIndices,index))
-                            QSP.makeItalicized(obj.VisVirtPopItemsTable, [index,3]);
-                            QSP.makeItalicized(obj.VisVirtPopItemsTable, [index,4]);
+                            QSP.makeItalicizedNew(obj.VisVirtPopItemsTable, [index,3]);
+                            QSP.makeItalicizedNew(obj.VisVirtPopItemsTable, [index,4]);
                         end
                     end
                 end

@@ -1256,23 +1256,6 @@ classdef CohortGenerationPane < QSPViewerNew.Application.ViewPane
                 end
                 Data = [TaskNames(:) TempGroupIDs(:) num2cell(RunToSteadyState(:))];
                 
-                % Mark any invalid entries
-                if ~isempty(Data)
-                    % Task
-                    
-                    for index = 1:numel(TaskNames)
-                        ThisTask = getValidSelectedTasks(obj.TemporaryCohortGeneration.Settings,TaskNames{index});
-                        % Mark invalid if empty
-                        if isempty(ThisTask)
-                            Data{index,1} = QSP.makeInvalid(Data{index,1});
-                        end
-                    end
-                    
-                    MatchIdx = find(~ismember(TempGroupIDs(:),obj.GroupIDPopupTableItems(:)));
-                    for index = 1:numel(MatchIdx)
-                        Data{MatchIdx(index),2} = QSP.makeInvalid(Data{MatchIdx(index),2});
-                    end
-                end
             else
                 Data = {};
             end
@@ -1291,6 +1274,24 @@ classdef CohortGenerationPane < QSPViewerNew.Application.ViewPane
             obj.VirtualItemsTable.setName({'Task','Group','Run To Steady State'});
             obj.VirtualItemsTable.setFormat({obj.TaskPopupTableItems(:)',obj.GroupIDPopupTableItems(:)','char'})
             obj.VirtualItemsTable.setData(Data)
+            
+            % Mark any invalid entries
+            if ~isempty(Data)
+                % Task
+                
+                for index = 1:numel(TaskNames)
+                    ThisTask = getValidSelectedTasks(obj.TemporaryCohortGeneration.Settings,TaskNames{index});
+                    % Mark invalid if empty
+                    if isempty(ThisTask)
+                        Data{index,1} = QSP.makeInvalid(Data{index,1});
+                    end
+                end
+                
+                MatchIdx = find(~ismember(TempGroupIDs(:),obj.GroupIDPopupTableItems(:)));
+                for index = 1:numel(MatchIdx)
+                    Data{MatchIdx(index),2} = QSP.makeInvalid(Data{MatchIdx(index),2});
+                end
+            end
         end
         
         function redrawSpeciesDataTable(obj)
@@ -1607,8 +1608,8 @@ classdef CohortGenerationPane < QSPViewerNew.Application.ViewPane
                         % If results file is missing and it's not already an invalid
                         % row, then mark as missing
                         if FlagIsInvalidResultFile && any(~ismember(obj.PlotItemInvalidRowIndices,index))
-                            QSP.makeItalicized(obj.VisVirtCohortItemsTable, [index,3]);
-                            QSP.makeItalicized(obj.VisVirtCohortItemsTable, [index,4]);
+                            QSP.makeItalicizedNew(obj.VisVirtCohortItemsTable, [index,3]);
+                            QSP.makeItalicizedNew(obj.VisVirtCohortItemsTable, [index,4]);
                         end 
                     end 
                 end 

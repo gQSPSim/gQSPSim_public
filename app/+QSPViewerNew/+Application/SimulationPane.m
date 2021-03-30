@@ -1233,8 +1233,8 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
                                 ThisFileName = obj.Simulation.Item(MatchIdx).MATFileName;
                                 % Mark results file as missing
                                 if ~isequal(exist(fullfile(ResultsDir,ThisFileName),'file'),2)
-                                    QSP.makeItalicized(obj.SimulationItemsTable, [index,3]);
-                                    QSP.makeItalicized(obj.SimulationItemsTable, [index,4]);
+                                    QSP.makeItalicizedNew(obj.SimulationItemsTable, [index,3]);
+                                    QSP.makeItalicizedNew(obj.SimulationItemsTable, [index,4]);
                                 end
                             end %if
                         end %if
