@@ -186,8 +186,8 @@ classdef DoubleSelectBox < handle
             obj.FilterSearchEditField = uieditfield(obj.GridFilterBottom);
             obj.FilterSearchEditField.Layout.Row = 1;
             obj.FilterSearchEditField.Layout.Column = 1;
-            obj.FilterSearchEditField.ValueChangingFcn = @obj.updateListLeftItems;
-            obj.FilterSearchEditField.ValueChangedFcn = @obj.updateListLeftItems;
+            obj.FilterSearchEditField.ValueChangingFcn = @(h,e) obj.updateListLeftItems(h,e);
+            obj.FilterSearchEditField.ValueChangedFcn = @(h,e) obj.updateListLeftItems(h,e);
             
             %Add the filter search button
             obj.FilterButton = uiimage(obj.GridFilterBottom);
@@ -321,8 +321,8 @@ classdef DoubleSelectBox < handle
             obj.notify('StateChanged')
         end
         
-        function updateListLeftItems(obj,~,~)            
-           findstr = obj.FilterSearchEditField.Value;
+        function updateListLeftItems(obj,~,e)
+            findstr = e.Value;
             obj.ListBoxLeft.Items = obj.LeftListItemsAll(contains(obj.LeftListItemsAll, split(findstr), 'IgnoreCase', true));
             obj.resetIndex();
             obj.notify('StateChanged')

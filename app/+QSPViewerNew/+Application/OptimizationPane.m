@@ -69,6 +69,8 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
         
         StaleFlag
         ValidFlag
+        
+        VisParametersData
     end
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -118,24 +120,26 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
         SeedSubLayout                   matlab.ui.container.GridLayout
 
         %Elements for the visualization view
-        VisLayout                       matlab.ui.container.GridLayout
-        VisSpeciesDataTableLabel        matlab.ui.control.Label
-        VisSpeciesDataTable             matlab.ui.control.Table
-        VisOptimItemsTableLabel         matlab.ui.control.Label
-        VisOptimItemsTable              matlab.ui.control.Table
-        PanelMain                       matlab.ui.container.Panel     
-        VisInnerLayout                  matlab.ui.container.GridLayout  
-        VisProfilesTableLabel           matlab.ui.control.Label
-        VisProfilesTable                matlab.ui.control.Table 
-        VisParametersTableLabel         matlab.ui.control.Label
-        VisParametersTable              matlab.ui.control.Table
-        VisAddButton                    matlab.ui.control.Button
-        VisRemoveButton                 matlab.ui.control.Button
-        VisCopyButton                   matlab.ui.control.Button
-        VisSwapButton                   matlab.ui.control.Button
-        VisPencilMatButtonm             matlab.ui.control.Button
-        VisDataButton                   matlab.ui.control.Button
-        VisApplyButton                  matlab.ui.control.Button
+        VisLayout                               matlab.ui.container.GridLayout
+        VisSpeciesDataTableLabel                matlab.ui.control.Label
+        VisSpeciesDataTable                     matlab.ui.control.Table
+        VisOptimItemsTableLabel                 matlab.ui.control.Label
+        VisOptimItemsTable                      matlab.ui.control.Table
+        PanelMain                               matlab.ui.container.Panel     
+        VisInnerLayout                          matlab.ui.container.GridLayout  
+        VisProfilesTableLabel                   matlab.ui.control.Label
+        VisProfilesTable                        matlab.ui.control.Table 
+        VisParametersTableLabel                 matlab.ui.control.Label
+        VisParametersTable                      matlab.ui.control.Table
+        VisParametersTableFilter                matlab.ui.control.EditField
+        VisParametersTableFilterLabel           matlab.ui.control.Label
+        VisAddButton                            matlab.ui.control.Button
+        VisRemoveButton                         matlab.ui.control.Button
+        VisCopyButton                           matlab.ui.control.Button
+        VisSwapButton                           matlab.ui.control.Button
+        VisPencilMatButtonm                     matlab.ui.control.Button
+        VisDataButton                           matlab.ui.control.Button
+        VisApplyButton                          matlab.ui.control.Button
 
         PlotItemsTableContextMenu
         PlotItemsTableMenu
@@ -334,8 +338,8 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
             obj.PanelMain.Layout.Column = 1;
             
             obj.VisInnerLayout = uigridlayout(obj.PanelMain);
-            obj.VisInnerLayout.ColumnWidth = {obj.ButtonWidth,'1x'};
-            obj.VisInnerLayout.RowHeight = {obj.LabelHeight,obj.ButtonHeight,obj.ButtonHeight,obj.ButtonHeight,'1x',obj.LabelHeight,obj.ButtonHeight,obj.ButtonHeight,obj.ButtonHeight,'1x',obj.ButtonHeight};
+            obj.VisInnerLayout.ColumnWidth = {obj.ButtonWidth,obj.LabelLength,obj.LabelLength,obj.LabelLength,'1x'};
+            obj.VisInnerLayout.RowHeight = {obj.LabelHeight,obj.ButtonHeight,obj.ButtonHeight,obj.ButtonHeight,'1x',2*obj.PanelHeightSpacing,obj.LabelHeight,obj.ButtonHeight,obj.ButtonHeight,obj.ButtonHeight,'1x',obj.ButtonHeight};
             obj.VisInnerLayout.ColumnSpacing = 0;
             obj.VisInnerLayout.RowSpacing = 0;
             obj.VisInnerLayout.Padding = [0 0 0 0];
@@ -347,19 +351,30 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
             
             obj.VisProfilesTable = uitable(obj.VisInnerLayout);
             obj.VisProfilesTable.Layout.Row = [2,5];
-            obj.VisProfilesTable.Layout.Column = 2;
+            obj.VisProfilesTable.Layout.Column = [2, length(obj.VisInnerLayout.ColumnWidth)];
             obj.VisProfilesTable.ColumnEditable = false;
             obj.VisProfilesTable.CellEditCallback = @obj.onEditProfileTable;
             obj.VisProfilesTable.CellSelectionCallback = @obj.onSelectionProfileTable;
             
             obj.VisParametersTableLabel = uilabel(obj.VisInnerLayout);
             obj.VisParametersTableLabel.Text = 'Parameters(Run=2)';
-            obj.VisParametersTableLabel.Layout.Row = 6;
+            obj.VisParametersTableLabel.Layout.Row = 7;
             obj.VisParametersTableLabel.Layout.Column = [1,2];
             
+            obj.VisParametersTableFilter = uieditfield(obj.VisInnerLayout);
+            obj.VisParametersTableFilter.Value = '';
+            obj.VisParametersTableFilter.Layout.Row = 7;
+            obj.VisParametersTableFilter.Layout.Column = 4;
+            obj.VisParametersTableFilter.ValueChangingFcn = @obj.onVisFilterValueChange;
+            
+            obj.VisParametersTableFilterLabel = uilabel(obj.VisInnerLayout);
+            obj.VisParametersTableFilterLabel.Text = 'Filter (Parameter):';
+            obj.VisParametersTableFilterLabel.Layout.Row = 7;
+            obj.VisParametersTableFilterLabel.Layout.Column = 3;
+            
             obj.VisParametersTable = uitable(obj.VisInnerLayout);
-            obj.VisParametersTable.Layout.Row = [7,10];
-            obj.VisParametersTable.Layout.Column = 2;
+            obj.VisParametersTable.Layout.Row = [8,11];
+            obj.VisParametersTable.Layout.Column = [2, length(obj.VisInnerLayout.ColumnWidth)];
             obj.VisParametersTable.ColumnEditable = false;
             obj.VisParametersTable.CellEditCallback = @obj.onEditParametersTable;
             
@@ -388,7 +403,7 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
             obj.VisCopyButton.ButtonPushedFcn = @obj.onVisCopyButton;
 
             obj.VisSwapButton = uibutton(obj.VisInnerLayout,'push');
-            obj.VisSwapButton.Layout.Row = 7;
+            obj.VisSwapButton.Layout.Row = 8;
             obj.VisSwapButton.Layout.Column = 1;
             obj.VisSwapButton.Icon = QSPViewerNew.Resources.LoadResourcePath('reset_24.png');
             obj.VisSwapButton.Text = '';
@@ -396,7 +411,7 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
             obj.VisSwapButton.ButtonPushedFcn = @obj.onVisSwapButton;
 
             obj.VisPencilMatButtonm = uibutton(obj.VisInnerLayout,'push');
-            obj.VisPencilMatButtonm.Layout.Row = 8;
+            obj.VisPencilMatButtonm.Layout.Row = 9;
             obj.VisPencilMatButtonm.Layout.Column = 1;
             obj.VisPencilMatButtonm.Icon = QSPViewerNew.Resources.LoadResourcePath('param_edit_24.png');
             obj.VisPencilMatButtonm.Text = '';
@@ -404,7 +419,7 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
             obj.VisPencilMatButtonm.ButtonPushedFcn = @obj.onVisPencilMatButton;
 
             obj.VisDataButton = uibutton(obj.VisInnerLayout,'push');
-            obj.VisDataButton.Layout.Row = 9;
+            obj.VisDataButton.Layout.Row = 10;
             obj.VisDataButton.Layout.Column = 1;
             obj.VisDataButton.Icon = QSPViewerNew.Resources.LoadResourcePath('datatable_24.png');
             obj.VisDataButton.Text = '';
@@ -412,8 +427,8 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
             obj.VisDataButton.ButtonPushedFcn = @obj.onVisDataButton;
             
             obj.VisApplyButton = uibutton(obj.VisInnerLayout,'push');
-            obj.VisApplyButton.Layout.Row = 11;
-            obj.VisApplyButton.Layout.Column = 2;
+            obj.VisApplyButton.Layout.Row = 12;
+            obj.VisApplyButton.Layout.Column = [2, length(obj.VisInnerLayout.ColumnWidth)];
             obj.VisApplyButton.Text = 'Apply';
             obj.VisApplyButton.ButtonPushedFcn = @obj.onVisApplyButton;
             
@@ -893,7 +908,14 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
             obj.VisDirty = true; %Same as notify(obj,'MarkDirty') in old implementation 
             
         end
-       
+        
+        function onVisFilterValueChange(obj,~,e)
+            searchStr = e.Value;
+            rowContainingFilter = ...
+                            contains(string({obj.VisParametersData{:,1}}), searchStr, 'IgnoreCase', true);
+            obj.VisParametersTable.Data = obj.VisParametersData(rowContainingFilter,:);
+        end
+        
         function onVisAddButton(obj,~,~)
                 obj.Optimization.PlotProfile(end+1) = QSP.Profile;
                 obj.Optimization.SelectedProfileRow = numel(obj.Optimization.PlotProfile);
@@ -2053,6 +2075,8 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
                     addStyle(obj.VisParametersTable,Style,'row',rowIdx);
                 end
             end
+            
+            obj.VisParametersData = obj.VisParametersTable.Data;
         end
         
         function redrawVisLineWidth(obj)
