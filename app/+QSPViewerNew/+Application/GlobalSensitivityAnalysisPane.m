@@ -1073,6 +1073,15 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             end
             obj.PlotItemsTable.Data = Data;
             
+            % add style to any invalid entry
+            if ~isempty(Data)
+                % Task
+                MatchIdx = find(~ismember(taskNames(:),obj.SensitivityOutputs(:)));
+                for index = MatchIdx(:)'
+                    QSP.makeInvalidStyle(obj.PlotItemsTable, [index,3]);
+                end        
+            end
+            
             removeStyle(obj.PlotItemsTable)
             for i = 1:numel(taskNames)
                 style = uistyle('BackgroundColor', taskColor{i});
@@ -1118,6 +1127,15 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             
             %Reset the data
             obj.TaskTable.Data = Data;
+            
+            % add style to any invalid entries
+            if ~isempty(Data)
+                % Task
+                MatchIdx = find(~ismember(taskNames(:),obj.SensitivityOutputs(:)));
+                for index = MatchIdx(:)'
+                    QSP.makeInvalidStyle(obj.TaskTable, [index,1]);
+                end
+            end
             
             % Dis-/enable drop down menu for sensitivity outputs if the are
             % empty/nonempty.

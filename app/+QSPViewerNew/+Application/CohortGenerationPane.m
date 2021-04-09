@@ -1256,6 +1256,24 @@ classdef CohortGenerationPane < QSPViewerNew.Application.ViewPane
                 end
                 Data = [TaskNames(:) TempGroupIDs(:) num2cell(RunToSteadyState(:))];
                 
+                % Mark any invalid entries
+                if ~isempty(Data)
+                    % Task
+                    
+                    for index = 1:numel(TaskNames)
+                        ThisTask = getValidSelectedTasks(obj.TemporaryCohortGeneration.Settings,TaskNames{index});
+                        % Mark invalid if empty
+                        if isempty(ThisTask)
+                            Data{index,1} = QSP.makeInvalid(Data{index,1});
+                        end
+                    end
+                    
+                    MatchIdx = find(~ismember(TempGroupIDs(:),obj.GroupIDPopupTableItems(:)));
+                    for index = 1:numel(MatchIdx)
+                        Data{MatchIdx(index),2} = QSP.makeInvalid(Data{MatchIdx(index),2});
+                    end
+                end
+                
             else
                 Data = {};
             end
@@ -1275,7 +1293,7 @@ classdef CohortGenerationPane < QSPViewerNew.Application.ViewPane
             obj.VirtualItemsTable.setFormat({obj.TaskPopupTableItems(:)',obj.GroupIDPopupTableItems(:)','char'})
             obj.VirtualItemsTable.setData(Data)
             
-            % Mark any invalid entries
+            % add styling to invalid entries if any
             if ~isempty(Data)
                 % Task
                 
@@ -1283,13 +1301,13 @@ classdef CohortGenerationPane < QSPViewerNew.Application.ViewPane
                     ThisTask = getValidSelectedTasks(obj.TemporaryCohortGeneration.Settings,TaskNames{index});
                     % Mark invalid if empty
                     if isempty(ThisTask)
-                        Data{index,1} = QSP.makeInvalid(Data{index,1});
+                        QSP.makeInvalidStyle(obj.VirtualItemsTable, [index,1])
                     end
                 end
                 
                 MatchIdx = find(~ismember(TempGroupIDs(:),obj.GroupIDPopupTableItems(:)));
                 for index = 1:numel(MatchIdx)
-                    Data{MatchIdx(index),2} = QSP.makeInvalid(Data{MatchIdx(index),2});
+                    QSP.makeInvalidStyle(obj.VirtualItemsTable, [MatchIdx(index),2])
                 end
             end
         end
@@ -1350,6 +1368,20 @@ classdef CohortGenerationPane < QSPViewerNew.Application.ViewPane
             obj.SpeciesDataTable.setName({'Data (y)','Species (x)','# Tasks per Species','y=f(x)'});
             obj.SpeciesDataTable.setFormat({obj.DatasetDataColumn(:)',obj.SpeciesPopupTableItems(:)','numeric','char'})
             obj.SpeciesDataTable.setData(Data)
+            
+            % add style to any invalid entries
+            if ~isempty(Data)
+                % Species
+                MatchIdx = find(~ismember(SpeciesNames(:),obj.SpeciesPopupTableItems(:)));
+                for index = 1:numel(MatchIdx)
+                    QSP.makeInvalidStyle(obj.SpeciesDataTable, [MatchIdx(index),2]);
+                end
+                % Data
+                MatchIdx = find(~ismember(DataNames(:),obj.DatasetDataColumn(:)));
+                for index = 1:numel(MatchIdx)
+                    QSP.makeInvalidStyle(obj.SpeciesDataTable, [MatchIdx(index),1]);
+                end
+            end
         end
         
         function redrawParametersTable(obj)

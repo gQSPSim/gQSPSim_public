@@ -1073,6 +1073,20 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
             [columnFormat,editableTF] = obj.replaceEmptyDropdowns();
             obj.SimItemsTable.ColumnFormat = columnFormat;
             obj.SimItemsTable.ColumnEditable = editableTF;
+            
+            % Add style to any invalid entries
+            if ~isempty(Data)
+                % Task
+                MatchIdx = find(~ismember(TaskNames(:),obj.TaskPopupTableItems(:)));
+                for index = MatchIdx(:)'
+                    QSP.makeInvalidStyle(obj.SimItemsTable, [index,1])
+                end
+                % VPop
+                MatchIdx = find(~ismember(VPopNames(:),obj.VPopPopupTableItems(:)));
+                for index = MatchIdx(:)'
+                    QSP.makeInvalidStyle(obj.SimItemsTable, [index,2])
+                end
+            end
         end
         
         function [columnFormat,editableTF] = replaceEmptyDropdowns(obj)

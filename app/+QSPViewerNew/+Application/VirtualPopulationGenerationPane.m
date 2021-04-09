@@ -945,6 +945,21 @@ classdef VirtualPopulationGenerationPane < QSPViewerNew.Application.ViewPane
             obj.VirtualItemsTable.setName({'Task','Group','Run To Steady State'}');
             obj.VirtualItemsTable.setFormat({obj.TaskPopupTableItems(:)',obj.GroupIDPopupTableItems(:)','char'})
             obj.VirtualItemsTable.setData(Data)
+            
+            % Add style to invalid entries
+            if ~isempty(Data)
+                for index = 1:numel(TaskNames)
+                    ThisTask = getValidSelectedTasks(obj.TemporaryVirtualPopulationGeneration.Settings,TaskNames{index});
+                    % Mark invalid if empty
+                    if isempty(ThisTask)
+                        QSP.makeInvalidStyle(obj.VirtualItemsTable, [index,1]);
+                    end
+                end
+                MatchIdx = find(~ismember(TempGroupIDs(:),obj.GroupIDPopupTableItems(:)));
+                for index = 1:numel(MatchIdx)
+                    QSP.makeInvalidStyle(obj.VirtualItemsTable, [MatchIdx(index),2]);
+                end
+            end
         end
                
         function redrawSpeciesData(obj)
@@ -986,6 +1001,18 @@ classdef VirtualPopulationGenerationPane < QSPViewerNew.Application.ViewPane
             obj.SpeciesDataTable.setName({'Data (y)','Species (x)','# Tasks per Species','y=f(x)'}');
             obj.SpeciesDataTable.setFormat({obj.DatasetDataColumn(:)',obj.SpeciesPopupTableItems(:)','numeric','char'})
             obj.SpeciesDataTable.setData(Data);
+            
+            % add style to invalid entries
+            if ~isempty(Data)
+                MatchIdx = find(~ismember(SpeciesNames(:),obj.SpeciesPopupTableItems(:)));
+                for index = 1:numel(MatchIdx)
+                    QSP.makeInvalidStyle(obj.SpeciesDataTable, [MatchIdx(index),2]);
+                end
+                MatchIdx = find(~ismember(DataNames(:),obj.DatasetDataColumn(:)));
+                for index = 1:numel(MatchIdx)
+                    QSP.makeInvalidStyle(obj.SpeciesDataTable, [MatchIdx(index),1]);
+                end
+            end
         end
         
         
