@@ -19,6 +19,7 @@ classdef ApplicationUI < matlab.apps.AppBase
         Sessions = QSP.Session.empty(0,1)
         AppName
         Title
+        SelectedNodePath (1,1) string
     end
     
     properties(Constant)
@@ -484,7 +485,14 @@ classdef ApplicationUI < matlab.apps.AppBase
                         
                         hNode = app.createNode(parent, Data, Data.Name, QSPViewerNew.Resources.LoadResourcePath('sensitivity.png'),...
                             'Global Sensitivity Analysis', [], '');
-                        Data.TreeNode = hNode; %Store node in the object for cross-ref                        
+                        Data.TreeNode = hNode; %Store node in the object for cross-ref
+                        
+                    case 'QSP.Folder'
+                        
+                        hNode = app.createNode(parent, Data, Data.Name, ...
+                            QSPViewerNew.Resources.LoadResourcePath('folder_24.png'),...
+                            'Folder', 'Folder', '');
+                        Data.TreeNode = hNode; %Store node in the object for cross-ref
 
                     otherwise
                         
@@ -515,6 +523,7 @@ classdef ApplicationUI < matlab.apps.AppBase
                 'Cohort Generation',                'CohortGeneration'
                 'Virtual Population Generation',    'VirtualPopulationGeneration'
                 'Global Sensitivity Analysis',      'GlobalSensitivityAnalysis'
+                'Folder',                           'Folder'
                 };
             Index = find(strcmpi(Type,ItemTypes(:,1)));
             
@@ -522,11 +531,28 @@ classdef ApplicationUI < matlab.apps.AppBase
             if ~isempty(Index)
                 ThisItemType = ItemTypes{Index,2};
                 
-                %If it is an instance of a QSP Class
-                if ~isempty(Node.UserData)
+                % If it is an instance of QSP.Folder
+                if strcmp(Node.UserData,"Folder")
+                    ParentItemObj = getParentItemObj(Node.NodeData);
+                    ParentItemType = ParentItemObj.UserData;
+                    
+                    CM = uicontextmenu('Parent',app.UIFigure);
+                    uimenu('Parent',CM,'Label', ['Add new ' ParentItemType],...
+                        'MenuSelectedFcn', @(h,e)app.onAddItem(h.Parent.UserData,Node.NodeData.Session,ParentItemType));
+                    
+                    uimenu('Parent',CM,'Label', ['Add new Folder'], ...
+                        'MenuSelectedFcn', @(h,e)app.onAddFolder(h.Parent.UserData,Node.NodeData.Session));
+                    
+                    uimenu('Parent',CM,'Label', 'Delete');
+                    
+                    %If it is an instance of a QSP Class
+                elseif ~isempty(Node.UserData)
                     CM = uicontextmenu('Parent',app.UIFigure);
                     uimenu('Parent',CM,'Label', ['Add new ' ThisItemType],...
-                        'MenuSelectedFcn', @(h,e)app.onAddItem(h.Parent.UserData.Parent.Parent.NodeData,ThisItemType));
+                        'MenuSelectedFcn', @(h,e)app.onAddItem(h.Parent.UserData,h.Parent.UserData.Parent.Parent.NodeData,ThisItemType));
+                    
+                    uimenu('Parent',CM,'Label', ['Add new Folder'], ...
+                        'MenuSelectedFcn', @(h,e)app.onAddFolder(h.Parent.UserData,h.Parent.UserData.Parent.Parent.NodeData));
                     
                     %Not an Instance, just a type
                 else
@@ -540,6 +566,11 @@ classdef ApplicationUI < matlab.apps.AppBase
                         'Text', ['Delete this ' ThisItemType],...
                         'Separator', 'on',...
                         'MenuSelectedFcn', @(h,e) app.onDeleteSelectedItem(h.Parent.UserData.Parent.Parent.Parent.NodeData,h.Parent.UserData));
+                    uimenu(...
+                        'Parent', CM,...
+                        'Text', 'Move to ...',...
+                        'Separator', 'on',...
+                        'MenuSelectedFcn', @(h,e) app.onMoveToSelectedItem(h,e));
                 end
             else
                 switch Type
@@ -773,6 +804,7 @@ classdef ApplicationUI < matlab.apps.AppBase
                     app.SelectedSession.removeUDF();
                     app.SelectedSessionIdx = find(ThisSessionNode == app.SessionNode);
                     app.SelectedSession.addUDF();
+                    
                  end
                  
                  %Now that we have the correct session, we can work
@@ -781,7 +813,7 @@ classdef ApplicationUI < matlab.apps.AppBase
             end
         end    
          
-        function onAddItem(app,thisSession,itemType)
+        function onAddItem(app,ParentNode,thisSession,itemType)
             if isempty(thisSession)
                 thisSession = app.SelectedSession;
             end
@@ -818,18 +850,6 @@ classdef ApplicationUI < matlab.apps.AppBase
                 ParentObj = thisSession.Settings;
             end
             
-            % What tree branch does this go under?
-            ChildNodes = ParentObj.TreeNode.Children;
-            ChildTypes = {ChildNodes.UserData};
-            if any(strcmpi(itemType,{'Simulation','Optimization','CohortGeneration',...
-                    'VirtualPopulationGeneration','GlobalSensitivityAnalysis'}))
-                ThisChildNode = ChildNodes(strcmpi(ChildTypes,'Functionalities'));
-                ChildNodes = ThisChildNode.Children;
-                ChildTypes = {ChildNodes.UserData};
-            end
-            
-            ParentNode = ChildNodes(strcmp(ChildTypes,itemType));
-            
             % Create the new item
             NewName = ThisObj.Name;
             if isempty(NewName)
@@ -856,6 +876,63 @@ classdef ApplicationUI < matlab.apps.AppBase
             else
                 error('Invalid tree parent');
             end
+            
+            if isa(ParentNode.NodeData, 'QSP.Folder')
+                if isempty(ParentNode.NodeData.Children)
+                    ParentNode.NodeData.Children = ThisObj;
+                else
+                    ParentNode.NodeData.Children(end+1) = ThisObj;
+                end
+            end
+            
+            % Mark the current session dirty
+            app.markDirty(thisSession);
+            
+            % Update the display
+            app.updateTreeNames();
+            
+            %Update the file menu
+            app.updateFileMenu();
+            
+            %Update the title of the application
+            app.updateAppTitle();
+        end
+        
+        function onAddFolder(app,ParentNode,thisSession)
+            ThisObj = QSP.Folder;
+            if isa(ParentNode.NodeData, 'QSP.Folder')
+                ThisObj.Name = 'SubFolder';
+                if isempty(ParentNode.NodeData.Children)
+                    ParentNode.NodeData.Children = ThisObj;
+                else
+                    ParentNode.NodeData.Children(end+1) = ThisObj;
+                end
+            end
+            ThisObj.Session = thisSession;
+            ThisObj.Parent = ParentNode;
+            
+            if ~isempty(ParentNode.Children)
+                allChildren = {ParentNode.Children.NodeData};
+                allFoldersIdx = cellfun(@(x) isa(x, 'QSP.Folder'),allChildren );
+                
+                if any(allFoldersIdx)
+                    allFolders = [allChildren{allFoldersIdx}];
+                    DisallowedNames = {allFolders.Name};
+                    NewName = matlab.lang.makeUniqueStrings(ThisObj.Name, DisallowedNames);
+                    ThisObj.Name = NewName;
+                end
+            end
+            
+            % Place the item and add the tree node
+            if isscalar(ParentNode)
+                app.createTree(ParentNode, ThisObj);
+                ParentNode.expand();
+            else
+                error('Invalid tree parent');
+            end
+            
+            % update context menus with folders
+%             app.updateFolderContextMenus(getParentItemObj(ThisObj));
             
             % Mark the current session dirty
             app.markDirty(thisSession);
@@ -902,6 +979,33 @@ classdef ApplicationUI < matlab.apps.AppBase
             app.markDirty(activeSession);
         end
        
+        function onMoveToSelectedItem(app,h,~)
+            currentNode = h.Parent.UserData;
+            while ~isa(currentNode.NodeData, 'QSP.Settings')
+                currentNode = currentNode.Parent;
+            end
+            
+            parentNode = currentNode;
+            
+            nodeSelDialog = QSPViewerNew.Widgets.TreeNodeSelectionModalDialog (app, ...
+                parentNode, ...
+                'ParentAppPosition', app.UIFigure.Position, ...
+                'DialogName', 'Select node to move item to');
+            
+            uiwait(nodeSelDialog.MainFigure);
+            
+            selNode = app.SelectedNodePath;
+            allNodes = split(selNode, filesep);
+            newParentNode = parentNode;
+            for i = length(allNodes)-1:-1:1
+                childName = allNodes(i);
+                childNodeIdx = childName==string({newParentNode.Children.Text});
+                newParentNode = newParentNode.Children(childNodeIdx);
+            end
+            
+            % assign current node to new parent
+            h.Parent.UserData.Parent = newParentNode;
+        end
     end
     
     % %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %%
@@ -1432,6 +1536,41 @@ classdef ApplicationUI < matlab.apps.AppBase
             
         end
         
+%         function updateFolderContextMenus(app, treeNode)
+%             allChildren = {treeNode.Children.NodeData};
+%             isfolderIdx = cellfun(@(x) isa(x, 'QSP.Folder'), allChildren);
+%             
+%             if any(isfolderIdx)
+%                 allTopFolders = treeNode.Children(isfolderIdx);
+%                 allItems = QSPViewerNew.Application.getAllChildrenItemTypeNodes(treeNode);
+%                 for itemNodeIdx = 1:length(allItems)
+%                     currentNode = allItems(itemNodeIdx);
+%                     CM = currentNode.ContextMenu;
+%                     m = uimenu('Parent',CM,'Label', 'Move to');
+%                     for folderIdx = 1:length(allTopFolders)
+%                         uimenu('Parent',m,'Label', allTopFolders(folderIdx).Text);
+%                     end
+%                 end
+%             end
+%             
+%             CM = uicontextmenu('Parent',app.UIFigure);
+%             uimenu('Parent',CM,'Label', ['Add new ' ParentItemType],...
+%                 'MenuSelectedFcn', @(h,e)app.onAddItem(h.Parent.UserData,Node.NodeData.Session,ParentItemType));
+%             
+%         end
+%         
+%         function nodes = getAllChildrenItemTypeNodes(app, treeNode)
+%             nodes = [];
+%             for i = 1:length(treeNode.Children)
+%                 currentNode = treeNode.Children(i);
+%                 if ~isa(currentNode.NodeData, 'QSP.Folder')
+%                     nodes = [nodes; currentNode];
+%                 else
+%                     nodes = [nodes; getAllChildrenItemTypeNodes(app, currentNode)];
+%                 end
+%             end
+%         end
+        
         function updateAppTitle(app)
             
             % Update title bar
@@ -1881,6 +2020,8 @@ classdef ApplicationUI < matlab.apps.AppBase
                     PaneClass = 'QSPViewerNew.Application.VirtualPopulationGenerationDataPane';
                 case 'QSP.GlobalSensitivityAnalysis'
                     PaneClass = 'QSPViewerNew.Application.GlobalSensitivityAnalysisPane';
+                case 'QSP.Folder'
+                    PaneClass = 'QSPViewerNew.Application.FolderPane';
             end
        end
        
@@ -1889,6 +2030,8 @@ classdef ApplicationUI < matlab.apps.AppBase
                feval(functionArray{i},h,e)
            end
        end
+       
+       
        
     end
     
