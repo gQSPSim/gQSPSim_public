@@ -356,16 +356,23 @@ classdef TaskPane < QSPViewerNew.Application.ViewPane
             obj.updateDescriptionBox(obj.TemporaryTask.Description);
             obj.updateNameBox(obj.TemporaryTask.Name);
             obj.updateSummary(obj.TemporaryTask.getSummary());
-            obj.ProjectFileSelector.RootDirectory = obj.TemporaryTask.Session.RootDirectory;
-            obj.ProjectFileSelector.RelativePath = obj.TemporaryTask.RelativeFilePath;
-            if exist(obj.TemporaryTask.FilePath,'file')==2
-                
+            
+            % if right model is already loaded, just update UI
+            if isequal(obj.ProjectFileSelector.RelativePath, obj.TemporaryTask.RelativeFilePath) && ...
+                    isequal(obj.ModelDropDown.Value, obj.TemporaryTask.ModelName)
+                obj.ProjectFileSelector.RootDirectory = obj.TemporaryTask.Session.RootDirectory;
+                obj.ProjectFileSelector.RelativePath = obj.TemporaryTask.RelativeFilePath;
+                obj.updateModelInfoUI();
+            % if not, re-import model
+            elseif exist(obj.TemporaryTask.FilePath,'file')==2
                 obj.modelChange(obj.TemporaryTask.ModelName,true)
+                obj.ProjectFileSelector.RootDirectory = obj.TemporaryTask.Session.RootDirectory;
                 obj.ProjectFileSelector.RelativePath = obj.TemporaryTask.RelativeFilePath;
                 obj.ModelDropDown.Items = {obj.TemporaryTask.getModelList()};
             else
                 obj.invalidProject()
             end
+            
             obj.IsDirty = false;
         end
         
