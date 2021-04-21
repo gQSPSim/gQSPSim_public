@@ -543,7 +543,8 @@ classdef ApplicationUI < matlab.apps.AppBase
                     uimenu('Parent',CM,'Label', ['Add new Folder'], ...
                         'MenuSelectedFcn', @(h,e)app.onAddFolder(h.Parent.UserData,Node.NodeData.Session));
                     
-                    uimenu('Parent',CM,'Label', 'Delete');
+                    uimenu('Parent',CM,'Label', 'Delete', ...
+                        'MenuSelectedFcn', @(h,e)app.onDeleteFolder(h.Parent.UserData));
                     
                     %If it is an instance of a QSP Class
                 elseif ~isempty(Node.UserData)
@@ -945,6 +946,20 @@ classdef ApplicationUI < matlab.apps.AppBase
             
             %Update the title of the application
             app.updateAppTitle();
+        end
+        
+        function onDeleteFolder(app, h)
+            if ~isempty(h.Children)
+                title = "Confirm delete";
+                msg = strcat("Deleting folder will delete all its subfolders and item nodes.", ...
+                    " Are you sure you want to delete?");
+                selection = uiconfirm(app.UIFigure, msg, title);
+                if strcmp(selection, 'OK')
+                    delete(h);
+                end
+            else
+                delete(h);
+            end
         end
         
         function onDuplicateItem(app,activeSession,activeNode)
