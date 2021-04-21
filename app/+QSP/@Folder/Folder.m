@@ -66,6 +66,16 @@ classdef Folder < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             
             ParentObj = currentObj.Parent;
         end
+        
+        function folderNodes = getAllChildrenFolderNodes(obj, node)
+            folderNodes = [];
+            for i = 1:length(node.Children)
+                currentNode = node.Children(i);
+                if isa(currentNode.NodeData, 'QSP.Folder')
+                    folderNodes = [folderNodes; currentNode; getAllChildrenFolderNodes(obj, currentNode)];
+                end
+            end
+        end
     end
     
     %% Methods (defined as abstract)

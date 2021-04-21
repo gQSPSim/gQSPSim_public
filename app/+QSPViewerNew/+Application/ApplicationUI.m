@@ -537,13 +537,16 @@ classdef ApplicationUI < matlab.apps.AppBase
                     ParentItemType = ParentItemObj.UserData;
                     
                     CM = uicontextmenu('Parent',app.UIFigure);
-                    uimenu('Parent',CM,'Label', ['Add new ' ParentItemType],...
+                    uimenu('Parent', CM,'Label', ['Add new ' ParentItemType],...
                         'MenuSelectedFcn', @(h,e)app.onAddItem(h.Parent.UserData,Node.NodeData.Session,ParentItemType));
                     
-                    uimenu('Parent',CM,'Label', ['Add new Folder'], ...
+                    uimenu('Parent', CM,'Label', ['Add new Folder'], ...
                         'MenuSelectedFcn', @(h,e)app.onAddFolder(h.Parent.UserData,Node.NodeData.Session));
                     
-                    uimenu('Parent',CM,'Label', 'Delete', ...
+                    uimenu('Parent', CM,'Label', 'Rename', ...
+                        'MenuSelectedFcn', @(h,e)app.onRenameFolder(h.Parent.UserData));
+                    
+                    uimenu('Parent', CM,'Label', 'Delete', ...
                         'MenuSelectedFcn', @(h,e)app.onDeleteFolder(h.Parent.UserData));
                     
                     %If it is an instance of a QSP Class
@@ -932,9 +935,6 @@ classdef ApplicationUI < matlab.apps.AppBase
                 error('Invalid tree parent');
             end
             
-            % update context menus with folders
-%             app.updateFolderContextMenus(getParentItemObj(ThisObj));
-            
             % Mark the current session dirty
             app.markDirty(thisSession);
             
@@ -948,17 +948,44 @@ classdef ApplicationUI < matlab.apps.AppBase
             app.updateAppTitle();
         end
         
-        function onDeleteFolder(app, h)
-            if ~isempty(h.Children)
+        function onRenameFolder(app, node)
+            prompt = {'Enter new name'};
+            dlgtitle = 'Rename folder';
+            dims = [1 50];
+            definput = {node.Text};
+            answer = inputdlg(prompt, dlgtitle, dims, definput);
+            if ~isempty(answer)
+                % check if the name is same as other folders for this
+                % itemtype
+                parentNode = node.Parent;
+                
+                allChildren = {parentNode.Children.NodeData};
+                allFoldersIdx = cellfun(@(x) isa(x, 'QSP.Folder'), allChildren );
+                
+                allFolders = [allChildren{allFoldersIdx}];
+                DisallowedNames = {allFolders.Name};
+                if any(ismember(answer{1}, DisallowedNames))
+                    msg = sprintf("A folder already exists with the name %s. Please specify another name.", answer{1});
+                    uialert(app.UIFigure, msg, ...
+                        "Inavlid file name");
+                else
+                    node.Text = answer{1};
+                    node.NodeData.Name = answer{1};
+                end
+            end
+        end
+        
+        function onDeleteFolder(app, node)
+            if ~isempty(node.Children)
                 title = "Confirm delete";
                 msg = strcat("Deleting folder will delete all its subfolders and item nodes.", ...
                     " Are you sure you want to delete?");
                 selection = uiconfirm(app.UIFigure, msg, title);
                 if strcmp(selection, 'OK')
-                    delete(h);
+                    delete(node);
                 end
             else
-                delete(h);
+                delete(node);
             end
         end
         
