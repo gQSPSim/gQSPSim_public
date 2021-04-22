@@ -78,6 +78,7 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
         SimButtonGrid               matlab.ui.container.GridLayout
         NewButton                   matlab.ui.control.Button
         RemoveButton                matlab.ui.control.Button
+        DuplicateButton             matlab.ui.control.Button
         SimItemsTable               matlab.ui.control.Table
         SimulationVisualizationGrid matlab.ui.container.GridLayout
         SpeciesLabel                matlab.ui.control.Label
@@ -195,7 +196,7 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
             %Simulation Select Buttons Grid
             obj.SimButtonGrid = uigridlayout(obj.SimItemGrid);
             obj.SimButtonGrid.ColumnWidth = {'1x'};
-            obj.SimButtonGrid.RowHeight = {obj.ButtonHeight,obj.ButtonHeight};
+            obj.SimButtonGrid.RowHeight = {obj.ButtonHeight,obj.ButtonHeight,obj.ButtonHeight};
             obj.SimButtonGrid.Layout.Row = 1;
             obj.SimButtonGrid.Layout.Column = 1;
             obj.SimButtonGrid.Padding = [0,0,0,0];
@@ -208,6 +209,7 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
            obj.NewButton.Layout.Column = 1;
            obj.NewButton.Icon =QSPViewerNew.Resources.LoadResourcePath('add_24.png');
            obj.NewButton.Text = '';
+           obj.NewButton.Tooltip = 'Add new row';
            obj.NewButton.ButtonPushedFcn = @(h,e)obj.onAddSimItem();
             
             %Remove Button
@@ -216,7 +218,17 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
            obj.RemoveButton.Layout.Column = 1;
            obj.RemoveButton.Icon = QSPViewerNew.Resources.LoadResourcePath('delete_24.png');
            obj.RemoveButton.Text = '';
+           obj.RemoveButton.Tooltip = 'Delete the highlighted row';
            obj.RemoveButton.ButtonPushedFcn = @(h,e)obj.onRemoveSimItem();
+           
+           % Duplicate Button
+           obj.DuplicateButton = uibutton(obj.SimButtonGrid,'push');
+           obj.DuplicateButton.Layout.Row = 3;
+           obj.DuplicateButton.Layout.Column = 1;
+           obj.DuplicateButton.Icon =QSPViewerNew.Resources.LoadResourcePath('copy_24.png');
+           obj.DuplicateButton.Text = '';
+           obj.DuplicateButton.Tooltip = 'Duplicate the highlighted row';
+           obj.DuplicateButton.ButtonPushedFcn = @(h,e)obj.onDuplicateSimItem();
            
            %Table 
            obj.SimItemsTable = uitable(obj.SimItemGrid);
@@ -322,6 +334,19 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
                     obj.TemporarySimulation.Item(end+1) = NewTaskVPop;
                 else
                     uialert(obj.getUIFigure(),'At least one task must be defined in order to add a simulation item.','Cannot Add');
+            end
+            obj.updateSimulationTable();
+            obj.IsDirty = true;
+        end
+        
+        function onDuplicateSimItem(obj)
+            DuplicateIdx = obj.SelectedRow;
+            if DuplicateIdx ~= 0 && DuplicateIdx <= numel(obj.TemporarySimulation.Item)
+                NewTaskVPop = QSP.TaskVirtualPopulation;
+                NewTaskVPop.TaskName = obj.TemporarySimulation.Item(DuplicateIdx).TaskName;
+                NewTaskVPop.VPopName = obj.TemporarySimulation.Item(DuplicateIdx).VPopName;
+                NewTaskVPop.Group = obj.TemporarySimulation.Item(DuplicateIdx).Group;
+                obj.TemporarySimulation.Item(end+1) = NewTaskVPop;
             end
             obj.updateSimulationTable();
             obj.IsDirty = true;
