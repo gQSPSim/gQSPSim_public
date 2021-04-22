@@ -27,7 +27,8 @@ classdef AddRemoveTable < handle
        TableMain            matlab.ui.control.Table
        GridMain             matlab.ui.container.GridLayout 
        AddButton            matlab.ui.control.Button 
-       RemoveButtonm        matlab.ui.control.Button
+       RemoveButton         matlab.ui.control.Button
+       DuplicateButton      matlab.ui.control.Button
     end
     
     events
@@ -73,7 +74,7 @@ classdef AddRemoveTable < handle
 
             obj.GridMain = uigridlayout(obj.PanelMain);
             obj.GridMain.ColumnWidth = {ButtonSize,'1x'};
-            obj.GridMain.RowHeight = {ButtonSize,ButtonSize,'1x'};
+            obj.GridMain.RowHeight = {ButtonSize,ButtonSize,ButtonSize,'1x'};
             obj.GridMain.Padding = [pad,pad,pad,pad];
             obj.GridMain.ColumnSpacing = pad;
             obj.GridMain.RowSpacing = pad;
@@ -96,21 +97,32 @@ classdef AddRemoveTable < handle
             obj.AddButton.ButtonPushedFcn = @obj.onAddItem;
 
             %Add the remove item button
-            obj.RemoveButtonm = uibutton(obj.GridMain,'push');
-            obj.RemoveButtonm.Layout.Row = 2;
-            obj.RemoveButtonm.Layout.Column = 1;
-            obj.RemoveButtonm.Icon = QSPViewerNew.Resources.LoadResourcePath('delete_24.png');
-            obj.RemoveButtonm.Text = '';
-            obj.RemoveButtonm.Tooltip = 'Delete the highlighted row';
-            obj.RemoveButtonm.ButtonPushedFcn = @obj.onRemoveItem;
+            obj.RemoveButton = uibutton(obj.GridMain,'push');
+            obj.RemoveButton.Layout.Row = 2;
+            obj.RemoveButton.Layout.Column = 1;
+            obj.RemoveButton.Icon = QSPViewerNew.Resources.LoadResourcePath('delete_24.png');
+            obj.RemoveButton.Text = '';
+            obj.RemoveButton.Tooltip = 'Delete the highlighted row';
+            obj.RemoveButton.ButtonPushedFcn = @obj.onRemoveItem;
+            
+            %Add the duplicate item button
+            obj.DuplicateButton = uibutton(obj.GridMain,'push');
+            obj.DuplicateButton.Layout.Row = 3;
+            obj.DuplicateButton.Layout.Column = 1;
+            obj.DuplicateButton.Icon = QSPViewerNew.Resources.LoadResourcePath('copy_24.png');
+            obj.DuplicateButton.Text = '';
+            obj.DuplicateButton.Tooltip = 'Duplicate the highlighted row';
+            obj.DuplicateButton.ButtonPushedFcn = @obj.onDuplicateItem;
             obj.refreshButtons();
         end
         
         function refreshButtons(obj)
-            if obj.Selected ==0
-                obj.RemoveButtonm.Enable = false;
+            if obj.Selected == 0
+                obj.RemoveButton.Enable = false;
+                obj.DuplicateButton.Enable = false;
             else
-                obj.RemoveButtonm.Enable = true;
+                obj.RemoveButton.Enable = true;
+                obj.DuplicateButton.Enable = true;
             end
         end
        
@@ -132,6 +144,13 @@ classdef AddRemoveTable < handle
         function onRemoveItem(obj,~,~)
             obj.TableMain.Data(obj.Selected,:) = [];
             obj.notify('DeleteRowChange')
+            obj.Selected = 0;
+            obj.refreshButtons();
+        end
+        
+        function onDuplicateItem(obj,~,~)
+            obj.TableMain.Data = [obj.TableMain.Data;obj.TableMain.Data(obj.Selected,:)];
+            obj.notify('NewRowChange')
             obj.Selected = 0;
             obj.refreshButtons();
         end

@@ -547,7 +547,7 @@ classdef ApplicationUI < matlab.apps.AppBase
                         'MenuSelectedFcn', @(h,e)app.onRenameFolder(h.Parent.UserData));
                     
                     uimenu('Parent', CM,'Label', 'Delete', ...
-                        'MenuSelectedFcn', @(h,e)app.onDeleteFolder(h.Parent.UserData));
+                        'MenuSelectedFcn', @(h,e)app.onDeleteFolder());
                     
                     %If it is an instance of a QSP Class
                 elseif ~isempty(Node.UserData)
@@ -963,7 +963,8 @@ classdef ApplicationUI < matlab.apps.AppBase
                 allFoldersIdx = cellfun(@(x) isa(x, 'QSP.Folder'), allChildren );
                 
                 allFolders = [allChildren{allFoldersIdx}];
-                DisallowedNames = {allFolders.Name};
+                DisallowedNames = string({allFolders.Name});
+                DisallowedNames(DisallowedNames==node.Text) = [];
                 if any(ismember(answer{1}, DisallowedNames))
                     msg = sprintf("A folder already exists with the name %s. Please specify another name.", answer{1});
                     uialert(app.UIFigure, msg, ...
@@ -975,17 +976,23 @@ classdef ApplicationUI < matlab.apps.AppBase
             end
         end
         
-        function onDeleteFolder(app, node)
-            if ~isempty(node.Children)
-                title = "Confirm delete";
-                msg = strcat("Deleting folder will delete all its subfolders and item nodes.", ...
-                    " Are you sure you want to delete?");
-                selection = uiconfirm(app.UIFigure, msg, title);
-                if strcmp(selection, 'OK')
-                    delete(node);
+        function onDeleteFolder(app)
+            selNodes = app.TreeRoot.SelectedNodes;
+            for i = 1:length(selNodes)
+                node = selNodes(i);
+                if isa(node.NodeData, 'QSP.Folder')
+                    if ~isempty(node.Children)
+                        title = "Confirm delete";
+                        msg = sprintf("%s ""%s"" %s %s", "Deleting", node.Text, "will delete all its subfolders and item nodes.", ...
+                            "Are you sure you want to delete?");
+                        selection = uiconfirm(app.UIFigure, msg, title);
+                        if strcmp(selection, 'OK')
+                            delete(node);
+                        end
+                    else
+                        delete(node);
+                    end
                 end
-            else
-                delete(node);
             end
         end
         
@@ -1029,10 +1036,19 @@ classdef ApplicationUI < matlab.apps.AppBase
             
             parentNode = currentNode;
             
-            nodeSelDialog = QSPViewerNew.Widgets.TreeNodeSelectionModalDialog (app, ...
-                parentNode, ...
-                'ParentAppPosition', app.UIFigure.Position, ...
-                'DialogName', 'Select node to move item to');
+            if verLessThan('matlab','9.9')
+                nodeSelDialog = QSPViewerNew.Widgets.TreeNodeSelectionModalDialog (app, ...
+                    parentNode, ...
+                    'ParentAppPosition', app.UIFigure.Position, ...
+                    'DialogName', 'Select node to move item(s) to', ...
+                    'ModalOn', false);
+            else % Modal UI figures are supported >= 20b
+                nodeSelDialog = QSPViewerNew.Widgets.TreeNodeSelectionModalDialog (app, ...
+                    parentNode, ...
+                    'ParentAppPosition', app.UIFigure.Position, ...
+                    'DialogName', 'Select node to move item(s) to');
+            end
+            
             
             uiwait(nodeSelDialog.MainFigure);
             
@@ -1045,8 +1061,12 @@ classdef ApplicationUI < matlab.apps.AppBase
                 newParentNode = newParentNode.Children(childNodeIdx);
             end
             
-            % assign current node to new parent
-            h.Parent.UserData.Parent = newParentNode;
+            % assign all current selected nodes to new parent
+            for i = 1:length(app.TreeRoot.SelectedNodes)
+                if isa(app.TreeRoot.SelectedNodes(i).NodeData, class(h.Parent.UserData.NodeData))
+                    app.TreeRoot.SelectedNodes(i).Parent = newParentNode;
+                end
+            end
         end
     end
     
