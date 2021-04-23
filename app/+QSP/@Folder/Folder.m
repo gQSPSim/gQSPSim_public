@@ -16,7 +16,7 @@ classdef Folder < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
     %
     % Auth/Revision:
     %   MathWorks Consulting
-    %   $Author: kmahalin $
+    %   Author: Karthiga Mahalingam 
     % ---------------------------------------------------------------------
     
     %% Properties
@@ -44,12 +44,12 @@ classdef Folder < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             %           obj - QSP.Folder object
             %
             % Example:
-            %    aObj = QSP.Task();
+            %    aObj = QSP.Folder();
             
             % Populate public properties from P-V input pairs
             obj.assignPVPairs(varargin{:});
             obj.Name = 'Folder';
-        end %function obj = Task(varargin)
+        end %function obj = Folder(varargin)
     end
     
     %% Methods

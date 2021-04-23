@@ -10,13 +10,14 @@ classdef TreeNodeSelectionModalDialog < handle & ...
     %   Date: 4/17/21
     
     properties (Access = public)
-        ModalOn         (1,1) logical = true
-        MultiSelection  (1,1) logical = false
-        DialogName      (1,1) string  = ""
-        SelectedNode    (1,:)  matlab.ui.container.TreeNode
+        ModalOn             (1,1) logical = true
+        MultiSelection      (1,1) logical = false
+        DialogName          (1,1) string  = ""
+        SelectedNode        (1,:)  matlab.ui.container.TreeNode
         ParentApp
-        ParentAppPosition (1,4) double
+        ParentAppPosition   (1,4) double
         MainFigure          matlab.ui.Figure
+        NodeType            (1,1) string {mustBeMember(NodeType, ["Folder", "Other"])} = "Folder"
     end
     
     % Graphics components properties
@@ -81,6 +82,7 @@ classdef TreeNodeSelectionModalDialog < handle & ...
                 'MultiSelect', obj.MultiSelection);
             obj.MainTree.Layout.Row = 1;
             obj.MainTree.Layout.Column = [1, length(obj.MainGrid.ColumnWidth)];
+            obj.MainTree.SelectionChangedFcn = @(h,e) obj.onTreeSelectionChanged(h,e);
             
             obj.createTreeNode(obj.ParentNode, obj.MainTree)
             
@@ -111,13 +113,24 @@ classdef TreeNodeSelectionModalDialog < handle & ...
             
             % If it has, keep looking at its children
             parentNode = uitreenode(parent, 'Text', node.Text);
-            expand(parentNode);
+            if isa(node.NodeData, 'QSP.Folder')
+                parentNode.Tag = "Folder";
+            end
             for i = 1:length(node.Children)
                 currentNode = node.Children(i);
-                if ~isa(currentNode.NodeData, 'QSP.Folder')
-                    continue;
+%                 % loop only through every folder if looking for folders
+                if strcmp(obj.NodeType, "Folder")
+                    if ~isa(currentNode.NodeData, 'QSP.Folder')
+                        continue;
+                    end
                 end
+%                 else % else skip the folder nodes
+%                     if isa(currentNode.NodeData, 'QSP.Folder')
+%                         continue;
+%                     end
+%                 end
                 obj.createTreeNode(currentNode, parentNode);
+                expand(parentNode);
             end
         end
     end
@@ -140,6 +153,15 @@ classdef TreeNodeSelectionModalDialog < handle & ...
         
         function onCancelButtonPushed(obj,~,~)
             obj.delete();
+        end
+        
+        function onTreeSelectionChanged(obj,h,~)
+            if ~strcmp(obj.NodeType, "Folder")
+                if isequal(h.SelectedNodes.Text, obj.ParentNode.Text) || ...
+                        strcmp(h.SelectedNodes.Tag, "Folder") 
+                    h.SelectedNodes = [];
+                end
+            end
         end
     end
     

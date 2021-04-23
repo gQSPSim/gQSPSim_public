@@ -53,6 +53,10 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
         ValidFlag
     end
     
+    properties
+        SelectedNodePath
+    end
+    
     % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Listeners
     % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -328,7 +332,7 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
         function onAddSimItem(obj)
             if ~isempty(obj.TaskPopupTableItems)
                     NewTaskVPop = QSP.TaskVirtualPopulation;
-                    NewTaskVPop.TaskName = obj.TaskPopupTableItems{1};
+                    NewTaskVPop.TaskName = '';
                     NewTaskVPop.VPopName = obj.VPopPopupTableItems{1};
                     NewTaskVPop.Group = '';
                     obj.TemporarySimulation.Item(end+1) = NewTaskVPop;
@@ -371,7 +375,24 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
         end
         
         function onTableSelectionChange(obj,eventData)
-            obj.SelectedRow = eventData.Indices(1);
+            Indices = eventData.Indices;
+            obj.SelectedRow = Indices(1);
+            
+            RowIdx = Indices(1,1);
+            ColIdx = Indices(1,2);
+            
+            % if a task cell is selected
+            if size(Indices,1)==1 && ColIdx==1
+                selectedTaskNode = obj.getTaskNode();
+                if ~(isempty(selectedTaskNode) || strcmp(selectedTaskNode, ""))
+                    if ~isequal(obj.TemporarySimulation.Item(RowIdx).TaskName,selectedTaskNode)
+                        obj.TemporarySimulation.Item(RowIdx).MATFileName = '';
+                    end
+                    obj.TemporarySimulation.Item(RowIdx).TaskName = char(selectedTaskNode);
+                    obj.updateSimulationTable();
+                end
+            end
+            
             obj.IsDirty = true;
         end
         
@@ -389,10 +410,10 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
             % Update entry
             HasChanged = false;
             if ColIdx == 1
-                if ~isequal(obj.TemporarySimulation.Item(RowIdx).TaskName,eventData.NewData)
+                if ~isequal(obj.TemporarySimulation.Item(RowIdx).TaskName,selectedTaskNode)
                     HasChanged = true;                    
                 end
-                obj.TemporarySimulation.Item(RowIdx).TaskName = eventData.NewData;
+                obj.TemporarySimulation.Item(RowIdx).TaskName = selectedTaskNode;
             elseif ColIdx == 3 % Group
                 if ~isequal(obj.TemporarySimulation.Item(RowIdx).VPopName,eventData.NewData)
                     HasChanged = true;                    
@@ -1076,7 +1097,11 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
                     % Task
                     MatchIdx = find(~ismember(TaskNames(:),obj.TaskPopupTableItems(:)));
                     for index = MatchIdx(:)'
-                        Data{index,1} = QSP.makeInvalid(Data{index,1});
+                        if isempty(Data{index,1})
+                            Data{index,1} = 'Click to configure';
+                        else
+                            Data{index,1} = QSP.makeInvalid(Data{index,1});
+                        end
                     end        
                     % VPop
                     MatchIdx = find(~ismember(VPopNames(:),obj.VPopPopupTableItems(:)));
@@ -1101,12 +1126,12 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
         end
         
         function [columnFormat,editableTF] = replaceEmptyDropdowns(obj)
-            columnFormat = {obj.TaskPopupTableItems,obj.VPopPopupTableItems,'char','char'};
-            editableTF = [true,true,true,true];
-            if isempty(columnFormat{1})
-                columnFormat{1} = 'char';
-                editableTF(1) = false;
-            end
+            columnFormat = {[],obj.VPopPopupTableItems,'char','char'};
+            editableTF = [false,true,true,true];
+%             if isempty(columnFormat{1})
+%                 columnFormat{1} = 'char';
+%                 editableTF(1) = false;
+%             end
             if isempty(columnFormat{2})
                 columnFormat{2} = 'char';
                 editableTF(2) = false;
@@ -1425,6 +1450,42 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
                 obj.GroupTable.ColumnFormat = {'logical','char','char','char'};
                 obj.GroupTable.ColumnEditable = [true,false,false,true];
             end
+        end
+        
+        function selectedTaskNode = getTaskNode(obj)
+            % get session node for this object
+            currentNode = obj.Simulation.TreeNode;
+            sessionNode = currentNode.Parent;
+            while ~strcmp(sessionNode.Tag, 'Session')
+                sessionNode = sessionNode.Parent;
+            end
+            
+            % get parent task node
+             allChildrenTag = string({sessionNode.Children.Tag});
+             buildingBlockNode = sessionNode.Children(allChildrenTag=="Building blocks");
+             buildBlockChildrenTag = string({buildingBlockNode.Children.Tag});
+             taskNode = buildingBlockNode.Children(buildBlockChildrenTag=="Task");
+             
+             % launch tree selection node dialog for user's input
+             if verLessThan('matlab','9.9')
+                nodeSelDialog = QSPViewerNew.Widgets.TreeNodeSelectionModalDialog (obj, ...
+                    taskNode, ...
+                    'ParentAppPosition', sessionNode.Parent.Parent.Parent.Parent.Parent.Position, ...
+                    'DialogName', 'Select task node', ...
+                    'ModalOn', false, ...
+                    'NodeType', "Other");
+            else % Modal UI figures are supported >= 20b
+                nodeSelDialog = QSPViewerNew.Widgets.TreeNodeSelectionModalDialog (obj, ...
+                    taskNode, ...
+                    'ParentAppPosition', sessionNode.Parent.Parent.Parent.Parent.Parent.Position, ...
+                    'DialogName', 'Select task node', ...
+                    'NodeType', "Other");
+            end
+            
+            uiwait(nodeSelDialog.MainFigure);
+            
+            selectedTaskNode = split(obj.SelectedNodePath, filesep);
+            selectedTaskNode  = selectedTaskNode(1);
         end
     end
 end

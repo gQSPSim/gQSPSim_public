@@ -1062,10 +1062,18 @@ classdef ApplicationUI < matlab.apps.AppBase
             end
             
             % assign all current selected nodes to new parent
+            notMovedNodes = [];
             for i = 1:length(app.TreeRoot.SelectedNodes)
                 if isa(app.TreeRoot.SelectedNodes(i).NodeData, class(h.Parent.UserData.NodeData))
                     app.TreeRoot.SelectedNodes(i).Parent = newParentNode;
+                else
+                    notMovedNodes = [notMovedNodes; string(app.TreeRoot.SelectedNodes(i).Text)];
                 end
+            end
+            
+            if ~isempty(notMovedNodes)
+                msg = sprintf("Following node(s) were selected but not moved because they did not belong to the same type:\n%s", join(notMovedNodes, ', '));
+                uialert(app.UIFigure, msg, "Node(s) not moved");
             end
         end
     end
@@ -1864,7 +1872,11 @@ classdef ApplicationUI < matlab.apps.AppBase
             
             %Update the selected node's name in the tree based on the
             %name,unless it is a session
-            SelNode = app.TreeRoot.SelectedNodes;
+            if ~isempty(app.TreeRoot.SelectedNodes)
+                SelNode = app.TreeRoot.SelectedNodes(end);
+            else
+                SelNode =[];
+            end
             checkScalerTF = isscalar(SelNode) && isscalar(SelNode.NodeData);
             checkTypeTF =~isempty(SelNode) && isprop(SelNode.NodeData,'Name') && ~strcmp(SelNode.NodeData.Name, SelNode.Text) && ...
             ~strcmpi(class(SelNode.NodeData),'QSP.Session'); %We dont want to update the name for a session
