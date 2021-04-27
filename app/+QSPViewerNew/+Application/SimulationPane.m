@@ -1454,7 +1454,7 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
         
         function selectedTaskNode = getTaskNode(obj)
             % get session node for this object
-            currentNode = obj.Simulation.TreeNode;
+            currentNode = obj.TemporarySimulation.TreeNode;
             sessionNode = currentNode.Parent;
             while ~strcmp(sessionNode.Tag, 'Session')
                 sessionNode = sessionNode.Parent;

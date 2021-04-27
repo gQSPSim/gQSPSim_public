@@ -20,6 +20,7 @@ classdef AddRemoveTable < handle
         lastChangeRow;
         lastChangedColumn;
         lastChangedValue;
+        SelectedCell = [];
     end
     
     properties (Access = private)
@@ -35,6 +36,8 @@ classdef AddRemoveTable < handle
         NewRowChange
         DeleteRowChange
         EditValueChange
+        SelectionChange
+        DuplicateRowChange
     end
     
     
@@ -81,7 +84,7 @@ classdef AddRemoveTable < handle
 
             %Add the left list box
             obj.TableMain = uitable(obj.GridMain);
-            obj.TableMain.Layout.Row =[1,3];
+            obj.TableMain.Layout.Row =[1,4];
             obj.TableMain.Layout.Column =2;
             obj.TableMain.CellSelectionCallback = @obj.onSelectionChange;
             obj.TableMain.CellEditCallback = @obj.onValueChange;
@@ -150,13 +153,19 @@ classdef AddRemoveTable < handle
         
         function onDuplicateItem(obj,~,~)
             obj.TableMain.Data = [obj.TableMain.Data;obj.TableMain.Data(obj.Selected,:)];
-            obj.notify('NewRowChange')
+            obj.notify('DuplicateRowChange')
             obj.Selected = 0;
             obj.refreshButtons();
         end
         
         function onSelectionChange(obj,~,e)
             obj.Selected = e.Indices(1);
+            if size(e.Indices,1) == 1 % populate only if one cell is selected
+                obj.SelectedCell = e.Indices(1,:);
+            else
+                obj.SelectedCell = [];
+            end
+            obj.notify('SelectionChange')
             obj.refreshButtons();
         end
         
@@ -206,6 +215,10 @@ classdef AddRemoveTable < handle
         
         function [value] = getSelectedRow(obj)
             value = obj.Selected;
+        end
+        
+        function value = getSelectedCell(obj)
+            value = obj.SelectedCell;
         end
         
         function setFormat(obj,input)

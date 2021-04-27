@@ -46,9 +46,13 @@ classdef TreeNodeSelectionModalDialog < handle & ...
         end
         
         function delete(obj)
-            obj.ParentApp.SelectedNodePath = obj.getFullNodePath(obj.SelectedNode);
+%             selectedNodePath = obj.getFullNodePath(obj.SelectedNode);
+%             if ~isempty(selectedNodePath) || selectedNodePath ~= ""
+                obj.ParentApp.SelectedNodePath = obj.getFullNodePath(obj.SelectedNode);
+%             else
+%                 obj.ParentApp.SelectedNodePath = [];
+%             end
             delete(obj.MainFigure);
-%             uiresume(obj.ParentFigure);
         end
         
     end
@@ -71,6 +75,7 @@ classdef TreeNodeSelectionModalDialog < handle & ...
             else
                 obj.MainFigure.WindowStyle = 'normal';
             end
+            obj.MainFigure.CloseRequestFcn = @(h,e) obj.delete();
             
             % Create grid layout
             obj.MainGrid = uigridlayout(obj.MainFigure);

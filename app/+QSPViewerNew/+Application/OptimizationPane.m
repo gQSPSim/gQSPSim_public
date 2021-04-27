@@ -84,7 +84,11 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
         SpeciesInitialTableAddListener 
         OptimizationTableRemoveListener
         SpeciesDataTableRemoveListener 
-        SpeciesInitialTableRemoveListener 
+        SpeciesInitialTableRemoveListener
+        OptimizationTableSelectionListener
+        OptimizationTableDuplicateListener
+        SpeciesDataTableDuplicateListener
+        SpeciesInitialTableDuplicateListener
     end
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -98,9 +102,11 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
         AlgorithmLabel                  matlab.ui.control.Label
         AlgorithmDropDown               matlab.ui.control.DropDown
         ParametersLabel                 matlab.ui.control.Label
-        ParametersDropDown              matlab.ui.control.DropDown
+        ParametersSelectionLabel        matlab.ui.control.Label
+        ParametersSelectionButton       matlab.ui.control.Button
         DatasetLabel                    matlab.ui.control.Label
-        DatasetDropDown                 matlab.ui.control.DropDown
+        DatasetSelectionLabel           matlab.ui.control.Label
+        DatasetSelectionButton          matlab.ui.control.Button
         GroupColumnLabel                matlab.ui.control.Label
         GroupColumnDropDown             matlab.ui.control.DropDown
         IDColumnLabel                   matlab.ui.control.Label
@@ -141,6 +147,10 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
         PlotItemsTableMenu
         
     end
+    
+    properties
+        SelectedNodePath
+    end
         
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Constructor and destructor
@@ -176,7 +186,7 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
             
             %InnerLayout
             obj.InnerLayout = uigridlayout(obj.EditLayout());
-            obj.InnerLayout.ColumnWidth = {obj.LabelLength,'1x',obj.LabelLength,'1x'};
+            obj.InnerLayout.ColumnWidth = {obj.LabelLength,'1x', obj.ButtonWidth, obj.WidgetWidthSpacing, obj.LabelLength,'1x'};
             obj.InnerLayout.RowHeight = {obj.LabelHeight,obj.LabelHeight,obj.LabelHeight};
             obj.InnerLayout.ColumnSpacing = 0;
             obj.InnerLayout.RowSpacing = 0;
@@ -191,7 +201,7 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
             %Algorithm DropDown
             obj.AlgorithmDropDown = uidropdown(obj.InnerLayout);
             obj.AlgorithmDropDown.Layout.Row = 1;
-            obj.AlgorithmDropDown.Layout.Column = 2;
+            obj.AlgorithmDropDown.Layout.Column = [2, 3];
             
             %Parameters Label
             obj.ParametersLabel = uilabel(obj.InnerLayout);
@@ -199,10 +209,16 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
             obj.ParametersLabel.Layout.Row = 2;
             obj.ParametersLabel.Layout.Column = 1;
             
-            %Parameters Dropdown
-            obj.ParametersDropDown = uidropdown(obj.InnerLayout);
-            obj.ParametersDropDown.Layout.Row = 2;
-            obj.ParametersDropDown.Layout.Column = 2;
+            %Parameters value label
+            obj.ParametersSelectionLabel = uilabel(obj.InnerLayout);
+            obj.ParametersSelectionLabel.Layout.Row = 2;
+            obj.ParametersSelectionLabel.Layout.Column = 2;
+            
+            %Parameters selection button
+            obj.ParametersSelectionButton = uibutton(obj.InnerLayout);
+            obj.ParametersSelectionButton.Layout.Row = 2;
+            obj.ParametersSelectionButton.Layout.Column = 3;
+            obj.ParametersSelectionButton.Text = '...';
             
             %Dataset Label
             obj.DatasetLabel = uilabel(obj.InnerLayout);
@@ -210,32 +226,38 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
             obj.DatasetLabel.Layout.Row = 3;
             obj.DatasetLabel.Layout.Column = 1;
             
-            %Dataset Dropdown
-            obj.DatasetDropDown = uidropdown(obj.InnerLayout);
-            obj.DatasetDropDown.Layout.Row = 3;
-            obj.DatasetDropDown.Layout.Column = 2;
+            %Dataset value level
+            obj.DatasetSelectionLabel = uilabel(obj.InnerLayout);
+            obj.DatasetSelectionLabel.Layout.Row = 3;
+            obj.DatasetSelectionLabel.Layout.Column = 2;
+            
+            %Parameters selection button
+            obj.DatasetSelectionButton = uibutton(obj.InnerLayout);
+            obj.DatasetSelectionButton.Layout.Row = 3;
+            obj.DatasetSelectionButton.Layout.Column = 3;
+            obj.DatasetSelectionButton.Text = '...';
             
             %Group Column Label
             obj.GroupColumnLabel = uilabel(obj.InnerLayout);
             obj.GroupColumnLabel.Text = 'Group Column';
             obj.GroupColumnLabel.Layout.Row = 1;
-            obj.GroupColumnLabel.Layout.Column = 3;
+            obj.GroupColumnLabel.Layout.Column = 5;
             
             %Group Column Dropdown
             obj.GroupColumnDropDown = uidropdown(obj.InnerLayout);
             obj.GroupColumnDropDown.Layout.Row = 1;
-            obj.GroupColumnDropDown.Layout.Column = 4;
+            obj.GroupColumnDropDown.Layout.Column = 6;
             
             %ID Column Label
             obj.IDColumnLabel = uilabel(obj.InnerLayout);
             obj.IDColumnLabel.Text = 'ID Column';
             obj.IDColumnLabel.Layout.Row = 2;
-            obj.IDColumnLabel.Layout.Column = 3;
+            obj.IDColumnLabel.Layout.Column = 5;
             
             %ID Column Dropdown
             obj.IDColumnDropDown = uidropdown(obj.InnerLayout);
             obj.IDColumnDropDown.Layout.Row = 2;
-            obj.IDColumnDropDown.Layout.Column = 4;
+            obj.IDColumnDropDown.Layout.Column = 6;
             
             %SeedSubLayout
             obj.SeedSubLayout = uigridlayout(obj.InnerLayout());
@@ -245,7 +267,7 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
             obj.SeedSubLayout.RowSpacing = 0;
             obj.SeedSubLayout.Padding = [0 0 0 0];
             obj.SeedSubLayout.Layout.Row = 3;
-            obj.SeedSubLayout.Layout.Column = [3,4];
+            obj.SeedSubLayout.Layout.Column = [5,6];
             
             %FixSeed CheckBox
             obj.FixSeedCheckBox = uicheckbox(obj.SeedSubLayout);
@@ -435,10 +457,16 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
         obj.SpeciesDataTableRemoveListener = addlistener(obj.SpeciesDataTable,'DeleteRowChange',@(src,event) obj.onRemoveSpecies());
         obj.SpeciesInitialTableRemoveListener = addlistener(obj.SpeciesInitialTable,'DeleteRowChange',@(src,event) obj.onRemoveInitialConditions());
         
+        obj.OptimizationTableSelectionListener = addlistener(obj.OptimizationTable,'SelectionChange',@(src,event) obj.onSelChangedOptimItems());
+        
+        obj.OptimizationTableDuplicateListener = addlistener(obj.OptimizationTable,'DuplicateRowChange',@(src,event) obj.onDuplicateOptimItems());
+        obj.SpeciesDataTableDuplicateListener = addlistener(obj.SpeciesDataTable,'DuplicateRowChange',@(src,event) obj.onDuplicateSpecies());
+        obj.SpeciesInitialTableDuplicateListener = addlistener(obj.SpeciesInitialTable,'DuplicateRowChange',@(src,event) obj.onDuplicateInitialConditions());
+        
         %Callbacks
         obj.AlgorithmDropDown.ValueChangedFcn = @(h,e) obj.onEditAlgorithm(e.Value);
-        obj.ParametersDropDown.ValueChangedFcn = @(h,e) obj.onEditParametersEdit(e.Value);
-        obj.DatasetDropDown.ValueChangedFcn  =  @(h,e) obj.onEditDataset(e.Value);
+        obj.ParametersSelectionButton.ButtonPushedFcn = @(h,e) obj.onEditParametersEdit();
+        obj.DatasetSelectionButton.ButtonPushedFcn  =  @(h,e) obj.onEditDataset();
         obj.GroupColumnDropDown.ValueChangedFcn = @(h,e) obj.onEditGroupColumn(e.Value);
         obj.IDColumnDropDown.ValueChangedFcn = @(h,e) obj.onEditIDColumn(e.Value);
         obj.FixSeedCheckBox.ValueChangedFcn = @(h,e) obj.onEditRNGCheck(e.Value);
@@ -469,36 +497,44 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
             obj.IsDirty = true;
         end
         
-        function onEditParametersEdit(obj,newValue)
-            obj.TemporaryOptimization.RefParamName = newValue;
-           
-            % Try importing to load data for Parameters view
-            MatchIdx = strcmp({obj.TemporaryOptimization.Settings.Parameters.Name},obj.TemporaryOptimization.RefParamName);
-            if any(MatchIdx)
-                pObj = obj.TemporaryOptimization.Settings.Parameters(MatchIdx);
-                [StatusOk,Message,obj.ParametersHeader,obj.ParametersData] = importData(pObj,pObj.FilePath);
-                if ~StatusOk
-                     uialert(obj.getUIFigure,Message,'Parameter Import Failed');
-                else
-                    %In the old implementation, they edit the main copy
-                    %instead of the temporary. Need to see why
-                    obj.TemporaryOptimization.clearData();
+        function onEditParametersEdit(obj)
+            selection = obj.getSelectionNode("Parameters");
+            if ~(isempty(selection) || selection=="")
+                obj.TemporaryOptimization.RefParamName = char(selection);
+                obj.ParametersSelectionLabel.Text = selection;
+                
+                % Try importing to load data for Parameters view
+                MatchIdx = strcmp({obj.TemporaryOptimization.Settings.Parameters.Name},obj.TemporaryOptimization.RefParamName);
+                if any(MatchIdx)
+                    pObj = obj.TemporaryOptimization.Settings.Parameters(MatchIdx);
+                    [StatusOk,Message,obj.ParametersHeader,obj.ParametersData] = importData(pObj,pObj.FilePath);
+                    if ~StatusOk
+                        uialert(obj.getUIFigure,Message,'Parameter Import Failed');
+                    else
+                        %In the old implementation, they edit the main copy
+                        %instead of the temporary. Need to see why
+                        obj.TemporaryOptimization.clearData();
+                    end
                 end
+                
+                %Update impact components
+                obj.redrawParametersTable();
+                obj.IsDirty = true;
             end
-            
-            %Update impact components
-            obj.redrawParametersTable();
-            obj.IsDirty = true;
         end
         
-        function onEditDataset(obj,newValue)
-            obj.TemporaryOptimization.DatasetName = newValue;
-            
-            %redraw impacted components (All 3 tables)
-            obj.redrawOptimItems();
-            obj.redrawSpecies();
-            obj.redrawInitialConditions();
-            obj.IsDirty = true;
+        function onEditDataset(obj)
+            selection = obj.getSelectionNode("OptimizationData");
+            if ~(isempty(selection) || selection=="")
+                obj.TemporaryOptimization.DatasetName = char(selection);
+                obj.DatasetSelectionLabel.Text = selection;
+                
+                %redraw impacted components (All 3 tables)
+                obj.redrawOptimItems();
+                obj.redrawSpecies();
+                obj.redrawInitialConditions();
+                obj.IsDirty = true;
+            end
         end
         
         function onEditGroupColumn(obj,newValue)
@@ -565,7 +601,7 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
         function onNewOptimItems(obj)
             if ~isempty(obj.TaskPopupTableItems) && ~isempty(obj.GroupIDPopupTableItems)
                 NewTaskGroup = QSP.TaskGroup;
-                NewTaskGroup.TaskName = obj.TaskPopupTableItems{1};
+                NewTaskGroup.TaskName = '';
                 NewTaskGroup.GroupID = obj.GroupIDPopupTableItems{1};
                 obj.TemporaryOptimization.Item(end+1) = NewTaskGroup;
                 obj.redrawOptimItems();
@@ -575,6 +611,22 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
                 uialert(obj.getUIFigure,'At least one task and the group column must be defined in order to add an optimization item.','Cannot Add');
             end
             obj.IsDirty = true;
+        end
+        
+        function onSelChangedOptimItems(obj)
+            selectedCell = obj.OptimizationTable.getSelectedCell();
+            
+            if ~isempty(selectedCell) && ...
+                    selectedCell(2)==1
+                selectedTaskNode = obj.getSelectionNode("Task");
+                if ~(selectedTaskNode == "" || isempty(selectedTaskNode))
+                    obj.TemporaryOptimization.Item(selectedCell(1)).TaskName = char(selectedTaskNode);
+                    obj.redrawOptimItems();
+                    obj.redrawSpecies();
+                    obj.redrawInitialConditions();
+                    obj.IsDirty = true;
+                end
+            end
         end
         
         function onNewSpecies(obj)
@@ -634,6 +686,60 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
                 obj.redrawInitialConditions();
             end
             obj.IsDirty = true;
+        end
+        
+        function onDuplicateOptimItems(obj)
+            Index = obj.OptimizationTable.getSelectedRow();
+            if ~isempty(Index)
+                if ~isempty(obj.TaskPopupTableItems) && ~isempty(obj.GroupIDPopupTableItems)
+                    NewTaskGroup = QSP.TaskGroup;
+                    NewTaskGroup.TaskName = obj.TemporaryOptimization.Item(Index).TaskName;
+                    NewTaskGroup.GroupID = obj.TemporaryOptimization.Item(Index).GroupID;
+                    obj.TemporaryOptimization.Item(end+1) = NewTaskGroup;
+                    obj.redrawOptimItems();
+                    obj.redrawSpecies();
+                    obj.redrawInitialConditions();
+                else
+                    uialert(obj.getUIFigure,'At least one task and the group column must be defined in order to add an optimization item.','Cannot Add');
+                end
+                obj.IsDirty = true;
+            end
+        end
+        
+        function onDuplicateSpecies(obj)
+            Index = obj.SpeciesDataTable.getSelectedRow();
+            if ~isempty(Index)
+                if ~isempty(obj.SpeciesPopupTableItems) && ~isempty(obj.PrunedDatasetHeader)
+                    NewSpeciesData = QSP.SpeciesData;
+                    NewSpeciesData.SpeciesName = obj.TemporaryOptimization.SpeciesData(Index).SpeciesName;
+                    NewSpeciesData.DataName = obj.TemporaryOptimization.SpeciesData(Index).DataName;
+                    DefaultExpression = 'x';
+                    NewSpeciesData.FunctionExpression = DefaultExpression;
+                    obj.TemporaryOptimization.SpeciesData(end+1) = NewSpeciesData;
+                    obj.redrawSpecies()
+                else
+                    uialert(obj.getUIFigure,'At least one task with active species and a non-empty datset must be defined in order to add an optimization item.','Cannot Add');
+                end
+                 obj.IsDirty = true;
+            end
+
+        end
+        
+        function onDuplicateInitialConditions(obj)
+            Index = obj.SpeciesInitialTable.getSelectedRow();
+            if ~isempty(Index)
+                if ~isempty(obj.SpeciesPopupTableItems) && ~isempty(obj.PrunedDatasetHeader)
+                    NewSpeciesIC = QSP.SpeciesData;
+                    NewSpeciesIC.SpeciesName = obj.TemporaryOptimization.SpeciesIC(Index).SpeciesName;
+                    NewSpeciesIC.DataName = obj.TemporaryOptimization.SpeciesIC(Index).DataName;
+                    NewSpeciesIC.FunctionExpression = obj.TemporaryOptimization.SpeciesIC(Index).FunctionExpression;
+                    obj.TemporaryOptimization.SpeciesIC(end+1) = NewSpeciesIC;
+                    obj.redrawInitialConditions();
+                else
+                    uialert(obj.getUIFigure,'At least one task with active species and a non-empty datset must be defined in order to add an optimization item.','Cannot Add');
+                end
+                obj.IsDirty = true;
+            end
         end
         
         %Callbacks for the Visualization View
@@ -1361,8 +1467,7 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
             end
             obj.ParameterPopupItems = FullList;
             obj.ParameterPopupItemsWithInvalid = FullListWithInvalids;
-            obj.ParametersDropDown.Items = FullListWithInvalids;
-            obj.ParametersDropDown.Value = FullListWithInvalids{Value};
+            obj.ParametersSelectionLabel.Text = FullListWithInvalids{Value};
         end
         
         function redrawParametersTable(obj)
@@ -1420,8 +1525,7 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
             end
             obj.DatasetPopupItems = FullList;
             obj.DatasetPopupItemsWithInvalid = FullListWithInvalids;
-            obj.DatasetDropDown.Items = FullListWithInvalids;
-            obj.DatasetDropDown.Value = FullListWithInvalids{Value};
+            obj.DatasetSelectionLabel.Text = FullListWithInvalids{Value};
             
         end
         
@@ -1523,8 +1627,8 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
                     for index = 1:numel(TaskNames)
                         ThisTask = getValidSelectedTasks(obj.TemporaryOptimization.Settings,TaskNames{index});
                         % Mark invalid if empty
-                        if isempty(ThisTask)            
-                            Data{index,1} = QSP.makeInvalid(Data{index,1});
+                        if isempty(ThisTask)
+                            Data{index,1} = 'Click to configure';
                         end
                     end
                     MatchIdx = find(~ismember(GroupIDs(:),obj.GroupIDPopupTableItems(:)));
@@ -1544,15 +1648,16 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
                 end    
                 GroupIDs = unique(GroupIDs);
                 obj.GroupIDPopupTableItems = cellfun(@(x)num2str(x),num2cell(GroupIDs),'UniformOutput',false);
-                obj.OptimizationTable.setFormat({obj.TaskPopupTableItems(:)',obj.GroupIDPopupTableItems(:)','char'});
-                obj.OptimizationTable.setEditable([true true false]);
+%                 obj.OptimizationTable.setFormat({obj.TaskPopupTableItems(:)',obj.GroupIDPopupTableItems(:)','char'});
+                obj.OptimizationTable.setFormat({[],obj.GroupIDPopupTableItems(:)','char'});
+                obj.OptimizationTable.setEditable([false true false]);
             else
                 obj.OptimizationTable.setFormat({'char','char','char'});
                 obj.OptimizationTable.setEditable([false false false]);
                 obj.GroupIDPopupTableItems = {};
             end
             
-            obj.OptimizationTable.setEditable([true true false]);
+            obj.OptimizationTable.setEditable([false true false]);
             obj.OptimizationTable.setName({'Task','Group','Run To Steady State'});
             obj.OptimizationTable.setData(Data)
         end
@@ -2176,6 +2281,47 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
             TemporaryPanel.wait();
             Value = TemporaryPanel.getValue();
             delete(TemporaryPanel);
+        end
+        
+        function selectedNode = getSelectionNode(obj, type)
+            % get session node for this object
+            currentNode = obj.TemporaryOptimization.TreeNode;
+            sessionNode = currentNode.Parent;
+            while ~strcmp(sessionNode.Tag, 'Session')
+                sessionNode = sessionNode.Parent;
+            end
+            
+            % get parent task node
+             allChildrenTag = string({sessionNode.Children.Tag});
+             buildingBlockNode = sessionNode.Children(allChildrenTag=="Building blocks");
+             buildBlockChildrenTag = string({buildingBlockNode.Children.Tag});
+             parentTypeNode = buildingBlockNode.Children(buildBlockChildrenTag==type);
+             
+             % launch tree selection node dialog for user's input
+             if verLessThan('matlab','9.9')
+                nodeSelDialog = QSPViewerNew.Widgets.TreeNodeSelectionModalDialog (obj, ...
+                    parentTypeNode, ...
+                    'ParentAppPosition', sessionNode.Parent.Parent.Parent.Parent.Parent.Position, ...
+                    'DialogName', 'Select task node', ...
+                    'ModalOn', false, ...
+                    'NodeType', "Other");
+            else % Modal UI figures are supported >= 20b
+                nodeSelDialog = QSPViewerNew.Widgets.TreeNodeSelectionModalDialog (obj, ...
+                    parentTypeNode, ...
+                    'ParentAppPosition', sessionNode.Parent.Parent.Parent.Parent.Parent.Position, ...
+                    'DialogName', 'Select task node', ...
+                    'NodeType', "Other");
+            end
+            
+            uiwait(nodeSelDialog.MainFigure);
+            
+%             if ~isempty(obj.SelectedNodePath)
+                selectedNode = split(obj.SelectedNodePath, filesep);
+                selectedNode  = selectedNode(1);
+%             else
+%                 selectedTaskNode = [];
+%             end
+%             obj.SelectedNodePath = [];
         end
 
     end
