@@ -37,6 +37,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
                          
         StaleFlag
         ValidFlag
+        
     end
     
     % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -239,7 +240,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             obj.PropagateTaskValueButton.ButtonPushedFcn = @(h,e)obj.onPropagateSensitivityOutputValue();
             
             % task table
-            obj.TaskTable                       = uitable(obj.TaskGrid);
+            obj.TaskTable                       = uitable(obj.TaskGrid, 'ColumnSortable', true);
             obj.TaskTable.Layout.Row            = 1;
             obj.TaskTable.Layout.Column         = 2;
             obj.TaskTable.Data                  = cell(0,4);
@@ -338,7 +339,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             obj.MoveDownSobolIndexButton.Text            = '';
             obj.MoveDownSobolIndexButton.ButtonPushedFcn = @(h,e)obj.onPlotTableButtonPress(h);
             % table
-            obj.SobolIndexTable                       = uitable(obj.SobolIndexGrid);
+            obj.SobolIndexTable                       = uitable(obj.SobolIndexGrid, 'ColumnSortable', true);
             obj.SobolIndexTable.Layout.Row            = 1;
             obj.SobolIndexTable.Layout.Column         = 2;
             obj.SobolIndexTable.Data                  = cell(0,7);
@@ -393,7 +394,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             obj.SelectColorButton.Text            = '';
             obj.SelectColorButton.ButtonPushedFcn = @(h,e)obj.setPlotItemColor();
             % table
-            obj.PlotItemsTable                       = uitable(obj.PlotItemsGrid);
+            obj.PlotItemsTable                       = uitable(obj.PlotItemsGrid, 'ColumnSortable', true);
             obj.PlotItemsTable.Layout.Row            = 1;
             obj.PlotItemsTable.Layout.Column         = 2;
             obj.PlotItemsTable.Data                  = cell(0,4);
@@ -410,7 +411,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             obj.IterationsLabel.Layout.Column = [1,2];
             obj.IterationsLabel.Text = 'Iterations: select a task';
             obj.IterationsLabel.FontWeight = 'bold';
-            obj.IterationsTable                = uitable(obj.PlotGrid);
+            obj.IterationsTable                = uitable(obj.PlotGrid, 'ColumnSortable', true);
             obj.IterationsTable.Layout.Row     = 7;
             obj.IterationsTable.Layout.Column  = [1,2];
             obj.IterationsTable.Data           = {[],[],[]};

@@ -296,7 +296,7 @@ classdef CohortGenerationPane < QSPViewerNew.Application.ViewPane
             obj.ParametersTableLabel.Layout.Row = 5;
             obj.ParametersTableLabel.Layout.Column = 1;
             
-            obj.ParametersTable = uitable(obj.EditLayout);
+            obj.ParametersTable = uitable(obj.EditLayout, 'ColumnSortable', true);
             obj.ParametersTable.Layout.Row = 6;
             obj.ParametersTable.Layout.Column = 1;
             obj.ParametersTable.ColumnEditable = false;
@@ -343,7 +343,7 @@ classdef CohortGenerationPane < QSPViewerNew.Application.ViewPane
             obj.VisSpeciesDataTableLabel.Layout.Row = 3;
             obj.VisSpeciesDataTableLabel.Layout.Column = 1;
             
-            obj.VisSpeciesDataTable = uitable(obj.VisLayout);
+            obj.VisSpeciesDataTable = uitable(obj.VisLayout, 'ColumnSortable', true);
             obj.VisSpeciesDataTable.Layout.Row = 4;
             obj.VisSpeciesDataTable.Layout.Column = 1;
             obj.VisSpeciesDataTable.ColumnEditable = false;
@@ -360,7 +360,7 @@ classdef CohortGenerationPane < QSPViewerNew.Application.ViewPane
             obj.VisVirtCohortItemsTableLabel.Layout.Row = 6;
             obj.VisVirtCohortItemsTableLabel.Layout.Column = 1;
             
-            obj.VisVirtCohortItemsTable = uitable(obj.VisLayout);
+            obj.VisVirtCohortItemsTable = uitable(obj.VisLayout, 'ColumnSortable', true);
             obj.VisVirtCohortItemsTable.Layout.Row = 7;
             obj.VisVirtCohortItemsTable.Layout.Column = 1;
             obj.VisVirtCohortItemsTable.ColumnEditable = false;

@@ -85,35 +85,35 @@ classdef SettingsCustom < QSPViewerNew.Widgets.ModalPopup
             
             %Create the 5 tables
             
-            obj.LabelTable = uitable(obj.PanelQuestGrid);
+            obj.LabelTable = uitable(obj.PanelQuestGrid, 'ColumnSortable', true);
             obj.LabelTable.Layout.Row = 2;
             obj.LabelTable.Layout.Column = 1;
             obj.LabelTable.CellEditCallback = @obj.onTableEdit;
             obj.LabelTable.CellSelectionCallback = @obj.onTableSelection;
             obj.LabelTable.Tag = 'Label';
             
-            obj.BandTable = uitable(obj.PanelQuestGrid);
+            obj.BandTable = uitable(obj.PanelQuestGrid, 'ColumnSortable', true);
             obj.BandTable.Layout.Row = 2;
             obj.BandTable.Layout.Column = 2;
             obj.BandTable.CellEditCallback = @obj.onTableEdit;
             obj.BandTable.CellSelectionCallback = @obj.onTableSelection;
             obj.BandTable.Tag = 'Band';
             
-            obj.FontTable = uitable(obj.PanelQuestGrid);
+            obj.FontTable = uitable(obj.PanelQuestGrid, 'ColumnSortable', true);
             obj.FontTable.Layout.Row = 3;
             obj.FontTable.Layout.Column = [1,2];
             obj.FontTable.CellEditCallback = @obj.onTableEdit;
             obj.FontTable.CellSelectionCallback = @obj.onTableSelection;
             obj.FontTable.Tag = 'Font';
             
-            obj.GridTable = uitable(obj.PanelQuestGrid);
+            obj.GridTable = uitable(obj.PanelQuestGrid, 'ColumnSortable', true);
             obj.GridTable.Layout.Row = 4;
             obj.GridTable.Layout.Column = [1,2];
             obj.GridTable.CellEditCallback = @obj.onTableEdit;
             obj.GridTable.CellSelectionCallback = @obj.onTableSelection;
             obj.GridTable.Tag = 'Grid';
             
-            obj.LineTable = uitable(obj.PanelQuestGrid);
+            obj.LineTable = uitable(obj.PanelQuestGrid, 'ColumnSortable', true);
             obj.LineTable.Layout.Row = 5;
             obj.LineTable.Layout.Column = [1,2];
             obj.LineTable.CellEditCallback = @obj.onTableEdit;
