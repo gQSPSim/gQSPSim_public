@@ -49,8 +49,8 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
         PlotOutputs = cell(0,1) % Outputs
         
         % Properties that are NOT part of the public API
-        ParametersName_I = []        % needs to be public for copy to work
-        ResultsFolderParts_I = {''}  % needs to be public for copy to work
+        ParametersName_I = []                  % needs to be public for copy to work
+        ResultsFolderParts_I = {'gsaResults'}  % needs to be public for copy to work
         
         % Map associating plotted data to table entries.
         % When data is plotted, Plot2TableMap is a cell vector of length

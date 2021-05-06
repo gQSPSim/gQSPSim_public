@@ -50,9 +50,9 @@ function [statusOk, message] = runHelper(obj, progressCallback)
         elseif obj.Item(i).NumberSamples > 0
             % Results already exists; initialize progress status with existing
             % results:
-            tfStoppingToleranceMet = updateProgressStatus(obj, progressCallback, i, ...
+            tfStopRequested = updateProgressStatus(obj, progressCallback, i, ...
                 numIterations, numSamplesPerIteration);
-            if tfStoppingToleranceMet
+            if tfStopRequested
                 % Nothing to do: existing results already satisfy the
                 % stopping condition.
                 obj.Item(i).IterationInfo(2) = 0;
@@ -131,11 +131,10 @@ function [statusOk, message] = runHelper(obj, progressCallback)
                 obj.Item(i).IterationInfo(2) = obj.Item(i).IterationInfo(2) - 1;
                 
                 % Call callback for progress indication
-                tfStoppingToleranceMet = updateProgressStatus(obj, progressCallback, i, ...
+                tfStopRequested = updateProgressStatus(obj, progressCallback, i, ...
                 numIterations, numSamplesPerIteration);
-                if tfStoppingToleranceMet
+                if tfStopRequested
                     obj.Item(i).IterationInfo(2) = 0;
-                    break;
                 end
                 
             end
@@ -161,7 +160,7 @@ function [statusOk, message] = runHelper(obj, progressCallback)
 end
 
 
-function tfStoppingToleranceMet = updateProgressStatus(obj, progressCallback, i, numIterations, numSamplesPerIteration)
+function tfStopRequested = updateProgressStatus(obj, progressCallback, i, numIterations, numSamplesPerIteration)
     
     [samples, differences] = obj.getConvergenceStats(i);
 
@@ -174,18 +173,23 @@ function tfStoppingToleranceMet = updateProgressStatus(obj, progressCallback, i,
     messages{5} = '';
     if isempty(differences) || isnan(differences(end))
         messages{6} = 'Computing max. diff. between Sobol indices';
-        tfStoppingToleranceMet = false;
+        tfStoppingCriterionMet = false;
     else
         messages{6} = sprintf('Max. difference in iteration %d: %g', numIterations-obj.Item(i).IterationInfo(2), differences(end));
-        tfStoppingToleranceMet = differences(end) <= obj.StoppingTolerance;
+        tfStoppingCriterionMet = differences(end) <= obj.StoppingTolerance;
     end
-    if tfStoppingToleranceMet
+    if tfStoppingCriterionMet
         messages{3} = sprintf('Stopping criterion met in iteration %d of %d', numIterations-obj.Item(i).IterationInfo(2), numIterations);
         messages{4} = '';        
     end
     messages{7} = sprintf('Target difference: %d', obj.StoppingTolerance);
     
-    progressCallback(false, i, messages, samples, differences);
+    tfStopRequested = progressCallback(false, i, messages, samples, differences);
+    if tfStopRequested && ~tfStoppingCriterionMet
+        messages{3} = sprintf('Stop requested in iteration %d of %d', numIterations-obj.Item(i).IterationInfo(2), numIterations);
+        messages{4} = '';        
+        progressCallback(false, i, messages, samples, differences);
+    end
     
 end
 

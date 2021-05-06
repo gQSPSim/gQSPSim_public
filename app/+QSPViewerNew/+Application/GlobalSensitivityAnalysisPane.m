@@ -75,8 +75,9 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
         TaskButtonGrid              matlab.ui.container.GridLayout
         NewTaskButton               matlab.ui.control.Button
         RemoveTaskButton            matlab.ui.control.Button
-        PropagateTaskValueButton    matlab.ui.control.Button
         TaskTable                   matlab.ui.control.Table
+        TaskTableContextMenu        matlab.ui.container.ContextMenu
+        TaskTableMenu               matlab.ui.container.Menu
         
         %% Plot panel
         PlotGrid                    matlab.ui.container.GridLayout
@@ -213,8 +214,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             obj.TaskButtonGrid = uigridlayout(obj.TaskGrid);
             obj.TaskButtonGrid.ColumnWidth = {'1x'};
             obj.TaskButtonGrid.RowHeight = {obj.ButtonHeight, ... % add
-                                            obj.ButtonHeight, ... % remove
-                                            obj.ButtonHeight};    % propagate value
+                                            obj.ButtonHeight};
             obj.TaskButtonGrid.Layout.Row = 1;
             obj.TaskButtonGrid.Layout.Column = 1;
             obj.TaskButtonGrid.Padding = [0,0,0,0];
@@ -236,14 +236,6 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             obj.RemoveTaskButton.Text            = '';
             obj.RemoveTaskButton.Tooltip         = 'Remove selected sensitivity outputs';
             obj.RemoveTaskButton.ButtonPushedFcn = @(h,e)obj.onRemoveSensitivityOutput();
-            % remove task
-            obj.PropagateTaskValueButton                 = uibutton(obj.TaskButtonGrid,'push');
-            obj.PropagateTaskValueButton.Layout.Row      = 3;
-            obj.PropagateTaskValueButton.Layout.Column   = 1;
-            obj.PropagateTaskValueButton.Icon            = QSPViewerNew.Resources.LoadResourcePath('labelerCustomReader_24.png');
-            obj.PropagateTaskValueButton.Text            = '';
-            obj.PropagateTaskValueButton.Tooltip         = 'Propagate selected value to all sensitivity outputs';
-            obj.PropagateTaskValueButton.ButtonPushedFcn = @(h,e)obj.onPropagateSensitivityOutputValue();
             
             % task table
             obj.TaskTable                       = uitable(obj.TaskGrid);
@@ -259,6 +251,14 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             s = uistyle;
             s.FontColor = [0.75, 0.75, 0.75];
             addStyle(obj.TaskTable, s, 'column', 4);
+            
+            % value propagation context menu
+            obj.TaskTableContextMenu = uicontextmenu(obj.getUIFigure());
+            obj.TaskTableMenu = uimenu(obj.TaskTableContextMenu);
+            obj.TaskTableMenu.Label = sprintf('Select a value in the column ''%s'' or ''%s'' to propagate it to all tasks.',...
+                    obj.TaskTable.ColumnName{2}, obj.TaskTable.ColumnName{3});
+            obj.TaskTableMenu.MenuSelectedFcn = @(h,e)obj.onPropagateSensitivityOutputValue();
+            obj.TaskTable.ContextMenu = obj.TaskTableContextMenu;
             
             % Stopping criterion
             obj.StoppingCriterionGrid               = uigridlayout(obj.EditGrid);
@@ -549,6 +549,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             if source == obj.TaskTable
                 % Sensitivity output table
                 obj.SelectedRow.TaskTable = eventData.Indices;
+                obj.updateValuePropagationContextMenuLabel();
             elseif source == obj.SobolIndexTable
                 % Sobol index table for plotting.
                 % The first index indicates the user-visible selected row.
@@ -616,6 +617,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
                     end
                     item.IterationInfo(1) = ceil(eventData.NewData);
                     obj.TaskTable.Data{rowIdx, colIdx} = item.IterationInfo(1);
+                    obj.updateValuePropagationContextMenuLabel();
                 case 3 % Number of iterations
                     if eventData.NewData < 0 || ~isfinite(eventData.NewData)
                         uialert(obj.getUIFigure(),'Specify a non-negative number of iterations.','Invalid input');
@@ -624,6 +626,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
                     end
                     item.IterationInfo(2) = ceil(eventData.NewData);
                     obj.TaskTable.Data{rowIdx, colIdx} = item.IterationInfo(2);
+                    obj.updateValuePropagationContextMenuLabel();
             end
             
             [statusOk, message] = obj.TemporaryGlobalSensitivityAnalysis.updateItem(rowIdx, item);
@@ -855,6 +858,22 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             messages{6} = '';
             messages{7} = '';
             modalWindow.update(messages, numSamples, maxDifferences);
+        end
+        
+        function updateValuePropagationContextMenuLabel(obj) 
+            rowIdx = obj.SelectedRow.TaskTable(1);
+            colIdx = obj.SelectedRow.TaskTable(2);
+            if colIdx == 2 
+                colName = 'Samples per Iteration';
+            elseif colIdx == 3
+                colName = 'Iteration';
+            else
+                obj.TaskTableMenu.Label = sprintf('Select a value in the column ''%s'' or ''%s'' to propagate it to all tasks.',...
+                    obj.TaskTable.ColumnName{2}, obj.TaskTable.ColumnName{3});
+                return;
+            end
+            value = obj.TaskTable.Data{rowIdx, colIdx};
+            obj.TaskTableMenu.Label = sprintf('Set column ''%s'' to selected value %g.', colName, value);
         end
         
     end
@@ -1287,7 +1306,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             end
         end
         
-        function runProgressIndicator(obj, modalWindow, tfReset, itemIdx, message, samples, data)
+        function tfStopRequested = runProgressIndicator(obj, modalWindow, tfReset, itemIdx, message, samples, data)
             % Usage: progress indicator is a modal window that is open
             % during the computation of GSA results. The modal window can
             % be reset (tfReset == true) to clear plots when switching from
@@ -1299,6 +1318,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
                     obj.GlobalSensitivityAnalysis.Item(itemIdx).Color);
             else
                 modalWindow.update(message, samples, data);
+                tfStopRequested = modalWindow.isStopRequested();
             end            
         end
     end
