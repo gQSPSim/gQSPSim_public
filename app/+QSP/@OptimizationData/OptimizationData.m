@@ -166,8 +166,8 @@ classdef OptimizationData < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             
             try
                 opts = detectImportOptions(DataFilePath);
-                opts.VariableTypes = repmat({'double'},1,numel(opts.VariableTypes)); % Force all columns to be numeric
-                Table = readtable(DataFilePath,opts);                
+%                 opts.VariableTypes = repmat({'double'},1,numel(opts.VariableTypes)); % Force all columns to be numeric
+                Table = readtable(DataFilePath,opts);      
             catch ME
                 Table = table;
                 StatusOk = false;
