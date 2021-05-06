@@ -547,7 +547,7 @@ classdef ApplicationUI < matlab.apps.AppBase
                         'MenuSelectedFcn', @(h,e)app.onRenameFolder(h.Parent.UserData));
                     
                     uimenu('Parent', CM,'Label', 'Delete', ...
-                        'MenuSelectedFcn', @(h,e)app.onDeleteFolder());
+                        'MenuSelectedFcn', @(h,e)app.onDeleteFolder(h.Parent.UserData));
                     
                     %If it is an instance of a QSP Class
                 elseif ~isempty(Node.UserData)
@@ -556,7 +556,7 @@ classdef ApplicationUI < matlab.apps.AppBase
                         'MenuSelectedFcn', @(h,e)app.onAddItem(h.Parent.UserData,h.Parent.UserData.Parent.Parent.NodeData,ThisItemType));
                     
                     uimenu('Parent',CM,'Label', ['Add new Folder'], ...
-                        'MenuSelectedFcn', @(h,e)app.onAddFolder(h.Parent.UserData,h.Parent.UserData.Parent.Parent.NodeData));
+                        'MenuSelectedFcn', @(h,e)app.onAddFolder(h.Parent.UserData,h.Parent.UserData.Parent.Parent.NodeData,ThisItemType));
                     
                     %Not an Instance, just a type
                 else
@@ -574,7 +574,8 @@ classdef ApplicationUI < matlab.apps.AppBase
                         'Parent', CM,...
                         'Text', 'Move to ...',...
                         'Separator', 'on',...
-                        'MenuSelectedFcn', @(h,e) app.onMoveToSelectedItem(h,e));
+                        'MenuSelectedFcn', @(h,e) app.onMoveToSelectedItem(h,e), ...
+                        'Enable', 'off');
                 end
             else
                 switch Type
@@ -935,6 +936,9 @@ classdef ApplicationUI < matlab.apps.AppBase
                 error('Invalid tree parent');
             end
             
+            % update "Move to..." context menu
+            updateMovetoContextMenu(app,ParentNode,itemType);
+            
             % Mark the current session dirty
             app.markDirty(thisSession);
             
@@ -976,8 +980,9 @@ classdef ApplicationUI < matlab.apps.AppBase
             end
         end
         
-        function onDeleteFolder(app)
-            selNodes = app.TreeRoot.SelectedNodes;
+        function onDeleteFolder(app, thisNode)
+            selNodes = [thisNode; app.TreeRoot.SelectedNodes];
+            selNodes = unique(selNodes);
             for i = 1:length(selNodes)
                 node = selNodes(i);
                 if isa(node.NodeData, 'QSP.Folder')
@@ -987,10 +992,14 @@ classdef ApplicationUI < matlab.apps.AppBase
                             "Are you sure you want to delete?");
                         selection = uiconfirm(app.UIFigure, msg, title);
                         if strcmp(selection, 'OK')
+                            parentNode = node.Parent;
                             delete(node);
+                            updateMovetoContextMenu(app,parentNode,itemType);
                         end
                     else
+                        parentNode = node.Parent;
                         delete(node);
+                        updateMovetoContextMenu(app,parentNode);
                     end
                 end
             end
@@ -1029,13 +1038,17 @@ classdef ApplicationUI < matlab.apps.AppBase
         end
        
         function onMoveToSelectedItem(app,h,~)
+            
             currentNode = h.Parent.UserData;
-            while ~isa(currentNode.NodeData, 'QSP.Settings')
+            allItemTypeTags = {'Task'; 'Parameters'; 'OptimizationData'; 'VirtualPopulationData'; ...
+                'VirtualPopulationGenerationData'; 'VirtualPopulation'; 'Simulation'; 'Optimization'; ...
+                'CohortGeneration'; 'VirtualPopulationGeneration'; 'GlobalSensitivityAnalysis'};
+            while ~ismember(currentNode.Tag, allItemTypeTags)
                 currentNode = currentNode.Parent;
             end
             
             parentNode = currentNode;
-            
+
             if verLessThan('matlab','9.9')
                 nodeSelDialog = QSPViewerNew.Widgets.TreeNodeSelectionModalDialog (app, ...
                     parentNode, ...
@@ -1629,17 +1642,7 @@ classdef ApplicationUI < matlab.apps.AppBase
 %             
 %         end
 %         
-%         function nodes = getAllChildrenItemTypeNodes(app, treeNode)
-%             nodes = [];
-%             for i = 1:length(treeNode.Children)
-%                 currentNode = treeNode.Children(i);
-%                 if ~isa(currentNode.NodeData, 'QSP.Folder')
-%                     nodes = [nodes; currentNode];
-%                 else
-%                     nodes = [nodes; getAllChildrenItemTypeNodes(app, currentNode)];
-%                 end
-%             end
-%         end
+%         
         
         function updateAppTitle(app)
             
@@ -2049,6 +2052,48 @@ classdef ApplicationUI < matlab.apps.AppBase
                 app.refresh();
             end
                 
+        end
+        
+        function updateMovetoContextMenu(app,currentNode)
+            allItemTypeTags = {'Task'; 'Parameters'; 'OptimizationData'; 'VirtualPopulationData'; ...
+                'VirtualPopulationGenerationData'; 'VirtualPopulation'; 'Simulation'; 'Optimization'; ...
+                'CohortGeneration'; 'VirtualPopulationGeneration'; 'GlobalSensitivityAnalysis'};
+            while ~ismember(currentNode.Tag, allItemTypeTags)
+                currentNode = currentNode.Parent;
+            end
+            
+            parentNode = currentNode;
+            isfolderIdx = arrayfun(@(x) isa(x.NodeData, 'QSP.Folder'), parentNode.Children);
+            
+            allChildNodes = app.getAllChildrenItemTypeNodes(parentNode);
+            
+            if any(isfolderIdx)
+                for i = 1:length(allChildNodes)
+                    thisNode = allChildNodes(i);
+                    isMovetoMenu = arrayfun(@(x) strcmp(x.Text, 'Move to ...'), thisNode.ContextMenu.Children);
+                    thisNode.ContextMenu.Children(isMovetoMenu).Enable = 'on';
+                end
+            else
+                for i = 1:length(allChildNodes)
+                    thisNode = allChildNodes(i);
+                    isMovetoMenu = arrayfun(@(x) strcmp(x.Text, 'Move to ...'), thisNode.ContextMenu.Children);
+                    thisNode.ContextMenu.Children(isMovetoMenu).Enable = 'off';
+                end
+            end
+            
+        end
+        
+        function nodes = getAllChildrenItemTypeNodes(app, node)
+            % get all item type children nodes below "node"
+            nodes = [];
+            for i = 1:length(node.Children)
+                currentNode = node.Children(i);
+                if ~isa(currentNode.NodeData, 'QSP.Folder')
+                    nodes = [nodes; currentNode];
+                else
+                    nodes = [nodes; getAllChildrenItemTypeNodes(app, currentNode)];
+                end
+            end
         end
        
     end

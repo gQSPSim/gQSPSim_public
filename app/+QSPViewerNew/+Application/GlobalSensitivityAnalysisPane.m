@@ -105,7 +105,12 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
         
         
     end
-        
+    
+    % public property to be set by the pop-up dialog
+    properties
+        SelectedNodePath 
+    end
+    
     % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Constructor and destructor
     % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -507,6 +512,19 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             if source == obj.TaskTable
                 % Sensitivity output table
                 obj.SelectedRow.TaskTable = eventData.Indices;
+                
+                % if one of the task cells is selected, bring up the dialog
+                if size(obj.SelectedRow.TaskTable,1) && ...
+                        obj.SelectedRow.TaskTable(2)==1
+                    selectedTaskNode = obj.getSelectionNode("Task");
+                    if ~(selectedTaskNode == "" || isempty(selectedTaskNode))
+                        obj.TemporaryGlobalSensitivityAnalysis.Item(obj.SelectedRow.TaskTable(1)).TaskName = ...
+                            char(selectedTaskNode);
+                        obj.redrawVirtualItemsTable();
+                        obj.redrawSpeciesDataTable();
+                        obj.IsDirty = true;
+                    end
+                end
             elseif source == obj.SobolIndexTable
                 % Sobol index table for plotting.
                 % The first index indicates the user-visible selected row.
@@ -1109,7 +1127,11 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
                     % Task
                     MatchIdx = find(~ismember(taskNames(:),obj.SensitivityOutputs(:)));
                     for index = MatchIdx(:)'
-                        Data{index,1} = QSP.makeInvalid(Data{index,1});
+                        if isempty(Data{index,1})
+                           Data{index,1} = 'Click to configure';
+                        else
+                            Data{index,1} = QSP.makeInvalid(Data{index,1});
+                        end
                     end        
                 end
             else
@@ -1157,6 +1179,42 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
                 style = uistyle('BackgroundColor', blue*alpha + [1,1,1]*(1-alpha));
                 addStyle(tbl, style, 'row', rowIdx);
             end
+        end
+        
+        function selectedNode = getSelectionNode(obj, type)
+            % get session node for this object
+            currentNode = obj.TemporaryGlobalSensitivityAnalysis.TreeNode;
+            sessionNode = currentNode.Parent;
+            while ~strcmp(sessionNode.Tag, 'Session')
+                sessionNode = sessionNode.Parent;
+            end
+            
+            % get parent task node
+             allChildrenTag = string({sessionNode.Children.Tag});
+             buildingBlockNode = sessionNode.Children(allChildrenTag=="Building blocks");
+             buildBlockChildrenTag = string({buildingBlockNode.Children.Tag});
+             parentTypeNode = buildingBlockNode.Children(buildBlockChildrenTag==type);
+             
+             % launch tree selection node dialog for user's input
+             if verLessThan('matlab','9.9')
+                nodeSelDialog = QSPViewerNew.Widgets.TreeNodeSelectionModalDialog (obj, ...
+                    parentTypeNode, ...
+                    'ParentAppPosition', sessionNode.Parent.Parent.Parent.Parent.Parent.Position, ...
+                    'DialogName', sprintf('Select %s node', parentTypeNode.Text), ...
+                    'ModalOn', false, ...
+                    'NodeType', "Other");
+             else % Modal UI figures are supported >= 20b
+                 nodeSelDialog = QSPViewerNew.Widgets.TreeNodeSelectionModalDialog (obj, ...
+                     parentTypeNode, ...
+                     'ParentAppPosition', sessionNode.Parent.Parent.Parent.Parent.Parent.Position, ...
+                     'DialogName', sprintf('Select %s node', parentTypeNode.Text), ...
+                     'NodeType', "Other");
+             end
+             
+             uiwait(nodeSelDialog.MainFigure);
+             
+             selectedNode = split(obj.SelectedNodePath, filesep);
+             selectedNode  = selectedNode(1);
         end
         
     end
