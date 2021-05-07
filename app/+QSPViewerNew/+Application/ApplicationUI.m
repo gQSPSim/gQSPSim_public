@@ -943,6 +943,9 @@ classdef ApplicationUI < matlab.apps.AppBase
             % update "Move to..." context menu
             updateMovetoContextMenu(app,ParentNode);
             
+            % get user input to name folder
+            onRenameFolder(app, ThisObj.TreeNode);
+            
             % Mark the current session dirty
             app.markDirty(thisSession);
             
@@ -957,10 +960,7 @@ classdef ApplicationUI < matlab.apps.AppBase
         end
         
         function onMoveFolder(app,thisNode)
-            parentItemNode = thisNode;
-            while isa(parentItemNode.NodeData, 'QSP.Folder')
-                parentItemNode = parentItemNode.Parent;
-            end
+            parentItemNode = getParentItemObj(thisNode.NodeData);
             
             % get destination node
             if verLessThan('matlab','9.9')
@@ -992,17 +992,18 @@ classdef ApplicationUI < matlab.apps.AppBase
             end
             
             % assign all current selected nodes to new parent
-            notMovedNodes = [];
             selNodes = [thisNode; app.TreeRoot.SelectedNodes];
+            
             for i = 1:length(selNodes)
                 if isa(selNodes(i).NodeData, class(thisNode.NodeData))
-                    if ~isequal(newParentNode, thisNode)
-                        selNodes(i).OldParent = selNodes(i).Parent;
-                        selNodes(i).Parent = newParentNode;
-                        expand(newParentNode);
+                    if isequal(getParentItemObj(selNodes(i).NodeData), getParentItemObj(thisNode.NodeData))
+                        if ~isequal(newParentNode, thisNode)
+                            selNodes(i).NodeData.OldParent = selNodes(i).NodeData.Parent;
+                            selNodes(i).Parent = newParentNode;
+                            selNodes(i).NodeData.Parent = newParentNode;
+                            expand(newParentNode);
+                        end
                     end
-                else
-                    notMovedNodes = [notMovedNodes; string(selNodes(i).Text)];
                 end
             end
             end
@@ -1035,31 +1036,6 @@ classdef ApplicationUI < matlab.apps.AppBase
                 end
             end
         end
-        
-%         function onDeleteFolder(app, thisNode)
-%             selNodes = [thisNode; app.TreeRoot.SelectedNodes];
-%             selNodes = unique(selNodes);
-%             for i = 1:length(selNodes)
-%                 node = selNodes(i);
-%                 if isa(node.NodeData, 'QSP.Folder')
-%                     if ~isempty(node.Children)
-%                         title = "Confirm delete";
-%                         msg = sprintf("%s ""%s"" %s %s", "Deleting", node.Text, "will delete all its subfolders and item nodes.", ...
-%                             "Are you sure you want to delete?");
-%                         selection = uiconfirm(app.UIFigure, msg, title);
-%                         if strcmp(selection, 'OK')
-%                             parentNode = node.Parent;
-%                             delete(node);
-%                             updateMovetoContextMenu(app,parentNode);
-%                         end
-%                     else
-%                         parentNode = node.Parent;
-%                         delete(node);
-%                         updateMovetoContextMenu(app,parentNode);
-%                     end
-%                 end
-%             end
-%         end
         
         function onDuplicateItem(app,activeSession,activeNode)
             if isempty(activeSession)
