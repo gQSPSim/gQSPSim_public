@@ -13,11 +13,13 @@ classdef TreeNodeSelectionModalDialog < handle & ...
         ModalOn             (1,1) logical = true
         MultiSelection      (1,1) logical = false
         DialogName          (1,1) string  = ""
-        SelectedNode        (1,:)  matlab.ui.container.TreeNode
+        SelectedNode        (1,:) matlab.ui.container.TreeNode
         ParentApp
         ParentAppPosition   (1,4) double
         MainFigure          matlab.ui.Figure
         NodeType            (1,1) string {mustBeMember(NodeType, ["Folder", "Other"])} = "Folder"
+        CurrentFolder       (1,1) string  = "" % this property is used to skip this folder from displaying in the popup.
+                                 % incase of moving of folders, we want to skip displaying the source folder
     end
     
     % Graphics components properties
@@ -46,12 +48,7 @@ classdef TreeNodeSelectionModalDialog < handle & ...
         end
         
         function delete(obj)
-%             selectedNodePath = obj.getFullNodePath(obj.SelectedNode);
-%             if ~isempty(selectedNodePath) || selectedNodePath ~= ""
-                obj.ParentApp.SelectedNodePath = obj.getFullNodePath(obj.SelectedNode);
-%             else
-%                 obj.ParentApp.SelectedNodePath = [];
-%             end
+            obj.ParentApp.SelectedNodePath = obj.getFullNodePath(obj.SelectedNode);
             delete(obj.MainFigure);
         end
         
@@ -109,32 +106,30 @@ classdef TreeNodeSelectionModalDialog < handle & ...
         end
         
         function createTreeNode(obj, node, parent)
-            % Just create a node if it doesn't have children
+            % Only create a node if it doesn't have children
             if isempty(node.Children)
                 t = uitreenode(parent, 'Text', node.Text);
                 expand(t);
                 return;
             end
             
-            % If it has, keep looking at its children
+            % If it has children, keep looking at its children
             parentNode = uitreenode(parent, 'Text', node.Text);
             if isa(node.NodeData, 'QSP.Folder')
                 parentNode.Tag = "Folder";
             end
             for i = 1:length(node.Children)
                 currentNode = node.Children(i);
-%                 % loop only through every folder if looking for folders
+                
+                % loop only through every folder if looking for folders
                 if strcmp(obj.NodeType, "Folder")
                     if ~isa(currentNode.NodeData, 'QSP.Folder')
                         continue;
                     end
                 end
-%                 else % else skip the folder nodes
-%                     if isa(currentNode.NodeData, 'QSP.Folder')
-%                         continue;
-%                     end
-%                 end
-                obj.createTreeNode(currentNode, parentNode);
+                if ~strcmp(obj.CurrentFolder, currentNode.Text)
+                    obj.createTreeNode(currentNode, parentNode);
+                end
                 expand(parentNode);
             end
         end

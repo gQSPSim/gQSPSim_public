@@ -543,11 +543,14 @@ classdef ApplicationUI < matlab.apps.AppBase
                     uimenu('Parent', CM,'Label', ['Add new Folder'], ...
                         'MenuSelectedFcn', @(h,e)app.onAddFolder(h.Parent.UserData,Node.NodeData.Session));
                     
+                    uimenu('Parent', CM,'Label', ['Move to ...'], ...
+                        'MenuSelectedFcn', @(h,e)app.onMoveFolder(h.Parent.UserData));
+                    
                     uimenu('Parent', CM,'Label', 'Rename', ...
                         'MenuSelectedFcn', @(h,e)app.onRenameFolder(h.Parent.UserData));
                     
                     uimenu('Parent', CM,'Label', 'Delete', ...
-                        'MenuSelectedFcn', @(h,e)app.onDeleteFolder(h.Parent.UserData));
+                        'MenuSelectedFcn', @(h,e)app.onDeleteSelectedItem(h.Parent.UserData.NodeData.Session, h.Parent.UserData));
                     
                     %If it is an instance of a QSP Class
                 elseif ~isempty(Node.UserData)
@@ -556,7 +559,7 @@ classdef ApplicationUI < matlab.apps.AppBase
                         'MenuSelectedFcn', @(h,e)app.onAddItem(h.Parent.UserData,h.Parent.UserData.Parent.Parent.NodeData,ThisItemType));
                     
                     uimenu('Parent',CM,'Label', ['Add new Folder'], ...
-                        'MenuSelectedFcn', @(h,e)app.onAddFolder(h.Parent.UserData,h.Parent.UserData.Parent.Parent.NodeData,ThisItemType));
+                        'MenuSelectedFcn', @(h,e)app.onAddFolder(h.Parent.UserData,h.Parent.UserData.Parent.Parent.NodeData));
                     
                     %Not an Instance, just a type
                 else
@@ -564,12 +567,12 @@ classdef ApplicationUI < matlab.apps.AppBase
                     uimenu(...
                         'Parent', CM,...
                         'Text', ['Duplicate this ' ThisItemType],...
-                        'MenuSelectedFcn', @(h,e) app.onDuplicateItem(h.Parent.UserData.Parent.Parent.Parent.NodeData,h.Parent.UserData));
+                        'MenuSelectedFcn', @(h,e) app.onDuplicateItem(h.Parent.UserData.NodeData.Session,h.Parent.UserData));
                     uimenu(...
                         'Parent', CM,...
                         'Text', ['Delete this ' ThisItemType],...
                         'Separator', 'on',...
-                        'MenuSelectedFcn', @(h,e) app.onDeleteSelectedItem(h.Parent.UserData.Parent.Parent.Parent.NodeData,h.Parent.UserData));
+                        'MenuSelectedFcn', @(h,e) app.onDeleteSelectedItem(h.Parent.UserData.NodeData.Session,h.Parent.UserData));
                     uimenu(...
                         'Parent', CM,...
                         'Text', 'Move to ...',...
@@ -611,12 +614,12 @@ classdef ApplicationUI < matlab.apps.AppBase
                         uimenu(...
                             'Parent', CM,...
                             'Text', 'Restore',...
-                            'MenuSelectedFcn', @(h,e) app.onRestoreSelectedItem(h.Parent.UserData,h.Parent.UserData.Parent.Parent.NodeData));
+                            'MenuSelectedFcn', @(h,e) app.onRestoreSelectedItem(h.Parent.UserData,h.Parent.UserData.NodeData.Session));
                         uimenu(...
                             'Parent', CM,...
                             'Text', 'Permanently Delete',...
                             'Separator', 'on',...
-                            'MenuSelectedFcn', @(h,e) app.onEmptyDeletedItems(h.Parent.UserData,h.Parent.UserData.Parent.Parent.NodeData,false));
+                            'MenuSelectedFcn', @(h,e) app.onEmptyDeletedItems(h.Parent.UserData,h.Parent.UserData.NodeData.Session,false));
                 end
             end
             
@@ -937,7 +940,7 @@ classdef ApplicationUI < matlab.apps.AppBase
             end
             
             % update "Move to..." context menu
-            updateMovetoContextMenu(app,ParentNode,itemType);
+            updateMovetoContextMenu(app,ParentNode);
             
             % Mark the current session dirty
             app.markDirty(thisSession);
@@ -950,6 +953,57 @@ classdef ApplicationUI < matlab.apps.AppBase
             
             %Update the title of the application
             app.updateAppTitle();
+        end
+        
+        function onMoveFolder(app,thisNode)
+            parentItemNode = thisNode;
+            while isa(parentItemNode.NodeData, 'QSP.Folder')
+                parentItemNode = parentItemNode.Parent;
+            end
+            
+            % get destination node
+            if verLessThan('matlab','9.9')
+                nodeSelDialog = QSPViewerNew.Widgets.TreeNodeSelectionModalDialog (app, ...
+                    parentItemNode, ...
+                    'ParentAppPosition', app.UIFigure.Position, ...
+                    'DialogName', 'Select node to move item(s) to', ...
+                    'ModalOn', false, ...
+                    'CurrentFolder', string(thisNode.Text));
+            else % Modal UI figures are supported >= 20b
+                nodeSelDialog = QSPViewerNew.Widgets.TreeNodeSelectionModalDialog (app, ...
+                    parentItemNode, ...
+                    'ParentAppPosition', app.UIFigure.Position, ...
+                    'DialogName', 'Select node to move item(s) to', ...
+                    'CurrentFolder', string(thisNode.Text));
+            end
+            
+            uiwait(nodeSelDialog.MainFigure);
+            
+            selNode = app.SelectedNodePath;
+            
+            if selNode ~= ""
+            allNodes = split(selNode, filesep);
+            newParentNode = parentItemNode;
+            for i = length(allNodes)-1:-1:1
+                childName = allNodes(i);
+                childNodeIdx = childName==string({newParentNode.Children.Text});
+                newParentNode = newParentNode.Children(childNodeIdx);
+            end
+            
+            % assign all current selected nodes to new parent
+            notMovedNodes = [];
+            selNodes = [thisNode; app.TreeRoot.SelectedNodes];
+            for i = 1:length(selNodes)
+                if isa(selNodes(i).NodeData, class(thisNode.NodeData))
+                    if ~isequal(newParentNode, thisNode)
+                        selNodes(i).Parent = newParentNode;
+                        expand(newParentNode);
+                    end
+                else
+                    notMovedNodes = [notMovedNodes; string(selNodes(i).Text)];
+                end
+            end
+            end
         end
         
         function onRenameFolder(app, node)
@@ -980,30 +1034,30 @@ classdef ApplicationUI < matlab.apps.AppBase
             end
         end
         
-        function onDeleteFolder(app, thisNode)
-            selNodes = [thisNode; app.TreeRoot.SelectedNodes];
-            selNodes = unique(selNodes);
-            for i = 1:length(selNodes)
-                node = selNodes(i);
-                if isa(node.NodeData, 'QSP.Folder')
-                    if ~isempty(node.Children)
-                        title = "Confirm delete";
-                        msg = sprintf("%s ""%s"" %s %s", "Deleting", node.Text, "will delete all its subfolders and item nodes.", ...
-                            "Are you sure you want to delete?");
-                        selection = uiconfirm(app.UIFigure, msg, title);
-                        if strcmp(selection, 'OK')
-                            parentNode = node.Parent;
-                            delete(node);
-                            updateMovetoContextMenu(app,parentNode,itemType);
-                        end
-                    else
-                        parentNode = node.Parent;
-                        delete(node);
-                        updateMovetoContextMenu(app,parentNode);
-                    end
-                end
-            end
-        end
+%         function onDeleteFolder(app, thisNode)
+%             selNodes = [thisNode; app.TreeRoot.SelectedNodes];
+%             selNodes = unique(selNodes);
+%             for i = 1:length(selNodes)
+%                 node = selNodes(i);
+%                 if isa(node.NodeData, 'QSP.Folder')
+%                     if ~isempty(node.Children)
+%                         title = "Confirm delete";
+%                         msg = sprintf("%s ""%s"" %s %s", "Deleting", node.Text, "will delete all its subfolders and item nodes.", ...
+%                             "Are you sure you want to delete?");
+%                         selection = uiconfirm(app.UIFigure, msg, title);
+%                         if strcmp(selection, 'OK')
+%                             parentNode = node.Parent;
+%                             delete(node);
+%                             updateMovetoContextMenu(app,parentNode);
+%                         end
+%                     else
+%                         parentNode = node.Parent;
+%                         delete(node);
+%                         updateMovetoContextMenu(app,parentNode);
+%                     end
+%                 end
+%             end
+%         end
         
         function onDuplicateItem(app,activeSession,activeNode)
             if isempty(activeSession)
@@ -1018,7 +1072,7 @@ classdef ApplicationUI < matlab.apps.AppBase
             app.markDirty(activeSession);
         end
        
-        function onEmptyDeletedItems(app,activeSession,activeNode,deleteAllTF)
+        function onEmptyDeletedItems(app,activeNode,activeSession,deleteAllTF)
             if deleteAllTF
                 TreeRoots = app.SelectedSession.TreeNode.Children;
                 ChildTags = {TreeRoots.Tag};
@@ -1043,11 +1097,10 @@ classdef ApplicationUI < matlab.apps.AppBase
             allItemTypeTags = {'Task'; 'Parameters'; 'OptimizationData'; 'VirtualPopulationData'; ...
                 'VirtualPopulationGenerationData'; 'VirtualPopulation'; 'Simulation'; 'Optimization'; ...
                 'CohortGeneration'; 'VirtualPopulationGeneration'; 'GlobalSensitivityAnalysis'};
-            while ~ismember(currentNode.Tag, allItemTypeTags)
-                currentNode = currentNode.Parent;
-            end
-            
             parentNode = currentNode;
+            while ~ismember(parentNode.Tag, allItemTypeTags)
+                parentNode = parentNode.Parent;
+            end
 
             if verLessThan('matlab','9.9')
                 nodeSelDialog = QSPViewerNew.Widgets.TreeNodeSelectionModalDialog (app, ...
@@ -1076,17 +1129,13 @@ classdef ApplicationUI < matlab.apps.AppBase
             
             % assign all current selected nodes to new parent
             notMovedNodes = [];
-            for i = 1:length(app.TreeRoot.SelectedNodes)
-                if isa(app.TreeRoot.SelectedNodes(i).NodeData, class(h.Parent.UserData.NodeData))
-                    app.TreeRoot.SelectedNodes(i).Parent = newParentNode;
+            selNodes = [currentNode; app.TreeRoot.SelectedNodes];
+            for i = 1:length(selNodes)
+                if isa(selNodes(i).NodeData, class(currentNode.NodeData))
+                    selNodes(i).Parent = newParentNode;
                 else
-                    notMovedNodes = [notMovedNodes; string(app.TreeRoot.SelectedNodes(i).Text)];
+                    notMovedNodes = [notMovedNodes; string(selNodes(i).Text)];
                 end
-            end
-            
-            if ~isempty(notMovedNodes)
-                msg = sprintf("Following node(s) were selected but not moved because they did not belong to the same type:\n%s", join(notMovedNodes, ', '));
-                uialert(app.UIFigure, msg, "Node(s) not moved");
             end
         end
     end
@@ -1523,7 +1572,7 @@ classdef ApplicationUI < matlab.apps.AppBase
             elseif isnumeric(session)
                 app.IsDirty(session) = false;
             else
-                app.IsDirty(strcmp(ActiveSession.SessionName,{app.Sessions.SessionName})) = false;
+                app.IsDirty(strcmp(session.SessionName,{app.Sessions.SessionName})) = false;
                 %Provided session, need to find index
             end
         end
@@ -1942,7 +1991,9 @@ classdef ApplicationUI < matlab.apps.AppBase
             ParentNode.expand();
             
             % Change context menu
-            node.UIContextMenu = app.TreeMenu.Leaf.(ItemType);
+            delete(node.UIContextMenu.Children);
+            app.createContextMenu(node, ItemType);
+%             node.UIContextMenu = app.TreeMenu.Leaf.(ItemType);
             
             % Update the display
             app.refresh();
@@ -1953,6 +2004,9 @@ classdef ApplicationUI < matlab.apps.AppBase
 
             % What type of item?
             ParentNode = Node.Parent;
+            while isa(ParentNode.NodeData, 'QSP.Folder')
+                ParentNode = ParentNode.Parent;
+            end
             ItemType = ParentNode.Tag;
             
             % What are the data object and its parent?
@@ -1994,7 +2048,11 @@ classdef ApplicationUI < matlab.apps.AppBase
             
             % What are the data object and its parent?
             ThisObj = Node.NodeData;
-            ParentObj = Node.Parent.NodeData;
+            ParentNode = Node.Parent;
+            while isa(ParentNode.NodeData, 'QSP.Folder')
+                ParentNode = ParentNode.Parent;
+            end
+            ParentObj = ParentNode.NodeData;
             
             % Move the object from its parent to deleted
             session.Deleted(end+1) = ThisObj;
