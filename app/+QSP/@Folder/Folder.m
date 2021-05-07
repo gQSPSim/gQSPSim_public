@@ -21,10 +21,11 @@ classdef Folder < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
     
     %% Properties
     properties
-        
         Parent 
         
         Children 
+        
+        OldParent % previous parent. used to move back folder to previous parent when deleted
     end
     
     %% Constructor methods

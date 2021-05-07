@@ -917,6 +917,7 @@ classdef ApplicationUI < matlab.apps.AppBase
                 end
             end
             ThisObj.Session = thisSession;
+            ThisObj.OldParent = ThisObj.Parent;
             ThisObj.Parent = ParentNode;
             
             if ~isempty(ParentNode.Children)
@@ -996,6 +997,7 @@ classdef ApplicationUI < matlab.apps.AppBase
             for i = 1:length(selNodes)
                 if isa(selNodes(i).NodeData, class(thisNode.NodeData))
                     if ~isequal(newParentNode, thisNode)
+                        selNodes(i).OldParent = selNodes(i).Parent;
                         selNodes(i).Parent = newParentNode;
                         expand(newParentNode);
                     end
@@ -1947,34 +1949,38 @@ classdef ApplicationUI < matlab.apps.AppBase
             
             % Where does the item go?
             if isprop(session,ItemType)
-                ParentObj = session;
+                ParentObj = session ;
                 SuperParentArray = ParentObj.TreeNode.Children;
                 ChildTags = {SuperParentArray.Tag};
                 SuperParent = SuperParentArray(strcmpi(ChildTags,'Functionalities'));
                 ParentArray = SuperParent.Children;
+                ParentArrayTypes = {ParentArray.Tag};
+                ParentNode = ParentArray(strcmp(ParentArrayTypes,ItemType));
+                allChildNames = {ParentObj.(ItemType).Name};
+            elseif strcmp(ItemType, "Folder")
+                ParentNode = node.NodeData.OldParent;
                 
+                if ~isempty(ParentNode.Children)
+                    allChildren = {ParentNode.Children.NodeData};
+                    allFoldersIdx = cellfun(@(x) isa(x, 'QSP.Folder'),allChildren );
+                    if ~any(allFoldersIdx)
+                        allChildNames = '';
+                    else
+                        allFolders = [allChildren{allFoldersIdx}];
+                        allChildNames = {allFolders.Name};
+                    end
+                else
+                    allChildNames = '';
+                end
             else
                 ParentObj = session.Settings;
                 ParentArray = ParentObj.TreeNode.Children;
+                ParentArrayTypes = {ParentArray.Tag};
+                ParentNode = ParentArray(strcmp(ParentArrayTypes,ItemType));
+                allChildNames = {ParentObj.(ItemType).Name};
             end
             
-            ParentArrayTypes = {ParentArray.Tag};
-            ParentNode = ParentArray(strcmp(ParentArrayTypes,ItemType));
-            
-            % check for duplicate names
-            if any(strcmp(ThisObj.Name,{ParentObj.(ItemType).Name} ))
-                uialert(app.UIFigure,'Cannot restore deleted item because its name is identical to an existing item.','Restore');
-            end
-            
-            % Move the object from deleted to the new parent
-            ParentObj.(ItemType)(end+1) = ThisObj;
-            MatchIdx = false(size(session.Deleted));
-            for idx = 1:numel(session.Deleted)
-                MatchIdx(idx) = session.Deleted(idx)==ThisObj;
-            end
-            session.Deleted( MatchIdx ) = [];
-            
-            % Update the name to include the timestamp
+             % Update the name to include the timestamp
             TimeStamp = datestr(now,'dd-mmm-yyyy_HH-MM-SS');
             
             % Strip out date
@@ -1986,6 +1992,22 @@ classdef ApplicationUI < matlab.apps.AppBase
             
             ThisObj.Name = sprintf('%s (%s)',ThisObj.Name,TimeStamp);
             
+            % check for duplicate names
+            if any(strcmp(ThisObj.Name, allChildNames))
+                uialert(app.UIFigure,'Cannot restore deleted item because its name is identical to an existing item.','Restore');
+                return;
+            end
+            
+            % Move the object from deleted to the new parent
+            if ~strcmp(ItemType, "Folder")
+                ParentObj.(ItemType)(end+1) = ThisObj;
+            end
+            MatchIdx = false(size(session.Deleted));
+            for idx = 1:numel(session.Deleted)
+                MatchIdx(idx) = session.Deleted(idx)==ThisObj;
+            end
+            session.Deleted( MatchIdx ) = [];
+            
             % Update the tree
             node.Parent = ParentNode;
             ParentNode.expand();
@@ -1993,7 +2015,6 @@ classdef ApplicationUI < matlab.apps.AppBase
             % Change context menu
             delete(node.UIContextMenu.Children);
             app.createContextMenu(node, ItemType);
-%             node.UIContextMenu = app.TreeMenu.Leaf.(ItemType);
             
             % Update the display
             app.refresh();
@@ -2056,7 +2077,11 @@ classdef ApplicationUI < matlab.apps.AppBase
             
             % Move the object from its parent to deleted
             session.Deleted(end+1) = ThisObj;
-            ParentObj.(ItemType)( ParentObj.(ItemType)==ThisObj ) = [];
+            if ~strcmp(ItemType, "Folder")
+                ParentObj.(ItemType)( ParentObj.(ItemType)==ThisObj ) = [];
+            else
+                Node.NodeData.OldParent = Node.NodeData.Parent;
+            end
             Node.Parent = hDeletedNode;
             app.TreeRoot.SelectedNodes = Node;
             
