@@ -54,16 +54,18 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
         %% Edit panel 
         EditGrid                    matlab.ui.container.GridLayout
         ResultFolderSelector        QSPViewerNew.Widgets.FolderSelector
-        SamplingConfigurationGrid   matlab.ui.container.GridLayout
+        SensitivityInputsGrid       matlab.ui.container.GridLayout
+        SeedConfigurationGrid       matlab.ui.container.GridLayout
         StoppingCriterionGrid       matlab.ui.container.GridLayout
         StoppingCriterionLabel      matlab.ui.control.Label
-        StoppingCriterionEditField matlab.ui.control.NumericEditField
+        StoppingCriterionEditField  matlab.ui.control.NumericEditField
         SeedSubLayout               matlab.ui.container.GridLayout
         FixSeedLabel                matlab.ui.control.Label
         FixSeedCheckBox             matlab.ui.control.CheckBox
         SeedLabel                   matlab.ui.control.Label
         SeedEdit                    matlab.ui.control.NumericEditField
-        SensitivityInputsDropDown   matlab.ui.control.DropDown
+        SensitivityInputsValueLabel matlab.ui.control.Label
+        SensitivityInputsButton     matlab.ui.control.Button
         SensitivityInputsLabel      matlab.ui.control.Label
         
         % Table for task selection for sensitivity outputs
@@ -148,47 +150,59 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             
             % Results path selector
             obj.ResultFolderSelector = QSPViewerNew.Widgets.FolderSelector(obj.EditGrid,1,1,'Results Path');
+             
+            % Sensitivity inputs grid 
+            obj.SensitivityInputsGrid = uigridlayout(obj.EditGrid);
+            obj.SensitivityInputsGrid.ColumnWidth   = {2.00*obj.LabelLength, 2.00*obj.LabelLength, '1x', obj.ButtonWidth};     
+            obj.SensitivityInputsGrid.RowHeight     = {obj.WidgetHeight}; % sensitivity inputs
+            obj.SensitivityInputsGrid.Layout.Row    = 2;
+            obj.SensitivityInputsGrid.Layout.Column = 1;
+            obj.SensitivityInputsGrid.Padding       = obj.WidgetPadding;
+            obj.SensitivityInputsGrid.RowSpacing    = obj.WidgetHeightSpacing;
+            obj.SensitivityInputsGrid.ColumnSpacing = 0;
             
-            % Sampling configuration grid
-            obj.SamplingConfigurationGrid               = uigridlayout(obj.EditGrid);
-            obj.SamplingConfigurationGrid.ColumnWidth   = {2.00*obj.LabelLength, 2.00*obj.LabelLength, obj.LabelLength, '1x'};     
-            obj.SamplingConfigurationGrid.RowHeight     = {obj.WidgetHeight, ... % sensitivity inputs
-                                                           obj.WidgetHeight};    % random seed
-            obj.SamplingConfigurationGrid.Layout.Row    = [2,3];
-            obj.SamplingConfigurationGrid.Layout.Column = 1;
-            obj.SamplingConfigurationGrid.Padding       = obj.WidgetPadding;
-            obj.SamplingConfigurationGrid.RowSpacing    = obj.WidgetHeightSpacing;
-            obj.SamplingConfigurationGrid.ColumnSpacing = 0;
-
             % Sensitivity inputs 
-            obj.SensitivityInputsLabel               = uilabel(obj.SamplingConfigurationGrid);
+            obj.SensitivityInputsLabel               = uilabel(obj.SensitivityInputsGrid);
             obj.SensitivityInputsLabel.Layout.Column = 1;
             obj.SensitivityInputsLabel.Layout.Row    = 1;
             obj.SensitivityInputsLabel.Text          = 'Sensitivity inputs';
-            obj.SensitivityInputsDropDown                 = uidropdown(obj.SamplingConfigurationGrid);
-            obj.SensitivityInputsDropDown.Layout.Column   = [2,4];
-            obj.SensitivityInputsDropDown.Layout.Row      = 1;
-            obj.SensitivityInputsDropDown.Items           = {'foo', 'bar'};
-            obj.SensitivityInputsDropDown.ValueChangedFcn = @(h,e)obj.onSensitivityInputChange();            
+            obj.SensitivityInputsValueLabel                 = uilabel(obj.SensitivityInputsGrid);
+            obj.SensitivityInputsValueLabel.Layout.Column   = 2;
+            obj.SensitivityInputsValueLabel.Layout.Row      = 1;
+            obj.SensitivityInputsValueLabel.Text            = '';
+            obj.SensitivityInputsButton                 = uibutton(obj.SensitivityInputsGrid);
+            obj.SensitivityInputsButton.Layout.Column   = 4;
+            obj.SensitivityInputsButton.Layout.Row      = 1;
+            obj.SensitivityInputsButton.Text            = '...';
+            obj.SensitivityInputsButton.ButtonPushedFcn = @(h,e)obj.onSensitivityInputButtonPushed();
             
+            % Random seed configuration grid
+            obj.SeedConfigurationGrid               = uigridlayout(obj.EditGrid);
+            obj.SeedConfigurationGrid.ColumnWidth   = {2.00*obj.LabelLength, 2.00*obj.LabelLength, obj.LabelLength, '1x'};  
+            obj.SeedConfigurationGrid.RowHeight     = {obj.WidgetHeight};    % random seed
+            obj.SeedConfigurationGrid.Layout.Row    = 3;
+            obj.SeedConfigurationGrid.Layout.Column = 1;
+            obj.SeedConfigurationGrid.Padding       = obj.WidgetPadding;
+            obj.SeedConfigurationGrid.RowSpacing    = obj.WidgetHeightSpacing;
+            obj.SeedConfigurationGrid.ColumnSpacing = 0;
             % Random seed configuration
             % checkbox
-            obj.FixSeedCheckBox                 = uicheckbox(obj.SamplingConfigurationGrid);
+            obj.FixSeedCheckBox                 = uicheckbox(obj.SeedConfigurationGrid);
             obj.FixSeedCheckBox.Text            = "Fix seed for random number generation";
             obj.FixSeedCheckBox.Layout.Column   = [1,2];
-            obj.FixSeedCheckBox.Layout.Row      = 2;
+            obj.FixSeedCheckBox.Layout.Row      = 1;
             obj.FixSeedCheckBox.Enable          = 'on';
             obj.FixSeedCheckBox.Value           = false;
             obj.FixSeedCheckBox.ValueChangedFcn = @(h,e)obj.onFixRandomSeedChange();
             % label
-            obj.SeedLabel               = uilabel(obj.SamplingConfigurationGrid);
+            obj.SeedLabel               = uilabel(obj.SeedConfigurationGrid);
             obj.SeedLabel.Text          = 'RNG Seed';
-            obj.SeedLabel.Layout.Row    = 2;
+            obj.SeedLabel.Layout.Row    = 1;
             obj.SeedLabel.Layout.Column = 3;
             obj.SeedLabel.Enable        = 'off';
             % edit field
-            obj.SeedEdit                       = uieditfield(obj.SamplingConfigurationGrid,'numeric');
-            obj.SeedEdit.Layout.Row            = 2;
+            obj.SeedEdit                       = uieditfield(obj.SeedConfigurationGrid,'numeric');
+            obj.SeedEdit.Layout.Row            = 1;
             obj.SeedEdit.Layout.Column         = 4;
             obj.SeedEdit.Limits                = [0,Inf];
             obj.SeedEdit.RoundFractionalValues = true;
@@ -525,10 +539,16 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
         end
         
         function onSensitivityInputChange(obj)
-            
-            
-            obj.TemporaryGlobalSensitivityAnalysis.ParametersName = obj.SensitivityInputsDropDown.Value;
+            obj.TemporaryGlobalSensitivityAnalysis.ParametersName = obj.SensitivityInputsValueLabel.Text;
             obj.IsDirty = true;
+        end
+        
+        function onSensitivityInputButtonPushed(obj)
+            selectedParamNode = obj.getSelectionNode("Parameters");
+            if ~(isempty(selectedParamNode) || selectedParamNode=="")
+                obj.SensitivityInputsValueLabel.Text = char(selectedParamNode);
+                obj.onSensitivityInputChange();
+            end
         end
         
         function onTableSelectionChange(obj, source, eventData)
@@ -1024,28 +1044,23 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             % Refresh Sensitivity Inputs 
             if ~isempty(obj.TemporaryGlobalSensitivityAnalysis)
                 parameters = obj.TemporaryGlobalSensitivityAnalysis.Settings.Parameters;
-                if isempty(parameters)
-                    obj.SensitivityInputsDropDown.Items = {};
-                else
-                    obj.SensitivityInputsDropDown.Items = {parameters.Name};
-                end
-            else
-                obj.SensitivityInputsDropDown.Items = {};
             end
-            if ~isempty(obj.SensitivityInputsDropDown.Items)
+            if ~isempty(parameters)
+                paramNames = {parameters.Name};
                 if isempty(obj.TemporaryGlobalSensitivityAnalysis.ParametersName) || ...
                         ~ismember(obj.TemporaryGlobalSensitivityAnalysis.ParametersName, ...
-                            obj.SensitivityInputsDropDown.Items)
+                            paramNames)
                     obj.TemporaryGlobalSensitivityAnalysis.ParametersName = ...
-                        obj.SensitivityInputsDropDown.Items{1};
-                    obj.SensitivityInputsDropDown.Value = ...
-                        obj.SensitivityInputsDropDown.Items{1};
+                        paramNames{1};
+                    obj.SensitivityInputsValueLabel.Text = ...
+                        paramNames{1};
                 else
-                    obj.SensitivityInputsDropDown.Value = ...
+                    obj.SensitivityInputsValueLabel.Text = ...
                         obj.TemporaryGlobalSensitivityAnalysis.ParametersName;
                 end
             else
                 obj.TemporaryGlobalSensitivityAnalysis.ParametersName = '';
+                obj.SensitivityInputsValueLabel.Text = '';
             end
         end
         
