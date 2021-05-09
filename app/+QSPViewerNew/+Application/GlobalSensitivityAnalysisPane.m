@@ -1265,25 +1265,6 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
              selectedNode  = selectedNode(1);
         end
         
-        function statusOK = checkDuplicateTaskNames(obj)
-            statusOK = true;
-            allTaskNames = string({obj.TemporaryGlobalSensitivityAnalysis.Item.TaskName});
-            [uniTask, idx, ~] = unique(allTaskNames);
-            
-            if length(allTaskNames) ~= length(uniTask)
-                duplicateTasks = allTaskNames(setdiff(1:length(allTaskNames), idx));
-                duplicateTasks = join(duplicateTasks, ", ");
-                selection = uiconfirm(obj.getUIFigure, ...
-                    sprintf('These tasks are repeated: %s\nClick Cancel to go back and change.', duplicateTasks), ...
-                    'Duplicate tasks', ...
-                    'Icon', 'warning', ...
-                    'Options', {'Proceed to save', 'Cancel'});
-                if strcmp(selection, 'Cancel')
-                    statusOK = false;
-                end
-            end
-        end
-        
     end
 end
 
