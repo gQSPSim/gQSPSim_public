@@ -939,7 +939,23 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             
             %Validate the temporary data
             FlagRemoveInvalid = false;
-            [StatusOK,Message] = obj.TemporaryGlobalSensitivityAnalysis.validate(FlagRemoveInvalid);
+            [StatusOK,Message,DuplicateFlag] = obj.TemporaryGlobalSensitivityAnalysis.validate(FlagRemoveInvalid);
+            
+            % check if it contains duplicate message
+            if DuplicateFlag
+                selection = uiconfirm(obj.getUIFigure, ...
+                    sprintf("%s\nClick Proceed to Save if you want to continue with duplicates.", Message), ...
+                    'Duplicate tasks', ...
+                    'Icon', 'warning', ...
+                    'Options', {'Proceed to save', 'Cancel'});
+                if strcmp(selection, 'Cancel')
+                    return;
+                else
+                    StatusOK = true;
+                    Message = [];
+                end
+            end
+            
             [StatusOK,Message] = obj.checkForDuplicateNames(StatusOK,Message);
             
             if StatusOK
@@ -950,8 +966,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
                 obj.GlobalSensitivityAnalysis = copy(obj.TemporaryGlobalSensitivityAnalysis,obj.GlobalSensitivityAnalysis);
                 
                 %We now need to notify the application
-                obj.notifyOfChange(obj.TemporaryGlobalSensitivityAnalysis.Session);
-                
+                obj.notifyOfChange(obj.TemporaryGlobalSensitivityAnalysis.Session); 
             else
                 uialert(obj.getUIFigure,sprintf('Cannot save changes. Please review invalid entries:\n\n%s',Message),'Cannot Save');
             end
@@ -1248,6 +1263,25 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
              
              selectedNode = split(obj.SelectedNodePath, filesep);
              selectedNode  = selectedNode(1);
+        end
+        
+        function statusOK = checkDuplicateTaskNames(obj)
+            statusOK = true;
+            allTaskNames = string({obj.TemporaryGlobalSensitivityAnalysis.Item.TaskName});
+            [uniTask, idx, ~] = unique(allTaskNames);
+            
+            if length(allTaskNames) ~= length(uniTask)
+                duplicateTasks = allTaskNames(setdiff(1:length(allTaskNames), idx));
+                duplicateTasks = join(duplicateTasks, ", ");
+                selection = uiconfirm(obj.getUIFigure, ...
+                    sprintf('These tasks are repeated: %s\nClick Cancel to go back and change.', duplicateTasks), ...
+                    'Duplicate tasks', ...
+                    'Icon', 'warning', ...
+                    'Options', {'Proceed to save', 'Cancel'});
+                if strcmp(selection, 'Cancel')
+                    statusOK = false;
+                end
+            end
         end
         
     end

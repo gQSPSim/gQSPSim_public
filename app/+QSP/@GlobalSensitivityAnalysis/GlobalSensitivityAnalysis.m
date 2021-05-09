@@ -154,10 +154,11 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
             
         end %function
         
-        function [StatusOK, Message] = validate(obj, FlagRemoveInvalid)
+        function [StatusOK, Message, DuplicateFlag] = validate(obj, FlagRemoveInvalid)
             
             StatusOK = true;
             Message = sprintf('Global Sensitivity Analysis: %s\n%s\n',obj.Name,repmat('-',1,75));
+            DupFlag = false;
             
             if  obj.Session.UseParallel && ~isempty(getCurrentTask())
                 return
@@ -257,16 +258,19 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
                 dups = unique(allItems);
 
                 if length(dups)>1
-                    Message = sprintf('Items %s are duplicates. Please remove before continuing.', ...
+                    Message = sprintf('Items %s are duplicates. Consider removing if redundant.', ...
                         strjoin(dups, ',') );
                 else
-                    Message = sprintf('Item %s is a duplicate. Please remove before continuing.', ...
+                    Message = sprintf('Item %s is a duplicate. Consider removing if redundant.', ...
                         dups{1});
                 end
                 StatusOK = false;
+                DupFlag = true;
             end
             
-            
+            if nargout > 2
+                DuplicateFlag = DupFlag;
+            end
             
     
         end %function
