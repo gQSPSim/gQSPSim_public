@@ -621,12 +621,12 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
                 selectedTaskNode = obj.getSelectionNode("Task");
                 if ~(selectedTaskNode == "" || isempty(selectedTaskNode))
                     obj.TemporaryOptimization.Item(selectedCell(1)).TaskName = char(selectedTaskNode);
-                    obj.redrawOptimItems();
-                    obj.redrawSpecies();
-                    obj.redrawInitialConditions();
                     obj.IsDirty = true;
                 end
             end
+            obj.redrawOptimItems();
+            obj.redrawSpecies();
+            obj.redrawInitialConditions();
         end
         
         function onNewSpecies(obj)

@@ -73,6 +73,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
         NewTaskButton               matlab.ui.control.Button
         RemoveTaskButton            matlab.ui.control.Button
         PropagateTaskValueButton    matlab.ui.control.Button
+        DuplicateRowButton          matlab.ui.control.Button
         TaskTable                   matlab.ui.control.Table
         
         %% Plot panel
@@ -212,7 +213,8 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             obj.TaskButtonGrid.ColumnWidth = {'1x'};
             obj.TaskButtonGrid.RowHeight = {obj.ButtonHeight, ... % add
                                             obj.ButtonHeight, ... % remove
-                                            obj.ButtonHeight};    % propagate value
+                                            obj.ButtonHeight, ... % propagate value
+                                            obj.ButtonHeight};    % duplicate row
             obj.TaskButtonGrid.Layout.Row = 1;
             obj.TaskButtonGrid.Layout.Column = 1;
             obj.TaskButtonGrid.Padding = [0,0,0,0];
@@ -242,6 +244,14 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             obj.PropagateTaskValueButton.Text            = '';
             obj.PropagateTaskValueButton.Tooltip         = 'Propagate selected value to all sensitivity outputs';
             obj.PropagateTaskValueButton.ButtonPushedFcn = @(h,e)obj.onPropagateSensitivityOutputValue();
+            % duplicate row task table
+            obj.DuplicateRowButton                 = uibutton(obj.TaskButtonGrid,'push');
+            obj.DuplicateRowButton.Layout.Row      = 4;
+            obj.DuplicateRowButton.Layout.Column   = 1;
+            obj.DuplicateRowButton.Icon            = QSPViewerNew.Resources.LoadResourcePath('copy_24.png');
+            obj.DuplicateRowButton.Text            = '';
+            obj.DuplicateRowButton.Tooltip         = 'Duplicate the selected row';
+            obj.DuplicateRowButton.ButtonPushedFcn = @(h,e)obj.onDuplicateRowTaskTable();
             
             % task table
             obj.TaskTable                       = uitable(obj.TaskGrid);
@@ -468,7 +478,21 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             obj.updateTaskTable();
             obj.IsDirty = true;
         end
-
+        
+        function onDuplicateRowTaskTable(obj)
+            DuplicateIdx = obj.SelectedRow.TaskTable(1);
+            if DuplicateIdx == 0
+                uialert(obj.getUIFigure(), ...
+                    ['Select a row to duplicate the corresponding ', ...
+                     'global sensitivity analysis.'],'Selection required');
+                return;
+            end
+            obj.TemporaryGlobalSensitivityAnalysis.duplicate(DuplicateIdx);
+            obj.updateTaskTable();
+            obj.SelectedRow.TaskTable = [0, 0];
+            obj.IsDirty = true;
+        end
+        
         function onPropagateSensitivityOutputValue(obj)
             if isempty(obj.SensitivityOutputs) || ...
                     obj.SelectedRow.TaskTable(2) == 1 || ...
@@ -514,14 +538,13 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
                 obj.SelectedRow.TaskTable = eventData.Indices;
                 
                 % if one of the task cells is selected, bring up the dialog
-                if size(obj.SelectedRow.TaskTable,1) && ...
+                if size(obj.SelectedRow.TaskTable,1)==1 && ...
                         obj.SelectedRow.TaskTable(2)==1
                     selectedTaskNode = obj.getSelectionNode("Task");
                     if ~(selectedTaskNode == "" || isempty(selectedTaskNode))
                         obj.TemporaryGlobalSensitivityAnalysis.Item(obj.SelectedRow.TaskTable(1)).TaskName = ...
                             char(selectedTaskNode);
-                        obj.redrawVirtualItemsTable();
-                        obj.redrawSpeciesDataTable();
+                        obj.updateTaskTable();
                         obj.IsDirty = true;
                     end
                 end
@@ -1141,15 +1164,10 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             %Reset the data
             obj.TaskTable.Data = Data;
             
-            % Dis-/enable drop down menu for sensitivity outputs if the are
-            % empty/nonempty.
-            if isempty(obj.SensitivityOutputs)
-                obj.TaskTable.ColumnFormat{1}   = 'char';
-                obj.TaskTable.ColumnEditable(1) = false;                
-            else
-                obj.TaskTable.ColumnFormat{1}   = obj.SensitivityOutputs;
-                obj.TaskTable.ColumnEditable(1) = true;                
-            end                
+            % Make first column (task column) non-editable
+            obj.TaskTable.ColumnFormat{1}   = [];
+            obj.TaskTable.ColumnEditable(1) = false;
+            
         end
         
         function tbl = selectRow(~, tbl, rowIdx, resetSelection)

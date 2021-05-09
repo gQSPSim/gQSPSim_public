@@ -396,6 +396,27 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
             end
         end
         
+        function [statusOk, message] = duplicate(obj, idx)
+            if idx == 0
+                statusOk = false;
+                message = 'Select a row to duplicate it.';
+                return;
+            end
+            
+            tobeDuplicatedItem = obj.Item(idx);
+            obj.Item(end+1) = obj.ItemTemplate;
+            obj.Item(end).TaskName = tobeDuplicatedItem.TaskName;
+            obj.Item(end).NumberSamples = tobeDuplicatedItem.NumberSamples;
+            obj.Item(end).IterationInfo = tobeDuplicatedItem.IterationInfo;
+            obj.Item(end).Include = tobeDuplicatedItem.Include;
+            obj.Item(end).MATFileName = tobeDuplicatedItem.MATFileName;
+            obj.Item(end).Description = tobeDuplicatedItem.Description;
+            obj.Item(end).Color = tobeDuplicatedItem.Color;
+            obj.Item(end).Results = tobeDuplicatedItem.Results;
+            
+            [statusOk, message] = obj.updateInputsOutputs();
+        end
+        
         function [statusOk, message] = remove(obj, type, idx)
             if idx == 0
                 statusOk = false;
