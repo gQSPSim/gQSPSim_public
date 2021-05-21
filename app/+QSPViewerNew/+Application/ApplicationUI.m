@@ -413,7 +413,9 @@ classdef ApplicationUI < matlab.apps.AppBase
                         hDeleteds = app.createNode(hSession, Data, ...
                             'Deleted Items', QSPViewerNew.Resources.LoadResourcePath('trash_24.png'),...
                             'Deleted Items', 'Deleted', 'Deleted Items');
-                        thisFcn(hDeleteds, Data.Deleted);
+                        % create nodes for all except folder; folder nodes
+                        % are created separately in createFolderNode
+                        thisFcn(hDeleteds, Data.Deleted(arrayfun(@(x) ~isa(x, 'QSP.Folder'), Data.Deleted))); 
                         hDeleteds.Tag = 'Deleted Items';
                         
                         % Expand Nodes
@@ -533,7 +535,7 @@ classdef ApplicationUI < matlab.apps.AppBase
                 
                 % If it is an instance of QSP.Folder
                 if strcmp(Node.UserData,"Folder")
-                    ParentItemObj = getParentItemObj(Node.NodeData);
+                    ParentItemObj = getParentItemNode(Node.NodeData, app.TreeRoot);
                     ParentItemType = ParentItemObj.UserData;
                     
                     CM = uicontextmenu('Parent',app.UIFigure);
@@ -541,7 +543,7 @@ classdef ApplicationUI < matlab.apps.AppBase
                         'MenuSelectedFcn', @(h,e)app.onAddItem(h.Parent.UserData,Node.NodeData.Session,ParentItemType));
                     
                     uimenu('Parent', CM,'Label', ['Add new Folder'], ...
-                        'MenuSelectedFcn', @(h,e)app.onAddFolder(h.Parent.UserData,Node.NodeData.Session));
+                        'MenuSelectedFcn', @(h,e)app.onAddFolder(h.Parent.UserData,Node.NodeData.Session,true));
                     
                     uimenu('Parent', CM,'Label', ['Move to ...'], ...
                         'MenuSelectedFcn', @(h,e)app.onMoveFolder(h.Parent.UserData));
@@ -559,7 +561,7 @@ classdef ApplicationUI < matlab.apps.AppBase
                         'MenuSelectedFcn', @(h,e)app.onAddItem(h.Parent.UserData,h.Parent.UserData.Parent.Parent.NodeData,ThisItemType));
                     
                     uimenu('Parent',CM,'Label', ['Add new Folder'], ...
-                        'MenuSelectedFcn', @(h,e)app.onAddFolder(h.Parent.UserData,h.Parent.UserData.Parent.Parent.NodeData));
+                        'MenuSelectedFcn', @(h,e)app.onAddFolder(h.Parent.UserData,h.Parent.UserData.Parent.Parent.NodeData,true));
                     
                     %Not an Instance, just a type
                 else
@@ -639,6 +641,7 @@ classdef ApplicationUI < matlab.apps.AppBase
            if ~isempty(CMenu)
                app.createContextMenu(hNode,CMenu);
            end
+         
        end 
         
     end
@@ -893,6 +896,9 @@ classdef ApplicationUI < matlab.apps.AppBase
                 end
             end
             
+            % update "Move to..." context menu
+            updateMovetoContextMenu(app,ParentNode);
+            
             % Mark the current session dirty
             app.markDirty(thisSession);
             
@@ -906,19 +912,22 @@ classdef ApplicationUI < matlab.apps.AppBase
             app.updateAppTitle();
         end
         
-        function onAddFolder(app,ParentNode,thisSession)
-            ThisObj = QSP.Folder;
+        function ThisFolder = onAddFolder(app,ParentNode,thisSession,TfAcceptName)
+            ThisFolder = QSP.Folder;
             if isa(ParentNode.NodeData, 'QSP.Folder')
-                ThisObj.Name = 'SubFolder';
+                ThisFolder.Name = 'SubFolder';
                 if isempty(ParentNode.NodeData.Children)
-                    ParentNode.NodeData.Children = ThisObj;
+                    ParentNode.NodeData.Children = ThisFolder;
                 else
-                    ParentNode.NodeData.Children(end+1) = ThisObj;
+                    ParentNode.NodeData.Children(end+1) = ThisFolder;
                 end
+                ThisFolder.OldParent = ThisFolder.Parent;
+                ThisFolder.Parent = ParentNode.NodeData;
+            else
+                ThisFolder.OldParent = ThisFolder.Parent;
+                ThisFolder.Parent = ParentNode.Text;
             end
-            ThisObj.Session = thisSession;
-            ThisObj.OldParent = ThisObj.Parent;
-            ThisObj.Parent = ParentNode;
+            ThisFolder.Session = thisSession;
             
             if ~isempty(ParentNode.Children)
                 allChildren = {ParentNode.Children.NodeData};
@@ -927,14 +936,14 @@ classdef ApplicationUI < matlab.apps.AppBase
                 if any(allFoldersIdx)
                     allFolders = [allChildren{allFoldersIdx}];
                     DisallowedNames = {allFolders.Name};
-                    NewName = matlab.lang.makeUniqueStrings(ThisObj.Name, DisallowedNames);
-                    ThisObj.Name = NewName;
+                    NewName = matlab.lang.makeUniqueStrings(ThisFolder.Name, DisallowedNames);
+                    ThisFolder.Name = NewName;
                 end
             end
             
             % Place the item and add the tree node
             if isscalar(ParentNode)
-                app.createTree(ParentNode, ThisObj);
+                app.createTree(ParentNode, ThisFolder);
                 ParentNode.expand();
             else
                 error('Invalid tree parent');
@@ -943,8 +952,12 @@ classdef ApplicationUI < matlab.apps.AppBase
             % update "Move to..." context menu
             updateMovetoContextMenu(app,ParentNode);
             
-            % get user input to name folder
-            onRenameFolder(app, ThisObj.TreeNode);
+            if TfAcceptName
+                % get user input to name folder
+                onRenameFolder(app, ThisFolder.TreeNode);
+            end
+            
+            thisSession.Settings.Folder(end+1) = ThisFolder;
             
             % Mark the current session dirty
             app.markDirty(thisSession);
@@ -960,7 +973,7 @@ classdef ApplicationUI < matlab.apps.AppBase
         end
         
         function onMoveFolder(app,thisNode)
-            parentItemNode = getParentItemObj(thisNode.NodeData);
+            parentItemNode = getParentItemNode(thisNode.NodeData, app.TreeRoot);
             
             % get destination node
             if verLessThan('matlab','9.9')
@@ -993,14 +1006,23 @@ classdef ApplicationUI < matlab.apps.AppBase
             
             % assign all current selected nodes to new parent
             selNodes = [thisNode; app.TreeRoot.SelectedNodes];
-            
+            selNodes = unique(selNodes);
             for i = 1:length(selNodes)
                 if isa(selNodes(i).NodeData, class(thisNode.NodeData))
-                    if isequal(getParentItemObj(selNodes(i).NodeData), getParentItemObj(thisNode.NodeData))
+                    if isequal(getParentItemNode(selNodes(i).NodeData, app.TreeRoot), getParentItemNode(thisNode.NodeData, app.TreeRoot))
                         if ~isequal(newParentNode, thisNode)
-                            selNodes(i).NodeData.OldParent = selNodes(i).NodeData.Parent;
                             selNodes(i).Parent = newParentNode;
-                            selNodes(i).NodeData.Parent = newParentNode;
+                            if isa(newParentNode.NodeData, 'QSP.Folder') % if folder, assign the new children
+                                if isempty(newParentNode.NodeData.Children)
+                                    newParentNode.NodeData.Children = selNodes(i).NodeData;
+                                else
+                                    newParentNode.NodeData.Children(end+1) = selNodes(i).NodeData;
+                                end
+                                selNodes(i).NodeData.OldParent = selNodes(i).NodeData.Parent;
+                                selNodes(i).NodeData.Parent = newParentNode.NodeData;
+                            else
+                                selNodes(i).NodeData.Parent = newParentNode.Text;
+                            end
                             expand(newParentNode);
                         end
                     end
@@ -1011,7 +1033,7 @@ classdef ApplicationUI < matlab.apps.AppBase
         
         function onRenameFolder(app, node)
             prompt = {'Enter new name'};
-            dlgtitle = 'Rename folder';
+            dlgtitle = 'Folder Name';
             dims = [1 50];
             definput = {node.Text};
             answer = inputdlg(prompt, dlgtitle, dims, definput);
@@ -1106,15 +1128,21 @@ classdef ApplicationUI < matlab.apps.AppBase
             end
             
             % assign all current selected nodes to new parent
-            notMovedNodes = [];
             selNodes = [currentNode; app.TreeRoot.SelectedNodes];
+            selNodes = unique(selNodes);
             for i = 1:length(selNodes)
-                if isa(selNodes(i).NodeData, class(currentNode.NodeData))
+                if isa(selNodes(i).NodeData, class(currentNode.NodeData)) % move all nodes of same type
                     selNodes(i).Parent = newParentNode;
-                else
-                    notMovedNodes = [notMovedNodes; string(selNodes(i).Text)];
+                    if isa(newParentNode.NodeData, 'QSP.Folder') % if folder, assign the new children
+                        if isempty(newParentNode.NodeData.Children)
+                            newParentNode.NodeData.Children = selNodes(i).NodeData;
+                        else
+                            newParentNode.NodeData.Children(end+1) = selNodes(i).NodeData;
+                        end
+                    end
                 end
             end
+            app.markDirty(currentNode.NodeData.Session);
         end
     end
     
@@ -1260,6 +1288,98 @@ classdef ApplicationUI < matlab.apps.AppBase
             initializeTimer(Session);
         end
         
+        function createFolders(app, Session)
+            allFolders = Session.Settings.Folder;
+            
+            if ~isempty(allFolders)
+                topLevelFoldersIdx = arrayfun(@(x) ischar(x.Parent), allFolders);
+                topLevelFolders = allFolders(topLevelFoldersIdx);
+                
+                for i = 1:length(topLevelFolders)
+                    createFolderNode(app, topLevelFolders(i), Session);
+                end
+            end
+        end
+        
+        function createFolderNode(app, thisFolder, Session)
+            newFolder = QSP.Folder;
+            newFolder.Name = thisFolder.Name;
+            newFolder.Parent = thisFolder.Parent;
+            newFolder.OldParent = thisFolder.OldParent;
+            newFolder.Session = Session;
+            
+            if ischar(newFolder.Parent)
+                ParentNode = getParentItemNode(newFolder, app.TreeRoot);
+            else
+                ParentItemNode = getParentItemNode(newFolder, app.TreeRoot);
+                folderNodes = getAllChildrenFolderNodes(newFolder, ParentItemNode);
+                newFolderParent = newFolder.Parent;
+                newFolderParentNodeIdx = arrayfun(@(x) strcmp(x.NodeData.Name, newFolderParent.Name)...
+                    && isequal(x.NodeData.Parent, newFolderParent.Parent), folderNodes);
+                ParentNode = folderNodes(newFolderParentNodeIdx);
+            end
+            
+            % Place the item and add the tree node
+            if strcmp(ParentNode.Text, 'Deleted Items')
+                hNode = app.createNode(ParentNode, newFolder, newFolder.Name, ...
+                    QSPViewerNew.Resources.LoadResourcePath('folder_24.png'),...
+                    'Deleted', 'Folder', '');
+                newFolder.TreeNode = hNode; %Store node in the object for cross-ref
+            elseif isscalar(ParentNode)
+                app.createTree(ParentNode, newFolder);
+
+                % update "Move to..." context menu
+                updateMovetoContextMenu(app,ParentNode);
+            else
+                error('Invalid tree parent');
+            end
+            
+            if isa(ParentNode.NodeData, 'QSP.Folder')
+                newFolder.Parent = ParentNode.NodeData;
+            end
+
+            if isa(newFolder.OldParent, 'QSP.Folder')
+                oldParent = newFolder.OldParent;
+                ParentItemNode = getParentItemNode(oldParent, app.TreeRoot);
+                folderNodes = getAllChildrenFolderNodes(oldParent, ParentItemNode);
+                oldParentNodeIdx = arrayfun(@(x) strcmp(x.NodeData.Name, oldParent.Name)...
+                    && isequal(x.NodeData.Parent, oldParent.Parent), folderNodes);
+                oldParentNode = folderNodes(oldParentNodeIdx);
+                newFolder.OldParent.TreeNode = oldParentNode;
+            end
+            
+            % replace old folder with the new folder under Settings
+            Session.Settings.Folder(Session.Settings.Folder==thisFolder) = newFolder;
+            
+            % attach all children nodes
+            for i = 1:length(thisFolder.Children)
+                thisChild = thisFolder.Children(i);
+                
+                if isempty(newFolder.Children)
+                    newFolder.Children = thisChild;
+                else
+                    newFolder.Children(end+1) = thisChild;
+                end
+                
+                if isa(thisChild, 'QSP.Folder')
+                    createFolderNode(app, thisChild, Session);
+                else
+                    ParentItemNode = getParentItemNode(newFolder, app.TreeRoot);
+                    if strcmp(ParentItemNode.Text, 'Deleted Items')
+                        % create node since it is not already created
+                        app.createTree(ParentItemNode, thisChild);
+                    end
+                    thisChildNodeIdx = arrayfun(@(x) isequal(x.NodeData, thisChild), ParentItemNode.Children);
+                    thisChildNode = ParentItemNode.Children(thisChildNodeIdx);
+                    
+                    thisFolderNodeIdx = arrayfun(@(x) isequal(x.NodeData, newFolder), ParentNode.Children);
+                    thisFolderNode = ParentNode.Children(thisFolderNodeIdx);
+                    
+                    thisChildNode.Parent = thisFolderNode;
+                end
+            end
+        end
+        
         function loadSessionFromPath(app, fullFilePath)  
             % Loads a session file from disk found at fullFilePath.
             
@@ -1305,7 +1425,8 @@ classdef ApplicationUI < matlab.apps.AppBase
                         Session = copy(loadedSession.Session);
                         Session.RootDirectory = newFilePath;
                         app.createNewSession(Session);
-
+                        app.createFolders(Session);
+                        
                         %Edit the app properties to reflect a new loaded session was
                         %added
                         idxNew = app.NumSessions + 1;
@@ -1473,9 +1594,20 @@ classdef ApplicationUI < matlab.apps.AppBase
                     app.refresh();
                 case 'QSP.VirtualPopulation'
                     NewVirtualPopulation = newObject;
+                    
                     for idx = 1:numel(NewVirtualPopulation)
-                        app.onAddItem(NewVirtualPopulation(idx).Session,NewVirtualPopulation(idx))
+                        thisVpop = NewVirtualPopulation(idx);
+                        
+                        thisSession = NewVirtualPopulation(idx).Session;
+                        isbuildBlockNode = string({thisSession.TreeNode.Children.Text})=="Building blocks";
+                        buildBlockNode = thisSession.TreeNode.Children(isbuildBlockNode);
+                        virtualSubParentNode = buildBlockNode.Children(string({buildBlockNode.Children.Text})=="Virtual Subject(s)");
+                        
+                        app.onAddItem(virtualSubParentNode,thisSession,thisVpop)
+                        
+                        app.updateVpopFolderStructure(virtualSubParentNode);
                     end
+                    
                 case 'QSP.Parameters'
                     NewParameters = newObject;
                     for idx = 1:numel(NewParameters)
@@ -1934,7 +2066,13 @@ classdef ApplicationUI < matlab.apps.AppBase
                 ParentNode = ParentArray(strcmp(ParentArrayTypes,ItemType));
                 allChildNames = {ParentObj.(ItemType).Name};
             elseif strcmp(ItemType, "Folder")
-                ParentNode = node.NodeData.OldParent;
+                restoreFolderNodes(app, node);
+                
+                if ischar(ThisObj.Parent)
+                    ParentNode = getParentItemNode(ThisObj, app.TreeRoot);
+                else
+                    ParentNode = ThisObj.Parent.TreeNode;
+                end
                 
                 if ~isempty(ParentNode.Children)
                     allChildren = {ParentNode.Children.NodeData};
@@ -1948,6 +2086,8 @@ classdef ApplicationUI < matlab.apps.AppBase
                 else
                     allChildNames = '';
                 end
+                
+                ParentObj = session.Settings;
             else
                 ParentObj = session.Settings;
                 ParentArray = ParentObj.TreeNode.Children;
@@ -1974,10 +2114,12 @@ classdef ApplicationUI < matlab.apps.AppBase
                 return;
             end
             
-            % Move the object from deleted to the new parent
             if ~strcmp(ItemType, "Folder")
+                % Move the object from deleted to the new parent
+                % for folders, this is already done in restoreFolderNodes
                 ParentObj.(ItemType)(end+1) = ThisObj;
             end
+            
             MatchIdx = false(size(session.Deleted));
             for idx = 1:numel(session.Deleted)
                 MatchIdx(idx) = session.Deleted(idx)==ThisObj;
@@ -1995,6 +2137,29 @@ classdef ApplicationUI < matlab.apps.AppBase
             % Update the display
             app.refresh();
             app.markDirty(session);
+        end
+        
+        function restoreFolderNodes(app, node)
+            ThisObj = node.NodeData;
+            % old parent becomes current parent when restoring
+            oldParent = ThisObj.Parent;
+            ThisObj.Parent = ThisObj.OldParent;
+            ThisObj.OldParent = oldParent;
+            
+            % loop through all children
+            for i = 1:length(node.Children)
+                thisChild = node.Children(i);
+                if isa(thisChild.NodeData, 'QSP.Folder')
+                    restoreFolderNodes(app, thisChild);
+                else
+                    ParentNode = getParentItemNode(ThisObj, app.TreeRoot);
+                    ItemType = ParentNode.Tag;
+                    ParentObj = ParentNode.NodeData;
+                    ParentObj.(ItemType)( end+1 ) = thisChild.NodeData;
+                end
+            end
+                
+            node.NodeData.Session.Settings.Folder(end+1) = ThisObj;
         end
         
         function duplicateNode(app,Node,~) 
@@ -2056,7 +2221,7 @@ classdef ApplicationUI < matlab.apps.AppBase
             if ~strcmp(ItemType, "Folder")
                 ParentObj.(ItemType)( ParentObj.(ItemType)==ThisObj ) = [];
             else
-                Node.NodeData.OldParent = Node.NodeData.Parent;
+                deleteFolderNodes(app, Node)
             end
             Node.Parent = hDeletedNode;
             app.TreeRoot.SelectedNodes = Node;
@@ -2074,6 +2239,29 @@ classdef ApplicationUI < matlab.apps.AppBase
             % Update the display
             app.refresh();
             
+        end
+        
+        function deleteFolderNodes(app, node)
+            % loop through all children
+            for i = 1:length(node.Children)
+                thisChild = node.Children(i);
+                if isa(thisChild.NodeData, 'QSP.Folder')
+                    deleteFolderNodes(app, thisChild);
+                else
+                    ParentNode = getParentItemNode(node.NodeData, app.TreeRoot);
+                    ItemType = ParentNode.Tag;
+                    ParentObj = ParentNode.NodeData;
+                    ParentObj.(ItemType)( ParentObj.(ItemType)==thisChild.NodeData ) = [];
+                end
+            end
+            
+            node.NodeData.OldParent = node.NodeData.Parent;
+            allFolders = node.NodeData.Session.Settings.Folder;
+            nodeFolderIdx = arrayfun(@(x) isequal(x.Parent, node.NodeData.Parent)&&...
+                strcmp(x.Name, node.NodeData.Name), allFolders);
+            
+            node.NodeData.Session.Settings.Folder(nodeFolderIdx).Parent = 'Deleted Items';
+            node.NodeData.Session.Settings.Folder(nodeFolderIdx) = [];
         end
         
         function permDelete(app,nodes,session)
@@ -2154,7 +2342,44 @@ classdef ApplicationUI < matlab.apps.AppBase
                 end
             end
         end
-       
+        
+        function updateVpopFolderStructure(app, parentVpopNode)
+            allChildrenInit = parentVpopNode.Children;
+            for i = 1:length(allChildrenInit)
+                if ~isa(allChildrenInit(i).NodeData, 'QSP.Folder')
+                    thisVpop = allChildrenInit(i).NodeData;
+                    if contains(thisVpop.Name, "Results -")
+                        allChildren = thisVpop.TreeNode.Parent.Children;
+                        sourceNodeName = extractBetween(thisVpop.Name, "= ", " ");
+                        isExistSourceFolder = false;
+                        
+                        if ~isempty(sourceNodeName)
+                            % check if a folder exists with this name
+                            isfolderidx = arrayfun(@(x) isa(x.NodeData, 'QSP.Folder'), allChildren);
+                            if any(isfolderidx)
+                                allFolders = allChildren(isfolderidx);
+                                isSourceFolderIdx = arrayfun(@(x) strcmp(x.NodeData.Name,sourceNodeName{1}), ...
+                                    allFolders);
+                                if any(isSourceFolderIdx)
+                                    isExistSourceFolder = true;
+                                    SourceFolder = allFolders(isSourceFolderIdx).NodeData;
+                                end
+                            end
+                        end
+                        
+                        if ~isExistSourceFolder
+                            SourceFolder = onAddFolder(app,parentVpopNode,thisVpop.Session,false);
+                            SourceFolder.TreeNode.Text = sourceNodeName{1};
+                            SourceFolder.Name = sourceNodeName{1};
+                        end
+                        
+                        thisVpop.TreeNode.Parent = SourceFolder.TreeNode;
+                        expand(SourceFolder.TreeNode);
+                    end
+                end
+            end
+        end
+        
     end
     
     % %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %%

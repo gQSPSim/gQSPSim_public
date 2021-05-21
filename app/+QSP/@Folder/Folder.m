@@ -55,17 +55,36 @@ classdef Folder < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
     
     %% Methods
     methods
-        function ParentObj = getParentItemObj(obj)
+        function ParentNode = getParentItemNode(obj, treeRoot)
             % to get parent QSP item object class 
             % (which is either a building block node 
             % or functionalities node)
             
             currentObj = obj;
-            while isa(currentObj.Parent.NodeData, 'QSP.Folder')
-                currentObj = currentObj.Parent.NodeData;
+            while isa(currentObj.Parent, 'QSP.Folder')
+                currentObj = currentObj.Parent;
             end
             
-            ParentObj = currentObj.Parent;
+            % find session node
+            sessionNodeIdx = arrayfun(@(x) isequal(x.NodeData.SessionName, obj.Session.SessionName), treeRoot.Children);
+            sessionNode = treeRoot.Children(sessionNodeIdx);
+            sessNodeChildren = sessionNode.Children;
+            
+            % is it a building block or functionality?
+            if ismember(currentObj.Parent, {'Tasks', 'Parameters', 'Datasets', ...
+                    'Acceptance Criteria', 'Target Statistics', 'Virtual Subject(s)'})
+                parentParentNode = sessNodeChildren(arrayfun(@(x) strcmp(x.Text, 'Building blocks'), sessNodeChildren));
+                ParentNodeIdx = arrayfun(@(x) strcmp(x.Text, currentObj.Parent), parentParentNode.Children);
+                ParentNode = parentParentNode.Children(ParentNodeIdx);
+            elseif ismember(currentObj.Parent, {'Simulations', 'Optimizations', 'Virtual Cohort Generations', ...
+                    'Virtual Population Generations', 'Global Sensitivity Analyses'})
+                parentParentNode = sessNodeChildren(arrayfun(@(x) strcmp(x.Text, 'Functionalities'), sessNodeChildren));
+                ParentNodeIdx = arrayfun(@(x) strcmp(x.Text, currentObj.Parent), parentParentNode.Children);
+                ParentNode = parentParentNode.Children(ParentNodeIdx);
+            else
+                ParentNode = sessNodeChildren(arrayfun(@(x) strcmp(x.Text, 'Deleted Items'), sessNodeChildren));
+            end
+            
         end
         
         function folderNodes = getAllChildrenFolderNodes(obj, node)
