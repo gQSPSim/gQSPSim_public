@@ -118,11 +118,6 @@ grpData = {'taskObj', 'Species_grp', 'Time_grp', 'LB_grp', 'UB_grp', 'OutputTime
 grpData = cell2struct( cellfun(@(s) evalin('caller',s), grpData, 'UniformOutput', false), grpData, 2);
 
 %%
-% Relative Prevalence options
-options_RP=saoptimset('ObjectiveLimit',0.005,'TolFun',1e-5,'Display','iter',...
-    'ReannealInterval',500,'InitialTemperature',0.5,'MaxIter',400,'TemperatureFcn',...
-    @temperatureboltz,'AnnealingFcn', @annealingboltz,'AcceptanceFcn',@acceptancesa);
-
 % function checkCancelled(data)
 %     waitStatus = false;
 %     disp('interrupt received')
