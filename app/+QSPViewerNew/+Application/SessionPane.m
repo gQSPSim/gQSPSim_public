@@ -197,7 +197,7 @@ classdef SessionPane < QSPViewerNew.Application.ViewPane
             
             %Callbacks
             obj.UseParallelToolboxCheckBox.ValueChangedFcn = @(h,e) obj.onParallelCheckbox(e.Value);
-            obj.AutoSaveSingleFile.ValueChangedFcn = @(h,e) obj.onAutosaveSingleFileCheckbox(e.Value);
+            obj.EnableCheckpoints.ValueChangedFcn = @(h,e) obj.onAutosaveSingleFileCheckbox(e.Value);
             obj.AutoSavePeriodically.ValueChangedFcn = @(h,e) obj.onAutosaveTimerCheckbox(e.Value);
             obj.AutoSaveBeforeRun.ValueChangedFcn = @(h,e) obj.onAutoSaveBeforeRunChecked(e.Value);
             obj.AutoSaveFreqEdit.ValueChangedFcn = @(h,e) obj.onAutoSaveFrequencyEdited(e.Value);
