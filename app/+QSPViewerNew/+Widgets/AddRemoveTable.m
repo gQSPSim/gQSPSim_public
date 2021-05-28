@@ -155,6 +155,18 @@ classdef AddRemoveTable < handle
             obj.refreshButtons();
         end
     end
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % Public methods
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    methods
+        function addInvalidStyle(obj, idx)
+            % add style to obj.TableMain for invalid entries at position
+            % specified by idx
+            QSP.makeInvalidStyle(obj.TableMain, idx);
+        end
+    end
+    
+    
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Set/Get

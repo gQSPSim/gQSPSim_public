@@ -1520,16 +1520,19 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
                 Data = [TaskNames(:) GroupIDs(:) num2cell(RunToSteadyState(:))];
 
                 if ~isempty(Data)
+                    invalidIdx = []; % store in variable to create invalid uistyle in table
                     for index = 1:numel(TaskNames)
                         ThisTask = getValidSelectedTasks(obj.TemporaryOptimization.Settings,TaskNames{index});
                         % Mark invalid if empty
                         if isempty(ThisTask)            
                             Data{index,1} = QSP.makeInvalid(Data{index,1});
+                            invalidIdx{end+1} = [index,1];
                         end
                     end
                     MatchIdx = find(~ismember(GroupIDs(:),obj.GroupIDPopupTableItems(:)));
                     for index = 1:numel(MatchIdx)
                         Data{MatchIdx(index),2} = QSP.makeInvalid(Data{MatchIdx(index),2});
+                        invalidIdx{end+1} = [MatchIdx(index),2];
                     end
                 end
             else
@@ -1557,18 +1560,8 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
             obj.OptimizationTable.setData(Data)
             
             % add style to invalid entries
-            if ~isempty(Data)
-                for index = 1:numel(TaskNames)
-                    ThisTask = getValidSelectedTasks(obj.TemporaryOptimization.Settings,TaskNames{index});
-                    % Mark invalid if empty
-                    if isempty(ThisTask)
-                        QSP.makeInvalidStyle(obj.OptimizationTable, [index,1])
-                    end
-                end
-                MatchIdx = find(~ismember(GroupIDs(:),obj.GroupIDPopupTableItems(:)));
-                for index = 1:numel(MatchIdx)
-                    QSP.makeInvalidStyle(obj.OptimizationTable, [MatchIdx(index),2])
-                end
+            for i = 1:length(invalidIdx)
+                addInvalidStyle(obj.OptimizationTable, invalidIdx{i});
             end
         end
         
