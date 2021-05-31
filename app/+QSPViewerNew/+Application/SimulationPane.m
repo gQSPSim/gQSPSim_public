@@ -1047,16 +1047,19 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
                 Data = [TaskNames(:) VPopNames(:) Groups(:) AvailableGroups(:) ];
 
                 % Mark any invalid entries
+                invalidIdx = []; % store invalid indices to create uistyle in table
                 if ~isempty(Data)
                     % Task
                     MatchIdx = find(~ismember(TaskNames(:),obj.TaskPopupTableItems(:)));
                     for index = MatchIdx(:)'
                         Data{index,1} = QSP.makeInvalid(Data{index,1});
+                        invalidIdx{end+1} = [index,1];
                     end        
                     % VPop
                     MatchIdx = find(~ismember(VPopNames(:),obj.VPopPopupTableItems(:)));
                     for index = MatchIdx(:)'
                         Data{index,2} = QSP.makeInvalid(Data{index,2});
+                        invalidIdx{end+1} = [index,2];
                     end
                 end
             else
@@ -1075,17 +1078,9 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
             obj.SimItemsTable.ColumnEditable = editableTF;
             
             % Add style to any invalid entries
-            if ~isempty(Data)
-                % Task
-                MatchIdx = find(~ismember(TaskNames(:),obj.TaskPopupTableItems(:)));
-                for index = MatchIdx(:)'
-                    QSP.makeInvalidStyle(obj.SimItemsTable, [index,1])
-                end
-                % VPop
-                MatchIdx = find(~ismember(VPopNames(:),obj.VPopPopupTableItems(:)));
-                for index = MatchIdx(:)'
-                    QSP.makeInvalidStyle(obj.SimItemsTable, [index,2])
-                end
+            removeStyle(obj.SimItemsTable);
+            for i = 1:length(invalidIdx)
+                QSP.makeInvalidStyle(obj.SimItemsTable, invalidIdx{i});
             end
         end
         
