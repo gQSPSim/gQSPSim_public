@@ -1603,20 +1603,24 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
 
                 
                 if ~isempty(Data)
+                    invalidIdx = [];
                     % Data
                     MatchIdx = find(~ismember(DataNames(:),obj.PrunedDatasetHeader(:)));
                     for index = 1:numel(MatchIdx)
                         Data{MatchIdx(index),1} = QSP.makeInvalid(Data{MatchIdx(index),1});
+                        invalidIdx{end+1} = [MatchIdx(index),1];
                     end
                     % Species
                     MatchIdx = find(~ismember(SpeciesNames(:),obj.SpeciesPopupTableItems(:)));
                     for index = 1:numel(MatchIdx)
                         Data{MatchIdx(index),2} = QSP.makeInvalid(Data{MatchIdx(index),2});
+                        invalidIdx{end+1} = [MatchIdx(index),2];
                     end
                     % ObjectiveNames
                     MatchIdx = find(~ismember(ObjectiveNames(:),obj.ObjectiveFunctions(:)));
                     for index = 1:numel(MatchIdx)
                         Data{MatchIdx(index),5} = QSP.makeInvalid(Data{MatchIdx(index),5});
+                        invalidIdx{end+1} = [MatchIdx(index),5];
                     end
                 end
             else
@@ -1644,22 +1648,8 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
             obj.SpeciesDataTable.setData(Data)
             
             % add style to invalid entries
-            if ~isempty(Data)
-                % Data
-                MatchIdx = find(~ismember(DataNames(:),obj.PrunedDatasetHeader(:)));
-                for index = 1:numel(MatchIdx)
-                    QSP.makeInvalidStyle(obj.SpeciesDataTable, [MatchIdx(index),1]);
-                end
-                % Species
-                MatchIdx = find(~ismember(SpeciesNames(:),obj.SpeciesPopupTableItems(:)));
-                for index = 1:numel(MatchIdx)
-                    QSP.makeInvalidStyle(obj.SpeciesDataTable, [MatchIdx(index),2]);
-                end
-                % ObjectiveNames
-                MatchIdx = find(~ismember(ObjectiveNames(:),obj.ObjectiveFunctions(:)));
-                for index = 1:numel(MatchIdx)
-                    QSP.makeInvalidStyle(obj.SpeciesDataTable, [MatchIdx(index),5]);
-                end
+            for i = 1:length(invalidIdx)
+                addInvalidStyle(obj.SpeciesDataTable, invalidIdx{i});
             end
         end
         
@@ -1709,17 +1699,8 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
             obj.SpeciesInitialTable.setData(Data)
             
             % add style to any invalid entries
-            if ~isempty(Data)
-                % Species
-                MatchIdx = find(~ismember(SpeciesNames(:),obj.SpeciesPopupTableItems(:)));
-                for index = 1:numel(MatchIdx)
-                    QSP.makeInvalidStyle(obj.SpeciesInitialTable, [MatchIdx(index),1]);
-                end
-                % Data
-                MatchIdx = find(~ismember(DataNames(:),obj.PrunedDatasetHeader(:)));
-                for index = 1:numel(MatchIdx)
-                    QSP.makeInvalidStyle(obj.SpeciesInitialTable, [MatchIdx(index),2]);
-                end
+            for i = 1:length(invalidIdx)
+                addInvalidStyle(obj.SpeciesInitialTable, invalidIdx{i});
             end
         end
         

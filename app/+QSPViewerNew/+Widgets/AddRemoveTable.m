@@ -155,6 +155,7 @@ classdef AddRemoveTable < handle
             obj.refreshButtons();
         end
     end
+    
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Public methods
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -166,8 +167,6 @@ classdef AddRemoveTable < handle
         end
     end
     
-    
-    
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Set/Get
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -178,6 +177,7 @@ classdef AddRemoveTable < handle
         end
         
         function setData(obj,input)
+            removeStyle(obj.TableMain); % remove any existing styling
             obj.TableMain.Data = input;
         end
         
