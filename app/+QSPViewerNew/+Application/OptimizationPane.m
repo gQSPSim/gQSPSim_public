@@ -1663,15 +1663,18 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
 
                 % Mark any invalid entries
                 if ~isempty(Data)
+                    invalidIdx = [];
                     % Species
                     MatchIdx = find(~ismember(SpeciesNames(:),obj.SpeciesPopupTableItems(:)));
                     for index = 1:numel(MatchIdx)
                         Data{MatchIdx(index),1} = QSP.makeInvalid(Data{MatchIdx(index),1});
+                        invalidIdx{end+1} = [MatchIdx(index),1];
                     end
                     % Data
                     MatchIdx = find(~ismember(DataNames(:),obj.PrunedDatasetHeader(:)));
                     for index = 1:numel(MatchIdx)
                         Data{MatchIdx(index),2} = QSP.makeInvalid(Data{MatchIdx(index),2});
+                        invalidIdx{end+1} = [MatchIdx(index),2];
                     end
                 end
             else

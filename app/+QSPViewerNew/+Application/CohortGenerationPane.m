@@ -1258,25 +1258,28 @@ classdef CohortGenerationPane < QSPViewerNew.Application.ViewPane
                 
                 % Mark any invalid entries
                 if ~isempty(Data)
+                    invalidIdx = []; % store all invalid indices to add styling later
                     % Task
-                    
                     for index = 1:numel(TaskNames)
                         ThisTask = getValidSelectedTasks(obj.TemporaryCohortGeneration.Settings,TaskNames{index});
                         % Mark invalid if empty
                         if isempty(ThisTask)
                             Data{index,1} = QSP.makeInvalid(Data{index,1});
+                            invalidIdx{end+1} = [MatchIdx(index),1];
                         end
                     end
                     
                     MatchIdx = find(~ismember(TempGroupIDs(:),obj.GroupIDPopupTableItems(:)));
                     for index = 1:numel(MatchIdx)
                         Data{MatchIdx(index),2} = QSP.makeInvalid(Data{MatchIdx(index),2});
+                        invalidIdx{end+1} = [MatchIdx(index),1];
                     end
                 end
                 
             else
                 Data = {};
             end
+            
             if ~isempty(obj.TemporaryCohortGeneration) && ~isempty(obj.DatasetHeader) && ~isempty(obj.DatasetData)
                 MatchIdx = strcmp(obj.DatasetHeader,obj.TemporaryCohortGeneration.GroupName);
                 TempGroupIDs = obj.DatasetData(:,MatchIdx);
@@ -1294,21 +1297,8 @@ classdef CohortGenerationPane < QSPViewerNew.Application.ViewPane
             obj.VirtualItemsTable.setData(Data)
             
             % add styling to invalid entries if any
-            if ~isempty(Data)
-                % Task
-                
-                for index = 1:numel(TaskNames)
-                    ThisTask = getValidSelectedTasks(obj.TemporaryCohortGeneration.Settings,TaskNames{index});
-                    % Mark invalid if empty
-                    if isempty(ThisTask)
-                        QSP.makeInvalidStyle(obj.VirtualItemsTable, [index,1])
-                    end
-                end
-                
-                MatchIdx = find(~ismember(TempGroupIDs(:),obj.GroupIDPopupTableItems(:)));
-                for index = 1:numel(MatchIdx)
-                    QSP.makeInvalidStyle(obj.VirtualItemsTable, [MatchIdx(index),2])
-                end
+            for i = 1:length(invalidIdx)
+                addInvalidStyle(obj.VirtualItemsTable, invalidIdx{i});
             end
         end
         
@@ -1349,15 +1339,18 @@ classdef CohortGenerationPane < QSPViewerNew.Application.ViewPane
                 
                 % Mark any invalid entries
                 if ~isempty(Data)
+                    invalidIdx = [];
                     % Species
                     MatchIdx = find(~ismember(SpeciesNames(:),obj.SpeciesPopupTableItems(:)));
                     for index = 1:numel(MatchIdx)
                         Data{MatchIdx(index),2} = QSP.makeInvalid(Data{MatchIdx(index),1});
+                        invalidIdx{end+1} = [MatchIdx(index),2];
                     end
                     % Data
                     MatchIdx = find(~ismember(DataNames(:),obj.DatasetDataColumn(:)));
                     for index = 1:numel(MatchIdx)
                         Data{MatchIdx(index),1} = QSP.makeInvalid(Data{MatchIdx(index),4});
+                        invalidIdx{end+1} = [MatchIdx(index),1];
                     end
                 end
             else
@@ -1370,17 +1363,8 @@ classdef CohortGenerationPane < QSPViewerNew.Application.ViewPane
             obj.SpeciesDataTable.setData(Data)
             
             % add style to any invalid entries
-            if ~isempty(Data)
-                % Species
-                MatchIdx = find(~ismember(SpeciesNames(:),obj.SpeciesPopupTableItems(:)));
-                for index = 1:numel(MatchIdx)
-                    QSP.makeInvalidStyle(obj.SpeciesDataTable, [MatchIdx(index),2]);
-                end
-                % Data
-                MatchIdx = find(~ismember(DataNames(:),obj.DatasetDataColumn(:)));
-                for index = 1:numel(MatchIdx)
-                    QSP.makeInvalidStyle(obj.SpeciesDataTable, [MatchIdx(index),1]);
-                end
+            for i = 1:length(invalidIdx)
+                addInvalidStyle(obj.SpeciesDataTable, invalidIdx{i});
             end
         end
         
