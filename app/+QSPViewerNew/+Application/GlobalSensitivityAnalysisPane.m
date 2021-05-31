@@ -1128,8 +1128,10 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             obj.TaskTable.Data = Data;
             
             % add style to any invalid entries
-            for i = 1:length(invalidIdx)
-                QSP.makeInvalidStyle(obj.TaskTable, invalidIdx{i});
+            if ~isempty(obj.TemporaryGlobalSensitivityAnalysis.Item)
+                for i = 1:length(invalidIdx)
+                    QSP.makeInvalidStyle(obj.TaskTable, invalidIdx{i});
+                end
             end
             
             % Dis-/enable drop down menu for sensitivity outputs if the are
