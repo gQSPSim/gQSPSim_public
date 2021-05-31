@@ -1064,28 +1064,25 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             Data = [include(:), colorPlaceholders, taskNames(:), taskDescription(:)];
 
             % Mark any invalid entries
+            invalidIdx = [];
             if ~isempty(Data)
                 % Task
                 MatchIdx = find(~ismember(taskNames(:),obj.SensitivityOutputs(:)));
                 for index = MatchIdx(:)'
                     Data{index,3} = QSP.makeInvalid(Data{index,3});
+                    invalidIdx{end+1} = [index,3];
                 end        
             end
             obj.PlotItemsTable.Data = Data;
-            
-            % add style to any invalid entry
-            if ~isempty(Data)
-                % Task
-                MatchIdx = find(~ismember(taskNames(:),obj.SensitivityOutputs(:)));
-                for index = MatchIdx(:)'
-                    QSP.makeInvalidStyle(obj.PlotItemsTable, [index,3]);
-                end        
-            end
             
             removeStyle(obj.PlotItemsTable)
             for i = 1:numel(taskNames)
                 style = uistyle('BackgroundColor', taskColor{i});
                 addStyle(obj.PlotItemsTable,style,'cell',[i,2]);
+            end
+            
+            for i = 1:length(invalidIdx)
+                QSP.makeInvalidStyle(obj.PlotItemsTable, invalidIdx{i});
             end
         end
         
@@ -1114,11 +1111,13 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
                 Data = [taskNames, num2cell(iterationInfo), samplesInfo];
 
                 % Mark any invalid entries
+                invalidIdx = [];
                 if ~isempty(Data)
                     % Task
                     MatchIdx = find(~ismember(taskNames(:),obj.SensitivityOutputs(:)));
                     for index = MatchIdx(:)'
                         Data{index,1} = QSP.makeInvalid(Data{index,1});
+                        invalidIdx{end+1} = [index,1];
                     end        
                 end
             else
@@ -1129,12 +1128,8 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             obj.TaskTable.Data = Data;
             
             % add style to any invalid entries
-            if ~isempty(Data)
-                % Task
-                MatchIdx = find(~ismember(taskNames(:),obj.SensitivityOutputs(:)));
-                for index = MatchIdx(:)'
-                    QSP.makeInvalidStyle(obj.TaskTable, [index,1]);
-                end
+            for i = 1:length(invalidIdx)
+                QSP.makeInvalidStyle(obj.TaskTable, invalidIdx{i});
             end
             
             % Dis-/enable drop down menu for sensitivity outputs if the are

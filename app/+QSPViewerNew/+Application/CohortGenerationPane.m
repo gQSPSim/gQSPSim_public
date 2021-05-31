@@ -1257,8 +1257,8 @@ classdef CohortGenerationPane < QSPViewerNew.Application.ViewPane
                 Data = [TaskNames(:) TempGroupIDs(:) num2cell(RunToSteadyState(:))];
                 
                 % Mark any invalid entries
+                invalidIdx = []; % store all invalid indices to add styling later
                 if ~isempty(Data)
-                    invalidIdx = []; % store all invalid indices to add styling later
                     % Task
                     for index = 1:numel(TaskNames)
                         ThisTask = getValidSelectedTasks(obj.TemporaryCohortGeneration.Settings,TaskNames{index});
@@ -1338,8 +1338,8 @@ classdef CohortGenerationPane < QSPViewerNew.Application.ViewPane
                 Data = [DataNames(:) SpeciesNames(:) num2cell(NumTasksPerSpecies(:)) FunctionExpressions(:)];
                 
                 % Mark any invalid entries
+                invalidIdx = [];
                 if ~isempty(Data)
-                    invalidIdx = [];
                     % Species
                     MatchIdx = find(~ismember(SpeciesNames(:),obj.SpeciesPopupTableItems(:)));
                     for index = 1:numel(MatchIdx)

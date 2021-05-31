@@ -1518,9 +1518,10 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
                     end
                 end
                 Data = [TaskNames(:) GroupIDs(:) num2cell(RunToSteadyState(:))];
-
+                
+                
+                invalidIdx = []; % store invalid indices to create uistyle in table
                 if ~isempty(Data)
-                    invalidIdx = []; % store in variable to create invalid uistyle in table
                     for index = 1:numel(TaskNames)
                         ThisTask = getValidSelectedTasks(obj.TemporaryOptimization.Settings,TaskNames{index});
                         % Mark invalid if empty
@@ -1602,8 +1603,8 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
                 Data = [DataNames(:) SpeciesNames(:) num2cell(NumTasksPerSpecies(:)) FunctionExpressions(:) ObjectiveNames(:)];
 
                 
+                invalidIdx = [];
                 if ~isempty(Data)
-                    invalidIdx = [];
                     % Data
                     MatchIdx = find(~ismember(DataNames(:),obj.PrunedDatasetHeader(:)));
                     for index = 1:numel(MatchIdx)
@@ -1662,8 +1663,8 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
                 Data = [SpeciesNames(:) DataNames(:) FunctionExpressions(:)];
 
                 % Mark any invalid entries
+                invalidIdx = [];
                 if ~isempty(Data)
-                    invalidIdx = [];
                     % Species
                     MatchIdx = find(~ismember(SpeciesNames(:),obj.SpeciesPopupTableItems(:)));
                     for index = 1:numel(MatchIdx)
