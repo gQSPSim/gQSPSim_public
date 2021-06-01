@@ -906,14 +906,11 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
             obj.redrawVisParametersTable();
             obj.redrawProfileButtonGroup();
             obj.VisDirty = true; %Same as notify(obj,'MarkDirty') in old implementation 
-            
         end
         
         function onVisFilterValueChange(obj,~,e)
             searchStr = e.Value;
-            rowContainingFilter = ...
-                            contains(string({obj.VisParametersData{:,1}}), searchStr, 'IgnoreCase', true);
-            obj.VisParametersTable.Data = obj.VisParametersData(rowContainingFilter,:);
+            updateVisParametersTableWithFilter(obj, searchStr)
         end
         
         function onVisAddButton(obj,~,~)
@@ -968,10 +965,14 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
             
             if ~isempty(obj.Optimization.SelectedProfileRow) && ~isempty(h.Data{RowIdx,ColIdx})
                 ThisProfile = obj.Optimization.PlotProfile(obj.Optimization.SelectedProfileRow);
+                % get filtered rows of the table
+                rowContainingFilterTF = ...
+                    getRowsContainingSearchStrVisParamTable(obj, obj.VisParametersTableFilter.Value);
+                rowContainingFilter = find(rowContainingFilterTF);
                 if ischar(h.Data{RowIdx,ColIdx})
-                    ThisProfile.Values(RowIdx,ColIdx) = {str2double(h.Data{RowIdx,ColIdx})};
+                    ThisProfile.Values(rowContainingFilter(RowIdx),ColIdx) = {str2double(h.Data{RowIdx,ColIdx})};
                 else
-                    ThisProfile.Values(RowIdx,ColIdx) = h.Data(RowIdx,ColIdx);
+                    ThisProfile.Values(rowContainingFilter(RowIdx),ColIdx) = h.Data(RowIdx,ColIdx);
                 end
                 
             else
@@ -2060,11 +2061,13 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
                 LabelString =  sprintf('Parameters');
             end
             
+            obj.VisParametersData = TableData;
+            
             %Finally, write this information to the actual table        
             obj.VisParametersTable.ColumnEditable = [false,true,false];
             obj.VisParametersTable.ColumnName = {'Parameter','Value','Source Value'};
             obj.VisParametersTable.ColumnFormat = {'char','numeric','numeric'};
-            obj.VisParametersTable.Data = TableData;
+            updateVisParametersTableWithFilter(obj, obj.VisParametersTableFilter.Value)
             obj.VisParametersTableLabel.Text = LabelString;
             removeStyle(obj.VisParametersTable);
             
@@ -2075,8 +2078,6 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
                     addStyle(obj.VisParametersTable,Style,'row',rowIdx);
                 end
             end
-            
-            obj.VisParametersData = obj.VisParametersTable.Data;
         end
         
         function redrawVisLineWidth(obj)
@@ -2200,6 +2201,15 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
             TemporaryPanel.wait();
             Value = TemporaryPanel.getValue();
             delete(TemporaryPanel);
+        end
+        
+        function updateVisParametersTableWithFilter(obj, searchStr)
+            rowContainingFilter = getRowsContainingSearchStrVisParamTable(obj, searchStr);
+            obj.VisParametersTable.Data = obj.VisParametersData(rowContainingFilter,:);
+        end
+        
+        function rowIdx = getRowsContainingSearchStrVisParamTable(obj, searchStr)
+            rowIdx = contains(string({obj.VisParametersData{:,1}}), searchStr, 'IgnoreCase', true);
         end
 
     end
