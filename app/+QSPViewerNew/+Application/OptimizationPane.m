@@ -1938,6 +1938,7 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
             obj.VisOptimItemsTable.ColumnEditable = [true,false,false,false,true];
             obj.VisOptimItemsTable.ColumnName = {'Include','Color','Task','Group','Display'};
             obj.VisOptimItemsTable.ColumnFormat = {'logical','char','char','char','char'};
+            obj.VisOptimItemsTable.Data = '';
             obj.VisOptimItemsTable.Data = (TableData);
         end
         
