@@ -716,9 +716,10 @@ classdef ApplicationUI < matlab.apps.AppBase
             if isvalid(app.PluginManager)
                 app.PluginManager.Sessions = app.Sessions;
             else
+                thisSession = app.Sessions(app.SelectedSessionIdx);
                 pluginTable = ...
-                    QSPViewerNew.Dialogs.PluginManager.getPlugins(Session.PluginsDirectory);
-                updateAllPluginMenus(app, app.Sessions(idxNew), pluginTable)
+                    QSPViewerNew.Dialogs.PluginManager.getPlugins(thisSession.PluginsDirectory);
+                updateAllPluginMenus(app, thisSession, pluginTable)
             end
         end
         
@@ -2004,14 +2005,6 @@ classdef ApplicationUI < matlab.apps.AppBase
                 ParentObj.(ItemType)(end+1) = ThisObj;
                 app.createTree(ParentNode, ThisObj);
                 ParentNode.expand();
-                
-%                 % update plugin menus for this node
-%                 ThisNodeDataIdx = [ParentNode.Children.NodeData]==ThisObj;
-%                 pluginsDir = ParentNode.Parent.Parent.NodeData.PluginsDirectory;
-%                 pluginTable = ...
-%                                 QSPViewerNew.Dialogs.PluginManager.getPlugins(pluginsDir);
-%                 app.updateItemTypePluginMenus(ItemType, ...
-%                     ParentNode.Children(ThisNodeDataIdx), pluginTable)
             else
                 error('Invalid tree parent');
             end
