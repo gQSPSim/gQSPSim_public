@@ -1894,7 +1894,11 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
                 
                 %Fill the table with empty chars so only the color is
                 %displayed
-                TableData(:,2) =convertStringsToChars(strings(size(TableData(:,2),1),1));
+                if size(TableData(:,2),1)==1
+                    TableData(:,2) = {convertStringsToChars(strings(size(TableData(:,2),1),1))};
+                else
+                    TableData(:,2) = convertStringsToChars(strings(size(TableData(:,2),1),1));
+                end
 
 
                 % Set cell color
