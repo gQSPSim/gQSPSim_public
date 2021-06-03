@@ -472,7 +472,12 @@ classdef PluginManager < matlab.apps.AppBase
                         inputType =  strtrim(split(data(typeLineIdx)));
                         inputType = split(inputType(2),'.');
                         if ~isempty(inputType) && inputType(end) ~= ""
-                            pluginTable.Type(i) = inputType(end);
+                            itemTypeIdx = strcmp(inputType(end), QSPViewerNew.Application.ApplicationUI.ItemTypes(:,2));
+                            if any(itemTypeIdx)
+                                pluginTable.Type(i) = QSPViewerNew.Application.ApplicationUI.ItemTypes{itemTypeIdx,1};
+                            else
+                                pluginTable.Type(i) = inputType(end);
+                            end
                         end
                     end
                     
@@ -498,7 +503,7 @@ classdef PluginManager < matlab.apps.AppBase
                 
                 % remove rows that do not contain valid functionalities
                 allTypes = unique(pluginTable.Type);
-                isValidFunc = ismember(allTypes, QSPViewerNew.Application.ApplicationUI.ItemTypes(:,2));
+                isValidFunc = ismember(allTypes, QSPViewerNew.Application.ApplicationUI.ItemTypes(:,1));
                 pluginTable(matches(pluginTable.Type, allTypes(~isValidFunc)),:) = [];
                 pluginTable(ismissing(pluginTable.Type),:) = [];
             else

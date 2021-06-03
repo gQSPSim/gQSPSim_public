@@ -650,7 +650,7 @@ classdef ApplicationUI < matlab.apps.AppBase
             if ~isempty(thisItemPlugins)
                 % Get most recently used plugins for this type
                 defaultPluginTable = table.empty();
-                mostRecentPlugins = getpref(app.TypeStr, strcat('recent', thisItemType), defaultPluginTable);
+                mostRecentPlugins = getpref(app.TypeStr, strcat('recent', erase(thisItemType, " ")), defaultPluginTable);
                 
                 % Check if most recent plugins are part of
                 % currently available plugins
@@ -1042,7 +1042,7 @@ classdef ApplicationUI < matlab.apps.AppBase
                     thisItemTypeClass = split(class(thisItemNode.NodeData),'.');
                     thisItemTypeClass = string(thisItemTypeClass(end));
                     typeIdx = cellfun(@(x) thisItemTypeClass==string(x), app.ItemTypes(:,2));
-                    type = app.ItemTypes{typeIdx,2};
+                    type = app.ItemTypes{typeIdx,1};
                     app.updateItemTypePluginMenus(type, thisItemNode, pluginTable);
                 end
             end
@@ -1065,7 +1065,7 @@ classdef ApplicationUI < matlab.apps.AppBase
             defaultPluginTable = table('Size',[0 5],...
                 'VariableTypes',{'string','string','string','string','cell'},...
                 'VariableNames',{'Name','Type','File','Description','FunctionHandle'});
-            mostRecentPlugins = getpref(app.TypeStr, strcat('recent', plugin.Type), defaultPluginTable);
+            mostRecentPlugins = getpref(app.TypeStr, strcat('recent', strtrim(plugin.Type)), defaultPluginTable);
             mostRecentPlugins = [plugin; mostRecentPlugins];
             
             % remove function handle column to get unique rows
