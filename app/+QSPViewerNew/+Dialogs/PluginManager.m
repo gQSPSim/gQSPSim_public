@@ -354,7 +354,8 @@ classdef PluginManager < matlab.apps.AppBase
                 
                 dependencySummaryFiles = vertcat(dependencyFiles{:,2});
                 dependencySummaryFiles = unique(dependencySummaryFiles);
-                [dependencySummaryFolders,~,~] = fileparts(dependencySummaryFiles);
+                [dependencySummaryFolders,~,~] = cellfun(@(x) fileparts(x), dependencySummaryFiles, 'UniformOutput', false);
+                
                 if ~iscell(dependencySummaryFolders)
                     dependencySummaryFolders = {dependencySummaryFolders};
                 end
