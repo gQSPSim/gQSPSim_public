@@ -153,7 +153,9 @@ classdef PluginManager < matlab.apps.AppBase
                 end
                 
                 if app.isPathinRootDirectory(app.SelectedSession.PluginsDirectory, app.SelectedSession.RootDirectory)
-                    app.PluginFolderLabel.Text = sprintf("%s\n%s","Plugin Folder:", "(present within root directory)");
+                    app.PluginFolderLabel.Text = sprintf("%s\n%s\n%s","Plugin Folder:", ...
+                        "(present within or same as", ...
+                        "root directory)");
                 else
                     app.PluginFolderLabel.Text = sprintf("%s\n%s\n%s\n%s","Plugin Folder:", ...
                         "(not present within root directory.",...
@@ -506,7 +508,7 @@ classdef PluginManager < matlab.apps.AppBase
         
         function tf = isPathinRootDirectory(path, rootDir)
             allFiles = dir(fullfile(rootDir, '**'));
-            allFiles = fullfile(string({allFiles.folder}), string({allFiles.name}))';
+            allFiles = [rootDir; fullfile(string({allFiles.folder}), string({allFiles.name}))'];
             tf = matches(path, allFiles);
         end
         
