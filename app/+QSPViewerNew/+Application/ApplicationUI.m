@@ -877,11 +877,13 @@ classdef ApplicationUI < matlab.apps.AppBase
                 activeSession = app.SelectedSession;
             end
             
-            if isempty(activeNode)
-                activeNode = app.TreeRoot.SelectedNodes;
+            activeNodes = [activeNode; app.TreeRoot.SelectedNodes];
+            activeNodes = unique(activeNodes);
+            
+            for i = 1:length(activeNodes)
+                app.duplicateNode(activeNodes(i),activeSession)
             end
             
-            app.duplicateNode(activeNode,activeSession)
             app.markDirty(activeSession);
         end
        
