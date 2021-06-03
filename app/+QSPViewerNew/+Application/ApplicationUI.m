@@ -695,11 +695,12 @@ classdef ApplicationUI < matlab.apps.AppBase
                 activeSession = app.SelectedSession;
             end
             
-            if isempty(activeNode)
-                activeNode = app.TreeRoot.SelectedNodes;
-            end
+            activeNodes = [activeNode; app.TreeRoot.SelectedNodes];
+            activeNodes = unique(activeNodes);
             
-            app.deleteNode(activeNode,activeSession)
+            for i = 1:length(activeNodes)
+                app.deleteNode(activeNodes(i),activeSession)
+            end
             app.markDirty(activeSession);
         end
         
@@ -708,11 +709,13 @@ classdef ApplicationUI < matlab.apps.AppBase
                 activeSession = app.SelectedSession;
             end
             
-            if isempty(activeNode)
-                activeNode = app.TreeRoot.SelectedNodes;
+            activeNodes = [activeNode; app.TreeRoot.SelectedNodes];
+            activeNodes = unique(activeNodes);
+            
+            for i = 1:length(activeNodes)
+                app.restoreNode(activeNodes(i),activeSession)
             end
             
-            app.restoreNode(activeNode,activeSession)
             app.markDirty(activeSession);
         end
         
