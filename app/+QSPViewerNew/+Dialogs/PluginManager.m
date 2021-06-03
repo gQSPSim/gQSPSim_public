@@ -460,7 +460,8 @@ classdef PluginManager < matlab.apps.AppBase
                     % Name column
                     chardata = char(fileData');
                     data = splitlines(string(chardata));
-                    pluginTable.Name(i) = extractBefore(pluginFiles(i).name, '.m');
+                    namelineIdx = find(contains(data, '%'), 1);
+                    pluginTable.Name(i) = extractAfter(data(namelineIdx), '% ');
                     
                     % File column
                     pluginTable.File(i) = fileloc;
@@ -488,7 +489,7 @@ classdef PluginManager < matlab.apps.AppBase
                     currentDir = pwd;
                     cd(pluginFolder);
                     try
-                        pluginTable.FunctionHandle{i} = str2func(pluginTable.Name(i));
+                        pluginTable.FunctionHandle{i} = str2func(extractBefore(pluginFiles(i).name, '.m'));
                     catch ME
                         warning(ME.message);
                     end
