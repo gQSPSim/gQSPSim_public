@@ -67,11 +67,11 @@ classdef TreeNodeSelectionModalDialog < handle & ...
                 obj.MainFigure.Position(1) = obj.ParentAppPosition(1)+(obj.ParentAppPosition(3)/2)-(obj.MainFigure.Position(3)/2);
                 obj.MainFigure.Position(2) = obj.ParentAppPosition(2)+(obj.ParentAppPosition(4)/2)-(obj.MainFigure.Position(4)/2);
             end
-            if obj.ModalOn
+            
+            if obj.ModalOn && ~verLessThan('matlab','9.9')
                 obj.MainFigure.WindowStyle = 'modal';
-            else
-                obj.MainFigure.WindowStyle = 'normal';
             end
+            
             obj.MainFigure.CloseRequestFcn = @(h,e) obj.delete();
             
             % Create grid layout
