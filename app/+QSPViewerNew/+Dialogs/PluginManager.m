@@ -153,14 +153,10 @@ classdef PluginManager < matlab.apps.AppBase
                 end
                 
                 if app.isPathinRootDirectory(app.SelectedSession.PluginsDirectory, app.SelectedSession.RootDirectory)
-                    app.PluginFolderLabel.Text = sprintf("%s\n%s\n%s","Plugin Folder:", ...
-                        "(present within or same as", ...
-                        "root directory)");
+                    app.PluginFolderLabel.Text = "Plugin Folder:";
                 else
-                    app.PluginFolderLabel.Text = sprintf("%s\n%s\n%s\n%s","Plugin Folder:", ...
-                        "(not present within root directory.",...
-                        "Edit value under corresponding",...
-                        "session node in main app.)");
+                    app.PluginFolderLabel.Text = sprintf("%s\n%s","Plugin Folder:", ...
+                        "(WARNING: outside of root directory)");
                 end
             end
             % Update plugin table
@@ -190,7 +186,7 @@ classdef PluginManager < matlab.apps.AppBase
             
             % Create the main grid
             app.GridMain = uigridlayout(app.UIFigure);
-            app.GridMain.ColumnWidth = {'1x','0.4x','0.4x','0.6x','1x','1x','1.4x'};
+            app.GridMain.ColumnWidth = {'1.5x','0.4x','0.4x','0.6x','1x','1x','1.4x'};
             app.GridMain.RowHeight = {'fit',60,'fit','fit','fit','fit'};
             
             % Create Session edit field
@@ -461,7 +457,9 @@ classdef PluginManager < matlab.apps.AppBase
                     chardata = char(fileData');
                     data = splitlines(string(chardata));
                     namelineIdx = find(contains(data, '%'), 1);
-                    pluginTable.Name(i) = extractAfter(data(namelineIdx), '% ');
+                    if ~isempty(namelineIdx)
+                        pluginTable.Name(i) = extractAfter(data(namelineIdx), '% ');
+                    end
                     
                     % File column
                     pluginTable.File(i) = fileloc;
