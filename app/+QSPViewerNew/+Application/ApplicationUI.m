@@ -1304,6 +1304,7 @@ classdef ApplicationUI < matlab.apps.AppBase
                 case 'QSP.Session'
                     %1.Replace the current Session with the newSession
                     app.Sessions(app.SelectedSessionIdx) = newObject;
+                    newObject.updateLoggerFileDir(); % move logger file if root directory is changed
                     
                     %2. It must update the tree to reflect all the new values from
                     %the session
@@ -1711,11 +1712,11 @@ classdef ApplicationUI < matlab.apps.AppBase
                 app.SessionNode(idx).Text = ThisName;
 
                 %Assign the new name
-                oldSessionName = app.Sessions(idx).SessionName;
                 setSessionName(app.Sessions(idx),ThisRawName);
-                updateLoggerName(app.Sessions(idx), oldSessionName);
-                updateLoggerSessions(app);
             end
+            updateLoggerSessions(app);
+            % delete invalid session logger objects
+%             QSPViewerNew.Widgets.Logger.deleteInvalidSessionLoggers([app.Sessions.SessionName]);
             
             %Update the selected node's name in the tree based on the
             %name,unless it is a session
@@ -2023,7 +2024,6 @@ classdef ApplicationUI < matlab.apps.AppBase
         
         function set.Sessions(app,value)
             app.Sessions = value;
-            app.updateLoggerSessions();
         end
         
         function set.SelectedSessionIdx(app,value)

@@ -1,4 +1,4 @@
-classdef Logger < mlog.Logger
+classdef Logger < mlog.Logger 
     
     %   Copyright 2021 The MathWorks Inc.
     
@@ -10,10 +10,9 @@ classdef Logger < mlog.Logger
             
             arguments
                 name (1,1) string = "Advanced_Logger_for_MATLAB"
-                filepath (1,1) string = fullfile(tempdir, "templogFile.csv")
+                filepath (1,1) string = fullfile(tempdir, "temp_log.csv")
             end
-            
-            % Construct the logger
+           
             
             % Call superclass constructor with the same inputs
             obj@mlog.Logger(name, filepath);
@@ -24,8 +23,9 @@ classdef Logger < mlog.Logger
             % increase buffer size
             obj.BufferSize = 1e4;
             
-            % assign logfile
-            obj.LogFile = filepath;
+            % make sure logger is present in root directory 
+            % make sure logger's name is consistent with session's name
+%             updateLoggerName(session, newSessionName);
             
         end %function
         
@@ -75,7 +75,67 @@ classdef Logger < mlog.Logger
             
         end %function
         
+        function rename(obj, Name)
+            obj.Name = Name;
+            
+            % rename logger file accordingly
+            [loggerPath,~,~] = fileparts(obj.LogFile);
+            newLoggerFile = fullfile(loggerPath, [Name, '_log.csv']);
+            
+            moveLogFile(obj, newLoggerFile);
+        end
+        
+        function moveLogFile(obj, newLoc)
+            [loggerDir, loggerFile, loggerExt] = fileparts(obj.LogFile);
+            
+            if (isfolder(newLoc) && ~isequal(loggerDir, newLoc)) || ...
+                    ~isfolder(newLoc)
+                obj.fcloseLogFile();
+                
+                if isfolder(newLoc)
+                    movefile(obj.LogFile, newLoc);
+                    obj.LogFile = fullfile(newLoc, strcat(loggerFile, loggerExt));
+                else
+                    if isfile(newLoc)
+                        % if a file already exists with the same name,
+                        % close the file and then perform move operation
+                        fIDs = fopen('all'); % get all open file IDs
+                        [openfnames,~,~,~] = arrayfun(@(x) fopen(x), fIDs, 'UniformOutput', false);
+                        isNewLoc = cellfun(@(x) isequal(x, newLoc), openfnames);
+                        if any(isNewLoc)
+                            fclose(fIDs(isNewLoc));
+                        end
+                    end
+                    movefile(obj.LogFile, newLoc);
+                    obj.LogFile = newLoc;
+                end
+            end
+             
+        end
+        
+        
+        
     end %methods
+    
+    %% Static methods
+    
+    methods (Static)
+        function deleteInvalidSessionLoggers(sessionNames)
+            if ~isempty(sessionNames)
+                % Get all logger instances
+                persistent AllLoggers
+                if isempty(AllLoggers)
+                    AllLoggers = mlog.Logger.empty(0);
+                end
+                AllLoggers(~isvalid(AllLoggers)) = [];
+                
+                % delete the ones that don't match session names
+                allNames = string([AllLoggers.Name]);
+                isValidSession = ismember(allNames, sessionNames);
+                delete(AllLoggers(isValidSession));
+            end
+        end
+    end
     
     %% Protected methods
     methods (Access = protected)
@@ -108,6 +168,46 @@ classdef Logger < mlog.Logger
         
     end
     
+    %% Private methods
+    methods (Access = private)
+        function fopenLogFile(obj, permission)
+            % Open the log file for writing
+            
+            % Is it already open?
+            if ismember(obj.FileID, fopen('all'))
+                
+                % Do nothing - it's already open
+                
+            elseif strlength(obj.LogFile)
+                
+                % Open the file
+                [obj.FileID, openMsg] = fopen(obj.LogFile, permission);
+                if obj.FileID == -1
+                    msg = "Unable to open log file for writing: ''%s''\n%s\n";
+                    error(msg, obj.LogFile, openMsg);
+                end
+                
+            end %if strlength(fileName)
+            
+        end %function
+        
+        
+        function fcloseLogFile(obj)
+            % Close the log file for writing
+            
+            if obj.FileID >= 0
+                try
+                    fclose(obj.FileID);
+                catch
+                    warning("mlog:closeInvalidLogFileId",...
+                        "Failed to close logfile: %s",...
+                        obj.LogFile);
+                end
+                obj.FileID = -1;
+            end %if
+            
+        end %function
+    end
 end %classdef
 
 

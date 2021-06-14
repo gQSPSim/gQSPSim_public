@@ -518,6 +518,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         end %function
         
         function setSessionName(obj,SessionName)
+            updateLoggerName(obj, SessionName)
             obj.SessionName = SessionName;
         end %function
         
@@ -766,34 +767,45 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
             loggerObj.FileThreshold = obj.LoggerSeverityFile;
         end
         
-        function updateLoggerName(obj, oldSessionName)
+        function updateLoggerName(obj, newSessionName)
             loggerObj = QSPViewerNew.Widgets.Logger(obj.LoggerName);
-            obj.RelativeLoggerFilePathParts = {[obj.LoggerName, '_log.csv']};
             
-            % check if an old logger file existed for session
-            if contains(oldSessionName, '.qsp')
-                oldLoggerName = extractBefore(oldSessionName, ".qsp");
+            % check if logger exists in root directory
+            moveLogFile(loggerObj, obj.RootDirectory); % moves log file if not present in root dir
+            
+            % check if current logger name is same as new session name
+            [~,name,~] = fileparts(newSessionName);
+            if contains(name, '.qsp')
+                newLoggerName = extractBefore(name, ".qsp");
             else
-                oldLoggerName = oldSessionName;
-            end
-            oldLoggerFile = fullfile(obj.RootDirectory, [oldLoggerName, '_log.csv']);
-            if exist(oldLoggerFile, 'file') && ~isequal(oldLoggerFile, obj.LoggerFile)
-                copyfile(oldLoggerFile, obj.LoggerFile)
-            % check if logger file corresponds to the session name and
-            % present in root directory
-            elseif ~strcmp(loggerObj.LogFile, obj.LoggerFile)
-                copyfile(loggerObj.LogFile, obj.LoggerFile)
+                newLoggerName = name;
             end
             
-            loggerObj.LogFile = obj.LoggerFile;
-            obj.updateLogger();
+            if ~isequal(newLoggerName, obj.LoggerName)
+                rename(loggerObj, newLoggerName);
+            end
+        end
+        
+        function updateLoggerFileDir(obj)
+            loggerObj = QSPViewerNew.Widgets.Logger(obj.LoggerName);
+            
+            % check if logger exists in root directory
+            moveLogFile(loggerObj, obj.RootDirectory); % moves log file if not present in root dir
         end
         
     end %methods    
     
     %% Get/Set Methods
     methods
-
+        function set.RootDirectory(obj, value)
+            arguments 
+                obj   (1,1) QSP.Session
+                value (1,:) char
+            end
+            obj.RootDirectory = value;
+%            obj.updateLoggerFileDir();
+        end
+        
         function set.RelativeResultsPath(obj, value)
             arguments 
                 obj   (1,1) QSP.Session
@@ -813,10 +825,6 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
             end
             value = obj.updatePath(value);
             obj.RelativeUserDefinedFunctionsPathParts = strsplit(value, filesep);
-%             type = strsplit(class(obj),'.');
-%             type = type{end};
-%             msg = sprintf('Changed UDF to %s', obj.UserDefinedFunctionsDirectory);
-%             write(obj.LoggerObj,obj.SessionName,type,"INFO",msg);
         end
         function value = get.RelativeUserDefinedFunctionsPath(obj)
             value = fullfile(obj.RelativeUserDefinedFunctionsPathParts{:});
@@ -857,6 +865,10 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         end
         function value = get.RelativeLoggerFilePath(obj)
             value = fullfile(obj.RelativeLoggerFilePathParts{:});
+        end
+        
+        function value = get.RelativeLoggerFilePathParts(obj)
+            value = {[obj.LoggerName, '_log.csv']};
         end
         
         function value = get.LoggerName(obj)
