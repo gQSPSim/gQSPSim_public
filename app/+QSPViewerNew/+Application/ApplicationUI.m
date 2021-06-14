@@ -1073,7 +1073,9 @@ classdef ApplicationUI < matlab.apps.AppBase
 
             % remove UDF from selected session
             app.SelectedSession.removeUDF();
-            app.SelectedSessionIdx = idxNew;
+            if isempty(app.SelectedSessionIdx)
+                app.SelectedSessionIdx = idxNew;
+            end
             
         end
         
@@ -1715,8 +1717,6 @@ classdef ApplicationUI < matlab.apps.AppBase
                 setSessionName(app.Sessions(idx),ThisRawName);
             end
             updateLoggerSessions(app);
-            % delete invalid session logger objects
-%             QSPViewerNew.Widgets.Logger.deleteInvalidSessionLoggers([app.Sessions.SessionName]);
             
             %Update the selected node's name in the tree based on the
             %name,unless it is a session
