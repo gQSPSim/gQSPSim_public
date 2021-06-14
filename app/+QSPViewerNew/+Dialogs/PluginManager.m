@@ -180,14 +180,14 @@ classdef PluginManager < matlab.apps.AppBase
         function createComponents(app)
             % Create a parent figure
             app.UIFigure = uifigure('Name', 'Plugin Manager', 'Visible', 'off');
-            app.UIFigure.Position(3:4) = [1200, 750];
+            app.UIFigure.Position(3:4) = [1200, 600];
             typeStr = matlab.lang.makeValidName(class(app));
             app.UIFigure.Position = getpref(typeStr,'Position',app.UIFigure.Position);
             
             % Create the main grid
             app.GridMain = uigridlayout(app.UIFigure);
             app.GridMain.ColumnWidth = {'1.5x','0.4x','0.4x','0.6x','1x','1x','1.4x'};
-            app.GridMain.RowHeight = {'fit',60,'fit','fit','fit','fit'};
+            app.GridMain.RowHeight = {'1x','1x','1x','8x','1x','6x'};
             
             % Create Session edit field
             app.SessionLabel = uilabel(app.GridMain, 'Text', 'Session:');
