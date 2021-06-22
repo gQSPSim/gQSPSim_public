@@ -23,10 +23,6 @@ classdef Logger < mlog.Logger
             % increase buffer size
             obj.BufferSize = 1e4;
             
-            % make sure logger is present in root directory 
-            % make sure logger's name is consistent with session's name
-%             updateLoggerName(session, newSessionName);
-            
         end %function
         
     end %methods

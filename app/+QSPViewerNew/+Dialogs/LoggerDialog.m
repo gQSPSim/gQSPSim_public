@@ -24,6 +24,8 @@ classdef LoggerDialog < matlab.apps.AppBase
         SearchDropDown      matlab.ui.control.DropDown
         SearchEditField     matlab.ui.control.EditField
         SearchColumnDropDown matlab.ui.control.DropDown
+        GridLoggerTable     matlab.ui.container.GridLayout
+        AddNoteButton       matlab.ui.control.Button
         LoggerTable         matlab.ui.control.Table        
     end
     
@@ -107,7 +109,7 @@ classdef LoggerDialog < matlab.apps.AppBase
                 app.SessionDropDown.Value = app.SelectedSession;
                 
                 % update logfile text area
-                app.LogfileText.Text = strcat("(root dir)\", app.SelectedSession.RelativeLoggerFilePath);
+                app.LogfileText.Text = strcat("(root dir) \", app.SelectedSession.RelativeLoggerFilePath);
                 if ~exist(app.SelectedSession.LoggerFile, 'file')
                     app.LogfileText.FontColor = 'r';
                 else
@@ -201,10 +203,26 @@ classdef LoggerDialog < matlab.apps.AppBase
             app.SearchColumnDropDown.ValueChangedFcn = @(s,e) app.onFilterValueChanged(s,e);
             app.SearchColumnDropDown.Visible = 'off';
             
+            % Create gridlayout for Logger table
+            app.GridLoggerTable = uigridlayout(app.GridMain);
+            app.GridLoggerTable.Layout.Row = 4;
+            app.GridLoggerTable.Layout.Column = [1, length(app.GridMain.ColumnWidth)];
+            app.GridLoggerTable.ColumnWidth = {app.ButtonSize,'1x'};
+            app.GridLoggerTable.RowHeight = {app.ButtonSize,'1x'};
+            
+            % Create Addnote button
+            app.AddNoteButton = uibutton(app.GridLoggerTable, 'push');
+            app.AddNoteButton.Layout.Row = 1;
+            app.AddNoteButton.Layout.Column = 1;
+            app.AddNoteButton.Icon = QSPViewerNew.Resources.LoadResourcePath('messageAdd_16.png');
+            app.AddNoteButton.ButtonPushedFcn = @app.onAddNote;
+            app.AddNoteButton.Text = '';
+            app.AddNoteButton.Tooltip = {'Click to add a note'};
+            
             % Create Logger Table
-            app.LoggerTable = uitable(app.GridMain, 'ColumnSortable', true);
-            app.LoggerTable.Layout.Row = 4;
-            app.LoggerTable.Layout.Column = [1, length(app.GridMain.ColumnWidth)];
+            app.LoggerTable = uitable(app.GridLoggerTable, 'ColumnSortable', true);
+            app.LoggerTable.Layout.Row = [1,2];
+            app.LoggerTable.Layout.Column = 2;
             
             % Show the figure after all components are created
             app.UIFigure.Visible = 'on';
@@ -320,6 +338,19 @@ classdef LoggerDialog < matlab.apps.AppBase
         function onOpenLogfile(app,~,~)
             if ~isempty(app.SelectedSession)
                 edit(app.SelectedSession.LoggerFile);
+            end
+        end
+        
+        function onAddNote(app,~,~)
+            % launch dialog to accept inputs
+            prompt = {'Enter Name:', 'Enter Note:'};
+            dlgtitle = 'Input';
+            dims = [1 50];
+            answer = inputdlg(prompt,dlgtitle,dims);
+            
+            if ~isempty(answer)
+                loggerObj = QSPViewerNew.Widgets.Logger(app.SelectedSession.LoggerName);
+                loggerObj.write(answer{1}, "Note", "INFO", answer{2});
             end
         end
         
