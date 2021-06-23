@@ -3,6 +3,12 @@ function [StatusOK,Message,isValid,Vpop,Results,nPat,nSim, bCancelled]  = cohort
 
 StatusOK = true;
 Message = '';
+isValid = false;
+Vpop = [];
+nPat = 0;
+nSim = 0;
+Results = [];
+bCancelled = false;
 
 unqGroups = args.unqGroups;
 groupVec = args.groupVec;
@@ -38,12 +44,25 @@ end
 p = gcp('nocreate');
 if ~batchMode % don't create a pool when in batch mode
     if isempty(p) 
-        p = parpool(obj.Session.ParallelCluster, ...
-            'AttachedFiles', obj.Session.UserDefinedFunctionsDirectory);
-    elseif  ~strcmp(p.Cluster.Profile,obj.Session.ParallelCluster)
+        try
+            p = parpool(obj.Session.ParallelCluster, ...
+                'AttachedFiles', obj.Session.UserDefinedFunctionsDirectory);
+        catch ME
+            StatusOK = false;
+            Message = sprintf('Failed to start parallel pool.\n%s', ME.message);
+            return
+        end
+           
+    elseif ~strcmp(p.Cluster.Profile,obj.Session.ParallelCluster)
         delete(gcp('nocreate'))
-        p = parpool(obj.Session.ParallelCluster, ...
-         'AttachedFiles', obj.Session.UserDefinedFunctionsDirectory);
+        try
+            p = parpool(obj.Session.ParallelCluster, ...
+                'AttachedFiles', obj.Session.UserDefinedFunctionsDirectory);
+        catch ME
+            StatusOK = false;
+            Message = sprintf('Failed to start parallel pool.\n%s', ME.message);
+            return
+        end
     end
 % else
 %     tmp = mfilename('fullpath');
@@ -66,7 +85,11 @@ end
 % q = parallel.pool.DataQueue;
 q_vp = parallel.pool.DataQueue;
 
-hWbar = uix.utility.CustomWaitbar(0,'Virtual cohort generation','Generating virtual cohort...',true);
+if obj.Session.ShowProgressBars
+    hWbar = uix.utility.CustomWaitbar(0,'Virtual cohort generation','Generating virtual cohort...',true);
+end
+
+
 Results_all = cell(1,length(unqGroups));
 for ixGrp = 1:length(unqGroups)
     Results_all{ixGrp}.Data = [];
@@ -115,12 +138,12 @@ function updateData(hWbar, data)
 %         cancel(F);
         
         % create stop file
-        fid=fopen(stopFile,'w');
-        fclose(fid);
-        addAttachedFiles(p, stopFile);
-        
-        
-        fprintf('Terminating cohort generation\n');
+        if ~exist(stopFile,'file')
+            fid=fopen(stopFile,'w');        
+            fclose(fid);
+            addAttachedFiles(p, stopFile);        
+            fprintf('Terminating cohort generation\n');
+        end
 %         delete(listener)
     end
     
@@ -148,7 +171,7 @@ allSim = 0;
 tic
 t=0;
 
-F = parfevalOnAll(p, @cohortGenWhileBlock, 8, obj, args,  [], q_vp, stopFile);
+F = parfevalOnAll(p, @cohortGenWhileBlock, 9, obj, args,  [], q_vp, stopFile);
 % end
 % cohortGenWhileBlock(obj, args, hWbar);
 
@@ -159,8 +182,9 @@ fprintf('Generated %d vpatients (%d valid)\n', allSim, allPat)
 warning(orig_state);
 
 % [Vpop, isValid, Results, ViolationTable, nPat, nSim, bCancelled] = fetchOutputs(F, 'UniformOutput', false);
-
-delete(hWbar)
+if obj.Session.ShowProgressBars
+    delete(hWbar)
+end
 
 % reconstruct results from the data passed over the data queue if in batch
 % mode
@@ -178,7 +202,13 @@ delete(hWbar)
 %         Results{ixGrp}.SpeciesNames = lastResults{ixGrp}.SpeciesNames;    
 %     end
 % else
-[Vpop, isValid, Results, ViolationTable, nPat, nSim, StatusOK, Message] = fetchOutputs(F, 'UniformOutput', false);
+try
+[Vpop, isValid, Results, ViolationTable, nPat, nSim, bCancelled, StatusOK, Message] = fetchOutputs(F, 'UniformOutput', false);
+catch error
+    Message = sprintf('Error encountered with parallel cohort generation.\n%s', error.message)
+    StatusOK = false;
+    return
+end
 
 % concatenate results
 Vpop = vertcat(Vpop{:});
@@ -199,6 +229,8 @@ end
 Results = Results_all;
 
 StatusOK = any(vertcat(StatusOK{:})); % && nnz(isValid) >= obj.MaxNumVirtualPatients;
+
+bCancelled = any(vertcat(bCancelled{:}));
 
 %     Message = strjoin([Message{:}],'\n');
 Message = strjoin(Message,'\n');

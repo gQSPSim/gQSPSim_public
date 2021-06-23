@@ -290,7 +290,7 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
             obj.ParametersLabel.Layout.Column = 1;
             
             %Parameters table(No interaction, just for user to look at)
-            obj.ParametersTable = uitable(obj.EditLayout);
+            obj.ParametersTable = uitable(obj.EditLayout, 'ColumnSortable', true);
             obj.ParametersTable.Layout.Row = 5;
             obj.ParametersTable.Layout.Column = 1;
             obj.ParametersTable.ColumnEditable = false;
@@ -310,7 +310,7 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
             obj.VisSpeciesDataTableLabel.Layout.Row = 1;
             obj.VisSpeciesDataTableLabel.Layout.Column = 1;
             
-            obj.VisSpeciesDataTable = uitable(obj.VisLayout);
+            obj.VisSpeciesDataTable = uitable(obj.VisLayout, 'ColumnSortable', true);
             obj.VisSpeciesDataTable.Layout.Row = 2;
             obj.VisSpeciesDataTable.Layout.Column = 1;
             obj.VisSpeciesDataTable.ColumnEditable = false;
@@ -321,7 +321,7 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
             obj.VisOptimItemsTableLabel.Layout.Row = 3;
             obj.VisOptimItemsTableLabel.Layout.Column = 1;
             
-            obj.VisOptimItemsTable = uitable(obj.VisLayout);
+            obj.VisOptimItemsTable = uitable(obj.VisLayout, 'ColumnSortable', true);
             obj.VisOptimItemsTable.Layout.Row = 4;
             obj.VisOptimItemsTable.Layout.Column = 1;
             obj.VisOptimItemsTable.ColumnEditable = false;
@@ -345,7 +345,7 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
             obj.VisProfilesTableLabel.Layout.Row = 1;
             obj.VisProfilesTableLabel.Layout.Column = [1,2];
             
-            obj.VisProfilesTable = uitable(obj.VisInnerLayout);
+            obj.VisProfilesTable = uitable(obj.VisInnerLayout, 'ColumnSortable', true);
             obj.VisProfilesTable.Layout.Row = [2,5];
             obj.VisProfilesTable.Layout.Column = 2;
             obj.VisProfilesTable.ColumnEditable = false;
@@ -357,7 +357,7 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
             obj.VisParametersTableLabel.Layout.Row = 6;
             obj.VisParametersTableLabel.Layout.Column = [1,2];
             
-            obj.VisParametersTable = uitable(obj.VisInnerLayout);
+            obj.VisParametersTable = uitable(obj.VisInnerLayout, 'ColumnSortable', true);
             obj.VisParametersTable.Layout.Row = [7,10];
             obj.VisParametersTable.Layout.Column = 2;
             obj.VisParametersTable.ColumnEditable = false;
@@ -1172,15 +1172,7 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
                 [obj.StaleFlag,obj.ValidFlag] = getStaleItemIndices(obj.Optimization);  
             end
             
-            %Set flags for determing what to display
-            if ~isempty(obj.Optimization)
-                obj.Optimization.bShowTraces = obj.bShowTraces;
-                obj.Optimization.bShowQuantiles = obj.bShowQuantiles;
-                obj.Optimization.bShowMean = obj.bShowMean;
-                obj.Optimization.bShowMedian = obj.bShowMedian;
-                obj.Optimization.bShowSD = obj.bShowSD;
-            end
-            
+            obj.redrawAxesContextMenu();
             obj.redrawVisContextMenus();
             obj.redrawOptimItemsTable();
             obj.redrawSpeciesDataTable();
@@ -1193,14 +1185,7 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
         
         function refreshVisualization(obj,~)
             
-            %Set flags for determing what to display
-            if ~isempty(obj.Optimization)
-                obj.Optimization.bShowTraces = obj.bShowTraces;
-                obj.Optimization.bShowQuantiles = obj.bShowQuantiles;
-                obj.Optimization.bShowMean = obj.bShowMean;
-                obj.Optimization.bShowMedian = obj.bShowMedian;
-                obj.Optimization.bShowSD = obj.bShowSD;
-            end
+            obj.redrawAxesContextMenu();
             obj.redrawVisContextMenus();
             obj.redrawOptimItemsTable();
             obj.redrawSpeciesDataTable();
@@ -1214,7 +1199,6 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
         function UpdateBackendPlotSettings(obj)
             obj.Optimization.PlotSettings = getSummary(obj.getPlotSettings());
         end
-        
         
     end
        

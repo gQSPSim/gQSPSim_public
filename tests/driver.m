@@ -15,8 +15,8 @@ addpath(genpath('tests'));
 disp('NOTE: Only running GSA tests.')
 
 try
-    results = runtests('gsa/tGlobalSensitivityAnalysis.m');
-%     results = runtests('tgQSPSim', 'ProcedureName', 'tSimulations');
+    results = runtests('tgQSPSim', 'ProcedureName', 'tSimulations');
+    %results = runtests('tTMDD');
 catch e
     results.Failed = true;
     genericError = e.message;

@@ -219,7 +219,7 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
            obj.RemoveButton.ButtonPushedFcn = @(h,e)obj.onRemoveSimItem();
            
            %Table 
-           obj.SimItemsTable = uitable(obj.SimItemGrid);
+           obj.SimItemsTable = uitable(obj.SimItemGrid, 'ColumnSortable', true);
            obj.SimItemsTable.Layout.Row = 1;
            obj.SimItemsTable.Layout.Column = 2;
            obj.SimItemsTable.Data = {};
@@ -243,7 +243,7 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
            obj.SpeciesLabel.Layout.Column = 1;
            obj.SpeciesLabel.FontWeight = 'bold';
            
-           obj.SpeciesTable = uitable(obj.SimulationVisualizationGrid);
+           obj.SpeciesTable = uitable(obj.SimulationVisualizationGrid, 'ColumnSortable', true);
            obj.SpeciesTable.Layout.Row = 2;
            obj.SpeciesTable.Layout.Column = 1;
            obj.SpeciesTable.Data = {};
@@ -257,7 +257,7 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
            obj.SimulationItemsLabel.Layout.Column = 1;
            obj.SimulationItemsLabel.FontWeight = 'bold';
            
-           obj.SimulationItemsTable = uitable(obj.SimulationVisualizationGrid);
+           obj.SimulationItemsTable = uitable(obj.SimulationVisualizationGrid, 'ColumnSortable', true);
            obj.SimulationItemsTable.Layout.Row = 4;
            obj.SimulationItemsTable.Layout.Column = 1;
            obj.SimulationItemsTable.Data = {};
@@ -271,7 +271,7 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
            obj.DataLabel.Layout.Column = 1;
            obj.DataLabel.FontWeight = 'bold';
            
-           obj.DataTable = uitable(obj.SimulationVisualizationGrid);
+           obj.DataTable = uitable(obj.SimulationVisualizationGrid, 'ColumnSortable', true);
            obj.DataTable.Layout.Row = 6;
            obj.DataTable.Layout.Column = 1;
            obj.DataTable.Data = {};
@@ -285,7 +285,7 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
            obj.GroupLabel.Layout.Column = 1;
            obj.GroupLabel.FontWeight = 'bold';
            
-           obj.GroupTable = uitable(obj.SimulationVisualizationGrid);
+           obj.GroupTable = uitable(obj.SimulationVisualizationGrid, 'ColumnSortable', true);
            obj.GroupTable.Layout.Row = 8;
            obj.GroupTable.Layout.Column = 1;
            obj.GroupTable.Data = {};
@@ -748,16 +748,8 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
                 [obj.StaleFlag,obj.ValidFlag] = getStaleItemIndices(obj.Simulation);
             end
             
-            %Set flags for determing what to display
-            if ~isempty(obj.Simulation)
-                obj.Simulation.bShowTraces = obj.bShowTraces;
-                obj.Simulation.bShowQuantiles = obj.bShowQuantiles;
-                obj.Simulation.bShowMean = obj.bShowMean;
-                obj.Simulation.bShowMedian = obj.bShowMedian;
-                obj.Simulation.bShowSD = obj.bShowSD;
-            end
-            
             % Create context menu
+            obj.redrawAxesContextMenu();
             obj.updateCM();
             obj.updateSpeciesTable();
             obj.updateSimItemsTable();
@@ -769,15 +761,7 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
         
         function refreshVisualization(obj,axIndex)
                         
-            %Set flags for determing what to display
-            if ~isempty(obj.Simulation)
-                obj.Simulation.bShowTraces = obj.bShowTraces;
-                obj.Simulation.bShowQuantiles = obj.bShowQuantiles;
-                obj.Simulation.bShowMean = obj.bShowMean;
-                obj.Simulation.bShowMedian = obj.bShowMedian;
-                obj.Simulation.bShowSD = obj.bShowSD;
-            end
-            
+            obj.redrawAxesContextMenu();
             obj.updateCM();
             obj.updateSpeciesTable();
             obj.updateSimItemsTable();

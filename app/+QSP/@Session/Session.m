@@ -48,8 +48,9 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         UseParallel = false
         ParallelCluster
         UseAutoSaveTimer = false
-        
+
         RootDirectory = pwd
+        ShowProgressBars = true % set false for CLI, testing
         
         AutoSaveGit = false
         GitRepo = '.git'                
@@ -68,7 +69,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         RelativeUserDefinedFunctionsPathParts = {''}
         RelativeObjectiveFunctionsPathParts = {''}
         RelativeAutoSavePathParts = {''}
-        
+
     end
     
     properties (Dependent)
@@ -740,45 +741,12 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
             end
 
         end
-    
-                                                  function validateRulesAndReactions(obj)
-                                                  % loop over tasks
-                                                  for index = 1:length(obj.Settings.Task)
-                                                  % check if rules/reactions need to be converted to the new format
-                                                  if ~isempty(obj.Settings.Task(index).InactiveReactionNames)
-                                                  for ixReact = 1:length( obj.Settings.Task(index).InactiveReactionNames)
-                                                  if ~contains( obj.Settings.Task(index).InactiveReactionNames(ixReact), '.*: .*')
-                                                  MatchIdx = strcmp(get(obj.Settings.Task(index).ModelObj.mObj.Reactions, 'Reaction'), obj.Settings.Task(index).InactiveReactionNames(ixReact));
-                                                  if nnz(MatchIdx) > 1
-                                                  warning('Multiple reactions with same equation. Please update tasks before running')
-                                                  continue
-                                                  end
-                                                  obj.Settings.Task(index).InactiveReactionNames(ixReact) = obj.Settings.Task(index).ReactionNames(MatchIdx);
-                                                  end
-                                                  end
-                                                  end
-                                                  
-                                                  if ~isempty(obj.Settings.Task(index).InactiveRuleNames)
-                                                  for ixRule = 1:length( obj.Settings.Task(index).InactiveRuleNames)
-                                                  if ~contains( obj.Settings.Task(index).InactiveRuleNames(ixRule), '.*: .*')
-                                                  MatchIdx = strcmp(get(obj.Settings.Task(index).ModelObj.mObj.Rules, 'Rule'), obj.Settings.Task(index).InactiveRuleNames(ixRule));
-                                                  if nnz(MatchIdx) > 1
-                                                  warning('Multiple rules with same equation. Please update tasks before running')
-                                                  continue
-                                                  end                            
-                                                  obj.Settings.Task(index).InactiveRuleNames(ixRule) = obj.Settings.Task(index).RuleNames(MatchIdx);
-                                                  end
-                                                  end
-                                                  end             
-                                                  
-                                                  end
-                                                  end
-                                                  
+        
     end %methods    
     
     %% Get/Set Methods
     methods
-               
+
         function set.RelativeResultsPath(obj, value)
             arguments 
                 obj   (1,1) QSP.Session
@@ -790,7 +758,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         function value = get.RelativeResultsPath(obj)
             value = fullfile(obj.RelativeResultsPathParts{:});
         end
-        
+
         function set.RelativeUserDefinedFunctionsPath(obj, value)
             arguments 
                 obj   (1,1) QSP.Session
@@ -996,6 +964,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
                 warning('Simulation %s not found in session', Name)
             end
         end
+
     end
 
     
@@ -1075,7 +1044,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
             end            
         end
         
-        function mObj = getModelItem(obj, Name)
+        function mObj = GetModelItem(obj, Name)
             MatchIdx = strcmp(Name, {obj.Settings.Model.ModelName});
             mObj = [];
             if any(MatchIdx)
@@ -1083,8 +1052,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
             else
                 warning('Model %s not found in session', Name)
             end            
-        end        
-        
+        end
             
         function sObj = getACItem(obj, Name)
             MatchIdx = strcmp(Name, {obj.Settings.VirtualPopulationData.Name});
@@ -1103,19 +1071,89 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
                 sObj = obj.Settings.OptimizationData(MatchIdx);
             else
                 warning('Optimization Data %s not found in session', Name)
-            end            
+            end
         end
+
+    end %methods
+    
+    %% API methods
+    methods 
+        function thisObj = GetTask(obj,Name)
+            thisObj = obj.Settings.Task(strcmp({obj.Settings.Task.Name},Name));
+        end %function
         
-        function sObj = getParametersItem(obj, Name)
-            MatchIdx = strcmp(Name, {obj.Settings.Parameters.Name});
-            sObj = [];
-            if any(MatchIdx)
-                sObj = obj.Settings.Parameters(MatchIdx);
-            else
-                warning('Parameter %s not found in session', Name)
-            end            
-        end
-  
+        function newObj = CreateDataset(obj,varargin)
+            newObj = AddHelper(obj,'QSP.OptimizationData',varargin(:));
+        end %function
+        
+        function thisObj = GetDataset(obj,Name)
+            thisObj = obj.Settings.OptimizationData(strcmp({obj.Settings.OptimizationData.Name},Name));
+        end %function
+        
+        function newObj = CreateParameter(obj,varargin)
+            newObj = AddHelper(obj,'QSP.Parameters',varargin(:)); 
+        end %function
+        
+        function thisObj = GetParameter(obj,Name)
+            thisObj = obj.Settings.Parameters(strcmp({obj.Settings.Parameters.Name},Name));
+        end %function
+        
+        function newObj = CreateOptimization(obj,varargin)
+            newObj = AddHelper(obj,'QSP.Optimization',varargin(:));
+        end %function
+        
+        function thisObj = GetOptimization(obj,Name)
+            thisObj = obj.Optimization(strcmp({obj.Optimization.Name},Name));
+        end %function
+        
+        function newObj = CreateAcceptanceCriteria(obj,varargin)
+            newObj = AddHelper(obj,'QSP.VirtualPopulationData',varargin(:));
+        end %function
+        
+        function thisObj = GetAcceptanceCriteria(obj,Name)
+            thisObj = obj.VirtualPopulationData(strcmp({obj.VirtualPopulationData.Name},Name));
+        end %function
+        
+        function newObj = CreateVirtualSubjects(obj,varargin)
+            newObj = AddHelper(obj,'QSP.VirtualPopulation',varargin(:));
+        end %function
+        
+        function thisObj = GetVirtualSubjects(obj,Name)
+            thisObj = obj.Settings.VirtualPopulation(strcmp({obj.Settings.VirtualPopulation.Name},Name));
+        end %function
+        
+        function newObj = CreateVCohortGen(obj,varargin)
+            newObj = AddHelper(obj,'QSP.CohortGeneration',varargin(:));
+        end %function
+        
+        function thisObj = GetCohortGeneration(obj,Name)
+            thisObj = obj.CohortGeneration(strcmp({obj.CohortGeneration.Name},Name));
+        end %function
+        
+        function newObj = CreateTargetStatistics(obj,varargin)
+            newObj = AddHelper(obj,'QSP.VirtualPopulationGenerationData',varargin(:));        
+        end %function
+        
+        function thisObj = GetTargetStatistics(obj,Name)
+            thisObj = obj.Settings.VirtualPopulationGenerationData(strcmp({obj.Settings.VirtualPopulationGenerationData.Name},Name));
+        end %function
+        
+        function newObj = CreateSimulation(obj,varargin)
+            newObj = AddHelper(obj,'QSP.Simulation',varargin(:));
+        end %function
+        
+        function thisObj = GetSimulation(obj,Name)
+            thisObj = obj.Simulation(strcmp({obj.Simulation.Name},Name));
+        end %function
+        
+        function newObj = CreateVPopGen(obj,varargin)
+            newObj = AddHelper(obj,'QSP.VirtualPopulationGeneration',varargin(:));
+        end %function
+        
+        function thisObj = GetVirtualPopulationGeneration(obj,Name)
+            thisObj = obj.VirtualPopulationGeneration(strcmp({obj.VirtualPopulationGeneration.Name},Name));
+        end %function
+          
         function relativePath = getTaskRelativePath(obj, taskName)
             relativePath = '';
             
@@ -1123,39 +1161,8 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
             if any(idx)
                 relativePath = obj.Settings.Task(idx).ModelObj.RelativeFilePath;
             end
-        end         
-	
-	function newObj = CreateDataset(obj,varargin)
-            newObj = AddHelper(obj,'QSP.OptimizationData',varargin(:));
-        end %function
+        end
         
-        function newObj = CreateParameter(obj,varargin)
-            newObj = AddHelper(obj,'QSP.Parameters',varargin(:)); 
-        end %function
-        
-        function newObj = CreateOptimization(obj,varargin)
-            newObj = AddHelper(obj,'QSP.Optimization',varargin(:));
-        end %function
-        
-        function newObj = CreateAcceptanceCriteria(obj,varargin)
-            newObj = AddHelper(obj,'QSP.VirtualPopulationData',varargin(:));
-        end %function
-        
-        function newObj = CreateVCohortGen(obj,varargin)
-            newObj = AddHelper(obj,'QSP.CohortGeneration',varargin(:));
-        end %function
-        
-        function newObj = CreateTargetStatistics(obj,varargin)
-            newObj = AddHelper(obj,'QSP.VirtualPopulationGenerationData',varargin(:));        
-        end %function
-        
-        function newObj = CreateSimulation(obj,varargin)
-            newObj = AddHelper(obj,'QSP.Simulation',varargin(:));
-        end %function
-        
-        function newObj = CreateVPopGen(obj,varargin)
-            newObj = AddHelper(obj,'QSP.VirtualPopulationGeneration',varargin(:));
-        end %function
     end
-    
+
 end %classdef

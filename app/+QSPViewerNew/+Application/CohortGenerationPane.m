@@ -24,8 +24,10 @@ classdef CohortGenerationPane < QSPViewerNew.Application.ViewPane
     
     properties (Access = private)
         SelectedRow = 0;
-        SaveValues = {'Save all virtual subjects', 'Save valid virtual subjects'};
-
+        SaveValues = {
+            'Save all virtual subjects','all';
+            'Save valid virtual subjects','valid'
+            }
         
         DatasetPopupItems = {'-'}
         DatasetPopupItemsWithInvalid = {'-'}
@@ -294,7 +296,7 @@ classdef CohortGenerationPane < QSPViewerNew.Application.ViewPane
             obj.ParametersTableLabel.Layout.Row = 5;
             obj.ParametersTableLabel.Layout.Column = 1;
             
-            obj.ParametersTable = uitable(obj.EditLayout);
+            obj.ParametersTable = uitable(obj.EditLayout, 'ColumnSortable', true);
             obj.ParametersTable.Layout.Row = 6;
             obj.ParametersTable.Layout.Column = 1;
             obj.ParametersTable.ColumnEditable = false;
@@ -341,7 +343,7 @@ classdef CohortGenerationPane < QSPViewerNew.Application.ViewPane
             obj.VisSpeciesDataTableLabel.Layout.Row = 3;
             obj.VisSpeciesDataTableLabel.Layout.Column = 1;
             
-            obj.VisSpeciesDataTable = uitable(obj.VisLayout);
+            obj.VisSpeciesDataTable = uitable(obj.VisLayout, 'ColumnSortable', true);
             obj.VisSpeciesDataTable.Layout.Row = 4;
             obj.VisSpeciesDataTable.Layout.Column = 1;
             obj.VisSpeciesDataTable.ColumnEditable = false;
@@ -358,7 +360,7 @@ classdef CohortGenerationPane < QSPViewerNew.Application.ViewPane
             obj.VisVirtCohortItemsTableLabel.Layout.Row = 6;
             obj.VisVirtCohortItemsTableLabel.Layout.Column = 1;
             
-            obj.VisVirtCohortItemsTable = uitable(obj.VisLayout);
+            obj.VisVirtCohortItemsTable = uitable(obj.VisLayout, 'ColumnSortable', true);
             obj.VisVirtCohortItemsTable.Layout.Row = 7;
             obj.VisVirtCohortItemsTable.Layout.Column = 1;
             obj.VisVirtCohortItemsTable.ColumnEditable = false;
@@ -881,20 +883,12 @@ classdef CohortGenerationPane < QSPViewerNew.Application.ViewPane
                 [obj.StaleFlag,obj.ValidFlag] = getStaleItemIndices(obj.CohortGeneration);
             end
             
-            %Set flags for determing what to display
-            if ~isempty(obj.CohortGeneration)
-                obj.CohortGeneration.bShowTraces = obj.bShowTraces;
-                obj.CohortGeneration.bShowQuantiles = obj.bShowQuantiles;
-                obj.CohortGeneration.bShowMean = obj.bShowMean;
-                obj.CohortGeneration.bShowMedian = obj.bShowMedian;
-                obj.CohortGeneration.bShowSD = obj.bShowSD;
-            end
-            
             obj.reimport();
             obj.redrawPlotType();
             obj.redrawSpeciesTable();
             obj.redrawVirtualCohortTable();
             obj.redrawInvalidCheckBox();
+            obj.redrawAxesContextMenu();
             obj.redrawContextMenu();
             
             %Reset Xticks only for CohortGeneration
@@ -904,19 +898,13 @@ classdef CohortGenerationPane < QSPViewerNew.Application.ViewPane
         end
         
         function refreshVisualization(obj,axIndex)
-            if ~isempty(obj.CohortGeneration)
-                obj.CohortGeneration.bShowTraces = obj.bShowTraces;
-                obj.CohortGeneration.bShowQuantiles = obj.bShowQuantiles;
-                obj.CohortGeneration.bShowMean = obj.bShowMean;
-                obj.CohortGeneration.bShowMedian = obj.bShowMedian;
-                obj.CohortGeneration.bShowSD = obj.bShowSD;
-            end
             
             obj.reimport();
             obj.redrawPlotType();
             obj.redrawSpeciesTable();
             obj.redrawVirtualCohortTable();
             obj.redrawInvalidCheckBox();
+            obj.redrawAxesContextMenu();
             obj.redrawContextMenu();
             
             if ~isempty(axIndex)
@@ -932,7 +920,6 @@ classdef CohortGenerationPane < QSPViewerNew.Application.ViewPane
         function UpdateBackendPlotSettings(obj)
             obj.CohortGeneration.PlotSettings = getSummary(obj.getPlotSettings());
         end
-        
         
     end
     
@@ -1193,11 +1180,12 @@ classdef CohortGenerationPane < QSPViewerNew.Application.ViewPane
         end
         
         function redrawSavePref(obj)
-            obj.SavePrefDropDown.Items = obj.SaveValues;
-            if any(contains(obj.SaveValues,obj.TemporaryCohortGeneration.SaveInvalid))
+            obj.SavePrefDropDown.Items = obj.SaveValues(:,1);
+            obj.SavePrefDropDown.ItemsData = obj.SaveValues(:,2);
+            if any(contains(obj.SaveValues(:,2),obj.TemporaryCohortGeneration.SaveInvalid))
                 obj.SavePrefDropDown.Value =  obj.TemporaryCohortGeneration.SaveInvalid;
             else
-                obj.SavePrefDropDown.Value =obj.SaveValues{1};
+                obj.SavePrefDropDown.Value = obj.SaveValues{1,2};
             end
             
         end

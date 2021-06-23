@@ -11,7 +11,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
     %   $Revision: 1 $  $Date: Wed, 04 Nov 2020 $
 
     % ---------------------------------------------------------------------
-    
+
     % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Status of the UI properties
     % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -20,9 +20,9 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
         TemporaryGlobalSensitivityAnalysis = QSP.GlobalSensitivityAnalysis.empty()
         IsDirty = false
     end
-    
+
     properties (Access=private)
-        
+
         SensitivityOutputs  = {}
         LineStyles          = {'-','--','-.',':'}
         MarkerStyles        = {'d','o','s','*','+','v','^','<','>','p','h'}
@@ -31,30 +31,30 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
         ExtendedTypes       = {'first order', 'total order', 'unexpl. frac.', 'variance', 'worst case Sobol index'}
         Modes               = {'time course', 'bar plot', 'convergence', 'limit value'}
         Metric              = {'mean', 'median', 'max', 'min'}
-        
+
         SelectedRow = struct('TaskTable', [0,0], ...         % selected [row, column]
                              'PlotItemsTable', 0, ...        % selected column
                              'PlotSobolIndexTable', [0,0])   % selected row in [displayed, ui-] table
-                         
+
         StaleFlag
         ValidFlag
-        
+
         PlotSelectionCallback
     end
-    
+
     % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Listeners
     % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     properties (Access = private)
         ResultFolderListener
     end
-    
+
     % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Graphical Components
     % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     properties(Access=private)
-        
-        %% Edit panel 
+
+        %% Edit panel
         EditGrid                    matlab.ui.container.GridLayout
         ResultFolderSelector        QSPViewerNew.Widgets.FolderSelector
         SamplingConfigurationGrid   matlab.ui.container.GridLayout
@@ -68,7 +68,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
         SeedEdit                    matlab.ui.control.NumericEditField
         SensitivityInputsDropDown   matlab.ui.control.DropDown
         SensitivityInputsLabel      matlab.ui.control.Label
-        
+
         % Table for task selection for sensitivity outputs
         TaskLabel                   matlab.ui.control.Label
         TaskGrid                    matlab.ui.container.GridLayout
@@ -78,13 +78,13 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
         TaskTable                   matlab.ui.control.Table
         TaskTableContextMenu        matlab.ui.container.ContextMenu
         TaskTableMenu               matlab.ui.container.Menu
-        
+
         %% Plot panel
         PlotGrid                    matlab.ui.container.GridLayout
         PlotModeLabel               matlab.ui.control.Label
         PlotModeDropDown            matlab.ui.control.DropDown
         PlotConvergenceLineCheckBox matlab.ui.control.CheckBox
-        
+
         % Table for selecting Sobol indices for plotting
         SobolIndexLabel             matlab.ui.control.Label
         SobolIndexGrid              matlab.ui.container.GridLayout
@@ -96,45 +96,45 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
         MoveUpSobolIndexButton      matlab.ui.control.Button
         MoveDownSobolIndexButton    matlab.ui.control.Button
         SobolIndexTable             matlab.ui.control.Table
-        
+
         % Table for selecting tasks for inclusion in plots
         PlotItemsGrid               matlab.ui.container.GridLayout
         SelectColorGrid             matlab.ui.container.GridLayout
         SelectColorButton           matlab.ui.control.Button
         PlotItemsLabel              matlab.ui.control.Label
         PlotItemsTable              matlab.ui.control.Table
-        
+
         % Table for managing iteration results
         IterationsLabel             matlab.ui.control.Label
         IterationsTable             matlab.ui.control.Table
         IterationsTableContextMenu  matlab.ui.container.ContextMenu
         IterationsTableMenu         matlab.ui.container.Menu
-        
-        
+
+
     end
-        
+
     % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Constructor and destructor
     % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    methods      
-        
+    methods
+
         function obj = GlobalSensitivityAnalysisPane(varargin)
             obj = obj@QSPViewerNew.Application.ViewPane(varargin{:}{:},true);
             obj.create();
             obj.createListenersAndCallbacks();
             obj.PlotSelectionCallback = @(src,~)obj.lineSelectionCallback(src);
         end
-        
+
     end
-    
+
     % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Interacting with UI components
     % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     methods (Access = private)
-        
+
         function create(obj)
-            
-            %% Edit panel 
+
+            %% Edit panel
             obj.EditGrid = uigridlayout(obj.getEditGrid());
             obj.EditGrid.ColumnWidth   = {'1x'};
             obj.EditGrid.RowHeight     = {obj.WidgetHeight, ...        % results folder selection
@@ -147,13 +147,13 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             obj.EditGrid.Padding       = obj.WidgetPadding;
             obj.EditGrid.RowSpacing    = obj.WidgetHeightSpacing;
             obj.EditGrid.ColumnSpacing = obj.WidgetWidthSpacing;
-            
+
             % Results path selector
             obj.ResultFolderSelector = QSPViewerNew.Widgets.FolderSelector(obj.EditGrid,1,1,'Results Path');
-            
+
             % Sampling configuration grid
             obj.SamplingConfigurationGrid               = uigridlayout(obj.EditGrid);
-            obj.SamplingConfigurationGrid.ColumnWidth   = {2.00*obj.LabelLength, 2.00*obj.LabelLength, obj.LabelLength, '1x'};     
+            obj.SamplingConfigurationGrid.ColumnWidth   = {2.00*obj.LabelLength, 2.00*obj.LabelLength, obj.LabelLength, '1x'};
             obj.SamplingConfigurationGrid.RowHeight     = {obj.WidgetHeight, ... % sensitivity inputs
                                                            obj.WidgetHeight};    % random seed
             obj.SamplingConfigurationGrid.Layout.Row    = [2,3];
@@ -162,7 +162,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             obj.SamplingConfigurationGrid.RowSpacing    = obj.WidgetHeightSpacing;
             obj.SamplingConfigurationGrid.ColumnSpacing = 0;
 
-            % Sensitivity inputs 
+            % Sensitivity inputs
             obj.SensitivityInputsLabel               = uilabel(obj.SamplingConfigurationGrid);
             obj.SensitivityInputsLabel.Layout.Column = 1;
             obj.SensitivityInputsLabel.Layout.Row    = 1;
@@ -171,8 +171,8 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             obj.SensitivityInputsDropDown.Layout.Column   = [2,4];
             obj.SensitivityInputsDropDown.Layout.Row      = 1;
             obj.SensitivityInputsDropDown.Items           = {'foo', 'bar'};
-            obj.SensitivityInputsDropDown.ValueChangedFcn = @(h,e)obj.onSensitivityInputChange();            
-            
+            obj.SensitivityInputsDropDown.ValueChangedFcn = @(h,e)obj.onSensitivityInputChange();
+
             % Random seed configuration
             % checkbox
             obj.FixSeedCheckBox                 = uicheckbox(obj.SamplingConfigurationGrid);
@@ -195,7 +195,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             obj.SeedEdit.Limits                = [0,Inf];
             obj.SeedEdit.RoundFractionalValues = true;
             obj.SeedEdit.Enable                = 'off';
-            
+
             % Table for task selection for sensitivity outputs
             obj.TaskLabel               = uilabel(obj.EditGrid);
             obj.TaskLabel.Layout.Row    = 4;
@@ -236,9 +236,9 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             obj.RemoveTaskButton.Text            = '';
             obj.RemoveTaskButton.Tooltip         = 'Remove selected sensitivity outputs';
             obj.RemoveTaskButton.ButtonPushedFcn = @(h,e)obj.onRemoveSensitivityOutput();
-            
+
             % task table
-            obj.TaskTable                       = uitable(obj.TaskGrid);
+            obj.TaskTable                       = uitable(obj.TaskGrid, 'ColumnSortable', true);
             obj.TaskTable.Layout.Row            = 1;
             obj.TaskTable.Layout.Column         = 2;
             obj.TaskTable.Data                  = cell(0,4);
@@ -251,7 +251,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             s = uistyle;
             s.FontColor = [0.75, 0.75, 0.75];
             addStyle(obj.TaskTable, s, 'column', 4);
-            
+
             % value propagation context menu
             obj.TaskTableContextMenu = uicontextmenu(obj.getUIFigure());
             obj.TaskTableMenu = uimenu(obj.TaskTableContextMenu);
@@ -259,7 +259,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
                     obj.TaskTable.ColumnName{2}, obj.TaskTable.ColumnName{3});
             obj.TaskTableMenu.MenuSelectedFcn = @(h,e)obj.onPropagateSensitivityOutputValue();
             obj.TaskTable.ContextMenu = obj.TaskTableContextMenu;
-            
+
             % Stopping criterion
             obj.StoppingCriterionGrid               = uigridlayout(obj.EditGrid);
             obj.StoppingCriterionGrid.ColumnWidth   = {'1x', obj.LabelLength};
@@ -277,7 +277,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             obj.StoppingCriterionEditField.Layout.Column   = 2;
             obj.StoppingCriterionEditField.Layout.Row      = 1;
             obj.StoppingCriterionEditField.Limits          = [0,Inf];
-            obj.StoppingCriterionEditField.ValueChangedFcn = @(h,e)obj.onStoppingCriterionChange(e);   
+            obj.StoppingCriterionEditField.ValueChangedFcn = @(h,e)obj.onStoppingCriterionChange(e);
 
             %% Plot panel
             obj.PlotGrid               = uigridlayout(obj.getVisualizationGrid());
@@ -289,7 +289,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
                                           obj.WidgetHeight, '1x', ...  % iterations table
                                           obj.WidgetHeight};           % show iterations checkbox
             obj.PlotGrid.ColumnWidth   = {'1x', obj.LabelLength};
-            
+
             % Table for selecting Sobol indices for plotting
             obj.SobolIndexLabel               = uilabel(obj.PlotGrid);
             obj.SobolIndexLabel.Layout.Row    = 1;
@@ -361,7 +361,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             obj.MoveDownSobolIndexButton.Text            = '';
             obj.MoveDownSobolIndexButton.ButtonPushedFcn = @(h,e)obj.onPlotTableButtonPress(h);
             % table
-            obj.SobolIndexTable                       = uitable(obj.SobolIndexGrid);
+            obj.SobolIndexTable                       = uitable(obj.SobolIndexGrid, 'ColumnSortable', true);
             obj.SobolIndexTable.Layout.Row            = 1;
             obj.SobolIndexTable.Layout.Column         = 2;
             obj.SobolIndexTable.Data                  = cell(0,8);
@@ -381,7 +381,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             obj.PlotConvergenceLineCheckBox.Layout.Row      = 3;
             obj.PlotConvergenceLineCheckBox.ValueChangedFcn = @(h,e)obj.onHideConvergenceLineChange(e);
             obj.PlotConvergenceLineCheckBox.Enable          = 'off';
-            
+
             % Table for selecting tasks for inclusion in plots
             obj.PlotItemsLabel               = uilabel(obj.PlotGrid);
             obj.PlotItemsLabel.Layout.Row    = 4;
@@ -413,7 +413,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             obj.SelectColorButton.Text            = '';
             obj.SelectColorButton.ButtonPushedFcn = @(h,e)obj.setPlotItemColor();
             % table
-            obj.PlotItemsTable                       = uitable(obj.PlotItemsGrid);
+            obj.PlotItemsTable                       = uitable(obj.PlotItemsGrid, 'ColumnSortable', true);
             obj.PlotItemsTable.Layout.Row            = 1;
             obj.PlotItemsTable.Layout.Column         = 2;
             obj.PlotItemsTable.Data                  = cell(0,4);
@@ -423,14 +423,14 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             obj.PlotItemsTable.ColumnWidth           = {'auto','auto','auto','auto'};
             obj.PlotItemsTable.CellEditCallback      = @(h,e) obj.onVisualizationTableEdit(h,e);
             obj.PlotItemsTable.CellSelectionCallback = @(h,e) obj.onTableSelectionChange(h,e);
-            
+
             % Table for managing iteration results
             obj.IterationsLabel               = uilabel(obj.PlotGrid);
             obj.IterationsLabel.Layout.Row    = 6;
             obj.IterationsLabel.Layout.Column = [1,2];
-            obj.IterationsLabel.Text          = 'Iterations: select a task';
-            obj.IterationsLabel.FontWeight    = 'bold';
-            obj.IterationsTable                = uitable(obj.PlotGrid);
+            obj.IterationsLabel.Text = 'Iterations: select a task';
+            obj.IterationsLabel.FontWeight = 'bold';
+            obj.IterationsTable                = uitable(obj.PlotGrid, 'ColumnSortable', true);
             obj.IterationsTable.Layout.Row     = 7;
             obj.IterationsTable.Layout.Column  = [1,2];
             obj.IterationsTable.Data           = {[],[],[]};
@@ -438,7 +438,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             obj.IterationsTable.ColumnFormat   = {'char','numeric'};
             obj.IterationsTable.ColumnEditable = [false,false];
             obj.IterationsTable.ColumnWidth    = {'auto','auto'};
-            
+
             obj.IterationsTableContextMenu = uicontextmenu(obj.getUIFigure());
             obj.IterationsTableMenu = uimenu(obj.IterationsTableContextMenu);
             obj.IterationsTableMenu.Label = 'Plot iterations';
@@ -446,18 +446,18 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             obj.IterationsTable.ContextMenu = obj.IterationsTableContextMenu;
 
         end
-        
+
         function createListenersAndCallbacks(obj)
             obj.ResultFolderListener = addlistener(obj.ResultFolderSelector,'StateChanged',@(src,event) obj.onResultsPath(event.Source.RelativePath));
         end
-        
+
     end
-    
+
     % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Callbacks
     % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     methods (Access = private)
-        
+
         function onRemoveSensitivityOutput(obj)
             DeleteIdx = obj.SelectedRow.TaskTable(1);
             if DeleteIdx == 0
@@ -476,7 +476,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             obj.TaskTable = obj.selectRow(obj.TaskTable, obj.SelectedRow.TaskTable(1), true);
             obj.IsDirty = true;
         end
-        
+
         function onAddSensitivityOutput(obj)
             if isempty(obj.SensitivityOutputs)
                 uialert(obj.getUIFigure(), ...
@@ -511,7 +511,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             obj.updateTaskTable();
             obj.IsDirty = true;
         end
-        
+
         function onFixRandomSeedChange(obj)
             if obj.FixSeedCheckBox.Value
                 obj.TemporaryGlobalSensitivityAnalysis.RandomSeed = obj.SeedEdit.Value;
@@ -523,7 +523,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
                 obj.SeedEdit.Enable  = 'off';
             end
         end
-        
+
         function onSensitivityInputChange(obj)
             if any(arrayfun(@(item) item.NumberSamples > 0, obj.GlobalSensitivityAnalysis.Item))
                 staleMessage = sprintf(['Global sensitivity analysis results for sensitivity inputs ''%s'' already exist. ', ...
@@ -544,7 +544,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             obj.TemporaryGlobalSensitivityAnalysis.ParametersName = obj.SensitivityInputsDropDown.Value;
             obj.IsDirty = true;
         end
-        
+
         function onTableSelectionChange(obj, source, eventData)
             % Keep track of selected row in GSA tables
             if isempty(eventData.Indices) || ~isvector(eventData.Indices)
@@ -573,7 +573,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
                     obj.SobolIndexTable.ColumnFormat{7} = 'char';
                 else
                     obj.SobolIndexTable.ColumnFormat{7} = obj.Metric;
-                end                
+                end
                 obj.updatePlotTables();
             else
                 % Item (sens. outputs) selection table for plotting
@@ -582,22 +582,22 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             end
             obj.IsDirty = true;
         end
-        
+
         function onTaskTableEdit(obj,eventData)
             Indices = eventData.Indices;
             if isempty(Indices)
                 assert(false, "Is this assertion ever hit?");
                 return;
             end
-            
+
             rowIdx = Indices(1,1);
             colIdx = Indices(1,2);
-            
+
             obj.SelectedRow.TaskTable = Indices;
-            
+
             % Update item:
             item = obj.TemporaryGlobalSensitivityAnalysis.Item(rowIdx);
-            
+
             switch colIdx
                 case 1 % Task
                     if isequal(item.TaskName,eventData.NewData)
@@ -613,7 +613,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
                         end
                     end
                     obj.TemporaryGlobalSensitivityAnalysis.removeResultsFromItem(rowIdx);
-                    item.TaskName = eventData.NewData;  
+                    item.TaskName = eventData.NewData;
                 case 2 % Samples per iteration
                     if eventData.NewData < 0 || ~isfinite(eventData.NewData)
                         uialert(obj.getUIFigure(),'Specify a non-negative number of samples.','Invalid input');
@@ -633,16 +633,16 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
                     obj.TaskTable.Data{rowIdx, colIdx} = item.IterationInfo(2);
                     obj.updateValuePropagationContextMenuLabel();
             end
-            
+
             [statusOk, message] = obj.TemporaryGlobalSensitivityAnalysis.updateItem(rowIdx, item);
             if ~statusOk
                 uialert(obj.getUIFigure(), message, 'Error')
             end
-            
+
             obj.updateTaskTable();
             obj.IsDirty = true;
         end
-        
+
         function onStoppingCriterionChange(obj, eventData)
             if ~isfinite(eventData.Value)
                 uialert(obj.getUIFigure(),'Specify a finite, non-nan value for the stopping criterion.','Invalid input');
@@ -651,12 +651,12 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             end
             obj.TemporaryGlobalSensitivityAnalysis.StoppingTolerance = eventData.Value;
         end
-        
+
         function onResultsPath(obj, resultsPath)
             obj.TemporaryGlobalSensitivityAnalysis.ResultsFolder = resultsPath;
             obj.IsDirty = true;
         end
-        
+
         function setPlotItemColor(obj)
             if obj.SelectedRow.PlotItemsTable > 0
                 currentColor = obj.GlobalSensitivityAnalysis.Item(obj.SelectedRow.PlotItemsTable).Color;
@@ -677,7 +677,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
                 uialert(obj.getUIFigure(),'Specify a finite, non-nan value for the stopping criterion.','Select item');
             end
         end
-        
+
         function lineSelectionCallback(obj, src)
             % Highlight row in SobolIndexTable that was clicked on in the
             % plots.
@@ -700,7 +700,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             end
             plotSobolIndices(obj.GlobalSensitivityAnalysis,obj.getPlotArray(),obj.PlotSelectionCallback);
         end
-        
+
         function onVisualizationTableEdit(obj, source, eventData)
             indices = eventData.Indices;
             rowIdx = indices(1,1);
@@ -723,7 +723,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
                     else
                         styleIdx = 1;
                     end
-                    obj.GlobalSensitivityAnalysis.PlotSobolIndex(rowIdx).Style{styleIdx} = eventData.NewData;    
+                    obj.GlobalSensitivityAnalysis.PlotSobolIndex(rowIdx).Style{styleIdx} = eventData.NewData;
                 elseif colIdx == 6
                     if strcmp(obj.GlobalSensitivityAnalysis.PlotSobolIndex(rowIdx).Plot, ' ')
                         idxSamePlot = rowIdx;
@@ -735,7 +735,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
                         obj.GlobalSensitivityAnalysis.PlotSobolIndex(i).Mode = eventData.NewData;
                     end
                 else
-                    obj.GlobalSensitivityAnalysis.PlotSobolIndex(rowIdx).(fieldName) = eventData.NewData;    
+                    obj.GlobalSensitivityAnalysis.PlotSobolIndex(rowIdx).(fieldName) = eventData.NewData;
                 end
                 tfConvergencePlot = ismember(obj.SobolIndexTable.Data(:, 6), 'convergence');
                 if any(tfConvergencePlot) && ismember('max', obj.SobolIndexTable.Data(tfConvergencePlot, 7))
@@ -751,39 +751,39 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             drawnow;
             plotSobolIndices(obj.GlobalSensitivityAnalysis,obj.getPlotArray(),obj.PlotSelectionCallback);
         end
-                
+
         function onHideConvergenceLineChange(obj, event)
             obj.GlobalSensitivityAnalysis.HideConvergenceLine = event.Value;
             plotSobolIndices(obj.GlobalSensitivityAnalysis,obj.getPlotArray(),obj.PlotSelectionCallback);
         end
-        
+
         function inputOutputPlotSelectionCallback(obj, row, selections)
             % Edit sens. inputs/outputs in table row.
             obj.GlobalSensitivityAnalysis.PlotSobolIndex(row).Inputs = selections{1};
             obj.GlobalSensitivityAnalysis.PlotSobolIndex(row).Outputs = selections{2};
-            
+
             obj.updatePlotTables();
             plotSobolIndices(obj.GlobalSensitivityAnalysis,obj.getPlotArray(),obj.PlotSelectionCallback);
         end
-        
+
         function onPlotTableButtonPress(obj, src)
             if src == obj.NewSobolIndexButton
-                
+
                 [statusOk, message] = obj.GlobalSensitivityAnalysis.add('plotItem');
-                
+
                 if statusOk
                     row = numel(obj.GlobalSensitivityAnalysis.PlotSobolIndex);
                     options = {obj.GlobalSensitivityAnalysis.PlotInputs; obj.GlobalSensitivityAnalysis.PlotOutputs};
                     selections = {{}; {}};
-                    
+
                     modalWindow = QSPViewerNew.Widgets.MultiDataSelector("Select sensitivity inputs and outputs", ...
                     ["Sensitivity Inputs", "Sensitivity Outputs"], options, selections, @(selections)obj.inputOutputPlotSelectionCallback(row, selections));
                     modalWindow.open(obj.getUIFigure());
                     plotSobolIndices(obj.GlobalSensitivityAnalysis,obj.getPlotArray(),obj.PlotSelectionCallback);
                 end
-                
+
             elseif src == obj.EditSobolIndexButton
-                
+
                 row = obj.SelectedRow.PlotSobolIndexTable(1);
                 options = {obj.GlobalSensitivityAnalysis.PlotInputs; obj.GlobalSensitivityAnalysis.PlotOutputs};
                 selections = {obj.GlobalSensitivityAnalysis.PlotSobolIndex(row).Inputs; obj.GlobalSensitivityAnalysis.PlotSobolIndex(row).Outputs};
@@ -792,7 +792,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
                 ["Sensitivity Inputs", "Sensitivity Outputs"], options, selections, @(selections)obj.inputOutputPlotSelectionCallback(row, selections));
                 modalWindow.open(obj.getUIFigure());
                 statusOk = true;
-                
+
                 plotSobolIndices(obj.GlobalSensitivityAnalysis,obj.getPlotArray(),obj.PlotSelectionCallback);
            elseif src == obj.DuplicateSobolIndexButton
                 [statusOk, message] = obj.GlobalSensitivityAnalysis.duplicate(obj.SelectedRow.PlotSobolIndexTable(1));
@@ -835,7 +835,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             end
 
         end
-        
+
         function onIterationsTableContextMenu(obj,~,~)
             if isempty(obj.IterationsTable.Data)
                 return;
@@ -847,7 +847,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             if numel(obj.GlobalSensitivityAnalysis.Item(selectedRow).Results) < 2
                 return;
             end
-            
+
             [numSamples, maxDifferences] = obj.GlobalSensitivityAnalysis.getConvergenceStats(selectedRow);
             modalWindow = QSPViewerNew.Widgets.GlobalSensitivityAnalysisProgress(sprintf('Showing %s', ...
                 obj.GlobalSensitivityAnalysis.Item(selectedRow).TaskName));
@@ -864,11 +864,11 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             messages{7} = '';
             modalWindow.update(messages, numSamples, maxDifferences);
         end
-        
-        function updateValuePropagationContextMenuLabel(obj) 
+
+        function updateValuePropagationContextMenuLabel(obj)
             rowIdx = obj.SelectedRow.TaskTable(1);
             colIdx = obj.SelectedRow.TaskTable(2);
-            if colIdx == 2 
+            if colIdx == 2
                 colName = 'Samples per Iteration';
             elseif colIdx == 3
                 colName = 'Iteration';
@@ -880,10 +880,10 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             value = obj.TaskTable.Data{rowIdx, colIdx};
             obj.TaskTableMenu.Label = sprintf('Set column ''%s'' to selected value %g.', colName, value);
         end
-        
+
     end
-    
-    methods (Access = public) 
+
+    methods (Access = public)
 
         function Value = getRootDirectory(obj)
             Value = obj.GlobalSensitivityAnalysis.Session.RootDirectory;
@@ -892,16 +892,16 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
         function showThisPane(obj)
             obj.showPane();
         end
-        
+
         function hideThisPane(obj)
             obj.hidePane();
         end
-        
+
         function attachNewGlobalSensitivityAnalysis(obj,NewGlobalSensitivityAnalysis)
             obj.GlobalSensitivityAnalysis = NewGlobalSensitivityAnalysis;
             obj.GlobalSensitivityAnalysis.PlotSettings = getSummary(obj.getPlotSettings());
             obj.TemporaryGlobalSensitivityAnalysis = copy(obj.GlobalSensitivityAnalysis);
-           
+
             for index = 1:obj.MaxNumPlots
                Summary = obj.GlobalSensitivityAnalysis.PlotSettings(index);
                % If Summary is empty (i.e., new node), then use
@@ -911,16 +911,16 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
                end
                obj.setPlotSettings(index,fieldnames(Summary),struct2cell(Summary)');
             end
-            
+
             obj.draw();
             obj.onSensitivityInputChange(); % ensure model is in sync with view
             obj.IsDirty = false;
         end
-        
+
         function value = checkDirty(obj)
             value = obj.IsDirty;
         end
-        
+
         function runModel(obj)
             succesfulSave = obj.saveBackEndInformation();
             if ~succesfulSave
@@ -928,14 +928,14 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
                 uialert(obj.getUIFigure, message, 'Run Failed', 'Icon', 'error');
                 return
             end
-            
+
             iterationsInfo = vertcat(obj.GlobalSensitivityAnalysis.Item.IterationInfo);
             if all(iterationsInfo(:,1).*iterationsInfo(:,2) == 0)
                 message = 'Set number of samples and iteration to be added to a value greater than zero for at least one task.';
                 uialert(obj.getUIFigure, message, 'Run Failed', 'Icon', 'info');
                 return
-            end  
-            
+            end
+
             [tfStaleItem, tfValidItem] = obj.GlobalSensitivityAnalysis.getStaleItemIndices();
             tfResultsOutOfDate = tfStaleItem | ~tfValidItem;
             if any(tfResultsOutOfDate)
@@ -957,12 +957,12 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
                     end
                 end
             end
-            
+
             % Open modal window for progress indication
             modalWindow = QSPViewerNew.Widgets.GlobalSensitivityAnalysisProgress(sprintf('Running %s', obj.GlobalSensitivityAnalysis.Name));
             modalWindow.open(obj.getUIFigure());
             onCleanupObj1 = onCleanup(@()delete(modalWindow));
-            
+
             [StatusOK, Message] = run(obj.GlobalSensitivityAnalysis, ...
                 @(tfReset, itemIdx, messages, samples, differences) ...
                 obj.runProgressIndicator(modalWindow, tfReset, itemIdx, messages, samples, differences));
@@ -971,30 +971,30 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             end
             modalWindow.customizeButton('Close', '', @()delete(modalWindow));
             waitfor(modalWindow);
-            
+
         end
-        
+
         function drawVisualization(obj)
-            
+
             %DropDown Update
             obj.updatePlotConfig(obj.GlobalSensitivityAnalysis.SelectedPlotLayout);
-            
+
             obj.updatePlotTables();
             plotSobolIndices(obj.GlobalSensitivityAnalysis,obj.getPlotArray(),obj.PlotSelectionCallback);
-            
+
         end
-        
+
         function refreshVisualization(obj,axIndex)
-                        
+
             obj.updateIterationsTable();
             obj.updatePlotTables();
             plotSobolIndices(obj.GlobalSensitivityAnalysis,obj.getPlotArray(),obj.PlotSelectionCallback);
 
         end
-        
+
         function updateIterationsTable(obj)
             % Update iterations table in plot panel
-            
+
             if isempty(obj.TaskTable.Data)
                 % No task available; no iterations to show
                 obj.IterationsLabel.Text = 'No iterations available';
@@ -1020,53 +1020,53 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
                 obj.IterationsTable.Data = [maxDifferences, num2cell(numSamples)];
             end
         end
-        
+
         function UpdateBackendPlotSettings(obj)
             obj.GlobalSensitivityAnalysis.PlotSettings = getSummary(obj.getPlotSettings());
         end
-        
+
     end
-       
+
     methods (Access = public)
-        
+
         function NotifyOfChangeInName(obj,value)
             obj.TemporaryGlobalSensitivityAnalysis.Name = value;
             obj.IsDirty = true;
         end
-        
+
         function NotifyOfChangeInDescription(obj,value)
             obj.TemporaryGlobalSensitivityAnalysis.Description= value;
             obj.IsDirty = true;
         end
-        
+
         function NotifyOfChangeInPlotConfig(obj,value)
             obj.GlobalSensitivityAnalysis.SelectedPlotLayout = value;
             obj.updatePlotConfig(value);
         end
-        
+
         function [StatusOK] = saveBackEndInformation(obj)
-            
+
             %Validate the temporary data
             FlagRemoveInvalid = false;
             [StatusOK,Message] = obj.TemporaryGlobalSensitivityAnalysis.validate(FlagRemoveInvalid);
             [StatusOK,Message] = obj.checkForDuplicateNames(StatusOK,Message);
-            
+
             if StatusOK
                 obj.TemporaryGlobalSensitivityAnalysis.updateLastSavedTime();
-                
+
                 %This creates an entirely new copy of the Data except
                 %the name isnt copied
                 obj.GlobalSensitivityAnalysis = copy(obj.TemporaryGlobalSensitivityAnalysis,obj.GlobalSensitivityAnalysis);
-                
+
                 %We now need to notify the application
                 obj.notifyOfChange(obj.TemporaryGlobalSensitivityAnalysis.Session);
-                
+
             else
                 uialert(obj.getUIFigure,sprintf('Cannot save changes. Please review invalid entries:\n\n%s',Message),'Cannot Save');
             end
-            
+
         end
-        
+
         function removeInvalidVisualization(obj)
             FlagRemoveInvalid = false;
             statusOk = validate(obj.GlobalSensitivityAnalysis, FlagRemoveInvalid);
@@ -1085,29 +1085,29 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
                 obj.IsDirty = true;
             end
         end
-           
+
         function deleteTemporary(obj)
             delete(obj.TemporaryGlobalSensitivityAnalysis)
             obj.TemporaryGlobalSensitivityAnalysis = copy(obj.GlobalSensitivityAnalysis);
         end
-        
+
         function draw(obj)
             obj.updateDescriptionBox(obj.TemporaryGlobalSensitivityAnalysis.Description);
             obj.updateNameBox(obj.TemporaryGlobalSensitivityAnalysis.Name);
             obj.updateSummary(obj.TemporaryGlobalSensitivityAnalysis.getSummary());
-            
+
             obj.updateResultsDir();
             obj.ResultFolderSelector.RootDirectory = obj.TemporaryGlobalSensitivityAnalysis.Session.RootDirectory;
-            
+
             obj.StoppingCriterionEditField.Value   = obj.TemporaryGlobalSensitivityAnalysis.StoppingTolerance;
-            
+
             obj.updateGSAConfiguration();
             obj.updateTaskTable();
             obj.updatePlotTables();
             obj.updateIterationsTable();
             obj.IsDirty = false;
         end
-        
+
         function checkForInvalid(obj)
             FlagRemoveInvalid = true;
             % Remove the invalid entries
@@ -1115,7 +1115,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             obj.draw()
             obj.IsDirty = true;
         end
-        
+
         function [StatusOK,Message] = checkForDuplicateNames(obj,StatusOK,Message)
             refObject = obj.GlobalSensitivityAnalysis.Session.GlobalSensitivityAnalysis;
             ixDup = find(strcmp( obj.TemporaryGlobalSensitivityAnalysis.Name, {refObject.Name}));
@@ -1124,32 +1124,32 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
                 StatusOK = false;
             end
         end
-        
+
         function [ValidTF] = isValid(obj)
             [~,Valid] = getStaleItemIndices(obj.GlobalSensitivityAnalysis);
             ValidTF = all(Valid);
         end
-        
+
         function BackEnd = getBackEnd(obj)
             BackEnd = obj.GlobalSensitivityAnalysis;
         end
     end
-    
+
     methods (Access = private)
-        
+
         function updateResultsDir(obj)
             obj.ResultFolderSelector.RelativePath = obj.TemporaryGlobalSensitivityAnalysis.ResultsFolder;
         end
-        
+
         function updateGSAConfiguration(obj)
             % Update general settings for the Global Sensitivity Analysis
             % in the edit panel.
-            
+
             if isempty(obj.TemporaryGlobalSensitivityAnalysis)
                 return;
             end
 
-            % Refresh Sensitivity Inputs 
+            % Refresh Sensitivity Inputs
             if ~isempty(obj.TemporaryGlobalSensitivityAnalysis)
                 parameters = obj.TemporaryGlobalSensitivityAnalysis.Settings.Parameters;
                 if isempty(parameters)
@@ -1176,13 +1176,13 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
                 obj.TemporaryGlobalSensitivityAnalysis.ParametersName = '';
             end
         end
-        
+
         function updatePlotTables(obj)
             if isempty(obj.GlobalSensitivityAnalysis)
                 assert(false, "Internal error: missing temporary GSA object.");
                 return
             end
-            
+
             % Sobol indices table
             plot      = {obj.GlobalSensitivityAnalysis.PlotSobolIndex.Plot};
             style     = vertcat(obj.GlobalSensitivityAnalysis.PlotSobolIndex.Style);
@@ -1221,20 +1221,20 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
                 MatchIdx = find(~ismember(taskNames(:),obj.SensitivityOutputs(:)));
                 for index = MatchIdx(:)'
                     Data{index,3} = QSP.makeInvalid(Data{index,3});
-                end        
+                end
             end
             obj.PlotItemsTable.Data = Data;
-            
+
             removeStyle(obj.PlotItemsTable)
             for i = 1:numel(taskNames)
                 style = uistyle('BackgroundColor', taskColor{i});
                 addStyle(obj.PlotItemsTable,style,'cell',[i,2]);
             end
         end
-        
+
         function updateTaskTable(obj)
-            
-            % Find all available tasks (sensitivity outputs)           
+
+            % Find all available tasks (sensitivity outputs)
             ValidItemTasks = getValidSelectedTasks(obj.TemporaryGlobalSensitivityAnalysis.Settings,...
                 {obj.TemporaryGlobalSensitivityAnalysis.Settings.Task.Name});
             if isempty(ValidItemTasks)
@@ -1242,10 +1242,10 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             else
                 obj.SensitivityOutputs = {ValidItemTasks.Name};
             end
-            
+
             % Populate task table with task (sensitivity outputs)
-            if ~isempty(obj.TemporaryGlobalSensitivityAnalysis.Item) 
-                
+            if ~isempty(obj.TemporaryGlobalSensitivityAnalysis.Item)
+
                 iterationInfo         = vertcat(obj.TemporaryGlobalSensitivityAnalysis.Item.IterationInfo);
                 existingNumberSamples = vertcat(obj.TemporaryGlobalSensitivityAnalysis.Item.NumberSamples);
                 totalNumberSamples    = existingNumberSamples + prod(iterationInfo, 2);
@@ -1253,7 +1253,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
                 samplesInfo           = arrayfun(@(i,j) sprintf('%d/%d', i, j), ...
                                              existingNumberSamples, totalNumberSamples, ...
                                              'UniformOutput', false);
-                
+
                 Data = [taskNames, num2cell(iterationInfo), samplesInfo];
 
                 % Mark any invalid entries
@@ -1262,30 +1262,30 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
                     MatchIdx = find(~ismember(taskNames(:),obj.SensitivityOutputs(:)));
                     for index = MatchIdx(:)'
                         Data{index,1} = QSP.makeInvalid(Data{index,1});
-                    end        
+                    end
                 end
             else
                 Data = cell(0,4);
             end
-            
+
             %Reset the data
             obj.TaskTable.Data = Data;
-            
+
             % Dis-/enable drop down menu for sensitivity outputs if the are
             % empty/nonempty.
             if isempty(obj.SensitivityOutputs)
                 obj.TaskTable.ColumnFormat{1}   = 'char';
-                obj.TaskTable.ColumnEditable(1) = false;                
+                obj.TaskTable.ColumnEditable(1) = false;
             else
                 obj.TaskTable.ColumnFormat{1}   = obj.SensitivityOutputs;
-                obj.TaskTable.ColumnEditable(1) = true;                
-            end                
+                obj.TaskTable.ColumnEditable(1) = true;
+            end
         end
-        
+
         function tbl = selectRow(~, tbl, rowIdx, resetSelection)
             % Helper method to manage row selection of tables.
             % PlotSobolIndexTable allows reordering of rows using buttons.
-            % This causes the visually selected row to be different than 
+            % This causes the visually selected row to be different than
             % the selected row the uitable keeps track of. Clicking on a
             % row that uitable thinks is selected does not trigger the cell
             % selection callback. To sync the visual row selection with the
@@ -1312,13 +1312,13 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
                 addStyle(tbl, style, 'row', rowIdx);
             end
         end
-        
+
         function tfStopRequested = runProgressIndicator(obj, modalWindow, tfReset, itemIdx, message, samples, data)
             % Usage: progress indicator is a modal window that is open
             % during the computation of GSA results. The modal window can
             % be reset (tfReset == true) to clear plots when switching from
-            % on task item to another. The modal window can be updated 
-            % (tfReset == false) to show new messages and data-vs-samples 
+            % on task item to another. The modal window can be updated
+            % (tfReset == false) to show new messages and data-vs-samples
             % plots to indicate the progress in the computation.
             if tfReset
                 modalWindow.reset(obj.GlobalSensitivityAnalysis.StoppingTolerance, ...
@@ -1326,8 +1326,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             else
                 modalWindow.update(message, samples, data);
                 tfStopRequested = modalWindow.isStopRequested();
-            end            
+            end
         end
     end
 end
-

@@ -8,17 +8,26 @@ if isempty(obj.SpeciesData)
     Message = 'At least one species-data mapping must be defined for optimization to proceed.';
     ResultsFileNames = {};
     VpopNames = {};
-   
+    resultsArray = [];
+    groupErrorCounts = [];
+    groupErrorMessages = {};
+    groupErrorMessageCounts = {};
     return 
 end
 
 % Initialize waitbar
 Title = sprintf('Run Optimization');
 DialogMessage = sprintf('Optimization in progress. Please wait...');
-hDlg = warndlg(DialogMessage,Title,'modal');
+if obj.Session.ShowProgressBars
+    hDlg = warndlg(DialogMessage,Title,'modal');
+end
 
 StatusOK = true;
 Message = '';
+resultsArray = [];
+groupErrorCounts = [];
+groupErrorMessages = {};
+groupErrorMessageCounts = {};
 
 % store path & add all subdirectories of root directory
 myPath = path;
@@ -269,6 +278,13 @@ for ii = 1:nItems
 
     % get the task obj from the settings obj
     tskInd = find(strcmp(obj.Item(ii).TaskName,{obj.Settings.Task.Name}));
+    if nnz(tskInd) ~= 1
+        StatusOK = false;
+        Message = 'Invalid task for optimization';
+        return
+    end
+    
+       
     tObj_i = obj.Settings.Task(tskInd);
     
     % Validate
@@ -326,6 +342,15 @@ switch obj.AlgorithmName
         
     case 'ParticleSwarm'
         N = size(estParamData,1);
+        
+        if license('test','GADS_Toolbox') == 0
+            StatusOK = false;
+            ThisMessage = 'The particle swarm method is not available. Please install the Global Optimization Toolbox in order to use the particle swarm method.';
+            Message = sprintf('%s\n%s\n',Message,ThisMessage);
+            path(myPath);
+            return
+        end
+        
         try
             StatusOK = true;
             LB = estParamData(:,1);
@@ -362,7 +387,7 @@ switch obj.AlgorithmName
         try
 %         VpopParams = lsqnonlin(@(est_p) objectiveFun(est_p,paramObj,ItemModels,Groups,IDs,Time,optimData,weights,dataNames,obj), p0, LB, UB, LSQopts);
         
-        VpopParams = fmincon(@(est_p) objectiveFun(est_p,paramObj,ItemModels,Groups,IDs,Time,optimData,weights,dataNames,obj), p0, [], [], [], [], LB, UB, [], opts);        
+        VpopParams = fmincon(@(est_p) objectiveFun(est_p,paramObj,ItemModels,Groups,IDs,Time,optimData,dataNames,obj), p0, [], [], [], [], LB, UB, [], opts);        
         VpopParams = VpopParams';
         catch err
             StatusOK = false;
@@ -536,7 +561,7 @@ end
 
 if SaveFlag
     VpopNames{end} = ['Results - Optimization = ' obj.Name ' - Date = ' timeStamp];
-    ResultsFileNames{end} = [VpopNames{end} '.xls'];
+    ResultsFileNames{end} = [VpopNames{end} '.xlsx'];
     try
         if ispc
             xlswrite(fullfile(SaveFilePath,ResultsFileNames{end}),Vpop);
@@ -780,7 +805,7 @@ end
 path(myPath);
 
 % close dialog
-if ~isempty(hDlg) && ishandle(hDlg)
+if obj.Session.ShowProgressBars && ~isempty(hDlg) && ishandle(hDlg)
     delete(hDlg);
 end
 

@@ -231,7 +231,7 @@ classdef VirtualPopulationGenerationPane < QSPViewerNew.Application.ViewPane
             obj.VisSpeciesDataTableLabel.Layout.Row = 1;
             obj.VisSpeciesDataTableLabel.Layout.Column = 1;
             
-            obj.VisSpeciesDataTable = uitable(obj.VisLayout);
+            obj.VisSpeciesDataTable = uitable(obj.VisLayout, 'ColumnSortable', true);
             obj.VisSpeciesDataTable.Layout.Row = 2;
             obj.VisSpeciesDataTable.Layout.Column = 1;
             obj.VisSpeciesDataTable.ColumnEditable = false;
@@ -243,7 +243,7 @@ classdef VirtualPopulationGenerationPane < QSPViewerNew.Application.ViewPane
             obj.VisVirtPopItemsTableLabel.Layout.Row = 3;
             obj.VisVirtPopItemsTableLabel.Layout.Column = 1;
             
-            obj.VisVirtPopItemsTable = uitable(obj.VisLayout);
+            obj.VisVirtPopItemsTable = uitable(obj.VisLayout, 'ColumnSortable', true);
             obj.VisVirtPopItemsTable.Layout.Row = 4;
             obj.VisVirtPopItemsTable.Layout.Column = 1;
             obj.VisVirtPopItemsTable.ColumnEditable = false;
@@ -596,18 +596,10 @@ classdef VirtualPopulationGenerationPane < QSPViewerNew.Application.ViewPane
                 [obj.StaleFlag,obj.ValidFlag] = getStaleItemIndices(obj.VirtualPopulationGeneration);
             end
             
-            %Set flags for determing what to display
-            if ~isempty(obj.VirtualPopulationGeneration)
-                obj.VirtualPopulationGeneration.bShowTraces = obj.bShowTraces;
-                obj.VirtualPopulationGeneration.bShowQuantiles = obj.bShowQuantiles;
-                obj.VirtualPopulationGeneration.bShowMean = obj.bShowMean;
-                obj.VirtualPopulationGeneration.bShowMedian = obj.bShowMedian;
-                obj.VirtualPopulationGeneration.bShowSD = obj.bShowSD;
-            end
-            
             obj.reimport();
             obj.redrawSpeciesTable();
             obj.redrawVirtualPopTable();
+            obj.redrawAxesContextMenu();
             obj.redrawContextMenu();
             [obj.SpeciesGroup,obj.DatasetGroup,obj.AxesLegend,obj.AxesLegendChildren] = ...
                 plotVirtualPopulationGeneration(obj.VirtualPopulationGeneration,obj.PlotArray);
@@ -615,18 +607,11 @@ classdef VirtualPopulationGenerationPane < QSPViewerNew.Application.ViewPane
         end
         
         function refreshVisualization(obj,axIndex)
-             %Set flags for determing what to display
-            if ~isempty(obj.VirtualPopulationGeneration)
-                obj.VirtualPopulationGeneration.bShowTraces = obj.bShowTraces;
-                obj.VirtualPopulationGeneration.bShowQuantiles = obj.bShowQuantiles;
-                obj.VirtualPopulationGeneration.bShowMean = obj.bShowMean;
-                obj.VirtualPopulationGeneration.bShowMedian = obj.bShowMedian;
-                obj.VirtualPopulationGeneration.bShowSD = obj.bShowSD;
-            end
             
             obj.reimport();
             obj.redrawSpeciesTable();
             obj.redrawVirtualPopTable();
+            obj.redrawAxesContextMenu();
             obj.redrawContextMenu();
             
             if ~isempty(axIndex)

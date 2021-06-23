@@ -32,6 +32,20 @@ classdef tgQSPSim < matlab.unittest.TestCase
             tester.runOptimizations(testCase);
             delete(tester);
         end
+
+        function tCohortGenerations(testCase, caseStudy)
+            absolutePath = testCase.testRootDirectory + "/" + caseStudy;
+            tester = gQSPSimTester(absolutePath);
+            tester.runCohortGeneration(testCase);
+            delete(tester);
+        end
+        
+         function tVirtualPopulationGenerations(testCase, caseStudy)
+            absolutePath = testCase.testRootDirectory + "/" + caseStudy;
+            tester = gQSPSimTester(absolutePath);
+            tester.runVirtualPopulationGeneration(testCase);
+            delete(tester);
+        end
     end
     
 end
