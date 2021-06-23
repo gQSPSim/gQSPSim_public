@@ -473,6 +473,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             end
             obj.updateTaskTable();
             obj.SelectedRow.TaskTable = [0, 0];
+            obj.TaskTable = obj.selectRow(obj.TaskTable, obj.SelectedRow.TaskTable(1), true);
             obj.IsDirty = true;
         end
         
@@ -546,10 +547,14 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
         
         function onTableSelectionChange(obj, source, eventData)
             % Keep track of selected row in GSA tables
+            if isempty(eventData.Indices) || ~isvector(eventData.Indices)
+                return
+            end
             if source == obj.TaskTable
                 % Sensitivity output table
                 obj.SelectedRow.TaskTable = eventData.Indices;
                 obj.updateValuePropagationContextMenuLabel();
+                obj.TaskTable = obj.selectRow(obj.TaskTable, obj.SelectedRow.TaskTable(1), false);
             elseif source == obj.SobolIndexTable
                 % Sobol index table for plotting.
                 % The first index indicates the user-visible selected row.
@@ -1286,14 +1291,16 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             % selection callback. To sync the visual row selection with the
             % uitable's row selection, we need to replace the whole uitable
             % if necessary.
-            if resetSelection
-                tmp = tbl;
-                tbl = copy(tbl);
-                tbl.Parent = tmp.Parent;
-                tbl.CellEditCallback = tmp.CellEditCallback;
-                tbl.CellSelectionCallback = tmp.CellSelectionCallback;    
-                tmp.Visible = 'off';
-                tmp.Parent = [];
+            if resetSelection && ~isempty(tbl)
+                % Remove selection to force execution of selection callback
+                % when the table is clicked on.
+                tbl.Selection = [];
+                % Reset selection type to prevent table cells to go into
+                % edit mode when clicked on a single time after the
+                % selection has been reset.
+                selectionType = tbl.SelectionType;
+                tbl.SelectionType = 'col';
+                tbl.SelectionType = selectionType;
                 drawnow;
             end
             % Add uistyle to indicate the selected rows
