@@ -735,7 +735,11 @@ classdef ApplicationUI < matlab.apps.AppBase
                 rootDir = [];
             end
             
-            app.ModelManagerDialog = ModelManager(rootDir);
+            % singleton only
+            if isempty(app.ModelManagerDialog) || ~isvalid(app.ModelManagerDialog)
+                app.ModelManagerDialog = ModelManager(rootDir);
+            end
+            
         end
         
         function onExit(app,~,~)
