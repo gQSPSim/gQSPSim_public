@@ -2005,7 +2005,11 @@ classdef ApplicationUI < matlab.apps.AppBase
         end
         
         function value = get.PaneTypes(app)
-            value = cellfun(@class, app.Panes, 'UniformOutput', false); 
+            if ~isempty(app.Panes)
+                value = cellfun(@class, app.Panes, 'UniformOutput', false);
+            else
+                value = [];
+            end
         end
         
         function setCurrentSessionDirty(app)
