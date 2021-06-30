@@ -729,7 +729,13 @@ classdef ApplicationUI < matlab.apps.AppBase
         end
         
         function onOpenModelManager(app,~,~)
-            app.ModelManagerDialog = ModelManager;
+            if ~isempty(app.SelectedSession)
+                rootDir = app.SelectedSession.RootDirectory;
+            else 
+                rootDir = [];
+            end
+            
+            app.ModelManagerDialog = ModelManager(rootDir);
         end
         
         function onExit(app,~,~)
