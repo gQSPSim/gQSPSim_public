@@ -40,6 +40,7 @@ classdef ApplicationUI < matlab.apps.AppBase
         TypeStr
         WindowButtonDownCallbacks = {};
         WindowButtonUpCallbacks = {};
+        ModelManagerDialog ModelManager
     end
     
     properties (SetAccess = private, Dependent = true, AbortSet = true)
@@ -77,6 +78,8 @@ classdef ApplicationUI < matlab.apps.AppBase
         GlobalSensitivityAnalysisMenu    matlab.ui.container.Menu
         DeleteSelectedItemMenu   matlab.ui.container.Menu
         RestoreSelectedItemMenu  matlab.ui.container.Menu
+        ToolsMenu                matlab.ui.container.Menu
+        ModelManagerMenu         matlab.ui.container.Menu
         HelpMenu                 matlab.ui.container.Menu
         AboutMenu                matlab.ui.container.Menu
         FlexGridLayout           QSPViewerNew.Widgets.GridFlex
@@ -265,6 +268,15 @@ classdef ApplicationUI < matlab.apps.AppBase
             app.RestoreSelectedItemMenu = uimenu(app.QSPMenu);
             app.RestoreSelectedItemMenu.Text = 'Restore Selected Item';
             app.RestoreSelectedItemMenu.MenuSelectedFcn =@(h,e) app.onRestoreSelectedItem([],[]);
+            
+            % Create Tools menu
+            app.ToolsMenu = uimenu(app.UIFigure);
+            app.ToolsMenu.Text = 'Tools';
+            
+             % Create logger menu
+            app.ModelManagerMenu = uimenu(app.ToolsMenu);
+            app.ModelManagerMenu.Text = 'Model Manager';
+            app.ModelManagerMenu.MenuSelectedFcn = @(h, e) app.onOpenModelManager;
             
             % Create HelpMenu
             app.HelpMenu = uimenu(app.UIFigure);
@@ -714,6 +726,20 @@ classdef ApplicationUI < matlab.apps.AppBase
             
             app.restoreNode(activeNode,activeSession)
             app.markDirty(activeSession);
+        end
+        
+        function onOpenModelManager(app,~,~)
+            if ~isempty(app.SelectedSession)
+                rootDir = app.SelectedSession.RootDirectory;
+            else 
+                rootDir = [];
+            end
+            
+            % singleton only
+            if isempty(app.ModelManagerDialog) || ~isvalid(app.ModelManagerDialog)
+                app.ModelManagerDialog = ModelManager(rootDir);
+            end
+            
         end
         
         function onExit(app,~,~)
