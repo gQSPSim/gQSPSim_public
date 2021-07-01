@@ -57,6 +57,10 @@ classdef TaskPane < QSPViewerNew.Application.ViewPane
         RuntoSteadyStateCheckBox    matlab.ui.control.CheckBox
         MaxWallClockLabel           matlab.ui.control.Label
         OutputTimesLabel            matlab.ui.control.Label
+        AbsToleranceLabel           matlab.ui.control.Label
+        AbsToleranceEdit            matlab.ui.control.NumericEditField
+        RelToleranceLabel           matlab.ui.control.Label
+        RelToleranceEdit            matlab.ui.control.NumericEditField
         SpeciestoIncludeDoubleBox   QSPViewerNew.Widgets.DoubleSelectBox
     end
         
@@ -143,51 +147,72 @@ classdef TaskPane < QSPViewerNew.Application.ViewPane
             % Create GridLayout5
             obj.SettingsGrid = uigridlayout(obj.SettingsPanel);
             obj.SettingsGrid.ColumnWidth = {'1x'};
-            obj.SettingsGrid.RowHeight = {obj.WidgetHeight, obj.WidgetHeight, obj.WidgetHeight, obj.WidgetHeight, obj.WidgetHeight, obj.WidgetHeight, obj.WidgetHeight, '1x'};
+            obj.SettingsGrid.RowHeight = {obj.WidgetHeight, obj.WidgetHeight, obj.WidgetHeight, obj.WidgetHeight, obj.WidgetHeight, obj.WidgetHeight, obj.WidgetHeight, obj.WidgetHeight, obj.WidgetHeight, obj.WidgetHeight, obj.WidgetHeight, '1x'};
             obj.SettingsGrid.Padding = obj.WidgetPadding;
             obj.SettingsGrid.RowSpacing = obj.WidgetHeightSpacing;
             obj.SettingsGrid.ColumnSpacing = obj.WidgetWidthSpacing;
             obj.SettingsGrid.Scrollable = true;
             
-            % Create OutputTimesEdit
-            obj.OutputTimesEdit = uieditfield(obj.SettingsGrid, 'text');
-            obj.OutputTimesEdit.Layout.Row = 2;
-            obj.OutputTimesEdit.Layout.Column = 1;
-
-            % Create MaxWallClockEdit
-            obj.MaxWallClockEdit = uieditfield(obj.SettingsGrid, 'numeric');
-            obj.MaxWallClockEdit.Layout.Row = 4;
-            obj.MaxWallClockEdit.Layout.Column = 1;
-
-            % Create TimetoSteadyStateEdit
-            obj.TimetoSteadyStateEdit = uieditfield(obj.SettingsGrid, 'numeric');
-            obj.TimetoSteadyStateEdit.Layout.Row = 7;
-            obj.TimetoSteadyStateEdit.Layout.Column = 1;
-
-            % Create TimetoSteadyStateLabel
-            obj.TimetoSteadyStateLabel = uilabel(obj.SettingsGrid);
-            obj.TimetoSteadyStateLabel.Layout.Row = 6;
-            obj.TimetoSteadyStateLabel.Layout.Column = 1;
-            obj.TimetoSteadyStateLabel.Text = 'Time to Steady State:';
-
-            % Create RuntoSteadyStateCheckBox
-            obj.RuntoSteadyStateCheckBox = uicheckbox(obj.SettingsGrid);
-            obj.RuntoSteadyStateCheckBox.Text = 'Run to Steady State';
-            obj.RuntoSteadyStateCheckBox.Layout.Row = 5;
-            obj.RuntoSteadyStateCheckBox.Layout.Column = 1;
-
-            % Create MaxWallClocksecLabel
-            obj.MaxWallClockLabel = uilabel(obj.SettingsGrid);
-            obj.MaxWallClockLabel.Layout.Row = 3;
-            obj.MaxWallClockLabel.Layout.Column = 1;
-            obj.MaxWallClockLabel.Text = 'Max Wall Clock (sec):';
-
             % Create OutputTimesLabel
             obj.OutputTimesLabel = uilabel(obj.SettingsGrid);
             obj.OutputTimesLabel.Layout.Row = 1;
             obj.OutputTimesLabel.Layout.Column = 1;
             obj.OutputTimesLabel.Text = 'Output Times';
             
+            % Create OutputTimesEdit
+            obj.OutputTimesEdit = uieditfield(obj.SettingsGrid, 'text');
+            obj.OutputTimesEdit.Layout.Row = 2;
+            obj.OutputTimesEdit.Layout.Column = 1;
+            
+            % Create MaxWallClocksecLabel
+            obj.MaxWallClockLabel = uilabel(obj.SettingsGrid);
+            obj.MaxWallClockLabel.Layout.Row = 3;
+            obj.MaxWallClockLabel.Layout.Column = 1;
+            obj.MaxWallClockLabel.Text = 'Max Wall Clock (sec):';
+
+            % Create MaxWallClockEdit
+            obj.MaxWallClockEdit = uieditfield(obj.SettingsGrid, 'numeric');
+            obj.MaxWallClockEdit.Layout.Row = 4;
+            obj.MaxWallClockEdit.Layout.Column = 1;
+            
+            % Create MaxWallClocksecLabel
+            obj.AbsToleranceLabel = uilabel(obj.SettingsGrid);
+            obj.AbsToleranceLabel.Layout.Row = 5;
+            obj.AbsToleranceLabel.Layout.Column = 1;
+            obj.AbsToleranceLabel.Text = 'Absolute Tolerance:';
+
+            % Create MaxWallClockEdit
+            obj.AbsToleranceEdit = uieditfield(obj.SettingsGrid, 'numeric');
+            obj.AbsToleranceEdit.Layout.Row = 6;
+            obj.AbsToleranceEdit.Layout.Column = 1;
+            
+            % Create MaxWallClocksecLabel
+            obj.RelToleranceLabel = uilabel(obj.SettingsGrid);
+            obj.RelToleranceLabel.Layout.Row = 7;
+            obj.RelToleranceLabel.Layout.Column = 1;
+            obj.RelToleranceLabel.Text = 'Relative Tolerance:';
+
+            % Create MaxWallClockEdit
+            obj.RelToleranceEdit = uieditfield(obj.SettingsGrid, 'numeric');
+            obj.RelToleranceEdit.Layout.Row = 8;
+            obj.RelToleranceEdit.Layout.Column = 1;
+            
+            % Create TimetoSteadyStateLabel
+            obj.TimetoSteadyStateLabel = uilabel(obj.SettingsGrid);
+            obj.TimetoSteadyStateLabel.Layout.Row = 10;
+            obj.TimetoSteadyStateLabel.Layout.Column = 1;
+            obj.TimetoSteadyStateLabel.Text = 'Time to Steady State:';
+
+            % Create TimetoSteadyStateEdit
+            obj.TimetoSteadyStateEdit = uieditfield(obj.SettingsGrid, 'numeric');
+            obj.TimetoSteadyStateEdit.Layout.Row = 11;
+            obj.TimetoSteadyStateEdit.Layout.Column = 1;
+
+            % Create RuntoSteadyStateCheckBox
+            obj.RuntoSteadyStateCheckBox = uicheckbox(obj.SettingsGrid);
+            obj.RuntoSteadyStateCheckBox.Text = 'Run to Steady State';
+            obj.RuntoSteadyStateCheckBox.Layout.Row = 9;
+            obj.RuntoSteadyStateCheckBox.Layout.Column = 1;
         end
         
         function createListenersAndCallbacks(obj)
@@ -202,6 +227,8 @@ classdef TaskPane < QSPViewerNew.Application.ViewPane
             %Callbacks
             obj.OutputTimesEdit.ValueChangedFcn = @(h,e) obj.onOutputTimesEdit(e.Value);
             obj.MaxWallClockEdit.ValueChangedFcn = @(h,e) obj.onMaxWallClockEdit(e.Value);
+            obj.AbsToleranceEdit.ValueChangedFcn = @(h,e) obj.onAbsToleranceEdit(e.Value);
+            obj.RelToleranceEdit.ValueChangedFcn = @(h,e) obj.onRelToleranceEdit(e.Value);
             obj.TimetoSteadyStateEdit.ValueChangedFcn = @(h,e) obj.onTimetoSteadyStateEdit(e.Value);
             obj.RuntoSteadyStateCheckBox.ValueChangedFcn = @(h,e) obj.onRuntoSteadyStateCheckBox(e.Value);
             obj.ModelDropDown.ValueChangedFcn = @(h,e) obj.onModelDropDown(e.Value);
@@ -247,6 +274,16 @@ classdef TaskPane < QSPViewerNew.Application.ViewPane
         
         function onMaxWallClockEdit(obj,NewData)
             obj.TemporaryTask.MaxWallClockTime = NewData;
+            obj.IsDirty = true;
+        end
+        
+        function onAbsToleranceEdit(obj,NewData)
+            obj.TemporaryTask.AbsoluteTolerance = NewData;
+            obj.IsDirty = true;
+        end
+        
+        function onRelToleranceEdit(obj,NewData)
+            obj.TemporaryTask.RelativeTolerance = NewData;
             obj.IsDirty = true;
         end
         
@@ -323,6 +360,7 @@ classdef TaskPane < QSPViewerNew.Application.ViewPane
             obj.TemporaryTask.Description= value;
             obj.IsDirty = true;
         end
+        
         
         function [StatusOK] = saveBackEndInformation(obj)
             
@@ -451,6 +489,11 @@ classdef TaskPane < QSPViewerNew.Application.ViewPane
 
             obj.MaxWallClockEdit.Value = obj.Task.MaxWallClockTime;
             obj.MaxWallClockEdit.Enable = 'on';
+            
+            obj.AbsToleranceEdit.Value = obj.Task.AbsoluteTolerance;
+            obj.AbsToleranceEdit.Enable = 'on';
+            obj.RelToleranceEdit.Value = obj.Task.RelativeTolerance;
+            obj.RelToleranceEdit.Enable = 'on';
             
             obj.TimetoSteadyStateEdit.Value = obj.Task.TimeToSteadyState;
             obj.TimetoSteadyStateEdit.Enable ='on';
