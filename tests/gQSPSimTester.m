@@ -1,4 +1,4 @@
-classdef gQSPSimTester < QSPViewer.App
+classdef gQSPSimTester < QSPViewerNew.Application.ApplicationUI
     properties
         originalWarningStates = struct('state', 'off', 'identifier', '');
     end
@@ -25,6 +25,10 @@ classdef gQSPSimTester < QSPViewer.App
             end
             % Close all QSPApp instances.
             close all force
+        end
+        
+        function testCase = runGlobalSensitivityAnalysisTests(obj, testCase)
+            
         end
         
         function testCase = runSimulations(obj, testCase)            

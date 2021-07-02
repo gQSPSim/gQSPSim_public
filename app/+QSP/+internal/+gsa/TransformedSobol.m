@@ -8,22 +8,24 @@ classdef TransformedSobol < QSP.internal.gsa.SamplingInformation & SimBiology.gs
     end
     methods(Access=protected)
         %------------------------------------------------------------------
-        function samples = sampleParameters(obj, m, numSamples, bounds, method)
-            if isempty(obj.gQSPSimProperties.Scenarios)
-                samples = sampleParameters@SimBiology.gsa.Sobol(obj, m, numSamples, bounds, method);
-            else
-                numEntries = obj.gQSPSimProperties.Scenarios.NumberOfEntries;
-                for i = 1:numEntries
-                    scenarios = obj.gQSPSimProperties.Scenarios.updateEntry(i, 'NumberSamples', numSamples);
-                end
-                samples = scenarios.generate();
-                samples = [samples{:,1:2:m}; samples{:,2:2:m}];
-                for i = 1:numEntries
-                    if obj.gQSPSimProperties.Scaling(i)
-                        samples(:,i) = exp(samples(:,i));
-                    end
+        function samples = sampleParameters(obj, ~, numSamples, ~, ~)
+                
+            distributions = obj.gQSPSimProperties.Distributions;
+            numDistributions = numel(distributions);
+            samples = nan(numSamples, 2*numDistributions);
+
+            for i = 1:numDistributions                
+                % Get random values from uniform distribution on [0,1]
+                currentSamples = lhsdesign(numSamples, 2);
+                % Compute random sample by inverting the cdf
+                samples(:, i) = icdf(distributions(i), currentSamples(:, 1));
+                samples(:, i+numDistributions) = icdf(distributions(i), currentSamples(:, 2));
+                if obj.gQSPSimProperties.Scaling(i)
+                    samples(:, [i,i+numDistributions]) = ...
+                        exp(samples(:, [i,i+numDistributions]));
                 end
             end
+
         end
     end
 end

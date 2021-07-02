@@ -156,6 +156,8 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
 
             %create the objects on our end
             obj.create();
+            obj.OuterGrid.Parent = obj.Parent;
+            obj.OuterGrid.Visible = 'off';
             
             %Mark as constructed
             obj.IsConstructed = true;
@@ -1024,7 +1026,7 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
             end
             
             %hide this pane
-            obj.OuterGrid.Parent = obj.EmptyParent;
+            obj.OuterGrid.Visible = 'off';
         end
         
         function showPane(obj)
@@ -1037,7 +1039,7 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
                 obj.ParentApp.addWindowDownCallback(obj.VisualizationGrid.getButtonDownCallback());
                 obj.ParentApp.addWindowUpCallback(obj.VisualizationGrid.getButtonUpCallback());
             end
-            obj.OuterGrid.Parent = obj.Parent;
+            obj.OuterGrid.Visible = 'on';
         end
         
         function notifyOfChange(obj,newBackEndObject)
