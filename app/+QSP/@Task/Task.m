@@ -44,6 +44,10 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         InactiveRuleNames = {}
         OutputTimesStr = ''
         MaxWallClockTime = 60
+        AbsoluteTolerance = 1e-6
+        RelativeTolerance = 1e-3
+        DefaultAbsoluteTolerance = 1e-6
+        DefaultRelativeTolerance = 1e-3
         RunToSteadyState = true
         TimeToSteadyState = 100
         Resample = true
@@ -90,7 +94,7 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         ReactionNames
         RuleNames
         DefaultOutputTimes
-        DefaultMaxWallClockTime        
+        DefaultMaxWallClockTime
     end
     
     %% Dependent Properties
@@ -164,6 +168,8 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 'Run to Steady State',RunToSteadyStateStr;
                 'Time to Steady State',TimeToSteadyStateStr;
                 'Max Wall Clock Time', obj.MaxWallClockTime;
+                'Absolute Tolerance', obj.AbsoluteTolerance;
+                'Relative Tolerance', obj.RelativeTolerance;
                 };
         end
         
