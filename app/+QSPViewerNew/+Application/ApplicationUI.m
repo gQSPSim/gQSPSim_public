@@ -707,11 +707,12 @@ classdef ApplicationUI < matlab.apps.AppBase
                 activeSession = app.SelectedSession;
             end
             
-            if isempty(activeNode)
-                activeNode = app.TreeRoot.SelectedNodes;
-            end
+            activeNodes = [activeNode; app.TreeRoot.SelectedNodes];
+            activeNodes = unique(activeNodes);
             
-            app.deleteNode(activeNode,activeSession)
+            for i = 1:length(activeNodes)
+                app.deleteNode(activeNodes(i),activeSession)
+            end
             app.markDirty(activeSession);
         end
         
@@ -720,11 +721,12 @@ classdef ApplicationUI < matlab.apps.AppBase
                 activeSession = app.SelectedSession;
             end
             
-            if isempty(activeNode)
-                activeNode = app.TreeRoot.SelectedNodes;
-            end
+            activeNodes = [activeNode; app.TreeRoot.SelectedNodes];
+            activeNodes = unique(activeNodes);
             
-            app.restoreNode(activeNode,activeSession)
+            for i = 1:length(activeNodes)
+                app.restoreNode(activeNodes(i),activeSession)
+            end
             app.markDirty(activeSession);
         end
         
@@ -901,11 +903,13 @@ classdef ApplicationUI < matlab.apps.AppBase
                 activeSession = app.SelectedSession;
             end
             
-            if isempty(activeNode)
-                activeNode = app.TreeRoot.SelectedNodes;
+            activeNodes = [activeNode; app.TreeRoot.SelectedNodes];
+            activeNodes = unique(activeNodes);
+            
+            for i = 1:length(activeNodes)
+                app.duplicateNode(activeNodes(i),activeSession)
             end
             
-            app.duplicateNode(activeNode,activeSession)
             app.markDirty(activeSession);
         end
        
@@ -1481,6 +1485,9 @@ classdef ApplicationUI < matlab.apps.AppBase
         function updatePane(app)
             %Find the currently selected Node
             NodeSelected = app.TreeRoot.SelectedNodes;
+            if length(NodeSelected)>1
+                NodeSelected = NodeSelected(end);
+            end
             
             %Determine if the Node will launch a Pane
             LaunchPaneTF = ~isempty(NodeSelected) && isempty(NodeSelected.UserData);
@@ -1704,7 +1711,21 @@ classdef ApplicationUI < matlab.apps.AppBase
             ThisObj = node.NodeData;
             
             % What type of item?
-            ItemType = strrep(class(ThisObj), 'QSP.', '');
+            ItemTypes = {
+                'Dataset',                          'OptimizationData'
+                'Parameter',                        'Parameters'
+                'Task',                             'Task'
+                'Virtual Subject(s)',               'VirtualPopulation'
+                'Acceptance Criteria',              'VirtualPopulationData'
+                'Target Statistics',                'VirtualPopulationGenerationData'
+                'Simulation',                       'Simulation'
+                'Optimization',                     'Optimization'
+                'Cohort Generation',                'CohortGeneration'
+                'Virtual Population Generation',    'VirtualPopulationGeneration'
+                'Global Sensitivity Analysis',      'GlobalSensitivityAnalysis'
+                };
+            ItemClass = strrep(class(ThisObj), 'QSP.', '');
+            ItemType = ItemTypes{strcmpi(ItemClass,ItemTypes(:,2)),1};
             
             % Where does the item go?
             if isprop(session,ItemType)
@@ -1720,15 +1741,15 @@ classdef ApplicationUI < matlab.apps.AppBase
             end
             
             ParentArrayTypes = {ParentArray.Tag};
-            ParentNode = ParentArray(strcmp(ParentArrayTypes,ItemType));
+            ParentNode = ParentArray(strcmp(ParentArrayTypes,ItemClass));
             
             % check for duplicate names
-            if any(strcmp(ThisObj.Name,{ParentObj.(ItemType).Name} ))
+            if any(strcmp(ThisObj.Name,{ParentObj.(ItemClass).Name} ))
                 uialert(app.UIFigure,'Cannot restore deleted item because its name is identical to an existing item.','Restore');
             end
             
             % Move the object from deleted to the new parent
-            ParentObj.(ItemType)(end+1) = ThisObj;
+            ParentObj.(ItemClass)(end+1) = ThisObj;
             MatchIdx = false(size(session.Deleted));
             for idx = 1:numel(session.Deleted)
                 MatchIdx(idx) = session.Deleted(idx)==ThisObj;
@@ -1752,7 +1773,8 @@ classdef ApplicationUI < matlab.apps.AppBase
             ParentNode.expand();
             
             % Change context menu
-            node.UIContextMenu = app.TreeMenu.Leaf.(ItemType);
+            delete(node.UIContextMenu.Children);
+            app.createContextMenu(node, ItemType);
             
             % Update the display
             app.refresh();
