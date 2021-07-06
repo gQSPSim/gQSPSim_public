@@ -58,6 +58,7 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
         SummaryLabel        matlab.ui.control.Label
         EditLabel           matlab.ui.control.Label
         RunButton           matlab.ui.control.Button
+        ParallelButton      matlab.ui.control.Button
         VisualizeButton     matlab.ui.control.Button
         SettingsButton      matlab.ui.control.Button
         ZoomInButton        matlab.ui.control.StateButton
@@ -327,7 +328,8 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
            obj.ButtonsLayout.ColumnWidth = {obj.ButtonWidth,obj.ButtonWidth,...
            obj.ButtonWidth,obj.ButtonWidth,obj.ButtonWidth,...
            obj.ButtonWidth,obj.ButtonWidth,obj.ButtonWidth,...
-           obj.ButtonWidth,obj.ButtonWidth,'1x'};
+           obj.ButtonWidth,obj.ButtonWidth,obj.ButtonWidth,...
+           obj.ButtonWidth,'1x'};
            
            %Summary Button
            obj.SummaryButton = uibutton(obj.ButtonsLayout,'push');
@@ -359,11 +361,21 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
                obj.RunButton.Tooltip = 'Run the selected item';
                obj.RunButton.ButtonPushedFcn = @(h,e)obj.onNavigation('Run');
                obj.RunButton.Text = '';
+               
+               %Run Button
+               obj.ParallelButton = uibutton(ButtonGroupGrid,'push');
+               obj.ParallelButton.Layout.Row = 1;
+               obj.ParallelButton.Layout.Column = 4;
+               obj.ParallelButton.Icon = QSPViewerNew.Resources.LoadResourcePath('paralleloff_24.png');
+               obj.ParallelButton.Tooltip = 'Enable Parallel';
+               obj.ParallelButton.UserData = 'off';
+               obj.ParallelButton.ButtonPushedFcn = @(h,e)obj.onNavigation('Parallel');
+               obj.ParallelButton.Text = '';
 
                %Visualize Button
                obj.VisualizeButton = uibutton(ButtonGroupGrid,'push');
                obj.VisualizeButton.Layout.Row = 1;
-               obj.VisualizeButton.Layout.Column = 5;
+               obj.VisualizeButton.Layout.Column = 7;
                obj.VisualizeButton.Icon = QSPViewerNew.Resources.LoadResourcePath('plot_24.png');
                obj.VisualizeButton.Tooltip = 'Visualize the selected item';
                obj.VisualizeButton.ButtonPushedFcn = @(h,e)obj.onNavigation('Visualize');
@@ -372,7 +384,7 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
                % Settings Button
                obj.SettingsButton = uibutton(ButtonGroupGrid,'push');
                obj.SettingsButton.Layout.Row = 1;
-               obj.SettingsButton.Layout.Column = 6;
+               obj.SettingsButton.Layout.Column = 8;
                obj.SettingsButton.Icon = QSPViewerNew.Resources.LoadResourcePath('settings_24.png');
                obj.SettingsButton.Tooltip = 'Customize plot settings the selected item';
                obj.SettingsButton.ButtonPushedFcn = @(h,e)obj.onNavigation('Settings');
@@ -381,7 +393,7 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
                %ZoomIn
                obj.ZoomInButton = uibutton(ButtonGroupGrid,'state');
                obj.ZoomInButton.Layout.Row = 1;
-               obj.ZoomInButton.Layout.Column = 7;
+               obj.ZoomInButton.Layout.Column = 9;
                obj.ZoomInButton.Icon = QSPViewerNew.Resources.LoadResourcePath('zoomin.png');
                obj.ZoomInButton.Tooltip = 'Zoom in';
                obj.ZoomInButton.ValueChangedFcn = @(h,e)obj.onNavigation('ZoomIn');
@@ -390,7 +402,7 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
                % Zoom out
                obj.ZoomOutButton = uibutton(ButtonGroupGrid,'state');
                obj.ZoomOutButton.Layout.Row = 1;
-               obj.ZoomOutButton.Layout.Column = 8;
+               obj.ZoomOutButton.Layout.Column = 10;
                obj.ZoomOutButton.Icon = QSPViewerNew.Resources.LoadResourcePath('zoomout.png');
                obj.ZoomOutButton.Tooltip = 'Zoom out';
                obj.ZoomOutButton.ValueChangedFcn = @(h,e)obj.onNavigation('ZoomOut');
@@ -399,7 +411,7 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
                % Pan
                obj.PanButton = uibutton(ButtonGroupGrid,'state');
                obj.PanButton.Layout.Row = 1;
-               obj.PanButton.Layout.Column = 9;
+               obj.PanButton.Layout.Column = 11;
                obj.PanButton.Icon = QSPViewerNew.Resources.LoadResourcePath('pan.png');
                obj.PanButton.Tooltip = 'Pan';
                obj.PanButton.ValueChangedFcn = @(h,e)obj.onNavigation('Pan');
@@ -408,7 +420,7 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
                % Explore
                obj.ExploreButton = uibutton(ButtonGroupGrid,'state');
                obj.ExploreButton.Layout.Row = 1;
-               obj.ExploreButton.Layout.Column = 10;
+               obj.ExploreButton.Layout.Column = 12;
                obj.ExploreButton.Icon = QSPViewerNew.Resources.LoadResourcePath('datatip.png');
                obj.ExploreButton.Tooltip = 'Explore';
                obj.ExploreButton.ValueChangedFcn = @(h,e)obj.onNavigation('Explore');
@@ -868,6 +880,18 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
                     if obj.HasVisualization
                          obj.toggleButtonsInteraction({'on','on','on','on','on','off','off','off','off'});
                     end
+                case 'Parallel'
+                    if strcmp(obj.ParallelButton.UserData, 'off')
+                        obj.ParallelButton.Icon = QSPViewerNew.Resources.LoadResourcePath('parallelon_24.png');
+                        obj.ParallelButton.Tooltip = 'Disable Parallel';
+                        obj.ParallelButton.UserData = 'on';
+                    else
+                        obj.ParallelButton.Icon = QSPViewerNew.Resources.LoadResourcePath('paralleloff_24.png');
+                        obj.ParallelButton.Tooltip = 'Enable Parallel';
+                        obj.ParallelButton.UserData = 'off';
+                    end
+               
+                    obj.updateParallelOption();
                 case 'Visualize'
                     if strcmp(obj.VisualizationPanel.Visible,'off')
                         %If the Visualize window is not already shown
@@ -986,6 +1010,7 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
             obj.PanButton.Enable = ButtonVector{8};
             obj.ExploreButton.Enable = ButtonVector{9};
             
+            obj.ParallelButton.Enable = ButtonVector{2}; % same as run button status
         end
         
         function toggleVisButtonsState(obj,ButtonVector)

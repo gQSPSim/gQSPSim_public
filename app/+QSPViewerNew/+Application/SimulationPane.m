@@ -1401,6 +1401,14 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
                 obj.GroupTable.ColumnEditable = [true,false,false,true];
             end
         end
+        
+        function updateParallelOption(obj)
+            if strcmp(obj.ParallelButton.UserData, 'off')
+                obj.Simulation.Session.UseParallel = false;
+            else
+                obj.Simulation.Session.UseParallel = true;
+            end
+        end
     end
 end
 
