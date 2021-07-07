@@ -1015,6 +1015,7 @@ classdef CohortGenerationPane < QSPViewerNew.Application.ViewPane
             obj.redrawVirtualItemsTable();
             obj.redrawSpeciesDataTable();
             obj.redrawParametersTable();
+            obj.updateParallelButtonSession(obj.TemporaryCohortGeneration.Session.UseParallel);
             obj.IsDirty = false;
         end
         
@@ -1042,6 +1043,15 @@ classdef CohortGenerationPane < QSPViewerNew.Application.ViewPane
         
         function BackEnd = getBackEnd(obj)
             BackEnd = obj.CohortGeneration;
+        end
+        
+        function updateSessionParallelOption(obj, parallelOption)
+            if strcmp(parallelOption, 'off')
+                obj.CohortGeneration.Session.UseParallel = false;
+            elseif strcmp(parallelOption, 'on')
+                obj.CohortGeneration.Session.UseParallel = true;
+            end
+            notifyOfChange(obj,obj.CohortGeneration.Session)
         end
     end
     

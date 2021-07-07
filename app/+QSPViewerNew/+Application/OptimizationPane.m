@@ -1288,7 +1288,7 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
             obj.redrawOptimItems();
             obj.redrawSpecies();
             obj.redrawInitialConditions();
-            
+            obj.updateParallelButtonSession(obj.TemporaryOptimization.Session.UseParallel);
         end
         
         function checkForInvalid(obj)
@@ -1315,6 +1315,15 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
         
         function BackEnd = getBackEnd(obj)
             BackEnd = obj.Optimization;
+        end
+        
+        function updateSessionParallelOption(obj, parallelOption)
+            if strcmp(parallelOption, 'off')
+                obj.Optimization.Session.UseParallel = false;
+            elseif strcmp(parallelOption, 'on')
+                obj.Optimization.Session.UseParallel = true;
+            end
+            notifyOfChange(obj,obj.Optimization.Session)
         end
     end
     

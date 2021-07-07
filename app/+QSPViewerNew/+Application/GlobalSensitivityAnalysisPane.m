@@ -1105,6 +1105,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             obj.updateTaskTable();
             obj.updatePlotTables();
             obj.updateIterationsTable();
+            obj.updateParallelButtonSession(obj.TemporaryGlobalSensitivityAnalysis.Session.UseParallel);
             obj.IsDirty = false;
         end
 
@@ -1132,6 +1133,15 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
 
         function BackEnd = getBackEnd(obj)
             BackEnd = obj.GlobalSensitivityAnalysis;
+        end
+        
+         function updateSessionParallelOption(obj, parallelOption)
+            if strcmp(parallelOption, 'off')
+                obj.GlobalSensitivityAnalysis.Session.UseParallel = false;
+            elseif strcmp(parallelOption, 'on')
+                obj.GlobalSensitivityAnalysis.Session.UseParallel = true;
+            end
+            notifyOfChange(obj,obj.GlobalSensitivityAnalysis.Session)
         end
     end
 
