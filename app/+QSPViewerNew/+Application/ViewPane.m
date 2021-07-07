@@ -881,17 +881,9 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
                          obj.toggleButtonsInteraction({'on','on','on','on','on','off','off','off','off'});
                     end
                 case 'Parallel'
-                    if strcmp(obj.ParallelButton.UserData, 'off')
-                        obj.ParallelButton.Icon = QSPViewerNew.Resources.LoadResourcePath('parallelon_24.png');
-                        obj.ParallelButton.Tooltip = 'Disable Parallel';
-                        obj.ParallelButton.UserData = 'on';
-                    else
-                        obj.ParallelButton.Icon = QSPViewerNew.Resources.LoadResourcePath('paralleloff_24.png');
-                        obj.ParallelButton.Tooltip = 'Enable Parallel';
-                        obj.ParallelButton.UserData = 'off';
-                    end
+                    obj.updateParallelButtonStatus();
                
-                    obj.updateParallelOption();
+                    obj.updateSessionParallelOption(obj.ParallelButton.UserData);
                 case 'Visualize'
                     if strcmp(obj.VisualizationPanel.Visible,'off')
                         %If the Visualize window is not already shown
@@ -1253,9 +1245,33 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
                 set(obj.StandardDeviationMenu(~ShowSD),'Checked','off')
             end
         end
-            
+        
+        function updateParallelButtonStatus(obj)
+            if strcmp(obj.ParallelButton.UserData, 'off')
+                obj.ParallelButton.Icon = QSPViewerNew.Resources.LoadResourcePath('parallelon_24.png');
+                obj.ParallelButton.Tooltip = 'Disable Parallel';
+                obj.ParallelButton.UserData = 'on';
+            else
+                obj.ParallelButton.Icon = QSPViewerNew.Resources.LoadResourcePath('paralleloff_24.png');
+                obj.ParallelButton.Tooltip = 'Enable Parallel';
+                obj.ParallelButton.UserData = 'off';
+            end
+        end
+        
+        function updateParallelButtonSession(obj, value)
+            if value
+                obj.ParallelButton.Icon = QSPViewerNew.Resources.LoadResourcePath('parallelon_24.png');
+                obj.ParallelButton.Tooltip = 'Disable Parallel';
+                obj.ParallelButton.UserData = 'on';
+            else
+                obj.ParallelButton.Icon = QSPViewerNew.Resources.LoadResourcePath('paralleloff_24.png');
+                obj.ParallelButton.Tooltip = 'Enable Parallel';
+                obj.ParallelButton.UserData = 'off';
+            end
+        end
+        
     end
-
+    
     methods(Access = public)
        
         function value = getUIFigure(obj)

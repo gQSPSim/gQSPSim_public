@@ -874,6 +874,7 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
             obj.updateDataset();
             obj.updateGroupColumn();
             obj.updateSimulationTable();
+            obj.updateParallelButtonSession(obj.TemporarySimulation.Session.UseParallel);
             obj.IsDirty = false;
         end
         
@@ -901,6 +902,15 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
         
         function BackEnd = getBackEnd(obj)
             BackEnd = obj.Simulation;
+        end
+        
+        function updateSessionParallelOption(obj, parallelOption)
+            if strcmp(parallelOption, 'off')
+                obj.Simulation.Session.UseParallel = false;
+            elseif strcmp(parallelOption, 'on')
+                obj.Simulation.Session.UseParallel = true;
+            end
+            notifyOfChange(obj,obj.Simulation.Session)
         end
     end
     
@@ -1399,14 +1409,6 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
                 obj.GroupTable.ColumnName ={'Include','Color','Name','Display'};
                 obj.GroupTable.ColumnFormat = {'logical','char','char','char'};
                 obj.GroupTable.ColumnEditable = [true,false,false,true];
-            end
-        end
-        
-        function updateParallelOption(obj)
-            if strcmp(obj.ParallelButton.UserData, 'off')
-                obj.Simulation.Session.UseParallel = false;
-            else
-                obj.Simulation.Session.UseParallel = true;
             end
         end
     end
