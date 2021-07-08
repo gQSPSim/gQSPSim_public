@@ -1288,7 +1288,7 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
             obj.redrawOptimItems();
             obj.redrawSpecies();
             obj.redrawInitialConditions();
-            
+            obj.updateGitButtonSession(obj.TemporaryOptimization.Session.AutoSaveGit);
         end
         
         function checkForInvalid(obj)
@@ -1315,6 +1315,15 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
         
         function BackEnd = getBackEnd(obj)
             BackEnd = obj.Optimization;
+        end
+        
+        function updateSessionGitOption(obj, gitOption)
+            if strcmp(gitOption, 'off')
+                obj.Optimization.Session.AutoSaveGit = false;
+            elseif strcmp(gitOption, 'on')
+                obj.Optimization.Session.AutoSaveGit = true;
+            end
+            notifyOfChange(obj,obj.Optimization.Session)
         end
     end
     

@@ -1016,6 +1016,7 @@ classdef CohortGenerationPane < QSPViewerNew.Application.ViewPane
             obj.redrawSpeciesDataTable();
             obj.redrawParametersTable();
             obj.IsDirty = false;
+            obj.updateGitButtonSession(obj.TemporaryCohortGeneration.Session.AutoSaveGit);
         end
         
         function checkForInvalid(obj)
@@ -1042,6 +1043,15 @@ classdef CohortGenerationPane < QSPViewerNew.Application.ViewPane
         
         function BackEnd = getBackEnd(obj)
             BackEnd = obj.CohortGeneration;
+        end
+        
+         function updateSessionGitOption(obj, gitOption)
+            if strcmp(gitOption, 'off')
+                obj.CohortGeneration.Session.AutoSaveGit = false;
+            elseif strcmp(gitOption, 'on')
+                obj.CohortGeneration.Session.AutoSaveGit = true;
+            end
+            notifyOfChange(obj,obj.CohortGeneration.Session)
         end
     end
     
