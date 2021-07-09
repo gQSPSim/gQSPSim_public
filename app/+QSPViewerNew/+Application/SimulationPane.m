@@ -71,8 +71,9 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
         SimulationEditGrid          matlab.ui.container.GridLayout
         ResultFolderSelector        QSPViewerNew.Widgets.FolderSelector
         DatasetGrid                 matlab.ui.container.GridLayout
-        DatasetDropDown             matlab.ui.control.DropDown
+        DatasetSelectionLabel       matlab.ui.control.Label             
         DatasetLabel                matlab.ui.control.Label
+        DatasetSelectionButton      matlab.ui.control.Button
         GroupColumnGrid             matlab.ui.container.GridLayout
         GroupColumnDropDown         matlab.ui.control.DropDown
         GroupColumnLabel            matlab.ui.control.Label
@@ -133,7 +134,7 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
             
             %Data set drop down
             obj.DatasetGrid = uigridlayout(obj.SimulationEditGrid);
-            obj.DatasetGrid.ColumnWidth = {obj.LabelLength,'1x'};
+            obj.DatasetGrid.ColumnWidth = {obj.LabelLength,'1x',obj.ButtonWidth};
             obj.DatasetGrid.RowHeight = {obj.WidgetHeight};
             obj.DatasetGrid.Layout.Row = 2;
             obj.DatasetGrid.Layout.Column = 1;
@@ -141,16 +142,33 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
             obj.DatasetGrid.RowSpacing = 0;
             obj.DatasetGrid.ColumnSpacing = 0;
             
-            obj.DatasetDropDown = uidropdown(obj.DatasetGrid);
-            obj.DatasetDropDown.Layout.Column = 2;
-            obj.DatasetDropDown.Layout.Row = 1;
-            obj.DatasetDropDown.Items = {'wide','tall'};
-            obj.DatasetDropDown.ValueChangedFcn = @(h,e)obj.onDatasetChange();
+%             obj.DatasetDropDown = uidropdown(obj.DatasetGrid);
+%             obj.DatasetDropDown.Layout.Column = 2;
+%             obj.DatasetDropDown.Layout.Row = 1;
+%             obj.DatasetDropDown.Items = {'wide','tall'};
+%             obj.DatasetDropDown.ValueChangedFcn = @(h,e)obj.onDatasetChange();
+%             
+%             obj.DatasetLabel = uilabel(obj.DatasetGrid);
+%             obj.DatasetLabel.Layout.Column = 1;
+%             obj.DatasetLabel.Layout.Row = 1;
+%             obj.DatasetLabel.Text = ' Dataset';
             
+            %Dataset Label
             obj.DatasetLabel = uilabel(obj.DatasetGrid);
-            obj.DatasetLabel.Layout.Column = 1;
+            obj.DatasetLabel.Text = 'Dataset';
             obj.DatasetLabel.Layout.Row = 1;
-            obj.DatasetLabel.Text = ' Dataset';
+            obj.DatasetLabel.Layout.Column = 1;
+            
+            %Dataset value level
+            obj.DatasetSelectionLabel = uilabel(obj.DatasetGrid);
+            obj.DatasetSelectionLabel.Layout.Row = 1;
+            obj.DatasetSelectionLabel.Layout.Column = 2;
+            
+            %Datasets selection button
+            obj.DatasetSelectionButton = uibutton(obj.DatasetGrid);
+            obj.DatasetSelectionButton.Layout.Row = 1;
+            obj.DatasetSelectionButton.Layout.Column = 3;
+            obj.DatasetSelectionButton.Text = '...';
             
             %Group Column drop down
             obj.GroupColumnGrid = uigridlayout(obj.SimulationEditGrid);
@@ -311,6 +329,7 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
         
         function createListenersAndCallbacks(obj)
             obj.ResultFolderListener = addlistener(obj.ResultFolderSelector,'StateChanged',@(src,event) obj.onResultsPath(event.Source.RelativePath));
+            obj.DatasetSelectionButton.ButtonPushedFcn  =  @(h,e) obj.onEditDataset();
         end
         
     end
@@ -319,6 +338,20 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
     % Callbacks
     % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     methods (Access = private)
+        
+        function onEditDataset(obj)
+            selection = obj.getSelectionNode("OptimizationData");
+            if ~(isempty(selection) || selection=="")
+                obj.TemporarySimulation.DatasetName = char(selection);
+                obj.DatasetSelectionLabel.Text = selection;
+                
+                %First update the dataset information
+                obj.updateDataset();
+                %update the Group column next, because it is dependent.
+                obj.updateGroupColumn();
+                obj.IsDirty = true;
+            end
+        end
         
         function onRemoveSimItem(obj)
             DeleteIdx = obj.SelectedRow;
@@ -356,14 +389,6 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
             obj.IsDirty = true;
         end
         
-        function onDatasetChange(obj)
-            obj.TemporarySimulation.DatasetName = obj.DatasetDropDown.Value;
-            %First update the dataset information
-            obj.updateDataset();
-            %update the Group column next, because it is dependent. 
-            obj.updateGroupColumn();
-            obj.IsDirty = true;
-        end
         
         function onGroupColumnChange(obj)
             obj.TemporarySimulation.GroupName = obj.GroupColumnDropDown.Value;
@@ -382,14 +407,25 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
             ColIdx = Indices(1,2);
             
             % if a task cell is selected
-            if size(Indices,1)==1 && ColIdx==1
-                selectedTaskNode = obj.getTaskNode();
-                if ~(isempty(selectedTaskNode) || strcmp(selectedTaskNode, ""))
-                    if ~isequal(obj.TemporarySimulation.Item(RowIdx).TaskName,selectedTaskNode)
-                        obj.TemporarySimulation.Item(RowIdx).MATFileName = '';
+            if size(Indices,1)==1
+                if ColIdx==1 % if task cell is selected
+                    selectedTaskNode = obj.getSelectionNode("Task");
+                    if ~(isempty(selectedTaskNode) || strcmp(selectedTaskNode, ""))
+                        if ~isequal(obj.TemporarySimulation.Item(RowIdx).TaskName,selectedTaskNode)
+                            obj.TemporarySimulation.Item(RowIdx).MATFileName = '';
+                        end
+                        obj.TemporarySimulation.Item(RowIdx).TaskName = char(selectedTaskNode);
+                        obj.updateSimulationTable();
                     end
-                    obj.TemporarySimulation.Item(RowIdx).TaskName = char(selectedTaskNode);
-                    obj.updateSimulationTable();
+                elseif ColIdx==2 % if virtual subject cell is selected
+                    selectedVpopNode = obj.getSelectionNode("VirtualPopulation");
+                    if ~(isempty(selectedVpopNode) || strcmp(selectedVpopNode, ""))
+                        if ~isequal(obj.TemporarySimulation.Item(RowIdx).VPopName,selectedVpopNode)
+                            obj.TemporarySimulation.Item(RowIdx).MATFileName = '';
+                        end
+                        obj.TemporarySimulation.Item(RowIdx).VPopName = char(selectedVpopNode);
+                        obj.updateSimulationTable();
+                    end
                 end
             end
             
@@ -999,8 +1035,6 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
             end
             obj.DatasetPopupItems = FullList;
             obj.DatasetPopupItemsWithInvalid = FullListWithInvalids;
-
-
             
             if ~isempty(obj.TemporarySimulation)
                 if isempty(obj.TemporarySimulation.DatasetName)
@@ -1010,16 +1044,12 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
                 end
                 [~,Value] = ismember(ThisSelection,obj.DatasetPopupItems);
                 
-                obj.DatasetDropDown.Items = obj.DatasetPopupItemsWithInvalid;
-                obj.DatasetDropDown.Value = obj.DatasetPopupItemsWithInvalid{Value};
+                obj.DatasetSelectionLabel.Text = obj.DatasetPopupItemsWithInvalid{Value};
             else
-                obj.DatasetDropDown.Items = obj.DatasetPopupItemsWithInvalid;
-                obj.DatasetDropDown.Value = obj.DatasetPopupItemsWithInvalid{1};
+                obj.DatasetSelectionLabel.Text = obj.DatasetPopupItemsWithInvalid{1};
             end
-           
-
+            
             obj.DatasetHeader = OptimHeader;
-
         end
         
         function updateGroupColumn(obj)
@@ -1126,8 +1156,8 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
         end
         
         function [columnFormat,editableTF] = replaceEmptyDropdowns(obj)
-            columnFormat = {[],obj.VPopPopupTableItems,'char','char'};
-            editableTF = [false,true,true,true];
+            columnFormat = {[],[],'char','char'};
+            editableTF = [false,false,true,true];
 %             if isempty(columnFormat{1})
 %                 columnFormat{1} = 'char';
 %                 editableTF(1) = false;
@@ -1452,7 +1482,7 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
             end
         end
         
-        function selectedTaskNode = getTaskNode(obj)
+        function selectedTaskNode = getSelectionNode(obj, type)
             % get session node for this object
             currentNode = obj.TemporarySimulation.TreeNode;
             sessionNode = currentNode.Parent;
@@ -1464,7 +1494,7 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
              allChildrenTag = string({sessionNode.Children.Tag});
              buildingBlockNode = sessionNode.Children(allChildrenTag=="Building blocks");
              buildBlockChildrenTag = string({buildingBlockNode.Children.Tag});
-             taskNode = buildingBlockNode.Children(buildBlockChildrenTag=="Task");
+             taskNode = buildingBlockNode.Children(buildBlockChildrenTag==type);
              
              % launch tree selection node dialog for user's input
              if verLessThan('matlab','9.9')
