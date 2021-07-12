@@ -65,7 +65,7 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
     properties (Dependent=true)
         TaskVPopItems
     end
-    
+ 
     % Constructor
     methods
         function obj = Simulation(varargin)
@@ -111,6 +111,7 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 obj.PlotSettings(index).Title = sprintf('Plot %d', index);
             end
             
+            obj.TimeOfCreation = datetime('now', "Format", "dd-MMM-uuuu");
         end %function obj = Simulation(varargin)
         
     end %methods
@@ -164,6 +165,20 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 };
             
         end %function
+        
+        function Summary = getSummaryTableItems(obj)
+            % Populate summary
+            Summary = {...
+                'Name',obj.Name;
+                'Description',obj.Description;
+                'Results Path',obj.SimResultsFolderName_new;
+                'Dataset',obj.DatasetName;
+                'Virtual Population(s) used', join(unique(string(obj.TaskVPopItems(:,2))), ', ');
+                'Task(s) used', join(unique(string(obj.TaskVPopItems(:,1))), ', ');
+                'Time created', obj.TimeOfCreationStr;
+                'Last Saved',obj.LastSavedTimeStr;
+                };
+        end
         
         function [StatusOK, Message] = validate(obj,FlagRemoveInvalid)
             

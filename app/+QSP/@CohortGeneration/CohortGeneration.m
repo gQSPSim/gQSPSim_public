@@ -141,6 +141,7 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 obj.PlotSettings(index).Title = sprintf('Plot %d', index);
             end            
             
+            obj.TimeOfCreation = datetime('now', "Format", "dd-MMM-uuuu");
         end %function obj = VirtualPopulationGeneration(varargin)
         
     end %methods
@@ -269,6 +270,98 @@ classdef CohortGeneration < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 };
             
         end %function
+        
+        function Summary = getSummaryTableItems(obj)
+            if ~isempty(obj.Item)
+                VPopGenItems = {};
+                % Check what items are stale or invalid
+                [StaleFlag,ValidFlag,InvalidMessages] = getStaleItemIndices(obj);
+
+                for index = 1:numel(obj.Item)
+
+                    % Default
+                    ThisItem = sprintf('%s - %s',obj.Item(index).TaskName,obj.Item(index).GroupID);
+                    if StaleFlag(index)~=0
+
+                        switch StaleFlag(index)
+                            case 1
+                                StaleMessage = 'Task has been modified';
+                            case 2
+                                StaleMessage = 'Task/Project has been modified';
+                            case 3
+                                StaleMessage = 'Acceptance criteria item has been modified';
+                            case 4
+                                StaleMessage = 'Acceptance criteria file has been modified';
+                            case 5
+                                StaleMessage = 'Parameters item has been modified';
+                            case 6
+                                StaleMessage = 'Parameters file has been modified';
+                            case 7
+                                StaleMessage = 'VPop result has been modified';
+                        end
+                                
+                        % Item may be out of date
+                        ThisItem = sprintf('***WARNING*** %s\n***Item may be out of date (%s)***\n',ThisItem,StaleMessage);
+                    elseif ~ValidFlag(index)
+                        % Display invalid
+                        ThisItem = sprintf('***ERROR*** %s\n***%s***',ThisItem,InvalidMessages{index});
+                    else
+                        ThisItem = sprintf('%s',ThisItem);
+                    end
+                    % Append \n
+                    if index < numel(obj.Item)
+                        ThisItem = sprintf('%s\n',ThisItem);
+                    end
+                    VPopGenItems = [VPopGenItems; ThisItem]; %#ok<AGROW>
+                end
+            else
+                VPopGenItems = {};
+            end
+            
+            % Get the parameter used            
+            Names = {obj.Settings.Parameters.Name};
+            MatchIdx = strcmpi(Names,obj.RefParamName);
+            if any(MatchIdx)
+                pObj = obj.Settings.Parameters(MatchIdx);
+                [~,~,ParametersHeader,ParametersData] = importData(pObj,pObj.FilePath);                
+            else
+                ParametersHeader = {};
+                ParametersData = {};
+            end
+            
+            if ~isempty(ParametersHeader)
+                MatchInclude = find(strcmpi(ParametersHeader,'Include'));
+                MatchName = find(strcmpi(ParametersHeader,'Name'));
+                if numel(MatchInclude) == 1 && numel(MatchName) == 1
+                    IsUsed = strcmpi(ParametersData(:,MatchInclude),'yes');
+                    UsedParamNames = ParametersData(IsUsed,MatchName);
+                else
+                    UsedParamNames = {};
+                end
+            else
+                UsedParamNames = {};
+            end
+            
+            thisVpop = obj.Settings.getVpopWithName(obj.VPopName);
+            if ~isempty(thisVpop)
+                nValid = num2str(thisVpop.NumValidPatients);
+            else
+                nValid = 'N/A';
+            end
+            
+            % Populate summary
+            Summary = {...
+                'Name',obj.Name;
+                'Description',obj.Description;
+                'Results Path',obj.VPopResultsFolderName_new;
+                'Dataset',obj.DatasetName;
+                'Parameters',join(unique(string(UsedParamNames)), ', ');
+                '# of Items',numel(VPopGenItems);
+                'Number of Valid Virtual Subjects', nValid;
+                'Time created', obj.TimeOfCreationStr;
+                'Last Saved',obj.LastSavedTimeStr;
+                };
+        end
         
         function [StatusOK, Message] = validate(obj,FlagRemoveInvalid)
             

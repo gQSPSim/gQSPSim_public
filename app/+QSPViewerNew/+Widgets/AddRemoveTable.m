@@ -27,7 +27,7 @@ classdef AddRemoveTable < handle
        TableMain            matlab.ui.control.Table
        GridMain             matlab.ui.container.GridLayout 
        AddButton            matlab.ui.control.Button 
-       RemoveButtonm        matlab.ui.control.Button
+       RemoveButton        matlab.ui.control.Button
     end
     
     events
@@ -96,21 +96,21 @@ classdef AddRemoveTable < handle
             obj.AddButton.ButtonPushedFcn = @obj.onAddItem;
 
             %Add the remove item button
-            obj.RemoveButtonm = uibutton(obj.GridMain,'push');
-            obj.RemoveButtonm.Layout.Row = 2;
-            obj.RemoveButtonm.Layout.Column = 1;
-            obj.RemoveButtonm.Icon = QSPViewerNew.Resources.LoadResourcePath('delete_24.png');
-            obj.RemoveButtonm.Text = '';
-            obj.RemoveButtonm.Tooltip = 'Delete the highlighted row';
-            obj.RemoveButtonm.ButtonPushedFcn = @obj.onRemoveItem;
+            obj.RemoveButton = uibutton(obj.GridMain,'push');
+            obj.RemoveButton.Layout.Row = 2;
+            obj.RemoveButton.Layout.Column = 1;
+            obj.RemoveButton.Icon = QSPViewerNew.Resources.LoadResourcePath('delete_24.png');
+            obj.RemoveButton.Text = '';
+            obj.RemoveButton.Tooltip = 'Delete the highlighted row';
+            obj.RemoveButton.ButtonPushedFcn = @obj.onRemoveItem;
             obj.refreshButtons();
         end
         
         function refreshButtons(obj)
             if obj.Selected ==0
-                obj.RemoveButtonm.Enable = false;
+                obj.RemoveButton.Enable = false;
             else
-                obj.RemoveButtonm.Enable = true;
+                obj.RemoveButton.Enable = true;
             end
         end
        
