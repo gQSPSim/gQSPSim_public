@@ -197,7 +197,7 @@ classdef SessionPane < QSPViewerNew.Application.ViewPane
             
             %Callbacks
             obj.UseParallelToolboxCheckBox.ValueChangedFcn = @(h,e) obj.onParallelCheckbox(e.Value);
-            obj.EnableCheckpoints.ValueChangedFcn = @(h,e) obj.onAutosaveSingleFileCheckbox(e.Value);
+            obj.EnableCheckpoints.ValueChangedFcn = @(h,e) obj.onEnableCheckpointsCheckbox(e.Value);
             obj.AutoSavePeriodically.ValueChangedFcn = @(h,e) obj.onAutosaveTimerCheckbox(e.Value);
             obj.AutoSaveBeforeRun.ValueChangedFcn = @(h,e) obj.onAutoSaveBeforeRunChecked(e.Value);
             obj.AutoSaveFreqEdit.ValueChangedFcn = @(h,e) obj.onAutoSaveFrequencyEdited(e.Value);
@@ -239,8 +239,8 @@ classdef SessionPane < QSPViewerNew.Application.ViewPane
             obj.IsDirty = true;
         end
         
-        function onAutosaveSingleFileCheckbox(obj,newValue)
-            obj.TemporarySession.AutoSaveSingleFile = newValue;
+        function onEnableCheckpointsCheckbox(obj,newValue)
+            obj.TemporarySession.AutoSaveSingleFile = ~newValue;
             obj.IsDirty = true;
         end
         

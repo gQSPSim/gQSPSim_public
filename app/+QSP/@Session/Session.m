@@ -271,7 +271,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
                 'Parallel cluster', obj.ParallelCluster;
                 'Use AutoSave',mat2str(obj.UseAutoSaveTimer);
                 'AutoSave Directory',obj.AutoSaveDirectory;
-                'AutoSave to Single File',mat2str(obj.AutoSaveSingleFile);
+                'Enable Checkpoints',mat2str(~obj.AutoSaveSingleFile);
                 'AutoSave Frequency (min)',num2str(obj.AutoSaveFrequency);
                 'AutoSave Before Run',mat2str(obj.AutoSaveBeforeRun);                
                 };
