@@ -854,21 +854,14 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
             value = fullfile(obj.RelativeAutoSavePathParts{:});
         end
         
-        function set.RelativeLoggerFilePath(obj, value)
-            arguments 
-                obj   (1,1) QSP.Session
-                value (1,:) char
-            end
-            value = obj.updatePath(value);
-            obj.RelativeLoggerFilePathParts = strsplit(value, filesep);
-            obj.updateLogger();
-        end
         function value = get.RelativeLoggerFilePath(obj)
             value = fullfile(obj.RelativeLoggerFilePathParts{:});
         end
         
         function value = get.RelativeLoggerFilePathParts(obj)
-            value = {[obj.LoggerName, '_log.csv']};
+            loggerObj = QSPViewerNew.Widgets.Logger(obj.LoggerName);
+            [~,name,ext] = fileparts(loggerObj.LogFile);
+            value = strcat(name,ext);
         end
         
         function value = get.LoggerName(obj)

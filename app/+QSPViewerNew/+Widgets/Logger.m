@@ -17,6 +17,12 @@ classdef Logger < mlog.Logger
             % Call superclass constructor with the same inputs
             obj@mlog.Logger(name, filepath);
             
+            % change logfile to csv if it TXT
+            [~,~,ext] = fileparts(obj.LogFile);
+            if ~strcmp(ext,'.csv')
+                obj.LogFile = strrep(obj.LogFile,ext,'.csv');
+            end
+            
             % Instruct Logger to use the message subclass
             obj.MessageConstructor = @QSPViewerNew.Widgets.MessageLogger;
             
@@ -164,8 +170,8 @@ classdef Logger < mlog.Logger
         
     end
     
-    %% Private methods
-    methods (Access = private)
+    %% Public methods
+    methods 
         function fopenLogFile(obj, permission)
             % Open the log file for writing
             
