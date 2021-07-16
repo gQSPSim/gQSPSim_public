@@ -366,7 +366,7 @@ classdef SessionPane < QSPViewerNew.Application.ViewPane
             
             obj.UseParallelToolboxCheckBox.Value = obj.TemporarySession.UseParallel;
             
-            obj.EnableCheckpoints.Value = obj.TemporarySession.AutoSaveSingleFile;
+            obj.EnableCheckpoints.Value = ~obj.TemporarySession.AutoSaveSingleFile;
             
             obj.AutoSavePeriodically.Value = obj.TemporarySession.UseAutoSaveTimer;
             

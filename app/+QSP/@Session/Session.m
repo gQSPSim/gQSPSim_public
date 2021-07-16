@@ -330,6 +330,24 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
             
         end %function
         
+        function updateTimerObj(obj)
+            if obj.UseAutoSaveTimer 
+                if ~isempty(obj.timerObj) && isvalid(obj.timerObj)
+                    if ~strcmpi(obj.timerObj.Running,'on')
+                        start(obj.timerObj);
+                    end
+                else
+                    obj.initializeTimer();
+                end
+            else
+                if ~isempty(obj.timerObj) && isvalid(obj.timerObj)
+                    if strcmpi(obj.timerObj.Running,'on')
+                        stop(obj.timerObj);
+                    end
+                end
+            end
+        end
+        
         function deleteTimer(obj)
             if ~isempty(obj.timerObj) && isvalid(obj.timerObj)
                 if strcmpi(obj.timerObj.Running,'on')
@@ -896,6 +914,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         function set.UseAutoSaveTimer(obj,Value)
             validateattributes(Value,{'logical'},{'scalar'});
             obj.UseAutoSaveTimer = Value;
+            obj.updateTimerObj();
         end
         
         function set.AutoSaveSingleFile(obj,Value)
