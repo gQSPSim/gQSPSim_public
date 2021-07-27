@@ -1105,6 +1105,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             obj.updateTaskTable();
             obj.updatePlotTables();
             obj.updateIterationsTable();
+            obj.updateGitButtonSession(obj.TemporaryGlobalSensitivityAnalysis.Session.AutoSaveGit);
             obj.IsDirty = false;
         end
 
@@ -1132,6 +1133,15 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
 
         function BackEnd = getBackEnd(obj)
             BackEnd = obj.GlobalSensitivityAnalysis;
+        end
+        
+        function updateSessionGitOption(obj, gitOption)
+            if strcmp(gitOption, 'off')
+                obj.GlobalSensitivityAnalysis.Session.AutoSaveGit = false;
+            elseif strcmp(gitOption, 'on')
+                obj.GlobalSensitivityAnalysis.Session.AutoSaveGit = true;
+            end
+            notifyOfChange(obj,obj.GlobalSensitivityAnalysis.Session)
         end
     end
 

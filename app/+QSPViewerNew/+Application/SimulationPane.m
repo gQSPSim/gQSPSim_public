@@ -916,6 +916,7 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
             obj.updateDataset();
             obj.updateGroupColumn();
             obj.updateSimulationTable();
+            obj.updateGitButtonSession(obj.TemporarySimulation.Session.AutoSaveGit);
             obj.IsDirty = false;
         end
         
@@ -943,6 +944,15 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
         
         function BackEnd = getBackEnd(obj)
             BackEnd = obj.Simulation;
+        end
+        
+        function updateSessionGitOption(obj, gitOption)
+            if strcmp(gitOption, 'off')
+                obj.Simulation.Session.AutoSaveGit = false;
+            elseif strcmp(gitOption, 'on')
+                obj.Simulation.Session.AutoSaveGit = true;
+            end
+            notifyOfChange(obj,obj.Simulation.Session)
         end
     end
     
