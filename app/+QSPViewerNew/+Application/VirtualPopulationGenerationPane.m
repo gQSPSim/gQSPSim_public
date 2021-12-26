@@ -711,6 +711,7 @@ classdef VirtualPopulationGenerationPane < QSPViewerNew.Application.ViewPane
             obj.redrawVirtualItems();
             obj.redrawSpeciesData();
             obj.updateParallelButtonSession(obj.TemporaryVirtualPopulationGeneration.Session.UseParallel);
+            obj.updateGitButtonSession(obj.TemporaryVirtualPopulationGeneration.Session.AutoSaveGit);
             obj.IsDirty = false;
         end
         
@@ -749,6 +750,14 @@ classdef VirtualPopulationGenerationPane < QSPViewerNew.Application.ViewPane
             notifyOfChange(obj,obj.VirtualPopulationGeneration.Session)
         end
         
+        function updateSessionGitOption(obj, gitOption)
+            if strcmp(gitOption, 'off')
+                obj.VirtualPopulationGeneration.Session.AutoSaveGit = false;
+            elseif strcmp(gitOption, 'on')
+                obj.VirtualPopulationGeneration.Session.AutoSaveGit = true;
+            end
+            notifyOfChange(obj,obj.VirtualPopulationGeneration.Session)
+        end
     end
     
     methods (Access = private)

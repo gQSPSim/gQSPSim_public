@@ -888,6 +888,20 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             obj.MaxWallClockTime = Value;
         end % set.MaxWallClockTime
         
+        function set.AbsoluteTolerance(obj,Value)
+            if ~isempty(Value)
+                validateattributes(Value,{'numeric'},{'scalar','nonnegative','nonnan'});
+            end
+            obj.AbsoluteTolerance = Value;
+        end % set.AbsoluteTolerance
+        
+        function set.RelativeTolerance(obj,Value)
+            if ~isempty(Value)
+                validateattributes(Value,{'numeric'},{'scalar','nonnegative','nonnan','<',1});
+            end
+            obj.RelativeTolerance = Value;
+        end % set.RelativeTolerance
+        
         function set.RunToSteadyState(obj,Value)
             validateattributes(Value,{'logical'},{'scalar'});
             obj.RunToSteadyState = Value;

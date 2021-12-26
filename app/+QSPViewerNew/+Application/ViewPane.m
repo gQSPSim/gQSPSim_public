@@ -59,6 +59,7 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
         EditLabel           matlab.ui.control.Label
         RunButton           matlab.ui.control.Button
         ParallelButton      matlab.ui.control.Button
+        GitButton           matlab.ui.control.Button
         VisualizeButton     matlab.ui.control.Button
         SettingsButton      matlab.ui.control.Button
         ZoomInButton        matlab.ui.control.StateButton
@@ -363,6 +364,7 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
                obj.RunButton.Text = '';
                
                %Run Button
+
                obj.ParallelButton = uibutton(ButtonGroupGrid,'push');
                obj.ParallelButton.Layout.Row = 1;
                obj.ParallelButton.Layout.Column = 4;
@@ -371,6 +373,14 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
                obj.ParallelButton.UserData = 'off';
                obj.ParallelButton.ButtonPushedFcn = @(h,e)obj.onNavigation('Parallel');
                obj.ParallelButton.Text = '';
+
+               obj.GitButton = uibutton(ButtonGroupGrid,'push');
+               obj.GitButton.Layout.Row = 1;
+               obj.GitButton.Layout.Column = 5;
+               obj.GitButton.Icon = QSPViewerNew.Resources.LoadResourcePath('play_24.png');
+               obj.GitButton.Tooltip = 'Enable Git';
+               obj.GitButton.ButtonPushedFcn = @(h,e)obj.onNavigation('Git');
+               obj.GitButton.Text = '';
 
                %Visualize Button
                obj.VisualizeButton = uibutton(ButtonGroupGrid,'push');
@@ -873,17 +883,22 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
                         obj.draw();
                     end
                     
-                    %Turn the buttons on 
+                    %Turn the buttons on
                     obj.ParentApp.enableInteraction();
                     obj.SummaryButton.Enable = 'on';
                     obj.EditButton.Enable = 'on';
                     if obj.HasVisualization
-                         obj.toggleButtonsInteraction({'on','on','on','on','on','off','off','off','off'});
+                        obj.toggleButtonsInteraction({'on','on','on','on','on','off','off','off','off'});
                     end
+
                 case 'Parallel'
-                    obj.updateParallelButtonStatus();
-               
+                    obj.updateParallelButtonStatus();              
                     obj.updateSessionParallelOption(obj.ParallelButton.UserData);
+
+                case 'Git'
+                    obj.toggleGitButtonStatus();                    
+                    obj.updateSessionGitOption(obj.GitButton.UserData);
+
                 case 'Visualize'
                     if strcmp(obj.VisualizationPanel.Visible,'off')
                         %If the Visualize window is not already shown
@@ -1000,9 +1015,9 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
             obj.ZoomInButton.Enable = ButtonVector{6};
             obj.ZoomOutButton.Enable = ButtonVector{7};
             obj.PanButton.Enable = ButtonVector{8};
-            obj.ExploreButton.Enable = ButtonVector{9};
-            
+            obj.ExploreButton.Enable = ButtonVector{9};            
             obj.ParallelButton.Enable = ButtonVector{2}; % same as run button status
+            obj.GitButton.Enable = ButtonVector{2}; % same as run button status
         end
         
         function toggleVisButtonsState(obj,ButtonVector)
@@ -1269,7 +1284,30 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
                 obj.ParallelButton.UserData = 'off';
             end
         end
-        
+       
+        function toggleGitButtonStatus(obj)
+            if strcmp(obj.GitButton.UserData, 'off')
+                obj.GitButton.Icon = QSPViewerNew.Resources.LoadResourcePath('giton_24.png');
+                obj.GitButton.Tooltip = 'Disable Git';
+                obj.GitButton.UserData = 'on';
+            else
+                obj.GitButton.Icon = QSPViewerNew.Resources.LoadResourcePath('gitoff_24.png');
+                obj.GitButton.Tooltip = 'Enable Git';
+                obj.GitButton.UserData = 'off';
+            end
+        end
+
+        function updateGitButtonSession(obj, value)
+            if value
+                obj.GitButton.Icon = QSPViewerNew.Resources.LoadResourcePath('giton_24.png');
+                obj.GitButton.Tooltip = 'Disable Git';
+                obj.GitButton.UserData = 'on';
+            else
+                obj.GitButton.Icon = QSPViewerNew.Resources.LoadResourcePath('gitoff_24.png');
+                obj.GitButton.Tooltip = 'Enable Git';
+                obj.GitButton.UserData = 'off';
+            end
+        end
     end
     
     methods(Access = public)

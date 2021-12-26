@@ -16,6 +16,7 @@ classdef AddRemoveTable < handle
         Column
         Title
         Selected =0;
+        SelectedCol =0;
         NewLineValue
         lastChangeRow;
         lastChangedColumn;
@@ -28,6 +29,8 @@ classdef AddRemoveTable < handle
        GridMain             matlab.ui.container.GridLayout 
        AddButton            matlab.ui.control.Button 
        RemoveButtonm        matlab.ui.control.Button
+       TableMainContextMenu matlab.ui.container.ContextMenu
+       ApplyToAllMenu       matlab.ui.container.Menu
     end
     
     events
@@ -104,6 +107,12 @@ classdef AddRemoveTable < handle
             obj.RemoveButtonm.Tooltip = 'Delete the highlighted row';
             obj.RemoveButtonm.ButtonPushedFcn = @obj.onRemoveItem;
             obj.refreshButtons();
+            
+            % create ApplytoAll context menu for items table
+           obj.TableMainContextMenu = uicontextmenu(obj.getParentFigure);
+           obj.TableMain.ContextMenu = obj.TableMainContextMenu;
+           obj.ApplyToAllMenu = uimenu(obj.TableMainContextMenu, 'Label', "Apply to all");
+           obj.ApplyToAllMenu.MenuSelectedFcn = @(h,e) obj.onApplyToAllSelected(h,e);
         end
         
         function refreshButtons(obj)
@@ -111,6 +120,13 @@ classdef AddRemoveTable < handle
                 obj.RemoveButtonm.Enable = false;
             else
                 obj.RemoveButtonm.Enable = true;
+            end
+        end
+        
+        function value = getParentFigure(obj)
+            value = obj.Parent;
+            while ~isa(value, 'matlab.ui.Figure')
+                value = value.Parent;
             end
         end
        
@@ -138,6 +154,7 @@ classdef AddRemoveTable < handle
         
         function onSelectionChange(obj,~,e)
             obj.Selected = e.Indices(1);
+            obj.SelectedCol = e.Indices(:,2);
             obj.refreshButtons();
         end
         
@@ -152,6 +169,32 @@ classdef AddRemoveTable < handle
                 %value that was not in the list, we revert
                 h.Data{e.Indices(1),e.Indices(2)} = e.PreviousData;
             end
+            obj.refreshButtons();
+        end
+        
+        function onApplyToAllSelected(obj,~,~)
+            data = obj.getData;
+            if numel(obj.SelectedCol)~=1 || obj.SelectedCol==0 || ...
+                    ~ismember(obj.Selected, 1:size(data,1)) ...
+                    || ~ismember(obj.SelectedCol, find(obj.TableMain.ColumnEditable))
+                uialert(obj.getParentFigure, "Please make sure to select one valid editable cell before calling 'Apply to All'.", ...
+                    'Invalid cell(s) selected', 'Icon', 'warning');
+                return;
+            end
+            
+            % Update entry
+            for rowIdx = 1:size(data,1)
+                if rowIdx == obj.Selected
+                    continue;
+                end
+                data{rowIdx,obj.SelectedCol} = ...
+                    data{obj.Selected,obj.SelectedCol};
+                obj.lastChangeRow = rowIdx;
+                obj.lastChangedColumn = obj.SelectedCol; 
+                obj.lastChangedValue = data{obj.Selected,obj.SelectedCol};
+                obj.notify('EditValueChange')
+            end
+            obj.setData(data);
             obj.refreshButtons();
         end
     end

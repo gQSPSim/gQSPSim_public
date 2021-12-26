@@ -1106,6 +1106,8 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             obj.updatePlotTables();
             obj.updateIterationsTable();
             obj.updateParallelButtonSession(obj.TemporaryGlobalSensitivityAnalysis.Session.UseParallel);
+            obj.updateGitButtonSession(obj.TemporaryGlobalSensitivityAnalysis.Session.AutoSaveGit);
+
             obj.IsDirty = false;
         end
 
@@ -1140,6 +1142,15 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
                 obj.GlobalSensitivityAnalysis.Session.UseParallel = false;
             elseif strcmp(parallelOption, 'on')
                 obj.GlobalSensitivityAnalysis.Session.UseParallel = true;
+            end
+            notifyOfChange(obj,obj.GlobalSensitivityAnalysis.Session)
+        end
+        
+        function updateSessionGitOption(obj, gitOption)
+            if strcmp(gitOption, 'off')
+                obj.GlobalSensitivityAnalysis.Session.AutoSaveGit = false;
+            elseif strcmp(gitOption, 'on')
+                obj.GlobalSensitivityAnalysis.Session.AutoSaveGit = true;
             end
             notifyOfChange(obj,obj.GlobalSensitivityAnalysis.Session)
         end
