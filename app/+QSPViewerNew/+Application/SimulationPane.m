@@ -916,6 +916,7 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
             obj.updateDataset();
             obj.updateGroupColumn();
             obj.updateSimulationTable();
+            obj.updateParallelButtonSession(obj.TemporarySimulation.Session.UseParallel);
             obj.updateGitButtonSession(obj.TemporarySimulation.Session.AutoSaveGit);
             obj.IsDirty = false;
         end
@@ -946,6 +947,15 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
             BackEnd = obj.Simulation;
         end
         
+        function updateSessionParallelOption(obj, parallelOption)
+            if strcmp(parallelOption, 'off')
+                obj.Simulation.Session.UseParallel = false;
+            elseif strcmp(parallelOption, 'on')
+                obj.Simulation.Session.UseParallel = true;
+            end
+            notifyOfChange(obj,obj.Simulation.Session)
+        end
+
         function updateSessionGitOption(obj, gitOption)
             if strcmp(gitOption, 'off')
                 obj.Simulation.Session.AutoSaveGit = false;

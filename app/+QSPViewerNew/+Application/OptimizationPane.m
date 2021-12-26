@@ -1288,6 +1288,7 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
             obj.redrawOptimItems();
             obj.redrawSpecies();
             obj.redrawInitialConditions();
+            obj.updateParallelButtonSession(obj.TemporaryOptimization.Session.UseParallel);
             obj.updateGitButtonSession(obj.TemporaryOptimization.Session.AutoSaveGit);
         end
         
@@ -1317,6 +1318,15 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
             BackEnd = obj.Optimization;
         end
         
+        function updateSessionParallelOption(obj, parallelOption)
+            if strcmp(parallelOption, 'off')
+                obj.Optimization.Session.UseParallel = false;
+            elseif strcmp(parallelOption, 'on')
+                obj.Optimization.Session.UseParallel = true;
+            end
+            notifyOfChange(obj,obj.Optimization.Session)
+        end
+
         function updateSessionGitOption(obj, gitOption)
             if strcmp(gitOption, 'off')
                 obj.Optimization.Session.AutoSaveGit = false;

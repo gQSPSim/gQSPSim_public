@@ -710,6 +710,7 @@ classdef VirtualPopulationGenerationPane < QSPViewerNew.Application.ViewPane
             obj.redrawMaxDiversity();
             obj.redrawVirtualItems();
             obj.redrawSpeciesData();
+            obj.updateParallelButtonSession(obj.TemporaryVirtualPopulationGeneration.Session.UseParallel);
             obj.updateGitButtonSession(obj.TemporaryVirtualPopulationGeneration.Session.AutoSaveGit);
             obj.IsDirty = false;
         end
@@ -738,6 +739,15 @@ classdef VirtualPopulationGenerationPane < QSPViewerNew.Application.ViewPane
         
         function BackEnd = getBackEnd(obj)
             BackEnd = obj.VirtualPopulationGeneration;
+        end
+        
+        function updateSessionParallelOption(obj, parallelOption)
+            if strcmp(parallelOption, 'off')
+                obj.VirtualPopulationGeneration.Session.UseParallel = false;
+            elseif strcmp(parallelOption, 'on')
+                obj.VirtualPopulationGeneration.Session.UseParallel = true;
+            end
+            notifyOfChange(obj,obj.VirtualPopulationGeneration.Session)
         end
         
         function updateSessionGitOption(obj, gitOption)

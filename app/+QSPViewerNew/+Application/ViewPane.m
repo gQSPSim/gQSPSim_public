@@ -58,6 +58,7 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
         SummaryLabel        matlab.ui.control.Label
         EditLabel           matlab.ui.control.Label
         RunButton           matlab.ui.control.Button
+        ParallelButton      matlab.ui.control.Button
         GitButton           matlab.ui.control.Button
         VisualizeButton     matlab.ui.control.Button
         SettingsButton      matlab.ui.control.Button
@@ -363,6 +364,16 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
                obj.RunButton.Text = '';
                
                %Run Button
+
+               obj.ParallelButton = uibutton(ButtonGroupGrid,'push');
+               obj.ParallelButton.Layout.Row = 1;
+               obj.ParallelButton.Layout.Column = 4;
+               obj.ParallelButton.Icon = QSPViewerNew.Resources.LoadResourcePath('paralleloff_24.png');
+               obj.ParallelButton.Tooltip = 'Enable Parallel';
+               obj.ParallelButton.UserData = 'off';
+               obj.ParallelButton.ButtonPushedFcn = @(h,e)obj.onNavigation('Parallel');
+               obj.ParallelButton.Text = '';
+
                obj.GitButton = uibutton(ButtonGroupGrid,'push');
                obj.GitButton.Layout.Row = 1;
                obj.GitButton.Layout.Column = 5;
@@ -879,10 +890,15 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
                     if obj.HasVisualization
                         obj.toggleButtonsInteraction({'on','on','on','on','on','off','off','off','off'});
                     end
+
+                case 'Parallel'
+                    obj.updateParallelButtonStatus();              
+                    obj.updateSessionParallelOption(obj.ParallelButton.UserData);
+
                 case 'Git'
-                    obj.toggleGitButtonStatus();
-                    
+                    obj.toggleGitButtonStatus();                    
                     obj.updateSessionGitOption(obj.GitButton.UserData);
+
                 case 'Visualize'
                     if strcmp(obj.VisualizationPanel.Visible,'off')
                         %If the Visualize window is not already shown
@@ -999,7 +1015,8 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
             obj.ZoomInButton.Enable = ButtonVector{6};
             obj.ZoomOutButton.Enable = ButtonVector{7};
             obj.PanButton.Enable = ButtonVector{8};
-            obj.ExploreButton.Enable = ButtonVector{9};
+            obj.ExploreButton.Enable = ButtonVector{9};            
+            obj.ParallelButton.Enable = ButtonVector{2}; % same as run button status
             obj.GitButton.Enable = ButtonVector{2}; % same as run button status
         end
         
@@ -1244,6 +1261,30 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
             end
         end
         
+        function updateParallelButtonStatus(obj)
+            if strcmp(obj.ParallelButton.UserData, 'off')
+                obj.ParallelButton.Icon = QSPViewerNew.Resources.LoadResourcePath('parallelon_24.png');
+                obj.ParallelButton.Tooltip = 'Disable Parallel';
+                obj.ParallelButton.UserData = 'on';
+            else
+                obj.ParallelButton.Icon = QSPViewerNew.Resources.LoadResourcePath('paralleloff_24.png');
+                obj.ParallelButton.Tooltip = 'Enable Parallel';
+                obj.ParallelButton.UserData = 'off';
+            end
+        end
+        
+        function updateParallelButtonSession(obj, value)
+            if value
+                obj.ParallelButton.Icon = QSPViewerNew.Resources.LoadResourcePath('parallelon_24.png');
+                obj.ParallelButton.Tooltip = 'Disable Parallel';
+                obj.ParallelButton.UserData = 'on';
+            else
+                obj.ParallelButton.Icon = QSPViewerNew.Resources.LoadResourcePath('paralleloff_24.png');
+                obj.ParallelButton.Tooltip = 'Enable Parallel';
+                obj.ParallelButton.UserData = 'off';
+            end
+        end
+       
         function toggleGitButtonStatus(obj)
             if strcmp(obj.GitButton.UserData, 'off')
                 obj.GitButton.Icon = QSPViewerNew.Resources.LoadResourcePath('giton_24.png');
@@ -1267,9 +1308,8 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
                 obj.GitButton.UserData = 'off';
             end
         end
-            
     end
-
+    
     methods(Access = public)
        
         function value = getUIFigure(obj)
