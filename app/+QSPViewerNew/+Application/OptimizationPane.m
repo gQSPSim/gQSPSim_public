@@ -202,7 +202,7 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
             %Parameters Dropdown
             obj.ParametersDropDown = uidropdown(obj.InnerLayout);
             obj.ParametersDropDown.Layout.Row = 2;
-            obj.ParametersDropDown.Layout.Column = 2;
+            obj.ParametersDropDown.Layout.Column = 2;            
             
             %Dataset Label
             obj.DatasetLabel = uilabel(obj.InnerLayout);
@@ -313,8 +313,10 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
             obj.VisSpeciesDataTable = uitable(obj.VisLayout, 'ColumnSortable', true);
             obj.VisSpeciesDataTable.Layout.Row = 2;
             obj.VisSpeciesDataTable.Layout.Column = 1;
-            obj.VisSpeciesDataTable.ColumnEditable = false;
+            %obj.VisSpeciesDataTable.ColumnEditable = [true, true, false, false, true]; % pax todo
+            obj.VisSpeciesDataTable.ColumnEditable = true;
             obj.VisSpeciesDataTable.CellEditCallback = @obj.onEditVisSpeciesTable;
+            %obj.VisSpeciesDataTable.ColumnEditable = [true, true, false, false, true]; % pax todo
             
             obj.VisOptimItemsTableLabel = uilabel(obj.VisLayout);
             obj.VisOptimItemsTableLabel.Text = 'Optimization Items';
@@ -324,9 +326,10 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
             obj.VisOptimItemsTable = uitable(obj.VisLayout, 'ColumnSortable', true);
             obj.VisOptimItemsTable.Layout.Row = 4;
             obj.VisOptimItemsTable.Layout.Column = 1;
-            obj.VisOptimItemsTable.ColumnEditable = false;
+            %obj.VisOptimItemsTable.ColumnEditable = [true, false, false, false, true];
+            obj.VisOptimItemsTable.ColumnEditable = true;
             obj.VisOptimItemsTable.CellEditCallback = @obj.onEditPlotItemsTable;
-            obj.VisOptimItemsTable.CellSelectionCallback = @obj.onSelectionPlotItemsTable;
+            %obj.VisOptimItemsTable.CellSelectionCallback = @obj.onSelectionPlotItemsTable;
           
             obj.PanelMain = uipanel('Parent',obj.VisLayout);
             obj.PanelMain.Title = '';
@@ -1815,11 +1818,14 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
                 NewData = cell(0,5);
             end
             
-            %Finally, write this information to the actual table         
-            obj.VisSpeciesDataTable.ColumnEditable = [true,true,false,false,true];
-            obj.VisSpeciesDataTable.ColumnName = {'Plot','Style','Species','Data','Display'};
-            obj.VisSpeciesDataTable.ColumnFormat = NewColumnFormat;
+            %Finally, write this information to the actual table                     
+            obj.VisSpeciesDataTable.ColumnName = {'Plot','Style','Species','Data','Display'};            
             obj.VisSpeciesDataTable.Data = NewData;
+            obj.VisSpeciesDataTable.ColumnFormat = NewColumnFormat;
+            
+            % Need this to get around what looks like a bug in uitable where logical vector is not being set correctly.
+            obj.VisSpeciesDataTable.ColumnEditable = true; 
+            obj.VisSpeciesDataTable.ColumnEditable = [true,true,false,false,true];            
         end
         
         function redrawOptimItemsTable(obj)
@@ -1938,11 +1944,14 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
             end
             
             %Finally, write this information to the actual table         
-            obj.VisOptimItemsTable.ColumnEditable = [true,false,false,false,true];
             obj.VisOptimItemsTable.ColumnName = {'Include','Color','Task','Group','Display'};
             obj.VisOptimItemsTable.ColumnFormat = {'logical','char','char','char','char'};
             obj.VisOptimItemsTable.Data = '';
             obj.VisOptimItemsTable.Data = (TableData);
+            
+            % Need this to get around what looks like a bug in uitable where logical vector is not being set correctly.
+            obj.VisOptimItemsTable.ColumnEditable = true;
+            obj.VisOptimItemsTable.ColumnEditable = [true,false,false,false,true];            
         end
         
         function redrawProfileButtonGroup(obj)
@@ -2031,12 +2040,15 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
                 ColumnFormat = {'numeric','logical','char','char'};
                 ColumnEditable = [false,true,false,true];
             end
-            %Finally, write this information to the actual table         
-            obj.VisProfilesTable.ColumnEditable = ColumnEditable;
+            %Finally, write this information to the actual table                     
             obj.VisProfilesTable.ColumnName = {'Run','Show','Source','Description'};
             obj.VisProfilesTable.ColumnFormat = ColumnFormat;
             obj.VisProfilesTable.Data = TableData;
             removeStyle(obj.VisProfilesTable);
+            
+            % Need this to get around what looks like a bug in uitable where logical vector is not being set correctly.
+            obj.VisProfilesTable.ColumnEditable = true;
+            obj.VisProfilesTable.ColumnEditable = ColumnEditable;
             %italicize items that do not match   
             
             for rowIdx = 1:size(TableData,1)
@@ -2066,12 +2078,16 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
             end
             
             %Finally, write this information to the actual table        
-            obj.VisParametersTable.ColumnEditable = [false,true,false];
+            
             obj.VisParametersTable.ColumnName = {'Parameter','Value','Source Value'};
             obj.VisParametersTable.ColumnFormat = {'char','numeric','numeric'};
             obj.VisParametersTable.Data = TableData;
             obj.VisParametersTableLabel.Text = LabelString;
             removeStyle(obj.VisParametersTable);
+            
+            % Need this to get around what looks like a bug in uitable where logical vector is not being set correctly.
+            obj.VisParametersTable.ColumnEditable = true; 
+            obj.VisParametersTable.ColumnEditable = [false,true,false];
             
             %italicize entries that dont match
             for rowIdx = 1:size(TableData,1)
