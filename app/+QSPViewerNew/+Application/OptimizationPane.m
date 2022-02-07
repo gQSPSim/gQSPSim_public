@@ -313,10 +313,8 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
             obj.VisSpeciesDataTable = uitable(obj.VisLayout, 'ColumnSortable', true);
             obj.VisSpeciesDataTable.Layout.Row = 2;
             obj.VisSpeciesDataTable.Layout.Column = 1;
-            %obj.VisSpeciesDataTable.ColumnEditable = [true, true, false, false, true]; % pax todo
             obj.VisSpeciesDataTable.ColumnEditable = true;
-            obj.VisSpeciesDataTable.CellEditCallback = @obj.onEditVisSpeciesTable;
-            %obj.VisSpeciesDataTable.ColumnEditable = [true, true, false, false, true]; % pax todo
+            obj.VisSpeciesDataTable.CellEditCallback = @obj.onEditVisSpeciesTable;            
             
             obj.VisOptimItemsTableLabel = uilabel(obj.VisLayout);
             obj.VisOptimItemsTableLabel.Text = 'Optimization Items';
@@ -326,10 +324,8 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
             obj.VisOptimItemsTable = uitable(obj.VisLayout, 'ColumnSortable', true);
             obj.VisOptimItemsTable.Layout.Row = 4;
             obj.VisOptimItemsTable.Layout.Column = 1;
-            %obj.VisOptimItemsTable.ColumnEditable = [true, false, false, false, true];
             obj.VisOptimItemsTable.ColumnEditable = true;
             obj.VisOptimItemsTable.CellEditCallback = @obj.onEditPlotItemsTable;
-            %obj.VisOptimItemsTable.CellSelectionCallback = @obj.onSelectionPlotItemsTable;
           
             obj.PanelMain = uipanel('Parent',obj.VisLayout);
             obj.PanelMain.Title = '';
