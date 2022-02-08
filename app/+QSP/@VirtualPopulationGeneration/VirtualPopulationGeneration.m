@@ -240,14 +240,13 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
                 'Name',obj.Name;
                 'Description',obj.Description;
                 'Results Path',obj.VPopResultsFolderName_new;
-                'Parameters',join(unique(string(UsedParamNames)), ', ');
+                %'Parameters',join(unique(string(UsedParamNames)), ', ');
                 'Cohort Used',obj.DatasetName;
-                '# of Items',numel(TheseOptimizationItems);
+                %'# of Items',numel(TheseOptimizationItems);
                 'Time created', obj.TimeOfCreationStr;
                 'Last Saved',obj.LastSavedTimeStr;
                 };
-        end
-        end
+        end        
             
         function [StatusOK, Message] = validate(obj,FlagRemoveInvalid)
             
