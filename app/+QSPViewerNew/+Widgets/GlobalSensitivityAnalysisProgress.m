@@ -7,7 +7,7 @@ classdef GlobalSensitivityAnalysisProgress < QSPViewerNew.Widgets.Abstract.Modal
         Labels      matlab.ui.control.Label
         LabelPanel  matlab.ui.container.Panel
         PlotPanel   matlab.ui.container.Panel
-        Button  matlab.ui.control.Button        
+        Button      matlab.ui.control.Button        
         Axes        matlab.ui.control.UIAxes
         
         DialogTitle = ''
@@ -68,7 +68,7 @@ classdef GlobalSensitivityAnalysisProgress < QSPViewerNew.Widgets.Abstract.Modal
             app.Button.Layout.Column   = 2;
             app.Button.Text            = 'Stop';
             app.Button.Tooltip         = 'Stop adding samples';
-            app.Button.ButtonPushedFcn = @(evt,src) set(app, 'ButtonPressed', true);
+            app.Button.ButtonPushedFcn = @(evt,src) app.buttonPressed(true);
             
             app.AxesGrid               = uigridlayout(app.PlotPanel);
             app.AxesGrid.ColumnWidth   = {'1x'};
@@ -78,12 +78,12 @@ classdef GlobalSensitivityAnalysisProgress < QSPViewerNew.Widgets.Abstract.Modal
 
             app.Axes = uiaxes(app.AxesGrid, 'Visible', 'off');
             app.Axes.YScale = 'log';
-
+            
         end
         
         function update(app, messages, xData, yData)
             
-            app.ButtonPressed = false;
+            app.buttonPressed(false);
             app.Button.Visible = 'on';
             
             app.Labels(1).FontWeight = 'bold';
@@ -131,6 +131,10 @@ classdef GlobalSensitivityAnalysisProgress < QSPViewerNew.Widgets.Abstract.Modal
             app.Button.ButtonPushedFcn = @(evt,src) callback();
             drawnow;
         end
+        
+        function stopRequested = isStopRequested(app)
+            stopRequested = app.ButtonPressed; 
+        end
     end
     
     methods (Access = private)
@@ -140,6 +144,10 @@ classdef GlobalSensitivityAnalysisProgress < QSPViewerNew.Widgets.Abstract.Modal
             newLabel.Layout.Row    = 1+row;
             newLabel.Text          = text;
             app.Labels = [app.Labels, newLabel];
+        end
+        
+        function buttonPressed(app, value)
+            app.ButtonPressed = value;
         end
         
     end

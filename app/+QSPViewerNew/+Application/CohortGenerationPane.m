@@ -519,7 +519,7 @@ classdef CohortGenerationPane < QSPViewerNew.Application.ViewPane
                 obj.TemporaryCohortGeneration.SpeciesData(Row).SpeciesName = Value;
             elseif Column == 4
                 obj.TemporaryCohortGeneration.SpeciesData(Row).FunctionExpression = Value;
-            elseif ColColumnIdx == 1
+            elseif Column == 1
                 obj.TemporaryCohortGeneration.SpeciesData(Row).DataName = Value;
             elseif Column == 5
                 obj.TemporaryCohortGeneration.SpeciesData(Row).ObjectiveName = Value;
@@ -1015,7 +1015,9 @@ classdef CohortGenerationPane < QSPViewerNew.Application.ViewPane
             obj.redrawVirtualItemsTable();
             obj.redrawSpeciesDataTable();
             obj.redrawParametersTable();
+            obj.updateParallelButtonSession(obj.TemporaryCohortGeneration.Session.UseParallel);
             obj.IsDirty = false;
+            obj.updateGitButtonSession(obj.TemporaryCohortGeneration.Session.AutoSaveGit);
         end
         
         function checkForInvalid(obj)
@@ -1042,6 +1044,24 @@ classdef CohortGenerationPane < QSPViewerNew.Application.ViewPane
         
         function BackEnd = getBackEnd(obj)
             BackEnd = obj.CohortGeneration;
+        end
+        
+        function updateSessionParallelOption(obj, parallelOption)
+            if strcmp(parallelOption, 'off')
+                obj.CohortGeneration.Session.UseParallel = false;
+            elseif strcmp(parallelOption, 'on')
+                obj.CohortGeneration.Session.UseParallel = true;
+            end
+            notifyOfChange(obj, obj.CohortGeneration.Session)
+         end
+
+         function updateSessionGitOption(obj, gitOption)
+            if strcmp(gitOption, 'off')
+                obj.CohortGeneration.Session.AutoSaveGit = false;
+            elseif strcmp(gitOption, 'on')
+                obj.CohortGeneration.Session.AutoSaveGit = true;
+            end
+            notifyOfChange(obj,obj.CohortGeneration.Session)
         end
     end
     

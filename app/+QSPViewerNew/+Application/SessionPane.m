@@ -30,6 +30,7 @@ classdef SessionPane < QSPViewerNew.Application.ViewPane
         ObjectiveFunDirSelectorListener
         UDFSelectorListener
         AutoSaveFolderSelectListener
+        GitFolderSelectListener
     end
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -53,6 +54,10 @@ classdef SessionPane < QSPViewerNew.Application.ViewPane
         AutoSaveFreqEdit                matlab.ui.control.NumericEditField
         UseParallelToolboxLabel         matlab.ui.control.Label
         UseParallelToolboxDropDown      matlab.ui.control.DropDown
+        GitOptionsPanel                 matlab.ui.container.Panel
+        GitGrid                         matlab.ui.container.GridLayout
+        EnableGitCheckBox               matlab.ui.control.CheckBox
+        GitFolderSelect                 QSPViewerNew.Widgets.FolderSelector
     end
         
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -81,7 +86,7 @@ classdef SessionPane < QSPViewerNew.Application.ViewPane
             obj.OuterSubGrid.ColumnSpacing = obj.WidgetWidthSpacing;
             obj.OuterSubGrid.ColumnSpacing = obj.WidgetHeightSpacing;
             obj.OuterSubGrid.ColumnWidth = {'1x'};
-            obj.OuterSubGrid.RowHeight = {obj.WidgetHeight,obj.WidgetHeight,obj.WidgetHeight,obj.WidgetHeight*4,obj.WidgetHeight*5,'1x'};
+            obj.OuterSubGrid.RowHeight = {obj.WidgetHeight,obj.WidgetHeight,obj.WidgetHeight,obj.WidgetHeight*4,obj.WidgetHeight*5,obj.WidgetHeight*4,'1x'};
             
             % Create Objective Functions Directory
             obj.RootDirSelector = QSPViewerNew.Widgets.FolderSelector(obj.OuterSubGrid,1,1,' Root Directory:',true);
@@ -124,6 +129,30 @@ classdef SessionPane < QSPViewerNew.Application.ViewPane
             obj.UseParallelToolboxDropDown.Layout.Row = 2;
             obj.UseParallelToolboxDropDown.Layout.Column = 2;
             obj.UseParallelToolboxDropDown.Items = {'Local','MATLAB Parallel Cloud'};
+            
+            %Create GitOptionsPanel
+            obj.GitOptionsPanel = uipanel(obj.OuterSubGrid);
+            obj.GitOptionsPanel.Title = 'Git Options';
+            obj.GitOptionsPanel.Layout.Row = 6;
+            obj.GitOptionsPanel.Layout.Column = 1;
+            obj.GitOptionsPanel.BackgroundColor = obj.SubPanelColor;
+            
+            %Create Grid Layout for Git
+            obj.GitGrid = uigridlayout(obj.GitOptionsPanel);
+            obj.GitGrid.RowHeight= {obj.WidgetHeight,obj.WidgetHeight,'1x'};  
+            obj.GitGrid.ColumnWidth = {'1x'};
+            obj.GitGrid.Padding = obj.SubPanelPadding;
+            obj.GitGrid.ColumnSpacing = obj.SubPanelWidthSpacing;
+            obj.GitGrid.RowSpacing = obj.SubPanelHeightSpacing;
+            
+            % Create Git checkbox
+            obj.EnableGitCheckBox = uicheckbox(obj.GitGrid);
+            obj.EnableGitCheckBox.Text = 'Enable git';
+            obj.EnableGitCheckBox.Layout.Row = 1;
+            obj.EnableGitCheckBox.Layout.Column = 1;
+            
+            % Git Directory
+            obj.GitFolderSelect = QSPViewerNew.Widgets.FolderSelector(obj.GitGrid,2,1,'Git repository Directory');
             
             % Create AutosaveOptionsPanel
             obj.AutosaveOptionsPanel = uipanel(obj.OuterSubGrid);
@@ -187,6 +216,7 @@ classdef SessionPane < QSPViewerNew.Application.ViewPane
             obj.ObjectiveFunDirSelectorListener = addlistener(obj.ObjectiveFunDirSelector,'StateChanged',@(src,event) obj.onObjFunctionsChange(event.Source.RelativePath));
             obj.UDFSelectorListener = addlistener(obj.UDFSelector,'StateChanged',@(src,event) obj.onUDFChange(event.Source.RelativePath));
             obj.AutoSaveFolderSelectListener = addlistener(obj.AutoSaveFolderSelect,'StateChanged',@(src,event) obj.onAutoSaveDirChange(event.Source.RelativePath));
+            obj.GitFolderSelectListener = addlistener(obj.GitFolderSelect,'StateChanged',@(src,event) obj.onGitDirChange(event.Source.RelativePath));
             
             %Callbacks
             obj.UseParallelToolboxCheckBox.ValueChangedFcn = @(h,e) obj.onParallelCheckbox(e.Value);
@@ -194,6 +224,7 @@ classdef SessionPane < QSPViewerNew.Application.ViewPane
             obj.AutoSaveBeforeRun.ValueChangedFcn = @(h,e) obj.onAutoSaveBeforeRunChecked(e.Value);
             obj.AutoSaveFreqEdit.ValueChangedFcn = @(h,e) obj.onAutoSaveFrequencyEdited(e.Value);
             obj.UseParallelToolboxDropDown.ValueChangedFcn = @(h,e) obj.onParallelClusterPopup(e.Value);
+            obj.EnableGitCheckBox.ValueChangedFcn = @(h,e) obj.onGitCheckbox(e.Value);
         end
     end
     
@@ -256,6 +287,24 @@ classdef SessionPane < QSPViewerNew.Application.ViewPane
             obj.TemporarySession.RelativeAutoSavePath = newValue;
             obj.IsDirty = true;
         end
+        
+        function onGitDirChange(obj,newValue)
+            % check if it is a git dir
+            [~,~,ext] = fileparts(newValue);
+            if strcmp(ext,'.git')
+                obj.TemporarySession.GitRepo = fullfile(obj.TemporarySession.RootDirectory, newValue);
+            else
+                uialert(obj.getUIFigure(), 'Git directories should be named ''.git''. Reverting back to previous git directory.', 'Invalid git directory');
+                obj.GitFolderSelect.RelativePath = uix.utility.getRelativeFilePath(obj.TemporarySession.GitRepo, obj.TemporarySession.RootDirectory);
+            end
+            obj.IsDirty = true;
+        end
+        
+        function onGitCheckbox(obj,newValue)
+            obj.TemporarySession.AutoSaveGit = newValue;
+            obj.IsDirty = true; 
+        end
+        
     end   
     
     methods(Access = public) 
@@ -358,6 +407,10 @@ classdef SessionPane < QSPViewerNew.Application.ViewPane
             obj.AutoSaveBeforeRun.Value = obj.TemporarySession.AutoSaveBeforeRun;
             
             obj.AutoSaveFreqEdit.Value = obj.TemporarySession.AutoSaveFrequency;
+            
+            obj.GitFolderSelect.RootDirectory = obj.TemporarySession.RootDirectory;
+            obj.GitFolderSelect.RelativePath = uix.utility.getRelativeFilePath(obj.TemporarySession.GitRepo, obj.TemporarySession.RootDirectory);
+            obj.EnableGitCheckBox.Value = obj.TemporarySession.AutoSaveGit;
             
             %Determine the users parallel options
             info = ver;

@@ -12,7 +12,7 @@ DefinePaths;
 % available on the path.
 addpath(genpath('tests'));
 
-disp('NOTE: Only running simulation tests.')
+disp('NOTE: Only running GSA tests.')
 
 try
     results = runtests('tgQSPSim', 'ProcedureName', 'tSimulations');

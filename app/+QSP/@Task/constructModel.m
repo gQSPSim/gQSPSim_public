@@ -85,6 +85,12 @@ else
     expModel.SimulationOptions.MaximumWallClock = obj.DefaultMaxWallClockTime;
 end
 
+% set absolute tolerance
+expModel.SimulationOptions.AbsoluteTolerance = obj.AbsoluteTolerance;
+
+% set relative tolerance
+expModel.SimulationOptions.RelativeTolerance = obj.RelativeTolerance;
+
 % set the output times
 if ~isempty(obj.OutputTimes)
     expModel.SimulationOptions.OutputTimes = obj.OutputTimes;

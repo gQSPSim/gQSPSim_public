@@ -495,6 +495,8 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
             obj.TemporaryOptimization.DatasetName = newValue;
             
             %redraw impacted components (All 3 tables)
+            obj.redrawGroupColumn();
+            obj.redrawIDColumn();
             obj.redrawOptimItems();
             obj.redrawSpecies();
             obj.redrawInitialConditions();
@@ -1286,7 +1288,8 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
             obj.redrawOptimItems();
             obj.redrawSpecies();
             obj.redrawInitialConditions();
-            
+            obj.updateParallelButtonSession(obj.TemporaryOptimization.Session.UseParallel);
+            obj.updateGitButtonSession(obj.TemporaryOptimization.Session.AutoSaveGit);
         end
         
         function checkForInvalid(obj)
@@ -1313,6 +1316,24 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
         
         function BackEnd = getBackEnd(obj)
             BackEnd = obj.Optimization;
+        end
+        
+        function updateSessionParallelOption(obj, parallelOption)
+            if strcmp(parallelOption, 'off')
+                obj.Optimization.Session.UseParallel = false;
+            elseif strcmp(parallelOption, 'on')
+                obj.Optimization.Session.UseParallel = true;
+            end
+            notifyOfChange(obj,obj.Optimization.Session)
+        end
+
+        function updateSessionGitOption(obj, gitOption)
+            if strcmp(gitOption, 'off')
+                obj.Optimization.Session.AutoSaveGit = false;
+            elseif strcmp(gitOption, 'on')
+                obj.Optimization.Session.AutoSaveGit = true;
+            end
+            notifyOfChange(obj,obj.Optimization.Session)
         end
     end
     
@@ -1426,6 +1447,27 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
         end
         
         function redrawGroupColumn(obj)
+            if ~isempty(obj.TemporaryOptimization) && ~isempty(obj.TemporaryOptimization.DatasetName) && ~isempty(obj.TemporaryOptimization.Settings.OptimizationData)
+                Names = {obj.TemporaryOptimization.Settings.OptimizationData.Name};
+                MatchIdx = strcmpi(Names,obj.TemporaryOptimization.DatasetName);
+                
+                if any(MatchIdx)
+                    dobj = obj.TemporaryOptimization.Settings.OptimizationData(MatchIdx);
+                    
+                    DestDatasetType = 'wide';
+                    [~,~,TempOptimHeader,OptimData] = importData(dobj,dobj.FilePath,DestDatasetType);
+                else
+                    TempOptimHeader = {};
+                    OptimData = {};
+                end
+            else
+                TempOptimHeader = {};
+                OptimData = {};
+            end
+            obj.DatasetHeader = TempOptimHeader;
+            obj.PrunedDatasetHeader = setdiff(TempOptimHeader,{'Time','Group'});
+            obj.DatasetData = OptimData;
+            
             if ~isempty(obj.TemporaryOptimization)
                 GroupSelection = obj.TemporaryOptimization.GroupName;
                 [FullGroupListWithInvalids,FullGroupList,GroupValue] = QSP.highlightInvalids(obj.DatasetHeader,GroupSelection);
@@ -1440,26 +1482,6 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
             obj.GroupColumnDropDown.Items = obj.DatasetGroupPopupItemsWithInvalid;
             obj.GroupColumnDropDown.Value = obj.DatasetGroupPopupItemsWithInvalid{GroupValue};
             
-            if ~isempty(obj.TemporaryOptimization) && ~isempty(obj.TemporaryOptimization.DatasetName) && ~isempty(obj.TemporaryOptimization.Settings.OptimizationData)
-                Names = {obj.TemporaryOptimization.Settings.OptimizationData.Name};
-                MatchIdx = strcmpi(Names,obj.TemporaryOptimization.DatasetName);
-
-                if any(MatchIdx)
-                    dobj = obj.TemporaryOptimization.Settings.OptimizationData(MatchIdx);
-
-                    DestDatasetType = 'wide';
-                    [~,~,TempOptimHeader,OptimData] = importData(dobj,dobj.FilePath,DestDatasetType);
-                else
-                    TempOptimHeader = {};
-                    OptimData = {};
-                end
-            else
-                TempOptimHeader = {};
-                OptimData = {};
-            end
-            obj.DatasetHeader = TempOptimHeader;
-            obj.PrunedDatasetHeader = setdiff(TempOptimHeader,{'Time','Group'}); 
-            obj.DatasetData = OptimData;
         end
 
         function redrawIDColumn(obj)
@@ -1891,7 +1913,11 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
                 
                 %Fill the table with empty chars so only the color is
                 %displayed
-                TableData(:,2) =convertStringsToChars(strings(size(TableData(:,2),1),1));
+                if size(TableData(:,2),1)==1
+                    TableData(:,2) = {convertStringsToChars(strings(size(TableData(:,2),1),1))};
+                else
+                    TableData(:,2) = convertStringsToChars(strings(size(TableData(:,2),1),1));
+                end
 
 
                 % Set cell color
@@ -1915,6 +1941,7 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
             obj.VisOptimItemsTable.ColumnEditable = [true,false,false,false,true];
             obj.VisOptimItemsTable.ColumnName = {'Include','Color','Task','Group','Display'};
             obj.VisOptimItemsTable.ColumnFormat = {'logical','char','char','char','char'};
+            obj.VisOptimItemsTable.Data = '';
             obj.VisOptimItemsTable.Data = (TableData);
         end
         

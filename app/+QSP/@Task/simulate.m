@@ -116,7 +116,7 @@ function [simData, statusOK, Message] = simulate(obj, varargin)
     
     if obj.RunToSteadyState
         % Simulate to steady state
-        try
+        try           
             model.SimulationOptions.StopTime = StopTime;
             model.SimulationOptions.OutputTimes = [];            
             [~,RTSSdata,outNames] = simulate(model,[ICValues; paramValues],[]);
