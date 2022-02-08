@@ -229,7 +229,9 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
             end
             % Invoke refreshData
             try 
-                [StatusOK,Message] = refreshData(obj.Settings);
+                % Pass in no UI here regardless of CLI or UI access. Part
+                % of cleanup separating the model and the view.
+                [StatusOK,Message] = refreshData(obj.Settings, false);
             catch err
                 if strcmp(err.identifier, 'Settings:CancelledLoad')
                      % cancelled

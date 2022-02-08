@@ -15,8 +15,9 @@ addpath(genpath('tests'));
 disp('NOTE: Only running GSA tests.')
 
 try
-    results = runtests('tgQSPSim', 'ProcedureName', 'tSimulations');
+    %results = runtests('tgQSPSim', 'ProcedureName', 'tSimulations');
     %results = runtests('tTMDD');
+    results = runtests('tsimple');
 catch e
     results.Failed = true;
     genericError = e.message;
