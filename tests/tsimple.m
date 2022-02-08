@@ -21,6 +21,8 @@ classdef tsimple < matlab.unittest.TestCase
             session = load(testCase.testRootDirectory + tmddCaseStudy, 'Session');
             
             testCase.assertNotEmpty(session);
+            
+            testCase.assertTrue(false);
         end
     end
 end
