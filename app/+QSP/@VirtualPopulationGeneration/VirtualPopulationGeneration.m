@@ -124,6 +124,7 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
                 obj.PlotSettings(index).Title = sprintf('Plot %d', index);
             end
             
+            obj.TimeOfCreation = datetime('now', "Format", "dd-MMM-uuuu");
         end %function obj = VirtualPopulationGeneration(varargin)
         
     end %methods
@@ -232,6 +233,21 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
             
         end %function
         
+        function Summary = getSummaryTableItems(obj)
+            
+            % Populate summary
+            Summary = {...
+                'Name',obj.Name;
+                'Description',obj.Description;
+                'Results Path',obj.VPopResultsFolderName_new;
+                %'Parameters',join(unique(string(UsedParamNames)), ', ');
+                'Cohort Used',obj.DatasetName;
+                %'# of Items',numel(TheseOptimizationItems);
+                'Time created', obj.TimeOfCreationStr;
+                'Last Saved',obj.LastSavedTimeStr;
+                };
+        end        
+            
         function [StatusOK, Message] = validate(obj,FlagRemoveInvalid)
             
             StatusOK = true;
