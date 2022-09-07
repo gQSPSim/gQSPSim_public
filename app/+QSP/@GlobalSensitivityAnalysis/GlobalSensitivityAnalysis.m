@@ -220,10 +220,12 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
                 };
         end
         
-        function [StatusOK, Message] = validate(obj, FlagRemoveInvalid)
+        function [StatusOK, Message, DuplicateFlag] = validate(obj, FlagRemoveInvalid)
+
             
             StatusOK = true;
             Message = sprintf('Global Sensitivity Analysis: %s\n%s\n',obj.Name,repmat('-',1,75));
+            DupFlag = false;
             
             if  obj.Session.UseParallel && ~isempty(getCurrentTask())
                 return
@@ -323,15 +325,19 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
                 dups = unique(allItems);
 
                 if length(dups)>1
-                    Message = sprintf('Items %s are duplicates. Please remove before continuing.', ...
+                    Message = sprintf('Items %s are duplicates. Consider removing if redundant.', ...
                         strjoin(dups, ',') );
                 else
-                    Message = sprintf('Item %s is a duplicate. Please remove before continuing.', ...
+                    Message = sprintf('Item %s is a duplicate. Consider removing if redundant.', ...
                         dups{1});
                 end
                 StatusOK = false;
+                DupFlag = true;
             end
-    
+            
+            if nargout > 2
+                DuplicateFlag = DupFlag;
+            end            
         end %function
         
         function clearData(obj)
@@ -434,6 +440,27 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
                 message = 'Internal error.';
             end
         end 
+        
+        function [statusOk, message] = duplicate(obj, idx)
+            if idx == 0
+                statusOk = false;
+                message = 'Select a row to duplicate it.';
+                return;
+            end
+            
+            tobeDuplicatedItem = obj.Item(idx);
+            obj.Item(end+1) = obj.ItemTemplate;
+            obj.Item(end).TaskName = tobeDuplicatedItem.TaskName;
+            obj.Item(end).NumberSamples = tobeDuplicatedItem.NumberSamples;
+            obj.Item(end).IterationInfo = tobeDuplicatedItem.IterationInfo;
+            obj.Item(end).Include = tobeDuplicatedItem.Include;
+            obj.Item(end).MATFileName = tobeDuplicatedItem.MATFileName;
+            obj.Item(end).Description = tobeDuplicatedItem.Description;
+            obj.Item(end).Color = tobeDuplicatedItem.Color;
+            obj.Item(end).Results = tobeDuplicatedItem.Results;
+            
+            [statusOk, message] = obj.updateInputsOutputs();
+        end
         
         function [statusOk, message] = remove(obj, type, idx)
             % Remove GSA or plot item.

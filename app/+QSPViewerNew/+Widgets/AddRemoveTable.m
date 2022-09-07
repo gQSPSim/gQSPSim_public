@@ -21,6 +21,7 @@ classdef AddRemoveTable < handle
         lastChangeRow;
         lastChangedColumn;
         lastChangedValue;
+        SelectedCell = [];
     end
     
     properties (Access = private)
@@ -29,6 +30,7 @@ classdef AddRemoveTable < handle
        GridMain             matlab.ui.container.GridLayout 
        AddButton            matlab.ui.control.Button 
        RemoveButton         matlab.ui.control.Button
+       DuplicateButton      matlab.ui.control.Button
        TableMainContextMenu matlab.ui.container.ContextMenu
        ApplyToAllMenu       matlab.ui.container.Menu
     end
@@ -37,6 +39,8 @@ classdef AddRemoveTable < handle
         NewRowChange
         DeleteRowChange
         EditValueChange
+        SelectionChange
+        DuplicateRowChange
     end
     
     
@@ -76,14 +80,14 @@ classdef AddRemoveTable < handle
 
             obj.GridMain = uigridlayout(obj.PanelMain);
             obj.GridMain.ColumnWidth = {ButtonSize,'1x'};
-            obj.GridMain.RowHeight = {ButtonSize,ButtonSize,'1x'};
+            obj.GridMain.RowHeight = {ButtonSize,ButtonSize,ButtonSize,'1x'};
             obj.GridMain.Padding = [pad,pad,pad,pad];
             obj.GridMain.ColumnSpacing = pad;
             obj.GridMain.RowSpacing = pad;
 
             %Add the left list box
             obj.TableMain = uitable(obj.GridMain, 'ColumnSortable', true);
-            obj.TableMain.Layout.Row =[1,3];
+            obj.TableMain.Layout.Row =[1,4];
             obj.TableMain.Layout.Column =2;
             obj.TableMain.CellSelectionCallback = @obj.onSelectionChange;
             obj.TableMain.CellEditCallback = @obj.onValueChange;
@@ -106,6 +110,15 @@ classdef AddRemoveTable < handle
             obj.RemoveButton.Text = '';
             obj.RemoveButton.Tooltip = 'Delete the highlighted row';
             obj.RemoveButton.ButtonPushedFcn = @obj.onRemoveItem;
+            
+            %Add the duplicate item button
+            obj.DuplicateButton = uibutton(obj.GridMain,'push');
+            obj.DuplicateButton.Layout.Row = 3;
+            obj.DuplicateButton.Layout.Column = 1;
+            obj.DuplicateButton.Icon = QSPViewerNew.Resources.LoadResourcePath('copy_24.png');
+            obj.DuplicateButton.Text = '';
+            obj.DuplicateButton.Tooltip = 'Duplicate the highlighted row';
+            obj.DuplicateButton.ButtonPushedFcn = @obj.onDuplicateItem;
             obj.refreshButtons();
             
             % create ApplytoAll context menu for items table
@@ -116,10 +129,12 @@ classdef AddRemoveTable < handle
         end
         
         function refreshButtons(obj)
-            if obj.Selected ==0
+            if obj.Selected == 0
                 obj.RemoveButton.Enable = false;
+                obj.DuplicateButton.Enable = false;
             else
                 obj.RemoveButton.Enable = true;
+                obj.DuplicateButton.Enable = true;
             end
         end
         
@@ -152,9 +167,21 @@ classdef AddRemoveTable < handle
             obj.refreshButtons();
         end
         
+        function onDuplicateItem(obj,~,~)
+            obj.TableMain.Data = [obj.TableMain.Data;obj.TableMain.Data(obj.Selected,:)];
+            obj.notify('DuplicateRowChange')
+            obj.Selected = 0;
+            obj.refreshButtons();
+        end
+        
         function onSelectionChange(obj,~,e)
             obj.Selected = e.Indices(1);
-            obj.SelectedCol = e.Indices(:,2);
+            if size(e.Indices,1) == 1 % populate only if one cell is selected
+                obj.SelectedCell = e.Indices(1,:);
+            else
+                obj.SelectedCell = [];
+            end
+            obj.notify('SelectionChange')
             obj.refreshButtons();
         end
         
@@ -230,6 +257,10 @@ classdef AddRemoveTable < handle
         
         function [value] = getSelectedRow(obj)
             value = obj.Selected;
+        end
+        
+        function value = getSelectedCell(obj)
+            value = obj.SelectedCell;
         end
         
         function setFormat(obj,input)

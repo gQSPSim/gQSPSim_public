@@ -76,6 +76,9 @@ classdef VirtualPopulationGenerationPane < QSPViewerNew.Application.ViewPane
             SpeciesDataTableAddListener 
             VirtualItemsTableRemoveListener 
             SpeciesDataTableRemoveListener
+            VirtualItemsTableSelectionListener
+            VirtualItemsTableDuplicateListener
+            SpeciesDataTableDuplicateListener
     end
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -86,9 +89,11 @@ classdef VirtualPopulationGenerationPane < QSPViewerNew.Application.ViewPane
         ResultsPath                     QSPViewerNew.Widgets.FolderSelector
         InnerLayout                     matlab.ui.container.GridLayout
         VirtualCohortLabel              matlab.ui.control.Label
-        VirtualCohortDropDown           matlab.ui.control.DropDown
+        VirtualCohortSelectionLabel     matlab.ui.control.Label
+        VirtualCohortSelectionButton    matlab.ui.control.Button
         TargetStatsLabel                matlab.ui.control.Label
-        TargetStatsDropDown             matlab.ui.control.DropDown
+        TargetStatsSelectionLabel       matlab.ui.control.Label
+        TargetStatsSelectionButton      matlab.ui.control.Button
         MinNumLabel                     matlab.ui.control.Label
         MinNumEdit                      matlab.ui.control.NumericEditField
         GroupColumnLabel                matlab.ui.control.Label
@@ -110,6 +115,10 @@ classdef VirtualPopulationGenerationPane < QSPViewerNew.Application.ViewPane
         PlotItemsTableContextMenu
         PlotItemsTableMenu
         
+    end
+    
+    properties
+        SelectedNodePath
     end
         
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -146,7 +155,7 @@ classdef VirtualPopulationGenerationPane < QSPViewerNew.Application.ViewPane
             obj.InnerLayout = uigridlayout(obj.EditLayout);
             obj.InnerLayout.Layout.Row = 2;
             obj.InnerLayout.Layout.Column = 1;
-            obj.InnerLayout.ColumnWidth = {obj.LabelLength,'1x',obj.LabelLength,'1x'};
+            obj.InnerLayout.ColumnWidth = {obj.LabelLength,'1x', obj.ButtonWidth, obj.WidgetWidthSpacing, obj.LabelLength,'1x'};
             obj.InnerLayout.RowHeight = {obj.LabelHeight,obj.LabelHeight,obj.LabelHeight};
             obj.InnerLayout.ColumnSpacing = 0;
             obj.InnerLayout.RowSpacing = 0;
@@ -157,18 +166,28 @@ classdef VirtualPopulationGenerationPane < QSPViewerNew.Application.ViewPane
             obj.VirtualCohortLabel.Layout.Row = 1;
             obj.VirtualCohortLabel.Layout.Column = 1;
            
-            obj.VirtualCohortDropDown = uidropdown(obj.InnerLayout);
-            obj.VirtualCohortDropDown.Layout.Row = 1;
-            obj.VirtualCohortDropDown.Layout.Column = 2;
+            obj.VirtualCohortSelectionLabel = uilabel(obj.InnerLayout);
+            obj.VirtualCohortSelectionLabel.Layout.Row = 1;
+            obj.VirtualCohortSelectionLabel.Layout.Column = 2;
+            
+            obj.VirtualCohortSelectionButton = uibutton(obj.InnerLayout);
+            obj.VirtualCohortSelectionButton.Layout.Row = 1;
+            obj.VirtualCohortSelectionButton.Layout.Column = 3;
+            obj.VirtualCohortSelectionButton.Text = '...';
      
             obj.TargetStatsLabel = uilabel(obj.InnerLayout);
             obj.TargetStatsLabel.Text = 'Target Statistics';
             obj.TargetStatsLabel.Layout.Row = 2;
             obj.TargetStatsLabel.Layout.Column = 1;
             
-            obj.TargetStatsDropDown = uidropdown(obj.InnerLayout);
-            obj.TargetStatsDropDown.Layout.Row = 2;
-            obj.TargetStatsDropDown.Layout.Column = 2;
+            obj.TargetStatsSelectionLabel = uilabel(obj.InnerLayout);
+            obj.TargetStatsSelectionLabel.Layout.Row = 2;
+            obj.TargetStatsSelectionLabel.Layout.Column = 2;
+            
+            obj.TargetStatsSelectionButton = uibutton(obj.InnerLayout);
+            obj.TargetStatsSelectionButton.Layout.Row = 2;
+            obj.TargetStatsSelectionButton.Layout.Column = 3;
+            obj.TargetStatsSelectionButton.Text = '...';
             
             obj.MinNumLabel = uilabel(obj.InnerLayout);
             obj.MinNumLabel.Text = 'Min # of Virtual';
@@ -177,32 +196,32 @@ classdef VirtualPopulationGenerationPane < QSPViewerNew.Application.ViewPane
             
             obj.MinNumEdit = uieditfield(obj.InnerLayout,'numeric');
             obj.MinNumEdit.Layout.Row = 3;
-            obj.MinNumEdit.Layout.Column = 2;
+            obj.MinNumEdit.Layout.Column = [2,3];
             obj.MinNumEdit.Limits = [0,inf];
             obj.MinNumEdit.RoundFractionalValues = true;
            
             obj.GroupColumnLabel = uilabel(obj.InnerLayout);
             obj.GroupColumnLabel.Text = 'Group Column';
             obj.GroupColumnLabel.Layout.Row = 1;
-            obj.GroupColumnLabel.Layout.Column = 3;
+            obj.GroupColumnLabel.Layout.Column = 5;
             
             obj.GroupColumnDropDown = uidropdown(obj.InnerLayout);
             obj.GroupColumnDropDown.Layout.Row = 1;
-            obj.GroupColumnDropDown.Layout.Column = 4;
+            obj.GroupColumnDropDown.Layout.Column = 6;
 
             obj.MethodLabel = uilabel(obj.InnerLayout);
             obj.MethodLabel.Text = 'Method';
             obj.MethodLabel.Layout.Row = 2;
-            obj.MethodLabel.Layout.Column = 3;
+            obj.MethodLabel.Layout.Column = 5;
             
             obj.MethodDropDown = uidropdown(obj.InnerLayout);
             obj.MethodDropDown.Layout.Row = 2;
-            obj.MethodDropDown.Layout.Column = 4;
+            obj.MethodDropDown.Layout.Column = 6;
             
             obj.MaxDiversityCheckBox = uicheckbox(obj.InnerLayout);
             obj.MaxDiversityCheckBox.Text = "Maximize Virtual Population Diversity";
             obj.MaxDiversityCheckBox.Layout.Row = 3;
-            obj.MaxDiversityCheckBox.Layout.Column = [3,4];
+            obj.MaxDiversityCheckBox.Layout.Column = [5,6];
             
             obj.TableLayout = uigridlayout(obj.EditLayout);
             obj.TableLayout.Layout.Row = 3;
@@ -253,8 +272,8 @@ classdef VirtualPopulationGenerationPane < QSPViewerNew.Application.ViewPane
         
         function createListenersAndCallbacks(obj)
              %Attach callbacks
-            obj.VirtualCohortDropDown.ValueChangedFcn = @(h,e) obj.onEditVirtualCohort(e.Value);
-            obj.TargetStatsDropDown.ValueChangedFcn = @(h,e) obj.onEditTargetStats(e.Value);
+            obj.VirtualCohortSelectionButton.ButtonPushedFcn = @(h,e) obj.onEditVirtualCohort();
+            obj.TargetStatsSelectionButton.ButtonPushedFcn = @(h,e) obj.onEditTargetStats();
             obj.MinNumEdit.ValueChangedFcn = @(h,e) obj.onEditMinNum(e.Value);
             obj.GroupColumnDropDown.ValueChangedFcn = @(h,e) obj.onEditGroupColumn(e.Value);
             obj.MethodDropDown.ValueChangedFcn = @(h,e) obj.onEditMethod(e.Value);
@@ -271,6 +290,11 @@ classdef VirtualPopulationGenerationPane < QSPViewerNew.Application.ViewPane
             
             obj.VirtualItemsTableRemoveListener = addlistener(obj.VirtualItemsTable,'DeleteRowChange',@(src,event) obj.onRemoveVirtualItemsTable());
             obj.SpeciesDataTableRemoveListener = addlistener(obj.SpeciesDataTable,'DeleteRowChange',@(src,event) obj.onRemoveSpeciesDataTable());
+            
+            obj.VirtualItemsTableSelectionListener = addlistener(obj.VirtualItemsTable,'SelectionChange',@(src,event) obj.onSelChangedVirtualItems());
+            
+            obj.VirtualItemsTableDuplicateListener = addlistener(obj.VirtualItemsTable,'DuplicateRowChange',@(src,event) obj.onDuplicateVirtualItems());
+            obj.SpeciesDataTableDuplicateListener = addlistener(obj.SpeciesDataTable,'DuplicateRowChange',@(src,event) obj.onDuplicateSpecies());
 
         end
         
@@ -286,24 +310,30 @@ classdef VirtualPopulationGenerationPane < QSPViewerNew.Application.ViewPane
             obj.IsDirty = true;
         end
         
-        function onEditVirtualCohort(obj,newValue)
-            obj.TemporaryVirtualPopulationGeneration.DatasetName = newValue;
-            obj.redrawVirtualCohort();
-            obj.redrawTargetStats();
-            obj.redrawGroupColumn();
-            obj.redrawVirtualItems();
-            obj.redrawSpeciesData();
-            obj.IsDirty = true;
+        function onEditVirtualCohort(obj)
+            selection = obj.getSelectionNode("VirtualPopulation");
+            if ~(isempty(selection) || selection=="")
+                obj.TemporaryVirtualPopulationGeneration.DatasetName = char(selection);
+                obj.redrawVirtualCohort();
+                obj.redrawTargetStats();
+                obj.redrawGroupColumn();
+                obj.redrawVirtualItems();
+                obj.redrawSpeciesData();
+                obj.IsDirty = true;
+            end
         end
         
-        function onEditTargetStats(obj,newValue)         
-            obj.TemporaryVirtualPopulationGeneration.VpopGenDataName = newValue;
-            obj.redrawVirtualCohort();
-            obj.redrawTargetStats();
-            obj.redrawGroupColumn();
-            obj.redrawVirtualItems();
-            obj.redrawSpeciesData();
-            obj.IsDirty = true;
+        function onEditTargetStats(obj)
+            selection = obj.getSelectionNode("VirtualPopulationGenerationData");
+            if ~(isempty(selection) || selection=="")
+                obj.TemporaryVirtualPopulationGeneration.VpopGenDataName = char(selection);
+                obj.redrawVirtualCohort();
+                obj.redrawTargetStats();
+                obj.redrawGroupColumn();
+                obj.redrawVirtualItems();
+                obj.redrawSpeciesData();
+                obj.IsDirty = true;
+            end
         end
         
         function onEditMinNum(obj,newValue)
@@ -363,7 +393,7 @@ classdef VirtualPopulationGenerationPane < QSPViewerNew.Application.ViewPane
         function onNewVirtualItemsTable(obj)
             if ~isempty(obj.TaskPopupTableItems) && ~isempty(obj.GroupIDPopupTableItems)
                 NewTaskGroup = QSP.TaskGroup;
-                NewTaskGroup.TaskName = obj.TaskPopupTableItems{1};
+                NewTaskGroup.TaskName = '';
                 NewTaskGroup.GroupID = obj.GroupIDPopupTableItems{1};
                 obj.TemporaryVirtualPopulationGeneration.Item(end+1) = NewTaskGroup;
             else
@@ -405,6 +435,58 @@ classdef VirtualPopulationGenerationPane < QSPViewerNew.Application.ViewPane
             obj.redrawSpeciesData();
             obj.IsDirty = true;
         end 
+        
+        function onSelChangedVirtualItems(obj)
+            selectedCell = obj.VirtualItemsTable.getSelectedCell();
+            
+            if ~isempty(selectedCell) && ...
+                    selectedCell(2)==1
+                selectedTaskNode = obj.getSelectionNode("Task");
+                if ~(selectedTaskNode == "" || isempty(selectedTaskNode))
+                    obj.TemporaryVirtualPopulationGeneration.Item(selectedCell(1)).TaskName = char(selectedTaskNode);
+                    obj.redrawVirtualItems();
+                    obj.redrawSpeciesData();
+                    obj.IsDirty = true;
+                end
+            end
+        end
+        
+        function onDuplicateVirtualItems(obj)
+            Index = obj.VirtualItemsTable.getSelectedRow();
+            if ~isempty(Index)
+                if ~isempty(obj.TaskPopupTableItems) && ~isempty(obj.GroupIDPopupTableItems)
+                    NewTaskGroup = QSP.TaskGroup;
+                    NewTaskGroup.TaskName = obj.TemporaryVirtualPopulationGeneration.Item(Index).TaskName;
+                    NewTaskGroup.GroupID = obj.TemporaryVirtualPopulationGeneration.Item(Index).GroupID;
+                    obj.TemporaryVirtualPopulationGeneration.Item(end+1) = NewTaskGroup;
+                    obj.redrawVirtualItems();
+                    obj.redrawSpeciesData();
+                    obj.IsDirty = true;
+                else
+                    uialert(obj.getUIFigure,'At least one task and the group column must be defined in order to add an optimization item.','Cannot Add');
+                end
+            end
+            obj.IsDirty = true;
+        end
+        
+        function onDuplicateSpecies(obj)
+            Index = obj.SpeciesDataTable.getSelectedRow();
+            if ~isempty(Index)
+                if ~isempty(obj.SpeciesPopupTableItems) && ~isempty(obj.DatasetDataColumn)
+                    NewSpeciesData = QSP.SpeciesData;
+                    NewSpeciesData.SpeciesName = obj.TemporaryVirtualPopulationGeneration.SpeciesData(Index).SpeciesName;
+                    NewSpeciesData.DataName = obj.TemporaryVirtualPopulationGeneration.SpeciesData(Index).DataName;
+                    NewSpeciesData.FunctionExpression = obj.TemporaryVirtualPopulationGeneration.SpeciesData(Index).FunctionExpression;
+                    obj.TemporaryVirtualPopulationGeneration.SpeciesData(end+1) = NewSpeciesData;
+                    obj.redrawVirtualItems();
+                    obj.redrawSpeciesData();
+                else
+                    uialert(obj.getUIFigure,'At least one task with active species and a non-empty ''Data'' column in the dataset must be defined in order to add an optimization item.','Cannot Add');
+                end
+            end
+            obj.IsDirty = true;
+        end
+        
         
         function onEditSpeciesTable(obj,h,e)
             RowIdx = e.Indices(1,1);
@@ -787,8 +869,7 @@ classdef VirtualPopulationGenerationPane < QSPViewerNew.Application.ViewPane
             obj.DatasetPopupItems = FullList;
             obj.DatasetPopupItemsWithInvalid = FullListWithInvalids;
             
-            obj.VirtualCohortDropDown.Items = obj.DatasetPopupItemsWithInvalid;
-            obj.VirtualCohortDropDown.Value = obj.DatasetPopupItemsWithInvalid{Value};
+            obj.VirtualCohortSelectionLabel.Text = obj.DatasetPopupItemsWithInvalid{Value};
         end          
         
         function redrawTargetStats(obj)
@@ -864,8 +945,7 @@ classdef VirtualPopulationGenerationPane < QSPViewerNew.Application.ViewPane
                 obj.GroupIDPopupTableItems = {};
             end
             
-            obj.TargetStatsDropDown.Items = obj.VpopPopupItemsWithInvalid;
-            obj.TargetStatsDropDown.Value = obj.VpopPopupItemsWithInvalid{Value};
+            obj.TargetStatsSelectionLabel.Text = obj.VpopPopupItemsWithInvalid{Value};
         end
                  
         function redrawMinNum(obj)
@@ -936,7 +1016,7 @@ classdef VirtualPopulationGenerationPane < QSPViewerNew.Application.ViewPane
                         ThisTask = getValidSelectedTasks(obj.TemporaryVirtualPopulationGeneration.Settings,TaskNames{index});
                         % Mark invalid if empty
                         if isempty(ThisTask)            
-                            Data{index,1} = QSP.makeInvalid(Data{index,1});
+                            Data{index,1} = 'Click to Configure';
                         end
                     end
                     MatchIdx = find(~ismember(TempGroupIDs(:),obj.GroupIDPopupTableItems(:)));
@@ -960,9 +1040,9 @@ classdef VirtualPopulationGenerationPane < QSPViewerNew.Application.ViewPane
                 obj.GroupIDPopupTableItems = {};
             end
             
-            obj.VirtualItemsTable.setEditable([true true false]);
+            obj.VirtualItemsTable.setEditable([false true false]);
             obj.VirtualItemsTable.setName({'Task','Group','Run To Steady State'}');
-            obj.VirtualItemsTable.setFormat({obj.TaskPopupTableItems(:)',obj.GroupIDPopupTableItems(:)','char'})
+            obj.VirtualItemsTable.setFormat({[],obj.GroupIDPopupTableItems(:)','char'})
             obj.VirtualItemsTable.setData(Data)
         end
                
@@ -1244,6 +1324,42 @@ classdef VirtualPopulationGenerationPane < QSPViewerNew.Application.ViewPane
             obj.PlotItemsTableMenu.Tag = 'PlotItemsCM';
             obj.PlotItemsTableMenu.MenuSelectedFcn = @(h,e)onContextMenu(obj,h,e);
             obj.VisVirtPopItemsTable.ContextMenu = obj.PlotItemsTableContextMenu; 
+        end
+        
+        function selectedNode = getSelectionNode(obj, type)
+            % get session node for this object
+            currentNode = obj.TemporaryVirtualPopulationGeneration.TreeNode;
+            sessionNode = currentNode.Parent;
+            while ~strcmp(sessionNode.Tag, 'Session')
+                sessionNode = sessionNode.Parent;
+            end
+            
+            % get parent task node
+             allChildrenTag = string({sessionNode.Children.Tag});
+             buildingBlockNode = sessionNode.Children(allChildrenTag=="Building blocks");
+             buildBlockChildrenTag = string({buildingBlockNode.Children.Tag});
+             parentTypeNode = buildingBlockNode.Children(buildBlockChildrenTag==type);
+             
+             % launch tree selection node dialog for user's input
+             if verLessThan('matlab','9.9')
+                nodeSelDialog = QSPViewerNew.Widgets.TreeNodeSelectionModalDialog (obj, ...
+                    parentTypeNode, ...
+                    'ParentAppPosition', sessionNode.Parent.Parent.Parent.Parent.Parent.Position, ...
+                    'DialogName', sprintf('Select %s node', parentTypeNode.Text), ...
+                    'ModalOn', false, ...
+                    'NodeType', "Other");
+             else % Modal UI figures are supported >= 20b
+                 nodeSelDialog = QSPViewerNew.Widgets.TreeNodeSelectionModalDialog (obj, ...
+                     parentTypeNode, ...
+                     'ParentAppPosition', sessionNode.Parent.Parent.Parent.Parent.Parent.Position, ...
+                     'DialogName', sprintf('Select %s node', parentTypeNode.Text), ...
+                     'NodeType', "Other");
+             end
+             
+             uiwait(nodeSelDialog.MainFigure);
+             
+             selectedNode = split(obj.SelectedNodePath, filesep);
+             selectedNode  = selectedNode(1);
         end
         
     end
