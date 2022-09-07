@@ -29,6 +29,7 @@ classdef SessionPane < QSPViewerNew.Application.ViewPane
         RootDirSelectorListener
         ObjectiveFunDirSelectorListener
         UDFSelectorListener
+        PluginsSelectorListener
         AutoSaveFolderSelectListener
         GitFolderSelectListener
     end
@@ -41,6 +42,7 @@ classdef SessionPane < QSPViewerNew.Application.ViewPane
         RootDirSelector                 QSPViewerNew.Widgets.FolderSelector                
         ObjectiveFunDirSelector         QSPViewerNew.Widgets.FolderSelector
         UDFSelector                     QSPViewerNew.Widgets.FolderSelector
+        PluginsSelector                     QSPViewerNew.Widgets.FolderSelector
         ParrallelGrid                   matlab.ui.container.GridLayout
         UseParallelToolboxCheckBox      matlab.ui.control.CheckBox
         AutosaveOptionsPanel            matlab.ui.container.Panel
@@ -86,7 +88,7 @@ classdef SessionPane < QSPViewerNew.Application.ViewPane
             obj.OuterSubGrid.ColumnSpacing = obj.WidgetWidthSpacing;
             obj.OuterSubGrid.ColumnSpacing = obj.WidgetHeightSpacing;
             obj.OuterSubGrid.ColumnWidth = {'1x'};
-            obj.OuterSubGrid.RowHeight = {obj.WidgetHeight,obj.WidgetHeight,obj.WidgetHeight,obj.WidgetHeight*4,obj.WidgetHeight*5,obj.WidgetHeight*4,'1x'};
+            obj.OuterSubGrid.RowHeight = {obj.WidgetHeight,obj.WidgetHeight,obj.WidgetHeight,obj.WidgetHeight,obj.WidgetHeight*4,obj.WidgetHeight*5,'1x'};
             
             % Create Objective Functions Directory
             obj.RootDirSelector = QSPViewerNew.Widgets.FolderSelector(obj.OuterSubGrid,1,1,' Root Directory:',true);
@@ -94,13 +96,16 @@ classdef SessionPane < QSPViewerNew.Application.ViewPane
             %Objective Fcn Dir
             obj.ObjectiveFunDirSelector = QSPViewerNew.Widgets.FolderSelector(obj.OuterSubGrid,2,1,' Objective Functions Directory:');
             
-            %Objective Fcn Dir
+            %UDF Fcn Dir
             obj.UDFSelector = QSPViewerNew.Widgets.FolderSelector(obj.OuterSubGrid,3,1,' User-defined Functions Directory:');
+            
+            %Plugins Dir
+            obj.PluginsSelector = QSPViewerNew.Widgets.FolderSelector(obj.OuterSubGrid,4,1,' Plugins Directory:');
             
             %Create AutosaveOptionsPanel
             obj.ParallelOptionsPanel = uipanel(obj.OuterSubGrid);
             obj.ParallelOptionsPanel.Title = 'Parrallel Options';
-            obj.ParallelOptionsPanel.Layout.Row = 4;
+            obj.ParallelOptionsPanel.Layout.Row = 5;
             obj.ParallelOptionsPanel.Layout.Column = 1;
             obj.ParallelOptionsPanel.BackgroundColor = obj.SubPanelColor;
 
@@ -157,7 +162,7 @@ classdef SessionPane < QSPViewerNew.Application.ViewPane
             % Create AutosaveOptionsPanel
             obj.AutosaveOptionsPanel = uipanel(obj.OuterSubGrid);
             obj.AutosaveOptionsPanel.Title = 'Autosave Options';
-            obj.AutosaveOptionsPanel.Layout.Row = 5;
+            obj.AutosaveOptionsPanel.Layout.Row = 6;
             obj.AutosaveOptionsPanel.Layout.Column = 1;
             obj.AutosaveOptionsPanel.BackgroundColor = obj.SubPanelColor;
 
@@ -215,6 +220,7 @@ classdef SessionPane < QSPViewerNew.Application.ViewPane
             obj.RootDirSelectorListener = addlistener(obj.RootDirSelector,'StateChanged',@(src,event) obj.onRootDirChange(event.Source.FullPath));
             obj.ObjectiveFunDirSelectorListener = addlistener(obj.ObjectiveFunDirSelector,'StateChanged',@(src,event) obj.onObjFunctionsChange(event.Source.RelativePath));
             obj.UDFSelectorListener = addlistener(obj.UDFSelector,'StateChanged',@(src,event) obj.onUDFChange(event.Source.RelativePath));
+            obj.PluginsSelectorListener = addlistener(obj.PluginsSelector,'StateChanged',@(src,event) obj.onPluginsChange(event.Source.RelativePath));
             obj.AutoSaveFolderSelectListener = addlistener(obj.AutoSaveFolderSelect,'StateChanged',@(src,event) obj.onAutoSaveDirChange(event.Source.RelativePath));
             obj.GitFolderSelectListener = addlistener(obj.GitFolderSelect,'StateChanged',@(src,event) obj.onGitDirChange(event.Source.RelativePath));
             
@@ -241,6 +247,7 @@ classdef SessionPane < QSPViewerNew.Application.ViewPane
            %We need to change the root directory for all others
            obj.ObjectiveFunDirSelector.RootDirectory = newValue;
            obj.UDFSelector.RootDirectory = newValue;
+           obj.PluginsSelector.RootDirectory = newValue;
            obj.AutoSaveFolderSelect.RootDirectory = newValue;
            obj.IsDirty = true;
         end
@@ -253,6 +260,11 @@ classdef SessionPane < QSPViewerNew.Application.ViewPane
         
         function onObjFunctionsChange(obj,newValue)
             obj.TemporarySession.RelativeObjectiveFunctionsPath = newValue;
+            obj.IsDirty = true;
+        end
+        
+        function onPluginsChange(obj,newValue)
+            obj.TemporarySession.RelativePluginsPath = newValue;
             obj.IsDirty = true;
         end
         
@@ -396,6 +408,9 @@ classdef SessionPane < QSPViewerNew.Application.ViewPane
             
             obj.UDFSelector.RootDirectory = obj.TemporarySession.RootDirectory;
             obj.UDFSelector.RelativePath = obj.TemporarySession.RelativeUserDefinedFunctionsPath;
+            
+            obj.PluginsSelector.RootDirectory = obj.TemporarySession.RootDirectory;
+            obj.PluginsSelector.RelativePath = obj.TemporarySession.RelativePluginsPath;
             
             obj.AutoSaveFolderSelect.RootDirectory = obj.TemporarySession.RootDirectory;
             obj.AutoSaveFolderSelect.RelativePath = obj.TemporarySession.RelativeAutoSavePath;

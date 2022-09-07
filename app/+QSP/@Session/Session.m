@@ -68,6 +68,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         RelativeResultsPathParts = {''}
         RelativeUserDefinedFunctionsPathParts = {''}
         RelativeObjectiveFunctionsPathParts = {''}
+        RelativePluginsPathParts = {''}
         RelativeAutoSavePathParts = {''}
 
     end
@@ -77,7 +78,8 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         % portability between different OS.
         RelativeResultsPath
         RelativeUserDefinedFunctionsPath
-        RelativeObjectiveFunctionsPath        
+        RelativeObjectiveFunctionsPath
+        RelativePluginsPath
         RelativeAutoSavePath        
     end
     
@@ -85,6 +87,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         ResultsDirectory
         ObjectiveFunctionsDirectory
         UserDefinedFunctionsDirectory
+        PluginsDirectory
         AutoSaveDirectory
         GitFiles
     end
@@ -261,6 +264,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
                 'Root Directory',obj.RootDirectory;
                 'Objective Functions Directory',obj.ObjectiveFunctionsDirectory;
                 'User Functions Directory',obj.UserDefinedFunctionsDirectory;
+                'Plugins Directory',obj.PluginsDirectory;
                 'Enable Logging', mat2str(obj.UseLogging);
                 'Log file', obj.LogFile;
                 'Use Git Versioning', mat2str(obj.AutoSaveGit);
@@ -355,8 +359,8 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
                 newObj.RelativeResultsPathParts = obj.RelativeResultsPathParts;
                 newObj.RelativeUserDefinedFunctionsPathParts = obj.RelativeUserDefinedFunctionsPathParts;
                 newObj.RelativeObjectiveFunctionsPathParts = obj.RelativeObjectiveFunctionsPathParts;
+                newObj.RelativePluginsPathParts = obj.RelativePluginsPathParts;
                 newObj.RelativeAutoSavePathParts = obj.RelativeAutoSavePathParts;
-                newObj.RelativeResultsPathParts = obj.RelativeResultsPathParts;
                 
                 newObj.AutoSaveFrequency = obj.AutoSaveFrequency;
                 newObj.AutoSaveBeforeRun = obj.AutoSaveBeforeRun;
@@ -784,7 +788,19 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         function value = get.RelativeObjectiveFunctionsPath(obj)
             value = fullfile(obj.RelativeObjectiveFunctionsPathParts{:});
         end
-
+        
+        function set.RelativePluginsPath(obj, value)
+            arguments 
+                obj   (1,1) QSP.Session
+                value (1,:) char
+            end
+            value = obj.updatePath(value);
+            obj.RelativePluginsPathParts = strsplit(value, filesep);
+        end
+        function value = get.RelativePluginsPath(obj)
+            value = fullfile(obj.RelativePluginsPathParts{:});
+        end
+        
         function set.RelativeAutoSavePath(obj, value)
             arguments 
                 obj   (1,1) QSP.Session
@@ -873,6 +889,13 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         
         function value = get.UserDefinedFunctionsDirectory(obj)
             value = uix.utility.getAbsoluteFilePath(obj.RelativeUserDefinedFunctionsPath, obj.RootDirectory);
+            if ~isempty(getCurrentWorker)
+                value = getAttachedFilesFolder(value);
+            end            
+        end
+        
+        function value = get.PluginsDirectory(obj)
+            value = uix.utility.getAbsoluteFilePath(obj.RelativePluginsPath, obj.RootDirectory);
             if ~isempty(getCurrentWorker)
                 value = getAttachedFilesFolder(value);
             end            
