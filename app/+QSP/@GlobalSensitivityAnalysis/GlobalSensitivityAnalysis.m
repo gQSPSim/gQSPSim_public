@@ -116,6 +116,7 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
                 obj.PlotSettings(index).Title = sprintf('Plot %d', index);
             end
             
+            obj.TimeOfCreation = datetime('now', "Format", "dd-MMM-uuuu");
         end %function obj = GlobalSensitivityAnalysis(varargin)
         
     end %methods
@@ -174,6 +175,50 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
                 };
             
         end %function
+        
+        function Summary = getSummaryTableItems(obj)
+            if ~isempty(obj.Item)
+                GlobalSensitivityAnalysisItems = {};
+                % Check what items are stale or invalid
+                [StaleFlag,ValidFlag,InvalidMessages,StaleReasons] = getStaleItemIndices(obj);                
+                
+                for index = 1:numel(obj.Item)
+                    ThisResultFilePath = obj.Item(index).MATFileName; 
+                    if isempty(ThisResultFilePath)
+                        ThisResultFilePath = 'N/A';
+                    end
+
+                    % Item display
+                    ThisItem = sprintf('%s with %d samples (%d staged)\nResults: %s', obj.Item(index).TaskName, ...
+                        obj.Item(index).NumberSamples, prod(obj.Item(index).IterationInfo), ThisResultFilePath);
+                    if StaleFlag(index)
+                        % Item may be out of date
+                        ThisItem = sprintf('***WARNING***\n%s\n***Item may be out of date %s***', ThisItem, StaleReasons{index});
+                    elseif ~ValidFlag(index)
+                        % Display invalid
+                        ThisItem = sprintf('***ERROR***\n%s\n***%s***', ThisItem, InvalidMessages{index});
+                    end
+                    % Append \n
+                    if index < numel(obj.Item)
+                        ThisItem = sprintf('%s\n',ThisItem);
+                    end
+                    GlobalSensitivityAnalysisItems = [GlobalSensitivityAnalysisItems; ThisItem]; %#ok<AGROW>
+                end
+            else
+                GlobalSensitivityAnalysisItems = [];
+            end
+            
+            % Populate summary
+            Summary = {...
+                'Name',obj.Name;
+                'Description',obj.Description;
+                'Results Path',obj.ResultsFolder;
+                'Sensitivity Inputs',obj.ParametersName;
+                '# of Items',numel(GlobalSensitivityAnalysisItems);
+                'Time created', obj.TimeOfCreationStr;
+                'Last Saved',obj.LastSavedTimeStr;
+                };
+        end
         
         function [StatusOK, Message] = validate(obj, FlagRemoveInvalid)
             

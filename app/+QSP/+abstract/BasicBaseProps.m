@@ -49,10 +49,12 @@ classdef (Abstract) BasicBaseProps < matlab.mixin.SetGet & uix.mixin.AssignPVPai
     %% Dependent properties
     properties (Dependent=true)
         LastSavedTimeStr
+        TimeOfCreationStr
     end
     
     %% Protected Properties
     properties (SetAccess=protected)
+        TimeOfCreation = []
         LastSavedTime = [] % Time at which the view was last saved        
         LastValidatedTime = ''
     end
@@ -152,9 +154,20 @@ classdef (Abstract) BasicBaseProps < matlab.mixin.SetGet & uix.mixin.AssignPVPai
         end
         
         function value = get.LastSavedTimeStr(obj)
-            value = datestr(obj.LastSavedTime);
+            if isempty(obj.LastSavedTime)
+                value='';
+            else
+                value = datestr(obj.LastSavedTime);
+            end
         end        
         
+        function value = get.TimeOfCreationStr(obj)
+            if isempty(obj.TimeOfCreation)
+                value='';
+            else
+                value = datestr(obj.TimeOfCreation);
+            end
+        end 
     end
     
     methods (Access = protected)
