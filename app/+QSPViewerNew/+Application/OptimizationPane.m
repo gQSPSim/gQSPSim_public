@@ -1668,18 +1668,22 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
                     end
                 end
                 Data = [TaskNames(:) GroupIDs(:) num2cell(RunToSteadyState(:))];
-
+                
+                
+                invalidIdx = []; % store invalid indices to create uistyle in table
                 if ~isempty(Data)
                     for index = 1:numel(TaskNames)
                         ThisTask = getValidSelectedTasks(obj.TemporaryOptimization.Settings,TaskNames{index});
                         % Mark invalid if empty
-                        if isempty(ThisTask)
-                            Data{index,1} = 'Click to configure';
+                        if isempty(ThisTask)            
+                            Data{index,1} = QSP.makeInvalid(Data{index,1});
+                            invalidIdx{end+1} = [index,1];
                         end
                     end
                     MatchIdx = find(~ismember(GroupIDs(:),obj.GroupIDPopupTableItems(:)));
                     for index = 1:numel(MatchIdx)
                         Data{MatchIdx(index),2} = QSP.makeInvalid(Data{MatchIdx(index),2});
+                        invalidIdx{end+1} = [MatchIdx(index),2];
                     end
                 end
             else
@@ -1706,6 +1710,11 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
             obj.OptimizationTable.setEditable([false true false]);
             obj.OptimizationTable.setName({'Task','Group','Run To Steady State'});
             obj.OptimizationTable.setData(Data)
+            
+            % add style to invalid entries
+            for i = 1:length(invalidIdx)
+                addInvalidStyle(obj.OptimizationTable, invalidIdx{i});
+            end
         end
         
         function redrawSpecies(obj)
@@ -1745,21 +1754,25 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
                 Data = [DataNames(:) SpeciesNames(:) num2cell(NumTasksPerSpecies(:)) FunctionExpressions(:) ObjectiveNames(:)];
 
                 
+                invalidIdx = [];
                 if ~isempty(Data)
                     % Data
                     MatchIdx = find(~ismember(DataNames(:),obj.PrunedDatasetHeader(:)));
                     for index = 1:numel(MatchIdx)
                         Data{MatchIdx(index),1} = QSP.makeInvalid(Data{MatchIdx(index),1});
+                        invalidIdx{end+1} = [MatchIdx(index),1];
                     end
                     % Species
                     MatchIdx = find(~ismember(SpeciesNames(:),obj.SpeciesPopupTableItems(:)));
                     for index = 1:numel(MatchIdx)
                         Data{MatchIdx(index),2} = QSP.makeInvalid(Data{MatchIdx(index),2});
+                        invalidIdx{end+1} = [MatchIdx(index),2];
                     end
                     % ObjectiveNames
                     MatchIdx = find(~ismember(ObjectiveNames(:),obj.ObjectiveFunctions(:)));
                     for index = 1:numel(MatchIdx)
                         Data{MatchIdx(index),5} = QSP.makeInvalid(Data{MatchIdx(index),5});
+                        invalidIdx{end+1} = [MatchIdx(index),5];
                     end
                 end
             else
@@ -1785,6 +1798,11 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
             obj.SpeciesDataTable.setName({'Data (y)','Species (x)','# Tasks per Species','y=f(x)','ObjectiveFcn'});
             obj.SpeciesDataTable.setFormat({ColumnA,ColumnB,'numeric','char',obj.ObjectiveFunctions(:)'});
             obj.SpeciesDataTable.setData(Data)
+            
+            % add style to invalid entries
+            for i = 1:length(invalidIdx)
+                addInvalidStyle(obj.SpeciesDataTable, invalidIdx{i});
+            end
         end
         
         function redrawInitialConditions(obj)
@@ -1796,16 +1814,19 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
                 Data = [SpeciesNames(:) DataNames(:) FunctionExpressions(:)];
 
                 % Mark any invalid entries
+                invalidIdx = [];
                 if ~isempty(Data)
                     % Species
                     MatchIdx = find(~ismember(SpeciesNames(:),obj.SpeciesPopupTableItems(:)));
                     for index = 1:numel(MatchIdx)
                         Data{MatchIdx(index),1} = QSP.makeInvalid(Data{MatchIdx(index),1});
+                        invalidIdx{end+1} = [MatchIdx(index),1];
                     end
                     % Data
                     MatchIdx = find(~ismember(DataNames(:),obj.PrunedDatasetHeader(:)));
                     for index = 1:numel(MatchIdx)
                         Data{MatchIdx(index),2} = QSP.makeInvalid(Data{MatchIdx(index),2});
+                        invalidIdx{end+1} = [MatchIdx(index),2];
                     end
                 end
             else
@@ -1832,6 +1853,10 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
             obj.SpeciesInitialTable.setFormat({ColumnA,ColumnB,'char'});
             obj.SpeciesInitialTable.setData(Data)
             
+            % add style to any invalid entries
+            for i = 1:length(invalidIdx)
+                addInvalidStyle(obj.SpeciesInitialTable, invalidIdx{i});
+            end
         end
         
         %We draw using  'Optimization', not 'temporaryOptimization' for the visulization

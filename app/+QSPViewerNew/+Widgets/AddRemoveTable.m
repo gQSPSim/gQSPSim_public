@@ -227,6 +227,17 @@ classdef AddRemoveTable < handle
     end
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % Public methods
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    methods
+        function addInvalidStyle(obj, idx)
+            % add style to obj.TableMain for invalid entries at position
+            % specified by idx
+            QSP.makeInvalidStyle(obj.TableMain, idx);
+        end
+    end
+    
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Set/Get
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     methods 
@@ -236,6 +247,7 @@ classdef AddRemoveTable < handle
         end
         
         function setData(obj,input)
+            removeStyle(obj.TableMain); % remove any existing styling
             obj.TableMain.Data = input;
         end
         

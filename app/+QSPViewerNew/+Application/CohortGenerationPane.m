@@ -1357,25 +1357,29 @@ classdef CohortGenerationPane < QSPViewerNew.Application.ViewPane
                 Data = [TaskNames(:) TempGroupIDs(:) num2cell(RunToSteadyState(:))];
                 
                 % Mark any invalid entries
+                invalidIdx = []; % store all invalid indices to add styling later
                 if ~isempty(Data)
                     % Task
-                    
                     for index = 1:numel(TaskNames)
                         ThisTask = getValidSelectedTasks(obj.TemporaryCohortGeneration.Settings,TaskNames{index});
                         % Mark invalid if empty
                         if isempty(ThisTask)
-                            Data{index,1} = 'Click to Configure';
+                            Data{index,1} = QSP.makeInvalid(Data{index,1});
+                            invalidIdx{end+1} = [MatchIdx(index),1];
                         end
                     end
                     
                     MatchIdx = find(~ismember(TempGroupIDs(:),obj.GroupIDPopupTableItems(:)));
                     for index = 1:numel(MatchIdx)
                         Data{MatchIdx(index),2} = QSP.makeInvalid(Data{MatchIdx(index),2});
+                        invalidIdx{end+1} = [MatchIdx(index),1];
                     end
                 end
+                
             else
                 Data = {};
             end
+            
             if ~isempty(obj.TemporaryCohortGeneration) && ~isempty(obj.DatasetHeader) && ~isempty(obj.DatasetData)
                 MatchIdx = strcmp(obj.DatasetHeader,obj.TemporaryCohortGeneration.GroupName);
                 TempGroupIDs = obj.DatasetData(:,MatchIdx);
@@ -1391,6 +1395,11 @@ classdef CohortGenerationPane < QSPViewerNew.Application.ViewPane
             obj.VirtualItemsTable.setName({'Task','Group','Run To Steady State'});
             obj.VirtualItemsTable.setFormat({[],obj.GroupIDPopupTableItems(:)','char'})
             obj.VirtualItemsTable.setData(Data)
+            
+            % add styling to invalid entries if any
+            for i = 1:length(invalidIdx)
+                addInvalidStyle(obj.VirtualItemsTable, invalidIdx{i});
+            end
         end
         
         function redrawSpeciesDataTable(obj)
@@ -1429,16 +1438,19 @@ classdef CohortGenerationPane < QSPViewerNew.Application.ViewPane
                 Data = [DataNames(:) SpeciesNames(:) num2cell(NumTasksPerSpecies(:)) FunctionExpressions(:)];
                 
                 % Mark any invalid entries
+                invalidIdx = [];
                 if ~isempty(Data)
                     % Species
                     MatchIdx = find(~ismember(SpeciesNames(:),obj.SpeciesPopupTableItems(:)));
                     for index = 1:numel(MatchIdx)
                         Data{MatchIdx(index),2} = QSP.makeInvalid(Data{MatchIdx(index),1});
+                        invalidIdx{end+1} = [MatchIdx(index),2];
                     end
                     % Data
                     MatchIdx = find(~ismember(DataNames(:),obj.DatasetDataColumn(:)));
                     for index = 1:numel(MatchIdx)
                         Data{MatchIdx(index),1} = QSP.makeInvalid(Data{MatchIdx(index),4});
+                        invalidIdx{end+1} = [MatchIdx(index),1];
                     end
                 end
             else
@@ -1449,6 +1461,11 @@ classdef CohortGenerationPane < QSPViewerNew.Application.ViewPane
             obj.SpeciesDataTable.setName({'Data (y)','Species (x)','# Tasks per Species','y=f(x)'});
             obj.SpeciesDataTable.setFormat({obj.DatasetDataColumn(:)',obj.SpeciesPopupTableItems(:)','numeric','char'})
             obj.SpeciesDataTable.setData(Data)
+            
+            % add style to any invalid entries
+            for i = 1:length(invalidIdx)
+                addInvalidStyle(obj.SpeciesDataTable, invalidIdx{i});
+            end
         end
         
         function redrawParametersTable(obj)
@@ -1691,18 +1708,7 @@ classdef CohortGenerationPane < QSPViewerNew.Application.ViewPane
                     FlagIsInvalidResultFile = true;
                 end
                 
-                % Only make the "valids" missing. Leave the invalids as is
                 TableData = obj.PlotItemAsInvalidTable;
-                if ~isempty(TableData)
-                    for index = 1:size(obj.CohortGeneration.PlotItemTable,1)
-                        % If results file is missing and it's not already an invalid
-                        % row, then mark as missing
-                        if FlagIsInvalidResultFile && any(~ismember(obj.PlotItemInvalidRowIndices,index))
-                            TableData{index,3} = QSP.makeItalicized(TableData{index,3});
-                            TableData{index,4} = QSP.makeItalicized(TableData{index,4});
-                        end 
-                    end 
-                end 
                 
                 % Update Colors column
                 TableData(:,2) = repmat({''},size(TableData,1),1);
@@ -1711,6 +1717,19 @@ classdef CohortGenerationPane < QSPViewerNew.Application.ViewPane
                 obj.VisVirtCohortItemsTable.ColumnName = {'Include','Color','Task','Group','Display'};
                 obj.VisVirtCohortItemsTable.ColumnFormat = {'logical','char','char','char','char'};
                 obj.VisVirtCohortItemsTable.ColumnEditable =[true,false,false,false,true];
+                
+                % Only make the "valids" missing. Leave the invalids as is
+                if ~isempty(TableData)
+                    for index = 1:size(obj.CohortGeneration.PlotItemTable,1)
+                        % If results file is missing and it's not already an invalid
+                        % row, then mark as missing
+                        if FlagIsInvalidResultFile && any(~ismember(obj.PlotItemInvalidRowIndices,index))
+                            QSP.makeItalicizedNew(obj.VisVirtCohortItemsTable, [index,3]);
+                            QSP.makeItalicizedNew(obj.VisVirtCohortItemsTable, [index,4]);
+                        end 
+                    end 
+                end 
+                
                 
                 for index = 1:size(TableData,1)
                     ThisColor = obj.CohortGeneration.PlotItemTable{index,2};

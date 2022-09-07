@@ -1011,17 +1011,21 @@ classdef VirtualPopulationGenerationPane < QSPViewerNew.Application.ViewPane
                 end
                 
                 Data = [TaskNames(:) TempGroupIDs(:) num2cell(RunToSteadyState(:))];
+                
+                invalidIdx = []; % store invalid indices to create uistyle in table
                 if ~isempty(Data)
                     for index = 1:numel(TaskNames)
                         ThisTask = getValidSelectedTasks(obj.TemporaryVirtualPopulationGeneration.Settings,TaskNames{index});
                         % Mark invalid if empty
                         if isempty(ThisTask)            
-                            Data{index,1} = 'Click to Configure';
+                            Data{index,1} = QSP.makeInvalid(Data{index,1});
+                            invalidIdx{end+1} = [index,1];
                         end
                     end
                     MatchIdx = find(~ismember(TempGroupIDs(:),obj.GroupIDPopupTableItems(:)));
                     for index = 1:numel(MatchIdx)
                         Data{MatchIdx(index),2} = QSP.makeInvalid(Data{MatchIdx(index),2});
+                        invalidIdx{end+1} = [MatchIdx(index),2];
                     end
                 end
             else
@@ -1044,6 +1048,11 @@ classdef VirtualPopulationGenerationPane < QSPViewerNew.Application.ViewPane
             obj.VirtualItemsTable.setName({'Task','Group','Run To Steady State'}');
             obj.VirtualItemsTable.setFormat({[],obj.GroupIDPopupTableItems(:)','char'})
             obj.VirtualItemsTable.setData(Data)
+            
+            % Add style to invalid entries
+            for i = 1:length(invalidIdx)
+                addInvalidStyle(obj.VirtualItemsTable, invalidIdx{i});
+            end
         end
                
         function redrawSpeciesData(obj)
@@ -1067,14 +1076,17 @@ classdef VirtualPopulationGenerationPane < QSPViewerNew.Application.ViewPane
                 
                 Data = [DataNames(:) SpeciesNames(:) num2cell(NumTasksPerSpecies(:)) FunctionExpressions(:)];
                 
+                invalidIdx = [];
                 if ~isempty(Data)
                     MatchIdx = find(~ismember(SpeciesNames(:),obj.SpeciesPopupTableItems(:)));
                     for index = 1:numel(MatchIdx)
                         Data{MatchIdx(index),2} = QSP.makeInvalid(Data{MatchIdx(index),1});
+                        invalidIdx{end+1} = [MatchIdx(index),2];
                     end
                     MatchIdx = find(~ismember(DataNames(:),obj.DatasetDataColumn(:)));
                     for index = 1:numel(MatchIdx)
                         Data{MatchIdx(index),1} = QSP.makeInvalid(Data{MatchIdx(index),4});
+                        invalidIdx{end+1} = [MatchIdx(index),1];
                     end
                 end
             else
@@ -1085,6 +1097,11 @@ classdef VirtualPopulationGenerationPane < QSPViewerNew.Application.ViewPane
             obj.SpeciesDataTable.setName({'Data (y)','Species (x)','# Tasks per Species','y=f(x)'}');
             obj.SpeciesDataTable.setFormat({obj.DatasetDataColumn(:)',obj.SpeciesPopupTableItems(:)','numeric','char'})
             obj.SpeciesDataTable.setData(Data);
+            
+            % add style to invalid entries
+            for i = 1:length(invalidIdx)
+                addInvalidStyle(obj.SpeciesDataTable, invalidIdx{i});
+            end
         end
         
         
@@ -1197,18 +1214,9 @@ classdef VirtualPopulationGenerationPane < QSPViewerNew.Application.ViewPane
                     FlagIsInvalidResultFile = true;
                 end
                 
-                % Only make the "valids" missing. Leave the invalids as is
+                
                 TableData = obj.PlotItemAsInvalidTable;
-                if ~isempty(TableData)
-                    for index = 1:size(obj.VirtualPopulationGeneration.PlotItemTable,1)
-                        % If results file is missing and it's not already an invalid
-                        % row, then mark as missing
-                        if FlagIsInvalidResultFile && any(~ismember(obj.PlotItemInvalidRowIndices,index))
-                            TableData{index,3} = QSP.makeItalicized(TableData{index,3});
-                            TableData{index,4} = QSP.makeItalicized(TableData{index,4});
-                        end 
-                    end 
-                end 
+                
                 
                 % Update Colors column
                 TableData(:,2) = repmat({''},size(TableData,1),1);
@@ -1219,6 +1227,18 @@ classdef VirtualPopulationGenerationPane < QSPViewerNew.Application.ViewPane
                 obj.VisVirtPopItemsTable.ColumnFormat = {'logical','char','char','char','char'};
                 obj.VisVirtPopItemsTable.ColumnEditable = [true,false,false,false,true];
                 
+                % Only make the "valids" missing. Leave the invalids as is
+                if ~isempty(TableData)
+                    for index = 1:size(obj.VirtualPopulationGeneration.PlotItemTable,1)
+                        % If results file is missing and it's not already an invalid
+                        % row, then mark as missing
+                        if FlagIsInvalidResultFile && any(~ismember(obj.PlotItemInvalidRowIndices,index))
+                            QSP.makeItalicizedNew(obj.VisVirtPopItemsTable, [index,3]);
+                            QSP.makeItalicizedNew(obj.VisVirtPopItemsTable, [index,4]);
+                        end
+                    end
+                end
+                
                 %Fill in the colors of the table
                 for index = 1:size(TableData,1)
                     ThisColor = obj.VirtualPopulationGeneration.PlotItemTable{index,2};
@@ -1226,7 +1246,7 @@ classdef VirtualPopulationGenerationPane < QSPViewerNew.Application.ViewPane
                         addStyle(obj.VisVirtPopItemsTable,uistyle('BackgroundColor',ThisColor),'cell',[index,2])
                     end
                 end
-            else         
+            else
                 %Fill in items information and edit limitations
                 obj.VisVirtPopItemsTable.Data = cell(0,5);
                 obj.VisVirtPopItemsTable.ColumnName = {'Include','Color','Task','Group','Display'};
@@ -1280,7 +1300,7 @@ classdef VirtualPopulationGenerationPane < QSPViewerNew.Application.ViewPane
                 else
                     NewPlotTable = cell(numel(SpeciesNames),5);
                     NewPlotTable(:,1) = {' '};
-                    NewPlotTable(:,2) = {'-'}; 
+                    NewPlotTable(:,2) = {'-'};
                     NewPlotTable(:,3) = SpeciesNames;
                     NewPlotTable(:,4) = DataNames;
                     NewPlotTable(:,5) = SpeciesNames;
@@ -1290,7 +1310,7 @@ classdef VirtualPopulationGenerationPane < QSPViewerNew.Application.ViewPane
                         obj.VirtualPopulationGeneration.PlotSpeciesTable(:,5) = obj.VirtualPopulationGeneration.PlotSpeciesTable(:,3);
                         obj.VirtualPopulationGeneration.PlotSpeciesTable(:,4) = obj.VirtualPopulationGeneration.PlotSpeciesTable(:,3);
                         obj.VirtualPopulationGeneration.PlotSpeciesTable(:,3) = obj.VirtualPopulationGeneration.PlotSpeciesTable(:,2);
-                        obj.VirtualPopulationGeneration.PlotSpeciesTable(:,2) = {'-'}; 
+                        obj.VirtualPopulationGeneration.PlotSpeciesTable(:,2) = {'-'};
                     elseif size(obj.VirtualPopulationGeneration.PlotSpeciesTable,2) == 4
                         obj.VirtualPopulationGeneration.PlotSpeciesTable(:,5) = obj.VirtualPopulationGeneration.PlotSpeciesTable(:,3);
                     end

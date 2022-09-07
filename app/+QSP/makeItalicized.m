@@ -1,4 +1,5 @@
 function str = makeItalicized(str)
+%
 if isnumeric(str)
     str = num2str(str);
 end
