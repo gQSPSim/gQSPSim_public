@@ -369,6 +369,7 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
             obj.VisAddButton.Text = '';
             obj.VisAddButton.Tooltip = 'Add new row';
             obj.VisAddButton.ButtonPushedFcn = @obj.onVisAddButton;
+            obj.VisAddButton.Enable = 'on';
 
             obj.VisRemoveButton = uibutton(obj.VisInnerLayout,'push');
             obj.VisRemoveButton.Layout.Row = 3;
@@ -1953,16 +1954,14 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
         function redrawProfileButtonGroup(obj)
 
             if ~isempty(obj.Optimization) && ~isempty(obj.Optimization.SelectedProfileRow) && 0 ~= obj.Optimization.SelectedProfileRow
-                %turn on buttons if we have a selected row 
-                obj.VisAddButton.Enable = true;
+                %turn on buttons if we have a selected row                 
                 obj.VisRemoveButton.Enable = true;
                 obj.VisCopyButton.Enable = true;
-            else %If there is no selected row  
-                obj.VisAddButton.Enable = false;
+            else %If there is no selected row                  
                 obj.VisRemoveButton.Enable = false;
                 obj.VisCopyButton.Enable = false; 
             end
-            
+
             if isempty(obj.VisParametersTable.Data)
                 obj.VisPencilMatButtonm.Enable = false;
                 obj.VisDataButton.Enable = false;
