@@ -1,4 +1,4 @@
-function [fullpath] = LoadResourcePath(fileName)
+function fullpath = LoadResourcePath(fileName)
     % LoadFullTemplatePath - get the full file path from a file located in
     % +QSPViewerNew\+Resources\LoadFullTemplatePath.m
     % ---------------------------------------------------------------------

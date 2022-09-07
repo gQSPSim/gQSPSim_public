@@ -346,7 +346,7 @@ classdef TaskPane < QSPViewerNew.Application.ViewPane
         function value = checkDirty(obj)
             value = obj.IsDirty;
         end
-        
+                
     end
        
     methods (Access = public)
@@ -360,8 +360,7 @@ classdef TaskPane < QSPViewerNew.Application.ViewPane
             obj.TemporaryTask.Description= value;
             obj.IsDirty = true;
         end
-        
-        
+                
         function [StatusOK] = saveBackEndInformation(obj)
             
             %Validate the temporary data

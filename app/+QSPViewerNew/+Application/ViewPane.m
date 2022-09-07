@@ -1072,7 +1072,7 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
                 obj.ParentApp.addWindowUpCallback(obj.VisualizationGrid.getButtonUpCallback());
             end
             obj.OuterGrid.Visible = 'on';
-        end
+        end                
         
         function notifyOfChange(obj,newBackEndObject)
             obj.ParentApp.changeInBackEnd(newBackEndObject);
@@ -1312,6 +1312,28 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
     
     methods(Access = public)
        
+        function show(obj, mode)
+            arguments
+                obj 
+                mode(1,1) string
+            end
+            
+            obj.OuterGrid.Visible = 'on';
+            
+            switch mode
+                case 'Summary'
+                    obj.SummaryPanel.Visible = 'on';
+                    obj.EditPanel.Visible = 'off';
+                case 'Edit'
+                    obj.EditPanel.Visible = 'on';
+                    obj.SummaryPanel.Visible = 'on';
+            end            
+        end
+        
+        function hide(obj)
+            obj.OuterGrid.Visible = 'off';
+        end
+        
         function value = getUIFigure(obj)
             value = obj.ParentApp.getUIFigure();
         end

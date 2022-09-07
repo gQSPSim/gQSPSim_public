@@ -233,10 +233,12 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
            obj.SimItemsTable.CellSelectionCallback = @(h,e) obj.onTableSelectionChange(e);
            
            % create ApplytoAll context menu for sim items table
-           obj.SimItemsTableContextMenu = uicontextmenu(obj.getUIFigure);
-           obj.SimItemsTable.ContextMenu = obj.SimItemsTableContextMenu;
-           obj.ApplyToAllMenu = uimenu(obj.SimItemsTableContextMenu, 'Label', "Apply to all");
-           obj.ApplyToAllMenu.MenuSelectedFcn = @(h,e) obj.onApplyToAllSelected(h,e);
+           if false % TODO
+               obj.SimItemsTableContextMenu = uicontextmenu(obj.getUIFigure);
+               obj.SimItemsTable.ContextMenu = obj.SimItemsTableContextMenu;
+               obj.ApplyToAllMenu = uimenu(obj.SimItemsTableContextMenu, 'Label', "Apply to all");
+               obj.ApplyToAllMenu.MenuSelectedFcn = @(h,e) obj.onApplyToAllSelected(h,e);
+           end
 
            %VisualizationPanel Items
            obj.SimulationVisualizationGrid = uigridlayout(obj.getVisualizationGrid());
