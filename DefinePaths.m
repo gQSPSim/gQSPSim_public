@@ -68,10 +68,11 @@ rootDirs={...
     fullfile(RootPath,'app'),true;... %root folder with children
     fullfile(RootPath,'utilities'),true;... %root folder with children
     fullfile(RootPath,'FromGenentech'),true;... %root folder with children
+    fullfile(RootPath,'app/+QSPViewerNew/+Widgets/AdvLogger'),true;...
     fullfile(RootPath,'ModelManager'),true;... %root folder with children
     };
 
-OutPaths = [ genpath(fullfile(RootPath,'app')), genpath(fullfile(RootPath,'utilities')), genpath(fullfile(RootPath,'FromGenentech')) ];
+OutPaths = [ genpath(fullfile(RootPath,'app')), genpath(fullfile(RootPath,'utilities')), genpath(fullfile(RootPath,'FromGenentech')), genpath(fullfile(RootPath,'app/+QSPViewerNew/+Widgets/AdvLogger')) ];
 
 %************ EDIT ABOVE %************
 

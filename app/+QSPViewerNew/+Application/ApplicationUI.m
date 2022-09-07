@@ -15,7 +15,7 @@ classdef ApplicationUI < matlab.apps.AppBase
     %   Copyright 2020 The MathWorks, Inc.
     %    
     
-    properties  
+    properties
         Sessions = QSP.Session.empty(0,1)
         AppName
         Title
@@ -55,6 +55,7 @@ classdef ApplicationUI < matlab.apps.AppBase
         WindowButtonDownCallbacks = {};
         WindowButtonUpCallbacks = {};
         ModelManagerDialog ModelManager
+        LoggerDialog QSPViewerNew.Dialogs.LoggerDialog
     end
     
     properties (SetAccess = private, Dependent = true, AbortSet = true)
@@ -95,6 +96,7 @@ classdef ApplicationUI < matlab.apps.AppBase
         ToolsMenu                matlab.ui.container.Menu
         ModelManagerMenu         matlab.ui.container.Menu
         PluginsMenu              matlab.ui.container.Menu
+        LoggerMenu               matlab.ui.container.Menu
         HelpMenu                 matlab.ui.container.Menu
         AboutMenu                matlab.ui.container.Menu
         FlexGridLayout           QSPViewerNew.Widgets.GridFlex
@@ -116,7 +118,6 @@ classdef ApplicationUI < matlab.apps.AppBase
         % listener handle for PluginTableData property
         PluginTableDataListener event.listener
     end
-    
     methods (Access = public)
         
         function app = ApplicationUI
@@ -162,6 +163,9 @@ classdef ApplicationUI < matlab.apps.AppBase
             % close plugin manager if open
             if isvalid(app.PluginManager)
                 delete(app.PluginManager)
+             % close logger dialog if open
+            if isvalid(app.LoggerDialog)
+                delete(app.LoggerDialog)
             end
             
             %Delete UI
@@ -315,6 +319,10 @@ classdef ApplicationUI < matlab.apps.AppBase
             app.PluginsMenu.Text = 'Plugin Manager';
             app.PluginsMenu.MenuSelectedFcn = @(h, e) app.onOpenPluginManager;
 
+            % Create logger menu
+            app.LoggerMenu = uimenu(app.ToolsMenu);
+            app.LoggerMenu.Text = 'Logger';
+            app.LoggerMenu.MenuSelectedFcn = @(h, e) app.onOpenLogger;
             
             % Create HelpMenu
             app.HelpMenu = uimenu(app.UIFigure);
@@ -836,7 +844,7 @@ classdef ApplicationUI < matlab.apps.AppBase
             if ~isempty(activeSession)
                 
                 %Need to find the session index
-                Idx = find(strcmp(activeSession.Name,app.Sessions));
+                Idx = find(strcmp(activeSession.Name,{app.Sessions.Name}));
             else
                 Idx = app.SelectedSessionIdx;
             end
@@ -920,7 +928,7 @@ classdef ApplicationUI < matlab.apps.AppBase
         function onTreeSelectionChanged(app,handle,event)
             app.UIFigure.Pointer = 'watch';
             drawnow limitrate;
-            
+            % TODO: Finish
             %First we determine the session that is selected
             %We can select mutliple nodes at once. Therefore we need to consider if SelectedNodes is a vector
             SelectedNodes = event.SelectedNodes;
@@ -1190,6 +1198,9 @@ classdef ApplicationUI < matlab.apps.AppBase
                     node.NodeData.Name = answer{1};
                 end
             end
+            % log to logger
+            loggerObj = QSPViewerNew.Widgets.Logger(thisSession.LoggerName);
+            loggerObj.write(ParentNode.Text, itemType, "MESSAGE", 'added item')
         end
         
         function onDuplicateItem(app,activeSession,activeNode)
@@ -1224,6 +1235,21 @@ classdef ApplicationUI < matlab.apps.AppBase
                 app.permDelete(activeNode,activeSession)
             end
             app.markDirty(activeSession);
+        end
+        
+        function onOpenLogger(app)
+            try
+                app.LoggerDialog = QSPViewerNew.Dialogs.LoggerDialog;
+                app.LoggerDialog.Sessions = app.Sessions;
+            catch ME
+                uialert(app.UIFigure, ME.message, 'Error opening logger dialog');
+            end
+        end
+        
+        function updateLoggerSessions(app,~,~)
+            if isvalid(app.LoggerDialog)
+                app.LoggerDialog.Sessions = app.Sessions;
+            end
         end
        
         function onMoveToSelectedItem(app,h,~)
@@ -1505,7 +1531,9 @@ classdef ApplicationUI < matlab.apps.AppBase
 
             % remove UDF from selected session
             app.SelectedSession.removeUDF();
-            app.SelectedSessionIdx = idxNew;
+            if isempty(app.SelectedSessionIdx)
+                app.SelectedSessionIdx = idxNew;
+            end
             
         end
         
@@ -1519,6 +1547,7 @@ classdef ApplicationUI < matlab.apps.AppBase
             Root = app.TreeRoot;
             app.createTree(Root, Session);
             
+
             % % Update the app state
             
             % Which session is this?
@@ -1665,8 +1694,8 @@ classdef ApplicationUI < matlab.apps.AppBase
                     %call
                     if status
                         %Copy the sessionobject, then add it the application
+                        loadedSession.Session.RootDirectory = newFilePath;
                         Session = copy(loadedSession.Session);
-                        Session.RootDirectory = newFilePath;
                         app.createNewSession(Session);
                         app.createFolders(Session);
                         
@@ -1848,6 +1877,7 @@ classdef ApplicationUI < matlab.apps.AppBase
                     
                     %1.Replace the current Session with the newSession
                     app.Sessions(app.SelectedSessionIdx) = newObject;
+                    newObject.updateLoggerFileDir(); % move logger file if root directory is changed
                     
                     %2. It must update the tree to reflect all the new values from
                     %the session
@@ -2332,6 +2362,7 @@ classdef ApplicationUI < matlab.apps.AppBase
                 %Assign the new name
                 setSessionName(app.Sessions(idx),ThisRawName);
             end
+            updateLoggerSessions(app);
             
             %Update the selected node's name in the tree based on the
             %name,unless it is a session
@@ -2349,7 +2380,7 @@ classdef ApplicationUI < matlab.apps.AppBase
         end
         
         function restoreNode(app,node,session)
-            
+            try
             % What is the data object?
             ThisObj = node.NodeData;
             
@@ -2452,6 +2483,11 @@ classdef ApplicationUI < matlab.apps.AppBase
             % Update the display
             app.refresh();
             app.markDirty(session);
+            catch ME
+                ThisSession = node.NodeData.Session;
+                loggerObj = QSPViewerNew.Widgets.Logger(ThisSession.LoggerName);
+                loggerObj.write(node.Text, ItemType ,ME)
+            end
         end
         
         function restoreFolderNodes(app, node)
@@ -2508,10 +2544,15 @@ classdef ApplicationUI < matlab.apps.AppBase
             end
             
             % Mark the current session dirty
-            app.markDirty(Node.NodeData.Session);
+            ThisSession = Node.NodeData.Session;
+            app.markDirty(ThisSession);
             
             % Update the display
             app.refresh();
+            
+            % update log
+            loggerObj = QSPViewerNew.Widgets.Logger(ThisSession.LoggerName);
+            loggerObj.write(Node.Text, ItemType, "INFO", 'duplicated item')
         end
         
         function deleteNode(app,Node,session)
@@ -2554,6 +2595,9 @@ classdef ApplicationUI < matlab.apps.AppBase
             % Update the display
             app.refresh();
             
+            % update log
+            loggerObj = QSPViewerNew.Widgets.Logger(ThisObj.Session.LoggerName);
+            loggerObj.write(Node.Text, ItemType, "WARNING", 'deleted item')
         end
         
         function deleteFolderNodes(app, node)
@@ -2593,6 +2637,12 @@ classdef ApplicationUI < matlab.apps.AppBase
                     ThisNode = nodes(Nodeidx);
                     ThisObj = ThisNode.NodeData;
                     
+                     % update log
+                     % What type of item?
+                     itemType = split(class(ThisObj), '.');
+                     loggerObj = QSPViewerNew.Widgets.Logger(session.Session.LoggerName);
+                     loggerObj.write(ThisNode.Text, itemType{end}, "DEBUG", 'permanently deleted item')
+                    
                     %Find the node in the deleted array
                     MatchIdx = false(size(session.Deleted));
                     for idx = 1:numel(session.Deleted)
@@ -2613,7 +2663,7 @@ classdef ApplicationUI < matlab.apps.AppBase
                 % Update the display
                 app.refresh();
             end
-                
+            
         end
         
         function updateMovetoContextMenu(app,currentNode)
@@ -2805,6 +2855,10 @@ classdef ApplicationUI < matlab.apps.AppBase
             else
                 value = app.SelectedSessionIdx;
             end
+        end
+        
+        function set.Sessions(app,value)
+            app.Sessions = value;
         end
         
         function set.SelectedSessionIdx(app,value)

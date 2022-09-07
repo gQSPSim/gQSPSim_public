@@ -60,6 +60,9 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         
         UseLogging = true
         LogFile = 'logfile.txt'
+        
+        LoggerSeverityDialog mlog.Level = mlog.Level.MESSAGE;
+        LoggerSeverityFile mlog.Level = mlog.Level.INFO;
     end
     
 	properties (Access=protected)
@@ -70,7 +73,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         RelativeObjectiveFunctionsPathParts = {''}
         RelativePluginsPathParts = {''}
         RelativeAutoSavePathParts = {''}
-
+        RelativeLoggerFilePathParts = {''}
     end
     
     properties (Dependent)
@@ -80,7 +83,9 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         RelativeUserDefinedFunctionsPath
         RelativeObjectiveFunctionsPath
         RelativePluginsPath
-        RelativeAutoSavePath        
+        RelativeAutoSavePath
+        RelativeLoggerFilePath
+        LoggerName
     end
     
     properties (Dependent=true, SetAccess=immutable)
@@ -89,6 +94,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         UserDefinedFunctionsDirectory
         PluginsDirectory
         AutoSaveDirectory
+        LoggerFile
         GitFiles
     end
     
@@ -116,6 +122,8 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         ColorMap2 = QSP.Session.DefaultColorMap
         
         toRemove = false;
+        
+        SessionNameListener
     end
     
     properties (Constant=true)
@@ -146,6 +154,10 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
             
             % Populate public properties from P-V input pairs
             obj.assignPVPairs(varargin{:});
+            
+            % Instantiate logger object
+%             obj.LoggerObj = QSPViewerNew.Widgets.Logger(strcat(string(datetime('now', 'format', 'MMMddyyyyhhmm')), "_session"));
+%             obj.updateLogger();
             
             % Provide Session handle to Settings
             obj.Settings.Session = obj;
@@ -276,7 +288,10 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
                 'Use AutoSave',mat2str(obj.UseAutoSaveTimer);
                 'AutoSave Directory',obj.AutoSaveDirectory;
                 'AutoSave Frequency (min)',num2str(obj.AutoSaveFrequency);
-                'AutoSave Before Run',mat2str(obj.AutoSaveBeforeRun);                
+                'AutoSave Before Run',mat2str(obj.AutoSaveBeforeRun);  
+                'Logger File', obj.LoggerFile;
+                'Logger Level (Dialog)', sprintf('%-7s', obj.LoggerSeverityDialog);
+                'Logger Level (File)', sprintf('%-7s', obj.LoggerSeverityFile);
                 };
         end
         
@@ -361,6 +376,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
                 newObj.RelativeObjectiveFunctionsPathParts = obj.RelativeObjectiveFunctionsPathParts;
                 newObj.RelativePluginsPathParts = obj.RelativePluginsPathParts;
                 newObj.RelativeAutoSavePathParts = obj.RelativeAutoSavePathParts;
+                newObj.RelativeLoggerFilePathParts = obj.RelativeLoggerFilePathParts;
                 
                 newObj.AutoSaveFrequency = obj.AutoSaveFrequency;
                 newObj.AutoSaveBeforeRun = obj.AutoSaveBeforeRun;
@@ -368,6 +384,9 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
                 newObj.ParallelCluster = obj.ParallelCluster;
                 
                 newObj.UseAutoSaveTimer = obj.UseAutoSaveTimer;
+                
+                newObj.LoggerSeverityDialog = obj.LoggerSeverityDialog;
+                newObj.LoggerSeverityFile = obj.LoggerSeverityFile;
                 
                 newObj.UseLogging = obj.UseLogging;
                 newObj.AutoSaveGit = obj.AutoSaveGit;
@@ -505,6 +524,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         end %function
         
         function setSessionName(obj,SessionName)
+            updateLoggerName(obj, SessionName)
             obj.SessionName = SessionName;
         end %function
         
@@ -694,8 +714,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
             
             for ixProj = 1:length(sbprojFiles)
                 % pull out cached version for comparison
-                tmpFile = [tempname '.sbproj'];
-                
+                tmpFile = [tempname '.sbproj'];                
                 git(sprintf('-C "%s" --git-dir="%s" show HEAD:"%s" > "%s"', ...
                     rootDir, obj.GitRepo, sbprojFiles{ixProj}, tmpFile ));
                 m1 = sbioloadproject( tmpFile);
@@ -748,11 +767,51 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
 
         end
         
+        function updateLogger(obj)
+            loggerObj = QSPViewerNew.Widgets.Logger(obj.LoggerName);
+            loggerObj.MessageReceivedEventThreshold = obj.LoggerSeverityDialog;
+            loggerObj.FileThreshold = obj.LoggerSeverityFile;
+        end
+        
+        function updateLoggerName(obj, newSessionName)
+            loggerObj = QSPViewerNew.Widgets.Logger(obj.LoggerName);
+            
+            % check if logger exists in root directory
+            moveLogFile(loggerObj, obj.RootDirectory); % moves log file if not present in root dir
+            
+            % check if current logger name is same as new session name
+            [~,name,~] = fileparts(newSessionName);
+            if contains(name, '.qsp')
+                newLoggerName = extractBefore(name, ".qsp");
+            else
+                newLoggerName = name;
+            end
+            
+            if ~isequal(newLoggerName, obj.LoggerName)
+                rename(loggerObj, newLoggerName);
+            end
+        end
+        
+        function updateLoggerFileDir(obj)
+            loggerObj = QSPViewerNew.Widgets.Logger(obj.LoggerName);
+            
+            % check if logger exists in root directory
+            moveLogFile(loggerObj, obj.RootDirectory); % moves log file if not present in root dir
+        end
+        
     end %methods    
     
     %% Get/Set Methods
     methods
-
+        function set.RootDirectory(obj, value)
+            arguments 
+                obj   (1,1) QSP.Session
+                value (1,:) char
+            end
+            obj.RootDirectory = value;
+%            obj.updateLoggerFileDir();
+        end
+        
         function set.RelativeResultsPath(obj, value)
             arguments 
                 obj   (1,1) QSP.Session
@@ -812,7 +871,26 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         function value = get.RelativeAutoSavePath(obj)
             value = fullfile(obj.RelativeAutoSavePathParts{:});
         end
-
+        
+        function value = get.RelativeLoggerFilePath(obj)
+            value = fullfile(obj.RelativeLoggerFilePathParts{:});
+        end
+        
+        function value = get.RelativeLoggerFilePathParts(obj)
+            loggerObj = QSPViewerNew.Widgets.Logger(obj.LoggerName);
+            [~,name,ext] = fileparts(loggerObj.LogFile);
+            value = strcat(name,ext);
+        end
+        
+        function value = get.LoggerName(obj)
+            [~,name,~] = fileparts(obj.SessionName);
+            if contains(name, '.qsp')
+                value = extractBefore(name, ".qsp");
+            else
+                value = name;
+            end
+        end
+            
         function addUDF(obj)
             % add the UDF to the path
             p = path;
@@ -908,6 +986,13 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
             end            
         end
         
+        function value = get.LoggerFile(obj)
+            value = uix.utility.getAbsoluteFilePath(obj.RelativeLoggerFilePath, obj.RootDirectory);
+            if ~isempty(getCurrentWorker)
+                value = getAttachedFilesFolder(value);
+            end            
+        end
+        
         function set.UseAutoSaveTimer(obj,Value)
             validateattributes(Value,{'logical'},{'scalar'});
             obj.UseAutoSaveTimer = Value;
@@ -931,6 +1016,16 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         function set.ColorMap2(obj,Value)
             validateattributes(Value,{'numeric'},{});
             obj.ColorMap2 = Value;
+        end
+        
+        function set.LoggerSeverityDialog(obj,Value)
+            obj.LoggerSeverityDialog = Value;
+            obj.updateLogger();
+        end
+        
+        function set.LoggerSeverityFile(obj,Value)
+            obj.LoggerSeverityFile = Value;
+            obj.updateLogger();
         end
         
         function files = get.GitFiles(obj)

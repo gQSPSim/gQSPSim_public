@@ -32,6 +32,7 @@ classdef SessionPane < QSPViewerNew.Application.ViewPane
         PluginsSelectorListener
         AutoSaveFolderSelectListener
         GitFolderSelectListener
+        LoggerFileSelectorListener
     end
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -42,7 +43,7 @@ classdef SessionPane < QSPViewerNew.Application.ViewPane
         RootDirSelector                 QSPViewerNew.Widgets.FolderSelector                
         ObjectiveFunDirSelector         QSPViewerNew.Widgets.FolderSelector
         UDFSelector                     QSPViewerNew.Widgets.FolderSelector
-        PluginsSelector                     QSPViewerNew.Widgets.FolderSelector
+        PluginsSelector                 QSPViewerNew.Widgets.FolderSelector
         ParrallelGrid                   matlab.ui.container.GridLayout
         UseParallelToolboxCheckBox      matlab.ui.control.CheckBox
         AutosaveOptionsPanel            matlab.ui.container.Panel
@@ -60,6 +61,12 @@ classdef SessionPane < QSPViewerNew.Application.ViewPane
         GitGrid                         matlab.ui.container.GridLayout
         EnableGitCheckBox               matlab.ui.control.CheckBox
         GitFolderSelect                 QSPViewerNew.Widgets.FolderSelector
+        LoggerGrid                      matlab.ui.container.GridLayout
+        LoggerPanel                     matlab.ui.container.Panel
+        LoggerSeverityDialogDropDown    matlab.ui.control.DropDown
+        LoggerSeverityDialogLabel       matlab.ui.control.Label
+        LoggerSeverityFileDropDown      matlab.ui.control.DropDown
+        LoggerSeverityFileLabel         matlab.ui.control.Label
     end
         
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -88,7 +95,7 @@ classdef SessionPane < QSPViewerNew.Application.ViewPane
             obj.OuterSubGrid.ColumnSpacing = obj.WidgetWidthSpacing;
             obj.OuterSubGrid.ColumnSpacing = obj.WidgetHeightSpacing;
             obj.OuterSubGrid.ColumnWidth = {'1x'};
-            obj.OuterSubGrid.RowHeight = {obj.WidgetHeight,obj.WidgetHeight,obj.WidgetHeight,obj.WidgetHeight,obj.WidgetHeight*4,obj.WidgetHeight*5,'1x'};
+            obj.OuterSubGrid.RowHeight = {obj.WidgetHeight,obj.WidgetHeight,obj.WidgetHeight,obj.WidgetHeight*4,obj.WidgetHeight*5,obj.WidgetHeight*5,'1x'};
             
             % Create Objective Functions Directory
             obj.RootDirSelector = QSPViewerNew.Widgets.FolderSelector(obj.OuterSubGrid,1,1,' Root Directory:',true);
@@ -102,7 +109,7 @@ classdef SessionPane < QSPViewerNew.Application.ViewPane
             %Plugins Dir
             obj.PluginsSelector = QSPViewerNew.Widgets.FolderSelector(obj.OuterSubGrid,4,1,' Plugins Directory:');
             
-            %Create AutosaveOptionsPanel
+            %Create ParallelOptionsPanel
             obj.ParallelOptionsPanel = uipanel(obj.OuterSubGrid);
             obj.ParallelOptionsPanel.Title = 'Parrallel Options';
             obj.ParallelOptionsPanel.Layout.Row = 5;
@@ -209,6 +216,68 @@ classdef SessionPane < QSPViewerNew.Application.ViewPane
             obj.AutoSaveFreqEdit = uieditfield(obj.AutoSaveOptionsGrid,'numeric');
             obj.AutoSaveFreqEdit.Layout.Row = 1;
             obj.AutoSaveFreqEdit.Layout.Column = 3;
+            
+            % Create Logger panel
+            obj.LoggerPanel = uipanel(obj.OuterSubGrid);
+            obj.LoggerPanel.Title = 'Logger Options';
+            obj.LoggerPanel.Layout.Row = 6;
+            obj.LoggerPanel.Layout.Column = 1;
+            obj.LoggerPanel.BackgroundColor = obj.SubPanelColor;
+            
+            % Create Logger grid layout
+            obj.LoggerGrid = uigridlayout(obj.LoggerPanel);
+            obj.LoggerGrid.ColumnWidth = {obj.LabelLength*1.5,'1x'};
+            obj.LoggerGrid.RowHeight = {obj.WidgetHeight,obj.WidgetHeight,'1x'};  
+            obj.LoggerGrid.Padding = obj.SubPanelPadding;
+            obj.LoggerGrid.ColumnSpacing = obj.SubPanelWidthSpacing;
+            obj.LoggerGrid.RowSpacing = obj.SubPanelHeightSpacing;
+            
+            % Create logger severity level for dialog dropdown
+            obj.LoggerSeverityDialogDropDown = uidropdown(obj.LoggerGrid);
+            obj.LoggerSeverityDialogDropDown.Items = {'NONE: none of the ietms are logged', ...
+                'ERROR: Only error level messages are logged', ...
+                'WARNING: Only warning or error level messages are logged', ...
+                'INFO: Informational messages are logged, plus all the above', ...
+                'MESSAGE: Messages to the user are logged, plus all of the above', ...
+                'DEBUG_INFO: Additional debugging info messages are logged, plus all of the above'};
+            obj.LoggerSeverityDialogDropDown.ItemsData = {mlog.Level.NONE, ...
+                mlog.Level.ERROR, ...
+                mlog.Level.WARNING, ...
+                mlog.Level.INFO, ...
+                mlog.Level.MESSAGE, ...
+                mlog.Level.DEBUG};
+            obj.LoggerSeverityDialogDropDown.Value = mlog.Level.MESSAGE;
+            obj.LoggerSeverityDialogDropDown.Layout.Row = 1;
+            obj.LoggerSeverityDialogDropDown.Layout.Column = 2;
+            
+            % Create logger severity level for file dropdown
+            obj.LoggerSeverityFileDropDown = uidropdown(obj.LoggerGrid);
+            obj.LoggerSeverityFileDropDown.Items = {'NONE: none of the ietms are logged', ...
+                'ERROR: Only error level messages are logged', ...
+                'WARNING: Only warning or error level messages are logged', ...
+                'INFO: Informational messages are logged, plus all the above', ...
+                'MESSAGE: Messages to the user are logged, plus all of the above', ...
+                'DEBUG_INFO: Additional debugging info messages are logged, plus all of the above'};
+            obj.LoggerSeverityFileDropDown.ItemsData = {mlog.Level.NONE, ...
+                mlog.Level.ERROR, ...
+                mlog.Level.WARNING, ...
+                mlog.Level.INFO, ...
+                mlog.Level.MESSAGE, ...
+                mlog.Level.DEBUG};
+            obj.LoggerSeverityFileDropDown.Layout.Row = 2;
+            obj.LoggerSeverityFileDropDown.Layout.Column = 2;
+            
+            % Create logger severity level for dialog label
+            obj.LoggerSeverityDialogLabel = uilabel(obj.LoggerGrid);
+            obj.LoggerSeverityDialogLabel.Text = 'Logger Severity (Dialog)';
+            obj.LoggerSeverityDialogLabel.Layout.Row = 1;
+            obj.LoggerSeverityDialogLabel.Layout.Column = 1;
+            
+            % Create logger severity level for dialog label
+            obj.LoggerSeverityFileLabel = uilabel(obj.LoggerGrid);
+            obj.LoggerSeverityFileLabel.Text = 'Logger Severity (File)';
+            obj.LoggerSeverityFileLabel.Layout.Row = 2;
+            obj.LoggerSeverityFileLabel.Layout.Column = 1;
         end
         
         function createListenersAndCallbacks(obj)
@@ -231,6 +300,8 @@ classdef SessionPane < QSPViewerNew.Application.ViewPane
             obj.AutoSaveFreqEdit.ValueChangedFcn = @(h,e) obj.onAutoSaveFrequencyEdited(e.Value);
             obj.UseParallelToolboxDropDown.ValueChangedFcn = @(h,e) obj.onParallelClusterPopup(e.Value);
             obj.EnableGitCheckBox.ValueChangedFcn = @(h,e) obj.onGitCheckbox(e.Value);
+            obj.LoggerSeverityDialogDropDown.ValueChangedFcn = @(h,e) obj.onLoggerSeverityDialogChanged(e.Value);
+            obj.LoggerSeverityFileDropDown.ValueChangedFcn = @(h,e) obj.onLoggerSeverityFileChanged(e.Value);
         end
     end
     
@@ -317,6 +388,15 @@ classdef SessionPane < QSPViewerNew.Application.ViewPane
             obj.IsDirty = true; 
         end
         
+        function onLoggerSeverityDialogChanged(obj,newValue)
+            obj.TemporarySession.LoggerSeverityDialog = newValue;
+            obj.IsDirty = true;
+        end
+        
+        function onLoggerSeverityFileChanged(obj,newValue)
+            obj.TemporarySession.LoggerSeverityFile = newValue;
+            obj.IsDirty = true;
+        end
     end   
     
     methods(Access = public) 
@@ -414,6 +494,9 @@ classdef SessionPane < QSPViewerNew.Application.ViewPane
             
             obj.AutoSaveFolderSelect.RootDirectory = obj.TemporarySession.RootDirectory;
             obj.AutoSaveFolderSelect.RelativePath = obj.TemporarySession.RelativeAutoSavePath;
+            
+            obj.LoggerSeverityFileDropDown.Value = obj.TemporarySession.LoggerSeverityFile;
+            obj.LoggerSeverityDialogDropDown.Value = obj.TemporarySession.LoggerSeverityDialog;
             
             obj.UseParallelToolboxCheckBox.Value = obj.TemporarySession.UseParallel;
             
