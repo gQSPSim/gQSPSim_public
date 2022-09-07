@@ -34,7 +34,7 @@ classdef ApplicationUI < matlab.apps.AppBase
         RecentSessionPaths = cell.empty(0,1)
         LastFolder = pwd
         ActivePane
-        Panes
+        Panes = cell.empty(0,1);
         IsConstructed = false;
         Type
         TypeStr
@@ -1490,23 +1490,34 @@ classdef ApplicationUI < matlab.apps.AppBase
             end
             
             %Determine if the Node will launch a Pane
-            LaunchPaneTF = ~isempty(NodeSelected) && isempty(NodeSelected.UserData);
-
+            funcNames = ["Simulation", "Optimization", "VirtualPopulationGeneration", "GlobalSensitivityAnalysis", "CohortGeneration"];
+            isFuncTopnode = ~isempty(NodeSelected) && any(matches(funcNames, string(NodeSelected.UserData)));
+            LaunchPaneTF = ~isempty(NodeSelected) && (isempty(NodeSelected.UserData) || ...
+               isFuncTopnode);
+            
             %If we shouldnt launch a pane and there is currently a pane,
             %close it
             if ~LaunchPaneTF && ~isempty(app.ActivePane)
                 app.ActivePane.hideThisPane();
                 app.ActivePane = [];
-            elseif LaunchPaneTF  
+            elseif LaunchPaneTF
                 %Determine if the pane type has already been loaded
                 PaneType = app.getPaneClassFromQSPClass(class(NodeSelected.NodeData));
                 idxPane = app.PaneTypes(strcmp(app.PaneTypes,PaneType));
                 if isempty(idxPane)
                     %Launch a new Panewith the data provided
-                    app.launchNewPane(NodeSelected.NodeData);
+                    if isFuncTopnode
+                        app.launchNewPane(NodeSelected);
+                    else
+                        app.launchNewPane(NodeSelected.NodeData);
+                    end
                 else
-                    %Launch a pane that already exists with the new data
-                    app.launchOldPane(NodeSelected.NodeData);
+                    if isFuncTopnode
+                        app.launchOldPane(NodeSelected);
+                    else
+                        %Launch a pane that already exists with the new data
+                        app.launchOldPane(NodeSelected.NodeData);
+                    end
                 end
             end
         end
@@ -1560,12 +1571,17 @@ classdef ApplicationUI < matlab.apps.AppBase
                     app.ActivePane.attachNewVirtPopGenData(nodeData);
                 case 'QSP.GlobalSensitivityAnalysis'
                     app.ActivePane = QSPViewerNew.Application.GlobalSensitivityAnalysisPane(classInputs);
-                    app.ActivePane.attachNewGlobalSensitivityAnalysis(nodeData);                    
+                    app.ActivePane.attachNewGlobalSensitivityAnalysis(nodeData);
+                case 'matlab.ui.container.TreeNode'
+                    app.ActivePane = QSPViewerNew.Application.FunctionalitySummaryPane(classInputs);
+                    if ~isempty(nodeData.Children)
+                        app.ActivePane.attachNewNodeData([nodeData.Children.NodeData]);
+                    end
                     
             end
             if ~isempty(app.ActivePane)
                 %Now take the pane and display it.
-                app.Panes = [app.Panes, app.ActivePane];
+                app.Panes = {app.Panes, app.ActivePane};
                 app.ActivePane.showThisPane();
             end
         end
@@ -1575,13 +1591,13 @@ classdef ApplicationUI < matlab.apps.AppBase
             PaneType = app.getPaneClassFromQSPClass(class(nodeData));
             idxPane = find(strcmp(PaneType,app.PaneTypes),1);
             
-            if app.ActivePane~=app.Panes(idxPane)
+            if app.ActivePane~=app.Panes{idxPane}
                 %The pane shown is not correct, we need to change it.
                 app.ActivePane.hideThisPane();
-                app.ActivePane = app.Panes(idxPane);
+                app.ActivePane = app.Panes{idxPane};
             elseif isempty(app.ActivePane)
                 %There is no pane shown
-                app.ActivePane = app.Panes(idxPane);
+                app.ActivePane = app.Panes{idxPane};
             end
             
             switch PaneType
@@ -1609,9 +1625,15 @@ classdef ApplicationUI < matlab.apps.AppBase
                     app.ActivePane.attachNewVirtualPopulationGeneration(nodeData);
                 case 'QSPViewerNew.Application.GlobalSensitivityAnalysisPane'
                     app.ActivePane.attachNewGlobalSensitivityAnalysis(nodeData);
+                case 'matlab.ui.container.TreeNode'
+                    app.ActivePane.attachNewNodeData([nodeData.Children.NodeData]);
             end
             
             app.ActivePane.showThisPane();
+        end
+        
+        function launchFuncSummaryPane(app,NodeSelected)
+            
         end
         
         function updateTreeData(app,tree,newData,type)
@@ -2031,7 +2053,11 @@ classdef ApplicationUI < matlab.apps.AppBase
         end
         
         function value = get.PaneTypes(app)
-            value = arrayfun(@class, app.Panes, 'UniformOutput', false); 
+            if ~isempty(app.Panes)
+                value = cellfun(@class, app.Panes, 'UniformOutput', false);
+            else
+                value = [];
+            end
         end
         
         function setCurrentSessionDirty(app)

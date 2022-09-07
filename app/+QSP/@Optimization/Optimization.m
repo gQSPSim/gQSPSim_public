@@ -125,6 +125,7 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 obj.PlotSettings(index).Title = sprintf('Plot %d', index);
             end            
             
+            obj.TimeOfCreation = datetime('now', "Format", "dd-MMM-uuuu");
         end %function obj = Optimization(varargin)
         
     end %methods
@@ -229,6 +230,75 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 };
             
         end %function
+        
+        function Summary = getSummaryTableItems(obj)
+            if ~isempty(obj.Item)
+                TheseOptimizationItems = {};
+                % Check what items are stale or invalid
+                [StaleFlag,ValidFlag,InvalidMessages] = getStaleItemIndices(obj);
+
+                for index = 1:numel(obj.Item)
+
+                    % Default
+                    ThisItem = sprintf('%s - %s',obj.Item(index).TaskName,obj.Item(index).GroupID);
+                    if StaleFlag(index)
+                        % Item may be out of date
+                        ThisItem = sprintf('***WARNING*** %s\n%s',ThisItem,'***Item may be out of date***');
+                    elseif ~ValidFlag(index)
+                        % Display invalid                        
+                        ThisItem = sprintf('***ERROR*** %s\n***%s***',ThisItem,InvalidMessages{index});
+                    else
+                        ThisItem = sprintf('%s',ThisItem);
+                    end
+                    % Append \n
+                    if index < numel(obj.Item)
+                        ThisItem = sprintf('%s\n',ThisItem);
+                    end
+                    TheseOptimizationItems = [TheseOptimizationItems; ThisItem]; %#ok<AGROW>
+                end
+            else
+                TheseOptimizationItems = {};
+            end
+            
+            % Get the parameter used            
+            Names = {obj.Settings.Parameters.Name};
+            MatchIdx = strcmpi(Names,obj.RefParamName);
+            if any(MatchIdx)
+                pObj = obj.Settings.Parameters(MatchIdx);
+                [~,~,ParametersHeader,ParametersData] = importData(pObj,pObj.FilePath);                
+            else
+                ParametersHeader = {};
+                ParametersData = {};
+            end
+            
+            if ~isempty(ParametersHeader)
+                MatchInclude = find(strcmpi(ParametersHeader,'Include'));
+                MatchName = find(strcmpi(ParametersHeader,'Name'));
+                if numel(MatchInclude) == 1 && numel(MatchName) == 1
+                    IsUsed = strcmpi(ParametersData(:,MatchInclude),'yes');
+                    UsedParamNames = ParametersData(IsUsed,MatchName);
+                    if isempty(UsedParamNames)
+                        UsedParamNames = 'N/A';
+                    end
+                else
+                    UsedParamNames = {};
+                end
+            else
+                UsedParamNames = {};
+            end
+            
+            % Populate summary
+            Summary = {...
+                'Name',obj.Name;
+                'Description',obj.Description;
+                'Results Path',obj.OptimResultsFolderName_new;
+                'Dataset',obj.DatasetName;
+                'Parameters',join(unique(string(UsedParamNames)), ', ');
+                '# of Items',numel(TheseOptimizationItems);
+                'Time created', obj.TimeOfCreationStr;
+                'Last Saved',obj.LastSavedTimeStr;
+                };
+        end
         
         function [StatusOK, Message] = validate(obj,FlagRemoveInvalid)
             
