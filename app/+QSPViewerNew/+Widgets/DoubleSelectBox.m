@@ -21,21 +21,28 @@ classdef DoubleSelectBox < handle
     end
     
     properties (Access = private)
-       PanelMain            matlab.ui.container.Panel
-       GridMain             matlab.ui.container.GridLayout
-       GridMiddle           matlab.ui.container.GridLayout
-       GridBottom           matlab.ui.container.GridLayout
-       ListBoxLeft          matlab.ui.control.ListBox
-       ListBoxRight         matlab.ui.control.ListBox
-       MoveItemRightButton  matlab.ui.control.Button
-       MoveItemUpButton     matlab.ui.control.Button
-       MoveItemDownButton   matlab.ui.control.Button
-       RemoveItemButton     matlab.ui.control.Button
+       PanelMain              matlab.ui.container.Panel
+       GridMain               matlab.ui.container.GridLayout
+       GridMiddle             matlab.ui.container.GridLayout
+       GridBottom             matlab.ui.container.GridLayout
+       ListBoxLeft            matlab.ui.control.ListBox
+       ListBoxRight           matlab.ui.control.ListBox
+       MoveItemRightButton    matlab.ui.control.Button
+       MoveItemUpButton       matlab.ui.control.Button
+       MoveItemDownButton     matlab.ui.control.Button
+       RemoveItemButton       matlab.ui.control.Button
+       GridFilterBottom       matlab.ui.container.GridLayout
+       FilterSearchEditField  matlab.ui.control.EditField
+       FilterButton           matlab.ui.control.Image
     end
     
     properties (Dependent)
         RightList
         LeftList
+    end
+    
+    properties (Transient = true)
+        LeftListItemsAll        % To hold all left list items at the time of object initialization
     end
     
     events
@@ -69,6 +76,7 @@ classdef DoubleSelectBox < handle
         
         function setLeftListBox(obj,listOfNames)
             obj.ListBoxLeft.Items = listOfNames;
+            obj.LeftListItemsAll = listOfNames;
             obj.resetIndex();
         end
     end
@@ -163,7 +171,30 @@ classdef DoubleSelectBox < handle
             obj.RemoveItemButton.Icon = QSPViewerNew.Resources.LoadResourcePath('delete_24.png');
             obj.RemoveItemButton.Text = '';
             obj.RemoveItemButton.ButtonPushedFcn = @obj.removeItem;
-
+            
+            %Add the bottom left grid for filter field
+            obj.GridFilterBottom = uigridlayout(obj.GridMain);
+            obj.GridFilterBottom.ColumnWidth = {'1x',ButtonSize};
+            obj.GridFilterBottom.RowHeight = {'1x'};
+            obj.GridFilterBottom.Layout.Row = 2;
+            obj.GridFilterBottom.Layout.Column = 1;
+            obj.GridFilterBottom.Padding = [pad,pad,pad,pad];
+            obj.GridFilterBottom.ColumnSpacing = pad;
+            obj.GridFilterBottom.RowSpacing = pad;
+            
+            %Add the filter edit box
+            obj.FilterSearchEditField = uieditfield(obj.GridFilterBottom);
+            obj.FilterSearchEditField.Layout.Row = 1;
+            obj.FilterSearchEditField.Layout.Column = 1;
+            obj.FilterSearchEditField.ValueChangingFcn = @(h,e) obj.updateListLeftItems(h,e);
+            obj.FilterSearchEditField.ValueChangedFcn = @(h,e) obj.updateListLeftItems(h,e);
+            
+            %Add the filter search button
+            obj.FilterButton = uiimage(obj.GridFilterBottom);
+            obj.FilterButton.Layout.Row = 1;
+            obj.FilterButton.Layout.Column = 2;
+            obj.FilterButton.ImageSource = QSPViewerNew.Resources.LoadResourcePath('filter_24.png');
+            
             obj.setButtonsInteractivity()
         end
         
@@ -287,6 +318,13 @@ classdef DoubleSelectBox < handle
             obj.resetIndex();
             obj.ListBoxRight.Value = obj.SelectedRight;
             obj.setButtonsInteractivity();
+            obj.notify('StateChanged')
+        end
+        
+        function updateListLeftItems(obj,~,e)
+            findstr = e.Value;
+            obj.ListBoxLeft.Items = obj.LeftListItemsAll(contains(obj.LeftListItemsAll, split(findstr), 'IgnoreCase', true));
+            obj.resetIndex();
             obj.notify('StateChanged')
         end
         
