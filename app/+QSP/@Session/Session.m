@@ -45,6 +45,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
     properties
         AutoSaveFrequency = 1 % minutes
         AutoSaveBeforeRun = true
+        AutoSaveSingleFile = false
         UseParallel = false
         ParallelCluster
         UseAutoSaveTimer = false
@@ -169,6 +170,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
             else
                 obj.ParallelCluster = {''};
             end
+           
             
 %             % Initialize timer - If you call initialize here, it will
 %             enter a recursive loop. Do not call here. Instead, invoke
@@ -287,6 +289,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
                 'Parallel cluster', obj.ParallelCluster;
                 'Use AutoSave',mat2str(obj.UseAutoSaveTimer);
                 'AutoSave Directory',obj.AutoSaveDirectory;
+                'Enable Checkpoints',mat2str(~obj.AutoSaveSingleFile);
                 'AutoSave Frequency (min)',num2str(obj.AutoSaveFrequency);
                 'AutoSave Before Run',mat2str(obj.AutoSaveBeforeRun);  
                 'Logger File', obj.LoggerFile;
@@ -348,6 +351,24 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
             
         end %function
         
+        function updateTimerObj(obj)
+            if obj.UseAutoSaveTimer 
+                if ~isempty(obj.timerObj) && isvalid(obj.timerObj)
+                    if ~strcmpi(obj.timerObj.Running,'on')
+                        start(obj.timerObj);
+                    end
+                else
+                    obj.initializeTimer();
+                end
+            else
+                if ~isempty(obj.timerObj) && isvalid(obj.timerObj)
+                    if strcmpi(obj.timerObj.Running,'on')
+                        stop(obj.timerObj);
+                    end
+                end
+            end
+        end
+        
         function deleteTimer(obj)
             if ~isempty(obj.timerObj) && isvalid(obj.timerObj)
                 if strcmpi(obj.timerObj.Running,'on')
@@ -378,6 +399,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
                 newObj.RelativeAutoSavePathParts = obj.RelativeAutoSavePathParts;
                 newObj.RelativeLoggerFilePathParts = obj.RelativeLoggerFilePathParts;
                 
+                newObj.AutoSaveSingleFile = obj.AutoSaveSingleFile;
                 newObj.AutoSaveFrequency = obj.AutoSaveFrequency;
                 newObj.AutoSaveBeforeRun = obj.AutoSaveBeforeRun;
                 newObj.UseParallel = obj.UseParallel;
@@ -566,15 +588,21 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
             
             try
                 % Save when fired
-                s.Session = obj; %#ok<STRNU>
+                s.Session = obj; 
                 % Remove .qsp.mat from name temporarily
                 ThisName = regexprep(obj.SessionName,'\.qsp\.mat','');
-                TimeStamp = datestr(now,'dd-mmm-yyyy_HH-MM-SS');
-                if ~isempty(Tag)
-                    FileName = sprintf('%s_%s_%s.qsp.mat',ThisName,TimeStamp,Tag);
+                
+                if ~obj.AutoSaveSingleFile
+                    TimeStamp = datestr(now,'dd-mmm-yyyy_HH-MM-SS');
+                    if ~isempty(Tag)
+                        FileName = sprintf('%s_%s_%s.qsp.mat',ThisName,TimeStamp,Tag);
+                    else
+                        FileName = sprintf('%s_%s.qsp.mat',ThisName,TimeStamp);
+                    end
                 else
-                    FileName = sprintf('%s_%s.qsp.mat',ThisName,TimeStamp);
+                    FileName = sprintf('%s_autosave.qsp.mat', ThisName);
                 end
+                
                 if ~exist(obj.AutoSaveDirectory, 'dir')
                     mkdir(obj.AutoSaveDirectory)
                     warning('Creating autosave directory %s', obj.AutoSaveDirectory)
@@ -996,6 +1024,12 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         function set.UseAutoSaveTimer(obj,Value)
             validateattributes(Value,{'logical'},{'scalar'});
             obj.UseAutoSaveTimer = Value;
+            obj.updateTimerObj();
+        end
+        
+        function set.AutoSaveSingleFile(obj,Value)
+            validateattributes(Value,{'logical'},{'scalar'});
+            obj.AutoSaveSingleFile = Value;
         end
         
         function set.AutoSaveFrequency(obj,Value)

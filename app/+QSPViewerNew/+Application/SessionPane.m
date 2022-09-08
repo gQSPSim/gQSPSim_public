@@ -51,6 +51,7 @@ classdef SessionPane < QSPViewerNew.Application.ViewPane
         ParallelOptionsPanel            matlab.ui.container.Panel
         AutoSaveFolderSelect            QSPViewerNew.Widgets.FolderSelector
         AutoSaveOptionsGrid             matlab.ui.container.GridLayout
+        EnableCheckpoints               matlab.ui.control.CheckBox
         AutoSavePeriodically            matlab.ui.control.CheckBox
         AutoSaveBeforeRun               matlab.ui.control.CheckBox
         AutoSaveFreqLabel               matlab.ui.control.Label
@@ -95,7 +96,7 @@ classdef SessionPane < QSPViewerNew.Application.ViewPane
             obj.OuterSubGrid.ColumnSpacing = obj.WidgetWidthSpacing;
             obj.OuterSubGrid.ColumnSpacing = obj.WidgetHeightSpacing;
             obj.OuterSubGrid.ColumnWidth = {'1x'};
-            obj.OuterSubGrid.RowHeight = {obj.WidgetHeight,obj.WidgetHeight,obj.WidgetHeight,obj.WidgetHeight*4,obj.WidgetHeight*5,obj.WidgetHeight*5,'1x'};
+            obj.OuterSubGrid.RowHeight = {obj.WidgetHeight,obj.WidgetHeight,obj.WidgetHeight,obj.WidgetHeight*4,obj.WidgetHeight*6,'1x'};
             
             % Create Objective Functions Directory
             obj.RootDirSelector = QSPViewerNew.Widgets.FolderSelector(obj.OuterSubGrid,1,1,' Root Directory:',true);
@@ -187,34 +188,40 @@ classdef SessionPane < QSPViewerNew.Application.ViewPane
             %AutsaveSubOptionsGrid
             obj.AutoSaveOptionsGrid = uigridlayout(obj.AutoSaveGrid);
             obj.AutoSaveOptionsGrid.ColumnWidth = {obj.DescriptionSize,obj.DescriptionSize,obj.LabelLength};
-            obj.AutoSaveOptionsGrid.RowHeight = {obj.WidgetHeight,obj.WidgetHeight,'1x'};  
+            obj.AutoSaveOptionsGrid.RowHeight = {obj.WidgetHeight,obj.WidgetHeight,obj.WidgetHeight,'1x'};  
             obj.AutoSaveOptionsGrid.Padding = obj.WidgetPadding;
             obj.AutoSaveOptionsGrid.ColumnSpacing = obj.WidgetHeightSpacing;
             obj.AutoSaveOptionsGrid.RowSpacing = obj.WidgetWidthSpacing;
             obj.AutoSaveOptionsGrid.Layout.Row = 2;
             obj.AutoSaveOptionsGrid.Layout.Column = 1;
             
+            %AutoSave single file Checkbox
+            obj.EnableCheckpoints = uicheckbox(obj.AutoSaveOptionsGrid);
+            obj.EnableCheckpoints.Text = 'Enable Checkpoints';
+            obj.EnableCheckpoints.Layout.Row = 1;
+            obj.EnableCheckpoints.Layout.Column = 1;
+            
             %AutoSave periodically Checkbox
             obj.AutoSavePeriodically = uicheckbox(obj.AutoSaveOptionsGrid);
             obj.AutoSavePeriodically.Text = 'Autosave Periodically';
-            obj.AutoSavePeriodically.Layout.Row = 1;
+            obj.AutoSavePeriodically.Layout.Row = 2;
             obj.AutoSavePeriodically.Layout.Column = 1;
             
-            %AutoSave periodically Checkbox
+            %AutoSave before run Checkbox
             obj.AutoSaveBeforeRun = uicheckbox(obj.AutoSaveOptionsGrid);
             obj.AutoSaveBeforeRun.Text = 'Before Run';
-            obj.AutoSaveBeforeRun.Layout.Row = 2;
+            obj.AutoSaveBeforeRun.Layout.Row = 3;
             obj.AutoSaveBeforeRun.Layout.Column = 1;
             
             %Autosave freq label
             obj.AutoSaveFreqLabel = uilabel(obj.AutoSaveOptionsGrid);
             obj.AutoSaveFreqLabel.Text = 'Autosave Frequency (min)';
-            obj.AutoSaveFreqLabel.Layout.Row = 1;
+            obj.AutoSaveFreqLabel.Layout.Row = 2;
             obj.AutoSaveFreqLabel.Layout.Column = 2;
             
             %Autosave freq edit
             obj.AutoSaveFreqEdit = uieditfield(obj.AutoSaveOptionsGrid,'numeric');
-            obj.AutoSaveFreqEdit.Layout.Row = 1;
+            obj.AutoSaveFreqEdit.Layout.Row = 2;
             obj.AutoSaveFreqEdit.Layout.Column = 3;
             
             % Create Logger panel
@@ -295,6 +302,7 @@ classdef SessionPane < QSPViewerNew.Application.ViewPane
             
             %Callbacks
             obj.UseParallelToolboxCheckBox.ValueChangedFcn = @(h,e) obj.onParallelCheckbox(e.Value);
+            obj.EnableCheckpoints.ValueChangedFcn = @(h,e) obj.onEnableCheckpointsCheckbox(e.Value);
             obj.AutoSavePeriodically.ValueChangedFcn = @(h,e) obj.onAutosaveTimerCheckbox(e.Value);
             obj.AutoSaveBeforeRun.ValueChangedFcn = @(h,e) obj.onAutoSaveBeforeRunChecked(e.Value);
             obj.AutoSaveFreqEdit.ValueChangedFcn = @(h,e) obj.onAutoSaveFrequencyEdited(e.Value);
@@ -342,6 +350,11 @@ classdef SessionPane < QSPViewerNew.Application.ViewPane
         function onParallelCheckbox(obj,newValue)
             obj.TemporarySession.UseParallel = newValue;
             obj.updateEnabled();
+            obj.IsDirty = true;
+        end
+        
+        function onEnableCheckpointsCheckbox(obj,newValue)
+            obj.TemporarySession.AutoSaveSingleFile = ~newValue;
             obj.IsDirty = true;
         end
         
@@ -499,6 +512,8 @@ classdef SessionPane < QSPViewerNew.Application.ViewPane
             obj.LoggerSeverityDialogDropDown.Value = obj.TemporarySession.LoggerSeverityDialog;
             
             obj.UseParallelToolboxCheckBox.Value = obj.TemporarySession.UseParallel;
+            
+            obj.EnableCheckpoints.Value = ~obj.TemporarySession.AutoSaveSingleFile;
             
             obj.AutoSavePeriodically.Value = obj.TemporarySession.UseAutoSaveTimer;
             
