@@ -1,5 +1,29 @@
 classdef main < handle
-        
+
+    properties
+        Sessions = QSP.Session.empty(0,1)
+        AppName
+        Title
+        SelectedNodePath (1,1) string
+    end
+
+    properties(Constant)
+        Version = 'v1.0'
+        ItemTypes = {
+            'Dataset',                          'OptimizationData'
+            'Parameter',                        'Parameters'
+            'Task',                             'Task'
+            'Virtual Subject(s)',               'VirtualPopulation'
+            'Acceptance Criteria',              'VirtualPopulationData'
+            'Target Statistics',                'VirtualPopulationGenerationData'
+            'Simulation',                       'Simulation'
+            'Optimization',                     'Optimization'
+            'Cohort Generation',                'CohortGeneration'
+            'Virtual Population Generation',    'VirtualPopulationGeneration'
+            'Global Sensitivity Analysis',      'GlobalSensitivityAnalysis'
+            };
+    end
+
     properties (SetAccess = private)
         AllowMultipleSessions = true;
         FileSpec ={'*.mat','MATLAB MAT File'}
@@ -9,15 +33,16 @@ classdef main < handle
         RecentSessionPaths = cell.empty(0,1)
         LastFolder = pwd
         ActivePane
-        Panes
+        Panes = cell.empty(0,1);
         IsConstructed = false;
         Type
         TypeStr
         WindowButtonDownCallbacks = {};
         WindowButtonUpCallbacks = {};
         ModelManagerDialog ModelManager
+        LoggerDialog QSPViewerNew.Dialogs.LoggerDialog
     end
-    
+
     properties (SetAccess = private, Dependent = true, AbortSet = true)
         SelectedSessionName
         SelectedSessionPath
@@ -62,6 +87,8 @@ classdef main < handle
         RestoreSelectedItemMenu  matlab.ui.container.Menu
         ToolsMenu                matlab.ui.container.Menu
         ModelManagerMenu         matlab.ui.container.Menu
+        PluginsMenu              matlab.ui.container.Menu
+        LoggerMenu               matlab.ui.container.Menu
         HelpMenu                 matlab.ui.container.Menu
         AboutMenu                matlab.ui.container.Menu
         FlexGridLayout           QSPViewerNew.Widgets.GridFlex
@@ -71,7 +98,19 @@ classdef main < handle
         TreeMenu
         OpenRecentMenuArray
     end
-    
+
+    properties (SetAccess = private, SetObservable, AbortSet)
+        PluginManager QSPViewerNew.Dialogs.PluginManager
+    end
+
+    properties (Hidden, SetAccess = private, Transient, NonCopyable)
+        % listener handle for Sessions property
+        SessionsListener
+
+        % listener handle for PluginTableData property
+        PluginTableDataListener event.listener
+    end
+
     methods (Access = public)
         function app = main
             app.container = matlab.ui.container.internal.AppContainer;
@@ -310,52 +349,60 @@ classdef main < handle
         function app = ApplicationUI
             app.AppName = ['gQSPsim ' app.Version];
             app.FileSpec = {'*.qsp.mat','MATLAB QSP MAT File'};
-            
+
             % Create the graphics objects
             app.create();
-            
+
             % Register the app with App Designer
             app.IsConstructed = true;
-            
-            
+
             %Save the type of the  for use in preferences
             app.Type = class(app);
             app.TypeStr = matlab.lang.makeValidName(app.Type);
-            
+
             %Get the previous file locations from preferences
             app.LastFolder = getpref(app.TypeStr,'LastFolder',app.LastFolder);
             app.RecentSessionPaths = getpref(app.TypeStr,'RecentSessionPaths',app.RecentSessionPaths);
-            
+
             % Validate each recent file, and remove any invalid files
             idxOk = cellfun(@(x)exist(x,'file'),app.RecentSessionPaths);
             app.RecentSessionPaths(~idxOk) = [];
-            
+
             %Draw the recent files to the menu
             app.redrawRecentFiles();
-            
+
             % Refresh the entire view
             app.refresh();
-            
+
             if nargout == 0
                 clear app
             end
         end
-        
+
         function delete(app)
-% %             %Upon deletion, save the recent sessions and last folder to use
-% %             %in the next instance of the application
-% %             setpref(app.TypeStr, 'LastFolder', app.LastFolder)
-% %             setpref(app.TypeStr, 'RecentSessionPaths', app.RecentSessionPaths)
-% %             setpref(app.TypeStr,'Position',app.UIFigure.Position)
-% %             
-% %             %Delete UI
-% %             delete(app.UIFigure)
+            %Upon deletion, save the recent sessions and last folder to use
+            %in the next instance of the application
+            setpref(app.TypeStr, 'LastFolder', app.LastFolder)
+            setpref(app.TypeStr, 'RecentSessionPaths', app.RecentSessionPaths)
+            setpref(app.TypeStr,'Position',app.UIFigure.Position)
+
+            % close plugin manager if open
+            if isvalid(app.PluginManager)
+                delete(app.PluginManager)
+                % close logger dialog if open
+                if isvalid(app.LoggerDialog)
+                    delete(app.LoggerDialog)
+                end
+
+                %Delete UI
+                delete(app.UIFigure)
+            end
+
         end
-        
     end
-    
+
     methods (Access = private)
-        
+
         function create(app)
             %for reference in callbacks
             %Create UIFigure and hide until all components are created
@@ -365,412 +412,457 @@ classdef main < handle
             app.UIFigure.WindowButtonUpFcn = @(h,e) app.executeCallbackArray(app.WindowButtonUpCallbacks,h,e);
             app.UIFigure.WindowButtonDownFcn = @(h,e) app.executeCallbackArray(app.WindowButtonDownCallbacks,h,e);
             app.UIFigure.CloseRequestFcn = @app.onExit;
-            
+
             % Create FileMenu
             app.FileMenu = uimenu(app.UIFigure);
             app.FileMenu.Text = 'File';
-            
+
             % Create NewCtrlNMenu
             app.NewCtrlNMenu = uimenu(app.FileMenu);
             app.NewCtrlNMenu.Text = 'New...';
             app.NewCtrlNMenu.Accelerator = 'N';
             app.NewCtrlNMenu.MenuSelectedFcn = @app.onNew;
-            
+
             % Create OpenCtrl0Menu
             app.OpenCtrl0Menu = uimenu(app.FileMenu);
             app.OpenCtrl0Menu.Text = 'Open...';
             app.OpenCtrl0Menu.MenuSelectedFcn = @app.onOpen;
             app.OpenCtrl0Menu.Accelerator = 'O';
-            
+
             % Create OpenRecentMenu
             app.OpenRecentMenu = uimenu(app.FileMenu);
             app.OpenRecentMenu.Text = 'Open Recent';
-            
+
             % Create CloseMenu
             app.CloseMenu = uimenu(app.FileMenu);
             app.CloseMenu.Separator = 'on';
             app.CloseMenu.Text = 'Close';
             app.CloseMenu.MenuSelectedFcn = @(h,e) app.onClose([]);
-            
+
             % Create SaveCtrlSMenu
             app.SaveCtrlSMenu = uimenu(app.FileMenu);
             app.SaveCtrlSMenu.Separator = 'on';
             app.SaveCtrlSMenu.Text = 'Save';
             app.SaveCtrlSMenu.MenuSelectedFcn = @(h,e) app.onSave([]);
             app.SaveCtrlSMenu.Accelerator = 'S';
-            
+
             % Create SaveAsMenu
             app.SaveAsMenu = uimenu(app.FileMenu);
             app.SaveAsMenu.Text = 'Save As...';
             app.SaveAsMenu.MenuSelectedFcn = @(h,e) app.onSaveAs([]);
-            
+
             % Create ExitCtrlQMenu
             app.ExitCtrlQMenu = uimenu(app.FileMenu);
             app.ExitCtrlQMenu.Separator = 'on';
             app.ExitCtrlQMenu.Text = 'Exit';
             app.ExitCtrlQMenu.MenuSelectedFcn = @app.onExit;
             app.ExitCtrlQMenu.Accelerator = 'Q';
-            
+
             % Create QSPMenu
             app.QSPMenu = uimenu(app.UIFigure);
             app.QSPMenu.Text = 'QSP';
-            
+
             % Create AddNewItemMenu
             app.AddNewItemMenu = uimenu(app.QSPMenu);
             app.AddNewItemMenu.Text = 'Add New Item';
-            
+
             % Create DatasetMenu
             app.DatasetMenu = uimenu(app.AddNewItemMenu);
             app.DatasetMenu.Text = 'Dataset';
             app.DatasetMenu.MenuSelectedFcn = @(h,e) app.onAddItem([],'OptimizationData');
-            
+
             % Create ParameterMenu
             app.ParameterMenu = uimenu(app.AddNewItemMenu);
             app.ParameterMenu.Text = 'Parameter';
             app.ParameterMenu.MenuSelectedFcn = @(h,e) app.onAddItem([],'Parameters');
-            
+
             % Create TaskMenu
             app.TaskMenu = uimenu(app.AddNewItemMenu);
             app.TaskMenu.Text = 'Task';
             app.TaskMenu.MenuSelectedFcn =@(h,e) app.onAddItem([],'Task');
-            
+
             % Create VirtualSubjectsMenu
             app.VirtualSubjectsMenu = uimenu(app.AddNewItemMenu);
             app.VirtualSubjectsMenu.Text = 'Virtual Subject(s)';
             app.VirtualSubjectsMenu.MenuSelectedFcn = @(h,e) app.onAddItem([],'VirtualPopulation');
-            
+
             % Create AcceptanceCriteriaMenu
             app.AcceptanceCriteriaMenu = uimenu(app.AddNewItemMenu);
             app.AcceptanceCriteriaMenu.Text = 'Acceptance Criteria';
             app.AcceptanceCriteriaMenu.MenuSelectedFcn =@(h,e) app.onAddItem([],'VirtualPopulationData');
-            
+
             % Create TargetStatisticsMenu
             app.TargetStatisticsMenu = uimenu(app.AddNewItemMenu);
             app.TargetStatisticsMenu.Text = 'Target Statistics ';
             app.TargetStatisticsMenu.MenuSelectedFcn =@(h,e) app.onAddItem([],'VirtualPopulationGenerationData');
-            
+
             % Create SimulationMenu
             app.SimulationMenu = uimenu(app.AddNewItemMenu);
             app.SimulationMenu.Text = 'Simulation';
             app.SimulationMenu.MenuSelectedFcn = @(h,e) app.onAddItem([],'Simulation');
-            
+
             % Create OptimizationMenu
             app.OptimizationMenu = uimenu(app.AddNewItemMenu);
             app.OptimizationMenu.Text = 'Optimization';
             app.OptimizationMenu.MenuSelectedFcn =@(h,e) app.onAddItem([],'Optimization');
-            
+
             % Create CohortGenerationMenu
             app.CohortGenerationMenu = uimenu(app.AddNewItemMenu);
             app.CohortGenerationMenu.Text = 'Cohort Generation';
             app.CohortGenerationMenu.MenuSelectedFcn = @(h,e) app.onAddItem([],'CohortGeneration');
-            
+
             % Create VirtualPopulationGenerationMenu
             app.VirtualPopulationGenerationMenu = uimenu(app.AddNewItemMenu);
             app.VirtualPopulationGenerationMenu.Text = 'Virtual Population Generation';
             app.VirtualPopulationGenerationMenu.MenuSelectedFcn = @(h,e) app.onAddItem([],'VirtualPopulationGeneration');
-            
+
             % Create GlobalSensitivityAnalysisMenu
             app.GlobalSensitivityAnalysisMenu = uimenu(app.AddNewItemMenu);
             app.GlobalSensitivityAnalysisMenu.Text = 'Global Sensitivity Analysis';
             app.GlobalSensitivityAnalysisMenu.MenuSelectedFcn = @(h,e) app.onAddItem([],'GlobalSensitivityAnalysis');
-            
+
             % Create DeleteSelectedItemMenu
             app.DeleteSelectedItemMenu = uimenu(app.QSPMenu);
             app.DeleteSelectedItemMenu.Text = 'Delete Selected Item';
             app.DeleteSelectedItemMenu.MenuSelectedFcn =@(h,e) app.onDeleteSelectedItem([],[]);
-            
+
             % Create RestoreSelectedItemMenu
             app.RestoreSelectedItemMenu = uimenu(app.QSPMenu);
             app.RestoreSelectedItemMenu.Text = 'Restore Selected Item';
             app.RestoreSelectedItemMenu.MenuSelectedFcn =@(h,e) app.onRestoreSelectedItem([],[]);
-            
+
             % Create Tools menu
             app.ToolsMenu = uimenu(app.UIFigure);
             app.ToolsMenu.Text = 'Tools';
-            
+
+
             % Create logger menu
             app.ModelManagerMenu = uimenu(app.ToolsMenu);
             app.ModelManagerMenu.Text = 'Model Manager';
             app.ModelManagerMenu.MenuSelectedFcn = @(h, e) app.onOpenModelManager;
-            
+
+            % Create plugins menu
+            app.PluginsMenu = uimenu(app.ToolsMenu);
+            app.PluginsMenu.Text = 'Plugin Manager';
+            app.PluginsMenu.MenuSelectedFcn = @(h, e) app.onOpenPluginManager;
+
+            % Create logger menu
+            app.LoggerMenu = uimenu(app.ToolsMenu);
+            app.LoggerMenu.Text = 'Logger';
+            app.LoggerMenu.MenuSelectedFcn = @(h, e) app.onOpenLogger;
+
             % Create HelpMenu
             app.HelpMenu = uimenu(app.UIFigure);
             app.HelpMenu.Text = 'Help';
-            
+
             % Create AboutMenu
             app.AboutMenu = uimenu(app.HelpMenu);
             app.AboutMenu.Text = 'About';
             app.AboutMenu.MenuSelectedFcn = @app.onAbout;
-            
+
             % Create GridLayout
             app.FlexGridLayout = QSPViewerNew.Widgets.GridFlex(app.UIFigure);
             app.FlexGridLayout.getGridHandle();
             app.addWindowDownCallback(app.FlexGridLayout.getButtonDownCallback());
             app.addWindowUpCallback(app.FlexGridLayout.getButtonUpCallback());
-            
+
             % Create SessionExplorerPanel
             app.SessionExplorerPanel = uipanel(app.FlexGridLayout.getGridHandle());
             app.SessionExplorerPanel.Title = 'Session Explorer';
             app.SessionExplorerPanel.Layout.Row = 1;
             app.SessionExplorerPanel.Layout.Column = 1;
-            
+
             %Create TreeGrid
             app.SessionExplorerGrid = uigridlayout(app.SessionExplorerPanel);
             app.SessionExplorerGrid.ColumnWidth = {'1x'};
             app.SessionExplorerGrid.RowHeight = {'1x'};
-            
+
             % Create Tree
             app.TreeRoot = uitree(app.SessionExplorerGrid);
             app.TreeRoot.Multiselect = 'on';
             app.TreeRoot.SelectionChangedFcn = @app.onTreeSelectionChanged;
-            
+
             % Show the figure after all components are created
             app.UIFigure.Visible = 'on';
         end
-        
+
         function createTree(app, parent, allData)
             % Nodes that take children have the type of child as a string in the UserData
             % property. Nodes that are children and are movable have [] in UserData.
             % Get short name to call this function recursively
             thisFcn = @(Parent,Data) createTree(app, Parent, Data);
-            
+
             % Loop on objects
             for idx = 1:numel(allData)
-                
+
                 % Get current object
                 Data = allData(idx);
-                
+
                 % What type of object is this?
                 TypeTemp = class(Data);
-                
+
                 % Switch on object type for the icon
                 switch TypeTemp
-                    
+
                     case 'QSP.Session'
-                        
+
                         % Session node
                         hSession = app.createNode(parent, Data, ...
                             'Session', QSPViewerNew.Resources.LoadResourcePath('folder_24.png'),...
                             'Session', [], 'Session');
                         Data.TreeNode = hSession; %Store node in the object for cross-ref
                         hSession.Tag = 'Session';
-                        
+
                         % Settings node and children
                         hSettings = app.createNode(hSession, Data.Settings, ...
                             'Building blocks', QSPViewerNew.Resources.LoadResourcePath('settings_24.png'),...
                             [], 'Settings', 'Building blocks for the session');
                         Data.Settings.TreeNode = hSettings; %Store node in the object for cross-ref
                         hSettings.Tag = 'Building blocks';
-                        
+
                         hTasks = app.createNode(hSettings, Data.Settings, ...
                             'Tasks', QSPViewerNew.Resources.LoadResourcePath('flask2.png'),...
                             'Task', 'Task', 'Tasks');
                         thisFcn(hTasks, Data.Settings.Task);
                         hTasks.Tag = 'Task';
-                        
+
                         hParameters = app.createNode(hSettings, Data.Settings, ...
                             'Parameters', QSPViewerNew.Resources.LoadResourcePath('param_edit_24.png'),...
                             'Parameter', 'Parameters', 'Parameters');
                         thisFcn(hParameters, Data.Settings.Parameters);
                         hParameters.Tag = 'Parameters';
-                        
+
                         hOptimData = app.createNode(hSettings, Data.Settings, ...
                             'Datasets', QSPViewerNew.Resources.LoadResourcePath('datatable_24.png'),...
                             'Dataset', 'OptimizationData', 'Datasets');
                         thisFcn(hOptimData, Data.Settings.OptimizationData);
                         hOptimData.Tag = 'OptimizationData';
-                        
-                        
+
+
                         hVPopDatas = app.createNode(hSettings, Data.Settings, ...
                             'Acceptance Criteria', QSPViewerNew.Resources.LoadResourcePath('acceptance_criteria.png'),...
                             'Acceptance Criteria', 'VirtualPopulationData', 'Acceptance Criteria');
                         thisFcn(hVPopDatas, Data.Settings.VirtualPopulationData);
                         hVPopDatas.Tag = 'VirtualPopulationData';
-                        
+
                         hVPopGenDatas = app.createNode(hSettings, Data.Settings, ...
                             'Target Statistics', QSPViewerNew.Resources.LoadResourcePath('target_stats.png'),...
                             'Target Statistics', 'VirtualPopulationGenerationData', 'Target Statistics');
                         thisFcn(hVPopGenDatas, Data.Settings.VirtualPopulationGenerationData);
                         hVPopGenDatas.Tag = 'VirtualPopulationGenerationData';
-                        
-                        
+
+
                         hVPops = app.createNode(hSettings, Data.Settings, ...
                             'Virtual Subject(s)', QSPViewerNew.Resources.LoadResourcePath('stickman3.png'),...
                             'Virtual Subject(s)', 'VirtualPopulation', 'Virtual Subject(s)');
                         thisFcn(hVPops, Data.Settings.VirtualPopulation);
                         hVPops.Tag = 'VirtualPopulation';
-                        
+
                         % Functionalities node and children
                         hFunctionalities = app.createNode(hSession, Data, ...
                             'Functionalities', QSPViewerNew.Resources.LoadResourcePath('settings_24.png'),...
                             [], 'Functionalities', 'Functionalities for the session');
                         hFunctionalities.Tag = 'Functionalities';
-                        
+
                         hSimulations = app.createNode(hFunctionalities, Data, ...
                             'Simulations', QSPViewerNew.Resources.LoadResourcePath('simbio_24.png'),...
                             'Simulation', 'Simulation', 'Simulation');
                         thisFcn(hSimulations, Data.Simulation);
                         hSimulations.Tag = 'Simulation';
-                        
+
                         hOptims = app.createNode(hFunctionalities, Data, ...
                             'Optimizations', QSPViewerNew.Resources.LoadResourcePath('optim_24.png'),...
                             'Optimization', 'Optimization', 'Optimization');
                         thisFcn(hOptims, Data.Optimization);
                         hOptims.Tag = 'Optimization';
-                        
+
                         hCohortGen = app.createNode(hFunctionalities, Data, ...
                             'Virtual Cohort Generations', QSPViewerNew.Resources.LoadResourcePath('stickman-3.png'),...
                             'Cohort Generation', 'CohortGeneration', 'Cohort Generation');
                         thisFcn(hCohortGen, Data.CohortGeneration);
                         hCohortGen.Tag = 'CohortGeneration';
-                        
+
                         hVPopGens = app.createNode(hFunctionalities, Data, ...
                             'Virtual Population Generations', QSPViewerNew.Resources.LoadResourcePath('stickman-3-color.png'),...
                             'Virtual Population Generation', 'VirtualPopulationGeneration', 'Virtual Population Generation');
                         thisFcn(hVPopGens, Data.VirtualPopulationGeneration);
                         hVPopGens.Tag = 'VirtualPopulationGeneration';
-                        
+
                         hGSA = app.createNode(hFunctionalities, Data, ...
                             'Global Sensitivity Analyses', QSPViewerNew.Resources.LoadResourcePath('sensitivity.png'),...
                             'Global Sensitivity Analysis', 'GlobalSensitivityAnalysis', 'Global Sensitivity Analysis');
                         thisFcn(hGSA, Data.GlobalSensitivityAnalysis);
                         hGSA.Tag = 'GlobalSensitivityAnalysis';
-                        
+
                         hDeleteds = app.createNode(hSession, Data, ...
                             'Deleted Items', QSPViewerNew.Resources.LoadResourcePath('trash_24.png'),...
                             'Deleted Items', 'Deleted', 'Deleted Items');
-                        thisFcn(hDeleteds, Data.Deleted);
+                        % create nodes for all except folder; folder nodes
+                        % are created separately in createFolderNode
+                        thisFcn(hDeleteds, Data.Deleted(arrayfun(@(x) ~isa(x, 'QSP.Folder'), Data.Deleted)));
                         hDeleteds.Tag = 'Deleted Items';
-                        
+
                         % Expand Nodes
                         hSession.expand();
                         hSettings.expand();
-                        
+
                     case 'QSP.OptimizationData'
-                        
+
                         hNode = app.createNode(parent, Data, Data.Name, QSPViewerNew.Resources.LoadResourcePath('datatable_24.png'),...
                             'Dataset', [], '');
                         Data.TreeNode = hNode; %Store node in the object for cross-ref
-                        
+
                     case 'QSP.Parameters'
-                        
+
                         hNode = app.createNode(parent, Data, Data.Name, QSPViewerNew.Resources.LoadResourcePath('param_edit_24.png'),...
                             'Parameter', [], '');
                         Data.TreeNode = hNode; %Store node in the object for cross-ref
-                        
+
                     case 'QSP.Task'
-                        
+
                         hNode = app.createNode(parent, Data, Data.Name, QSPViewerNew.Resources.LoadResourcePath('flask2.png'),...
                             'Task', [], '');
                         Data.TreeNode = hNode; %Store node in the object for cross-ref
-                        
+
                     case 'QSP.VirtualPopulation'
-                        
+
                         hNode = app.createNode(parent, Data, Data.Name, QSPViewerNew.Resources.LoadResourcePath('stickman3.png'),...
                             'Virtual Subject(s)', [], '');
                         Data.TreeNode = hNode; %Store node in the object for cross-ref
-                        
-                        
+
+
                     case 'QSP.VirtualPopulationData'
-                        
+
                         hNode = app.createNode(parent, Data, Data.Name, QSPViewerNew.Resources.LoadResourcePath('acceptance_criteria.png'),...
                             'Acceptance Criteria', [], '');
                         Data.TreeNode = hNode; %Store node in the object for cross-ref
-                        
+
                     case 'QSP.Simulation'
-                        
+
                         hNode = app.createNode(parent, Data, Data.Name, QSPViewerNew.Resources.LoadResourcePath('simbio_24.png'),...
                             'Simulation', [], '');
                         Data.TreeNode = hNode; %Store node in the object for cross-ref
-                        
+
                     case 'QSP.Optimization'
-                        
+
                         hNode = app.createNode(parent, Data, Data.Name, QSPViewerNew.Resources.LoadResourcePath('optim_24.png'),...
                             'Optimization', [], '');
                         Data.TreeNode = hNode; %Store node in the object for cross-ref
-                        
+
                     case 'QSP.CohortGeneration'
-                        
+
                         hNode = app.createNode(parent, Data, Data.Name, QSPViewerNew.Resources.LoadResourcePath('stickman-3.png'),...
                             'Cohort Generation', [], '');
                         Data.TreeNode = hNode; %Store node in the object for cross-ref
-                        
+
                     case 'QSP.VirtualPopulationGeneration'
-                        
+
                         hNode = app.createNode(parent, Data, Data.Name, QSPViewerNew.Resources.LoadResourcePath('stickman-3-color.png'),...
                             'Virtual Population Generation', [], '');
                         Data.TreeNode = hNode; %Store node in the object for cross-ref
-                        
+
                     case 'QSP.VirtualPopulationGenerationData'
-                        
+
                         hNode = app.createNode(parent, Data, Data.Name, QSPViewerNew.Resources.LoadResourcePath('target_stats.png'),...
                             'Target Statistics', [], '');
                         Data.TreeNode = hNode; %Store node in the object for cross-ref
-                        
+
                     case 'QSP.GlobalSensitivityAnalysis'
-                        
+
                         hNode = app.createNode(parent, Data, Data.Name, QSPViewerNew.Resources.LoadResourcePath('sensitivity.png'),...
                             'Global Sensitivity Analysis', [], '');
                         Data.TreeNode = hNode; %Store node in the object for cross-ref
-                        
+
+                    case 'QSP.Folder'
+
+                        hNode = app.createNode(parent, Data, Data.Name, ...
+                            QSPViewerNew.Resources.LoadResourcePath('folder_24.png'),...
+                            'Folder', 'Folder', '');
+                        Data.TreeNode = hNode; %Store node in the object for cross-ref
+
                     otherwise
-                        
+
                         % Skip this node
                         warning('QSPViewer:App:createTree:UnhandledType',...
                             'Unhandled object type for tree: %s. Skipping.', TypeTemp);
                         continue
-                        
+
                 end %switch
-                
+
                 if isa(parent,'matlab.ui.container.TreeNode') && strcmp(parent.Text,'Deleted Items')
                     app.createContextMenu(hNode,'Deleted')
                 end
             end %for
         end %function
-        
+
         function createContextMenu(app,Node,Type)
             %Determine if this ContextMenu is from QSP
-            ItemTypes = {
-                'Dataset',                          'OptimizationData'
-                'Parameter',                        'Parameters'
-                'Task',                             'Task'
-                'Virtual Subject(s)',               'VirtualPopulation'
-                'Acceptance Criteria',              'VirtualPopulationData'
-                'Target Statistics',                'VirtualPopulationGenerationData'
-                'Simulation',                       'Simulation'
-                'Optimization',                     'Optimization'
-                'Cohort Generation',                'CohortGeneration'
-                'Virtual Population Generation',    'VirtualPopulationGeneration'
-                'Global Sensitivity Analysis',      'GlobalSensitivityAnalysis'
-                };
-            Index = find(strcmpi(Type,ItemTypes(:,1)));
-            
+            Index = find(strcmpi(Type,app.ItemTypes(:,1)));
+
             %If the Node is from a QSP class
             if ~isempty(Index)
-                ThisItemType = ItemTypes{Index,2};
-                
-                %If it is an instance of a QSP Class
-                if ~isempty(Node.UserData)
+                ThisItemType = app.ItemTypes{Index,2};
+
+                % If it is an instance of QSP.Folder
+                if strcmp(Node.UserData,"Folder")
+                    ParentItemObj = getParentItemNode(Node.NodeData, app.TreeRoot);
+                    ParentItemType = ParentItemObj.UserData;
+
+                    CM = uicontextmenu('Parent',app.UIFigure);
+                    uimenu('Parent', CM,'Label', ['Add new ' ParentItemType],...
+                        'MenuSelectedFcn', @(h,e)app.onAddItem(h.Parent.UserData,Node.NodeData.Session,ParentItemType));
+
+                    uimenu('Parent', CM,'Label', 'Add new Folder', ...
+                        'MenuSelectedFcn', @(h,e)app.onAddFolder(h.Parent.UserData,Node.NodeData.Session,true));
+
+                    uimenu('Parent', CM,'Label', 'Move to ...', ...
+                        'MenuSelectedFcn', @(h,e)app.onMoveFolder(h.Parent.UserData));
+
+                    uimenu('Parent', CM,'Label', 'Rename', ...
+                        'MenuSelectedFcn', @(h,e)app.onRenameFolder(h.Parent.UserData));
+
+                    uimenu('Parent', CM,'Label', 'Delete', ...
+                        'MenuSelectedFcn', @(h,e)app.onDeleteSelectedItem(h.Parent.UserData.NodeData.Session, h.Parent.UserData));
+
+                    %If it is an instance of a QSP Class
+                elseif ~isempty(Node.UserData)
                     CM = uicontextmenu('Parent',app.UIFigure);
                     uimenu('Parent',CM,'Label', ['Add new ' ThisItemType],...
-                        'MenuSelectedFcn', @(h,e)app.onAddItem(h.Parent.UserData.Parent.Parent.NodeData,ThisItemType));
-                    
+                        'MenuSelectedFcn', @(h,e)app.onAddItem(h.Parent.UserData,h.Parent.UserData.Parent.Parent.NodeData,ThisItemType));
+
+                    uimenu('Parent',CM,'Label', 'Add new Folder', ...
+                        'MenuSelectedFcn', @(h,e)app.onAddFolder(h.Parent.UserData,h.Parent.UserData.Parent.Parent.NodeData,true));
+
                     %Not an Instance, just a type
                 else
                     CM = uicontextmenu('Parent',app.UIFigure);
                     uimenu(...
                         'Parent', CM,...
                         'Text', ['Duplicate this ' ThisItemType],...
-                        'MenuSelectedFcn', @(h,e) app.onDuplicateItem(h.Parent.UserData.Parent.Parent.Parent.NodeData,h.Parent.UserData));
+                        'MenuSelectedFcn', @(h,e) app.onDuplicateItem(h.Parent.UserData.NodeData.Session,h.Parent.UserData));
                     uimenu(...
                         'Parent', CM,...
                         'Text', ['Delete this ' ThisItemType],...
                         'Separator', 'on',...
-                        'MenuSelectedFcn', @(h,e) app.onDeleteSelectedItem(h.Parent.UserData.Parent.Parent.Parent.NodeData,h.Parent.UserData));
+                        'MenuSelectedFcn', @(h,e) app.onDeleteSelectedItem(h.Parent.UserData.NodeData.Session,h.Parent.UserData));
+                    uimenu(...
+                        'Parent', CM,...
+                        'Text', 'Move to ...',...
+                        'Separator', 'on',...
+                        'MenuSelectedFcn', @(h,e) app.onMoveToSelectedItem(h,e), ...
+                        'Enable', 'off');
+                    %TODO'MenuSelectedFcn', @(h,e) app.onDeleteSelectedItem(h.Parent.UserData.Parent.Parent.Parent.NodeData,h.Parent.UserData));
+
+                    Node.ContextMenu = CM;
+
+                    pluginsDir = Node.Parent.Parent.Parent.NodeData.PluginsDirectory;
+                    pluginTable = ...
+                        QSPViewerNew.Dialogs.PluginManager.getPlugins(pluginsDir);
+                    updateItemTypePluginMenus(app, ThisItemType, Node, pluginTable);
                 end
             else
                 switch Type
-                    
+
                     %For a session Node
                     case 'Session'
                         CM = uicontextmenu('Parent',app.UIFigure);
@@ -787,7 +879,7 @@ classdef main < handle
                             'Parent', CM,...
                             'Text', 'Save As',...
                             'MenuSelectedFcn', @(h,e) app.onSaveAs(h.Parent.UserData.NodeData));
-                        
+
                         %For the trash node
                     case 'Deleted Items'
                         CM = uicontextmenu('Parent', app.UIFigure);
@@ -795,27 +887,27 @@ classdef main < handle
                             'Parent',CM,...
                             'Text', 'Empty Deleted Items',...
                             'MenuSelectedFcn', @(h,e) app.onEmptyDeletedItems([],[],true));
-                        
+
                         %for items under the trash nose
                     case 'Deleted'
                         CM = uicontextmenu('Parent', app.UIFigure);
                         uimenu(...
                             'Parent', CM,...
                             'Text', 'Restore',...
-                            'MenuSelectedFcn', @(h,e) app.onRestoreSelectedItem(h.Parent.UserData,h.Parent.UserData.Parent.Parent.NodeData));
+                            'MenuSelectedFcn', @(h,e) app.onRestoreSelectedItem(h.Parent.UserData,h.Parent.UserData.NodeData.Session));
                         uimenu(...
                             'Parent', CM,...
                             'Text', 'Permanently Delete',...
                             'Separator', 'on',...
-                            'MenuSelectedFcn', @(h,e) app.onEmptyDeletedItems(h.Parent.UserData,h.Parent.UserData.Parent.Parent.NodeData,false));
+                            'MenuSelectedFcn', @(h,e) app.onEmptyDeletedItems(h.Parent.UserData,h.Parent.UserData.NodeData.Session,false));
                 end
             end
-            
+
             %Attach menu to widgets and attach widget to context menu
             Node.ContextMenu = CM;
             CM.UserData = Node;
         end
-        
+
         function hNode = createNode(app,Parent, Data, Name, Icon, CMenu, PaneType, ~)
             % Create the node
             hNode = uitreenode(...
@@ -827,31 +919,103 @@ classdef main < handle
             if ~isempty(CMenu)
                 app.createContextMenu(hNode,CMenu);
             end
+
         end
-        
+
+        function updateItemTypePluginMenus(app, thisItemType, Node, pluginTable)
+            % Get runpluginMenu
+            CM = Node.ContextMenu;
+
+            % delete all current plugin menus
+            allMenuTags = string({CM.Children.Tag});
+            delete(CM.Children(allMenuTags=="plugin"))
+
+            % Get plugins for this item
+            thisItemPlugins = pluginTable(pluginTable.Type==thisItemType,:);
+            thisItemPlugins = removevars(thisItemPlugins, 'All Dependencies within root directory');
+            if ~isempty(thisItemPlugins)
+                % Get most recently used plugins for this type
+                defaultPluginTable = table.empty();
+                mostRecentPlugins = getpref(app.TypeStr, strcat('recent', erase(thisItemType, " ")), defaultPluginTable);
+
+                % Check if most recent plugins are part of
+                % currently available plugins
+                if ~isempty(mostRecentPlugins)
+                    [~, ia] = setdiff(mostRecentPlugins.File, thisItemPlugins.File);
+                    mostRecentPlugins(ia,:) = [];
+                    thisItemAvailablePlugins = vertcat(mostRecentPlugins, thisItemPlugins);
+
+                    % remove function handle column to get unique rows
+                    [~, ia] = unique(thisItemAvailablePlugins.File, 'stable', 'rows');
+                    thisItemAvailablePlugins = thisItemAvailablePlugins(ia,:);
+                else
+                    thisItemAvailablePlugins = thisItemPlugins ;
+                end
+
+                % create a menu for every plugin for the first five
+                % plugins
+                numPlugin = 5;
+                numPlugin = min(numPlugin, height(thisItemAvailablePlugins));
+
+                %                 delete(runpluginMenu.Children);
+                for cntPlugin=1:numPlugin
+                    m = uimenu(...
+                        'Parent', CM,...
+                        'Text', strcat("Run ", thisItemAvailablePlugins.Name(cntPlugin)),...
+                        'MenuSelectedFcn', @(h,e) app.applyPlugin(Node, ...
+                        thisItemAvailablePlugins(cntPlugin,:)), ...
+                        'UserData', thisItemAvailablePlugins.File(cntPlugin), ...
+                        'Tag', "plugin");
+                    if cntPlugin==1
+                        m.Separator = 'on';
+                    end
+                end
+
+                % if more than 5 plugins, create, more options menu
+                if height(thisItemAvailablePlugins)>numPlugin
+                    uimenu(...
+                        'Parent', CM,...
+                        'Text', 'More plugins...',...
+                        'MenuSelectedFcn', @(h,e) app.onOpenPluginListDialog(Node, thisItemAvailablePlugins), ...
+                        'Tag', "plugin");
+                end
+            end
+        end
+
     end
-    
+
     % %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %%
     %Callbacks for menu items and context menus
     % %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %%
     methods (Access = private)
-        
+
         function onNew(app,~,~)
             %We are using multiple sessions so
             if app.AllowMultipleSessions || app.promptToSave(1)
                 app.createUntitledSession();
             end
-            
+
             app.refresh();
+
+            % check if an instance of plugin  manager is
+            % running
+            if isvalid(app.PluginManager)
+                app.PluginManager.Sessions = app.Sessions;
+            else
+                thisSession = app.Sessions(app.SelectedSessionIdx);
+                pluginTable = ...
+                    QSPViewerNew.Dialogs.PluginManager.getPlugins(thisSession.PluginsDirectory);
+                updateAllPluginMenus(app, thisSession, pluginTable)
+            end
         end
-        
+
         function onOpen(app,~,~)
             %Here we will determine the file path of the folder to call.
             [FileName,PathName] = uigetfile(app.FileSpec,'Open File', app.LastFolder,'MultiSelect','on');
-            
+
             %Determine what type of output was provided
             outputType = class(FileName);
-            
+
             %Determine if the output was invalid
             switch outputType
                 case 'double'
@@ -869,45 +1033,45 @@ classdef main < handle
                         app.loadSessionFromPath(fullFilePath);
                     end
             end
-            
+
         end
-        
+
         function onClose(app,activeSession)
             if ~isempty(activeSession)
-                
+
                 %Need to find the session index
                 SessionIdx = find(strcmp(activeSession.SessionName,{app.Sessions.SessionName}));
             else
                 SessionIdx = app.SelectedSessionIdx;
             end
-            
+
             if app.IsDirty(SessionIdx)
                 app.savePromptBeforeClose(SessionIdx);
             else
                 app.closeSession(SessionIdx);
             end
         end
-        
+
         function onSave(app,activeSession)
             if ~isempty(activeSession)
-                
+
                 %Need to find the session index
                 Idx = find(strcmp(activeSession.SessionName,{app.Sessions.SessionName}));
             else
                 Idx = app.SelectedSessionIdx;
             end
-            
+
             StatusTF = app.saveSession(Idx,false);
             if StatusTF
                 app.markClean(activeSession);
             end
         end
-        
+
         function onSaveAs(app,activeSession)
             if ~isempty(activeSession)
-                
+
                 %Need to find the session index
-                Idx = find(strcmp(activeSession.Name,app.Sessions));
+                Idx = find(strcmp(activeSession.Name,{app.Sessions.Name}));
             else
                 Idx = app.SelectedSessionIdx;
             end
@@ -916,49 +1080,49 @@ classdef main < handle
                 app.markClean(activeSession);
             end
         end
-        
+
         function onDeleteSelectedItem(app,activeSession,activeNode)
             if isempty(activeSession)
                 activeSession = app.SelectedSession;
             end
-            
+
             activeNodes = [activeNode; app.TreeRoot.SelectedNodes];
             activeNodes = unique(activeNodes);
-            
+
             for i = 1:length(activeNodes)
                 app.deleteNode(activeNodes(i),activeSession)
             end
             app.markDirty(activeSession);
         end
-        
+
         function onRestoreSelectedItem(app,activeNode,activeSession)
             if isempty(activeSession)
                 activeSession = app.SelectedSession;
             end
-            
+
             activeNodes = [activeNode; app.TreeRoot.SelectedNodes];
             activeNodes = unique(activeNodes);
-            
+
             for i = 1:length(activeNodes)
                 app.restoreNode(activeNodes(i),activeSession)
             end
             app.markDirty(activeSession);
         end
-        
+
         function onOpenModelManager(app,~,~)
             if ~isempty(app.SelectedSession)
                 rootDir = app.SelectedSession.RootDirectory;
             else
                 rootDir = [];
             end
-            
+
             % singleton only
             if isempty(app.ModelManagerDialog) || ~isvalid(app.ModelManagerDialog)
                 app.ModelManagerDialog = ModelManager(rootDir);
             end
-            
+
         end
-        
+
         function onExit(app,~,~)
             CancelTF = false;
             while ~CancelTF && (~isempty(app.Sessions))
@@ -968,13 +1132,13 @@ classdef main < handle
                     app.closeSession(1)
                 end
             end
-            
+
             if ~CancelTF
                 app.delete();
             end
-            
+
         end
-        
+
         function onAbout(app,~,~)
             Message = {'gQSPsim version 1.0', ...
                 '', ...
@@ -1023,44 +1187,45 @@ classdef main < handle
             
             app.UIFigure.Pointer = 'watch';
             drawnow limitrate;
-            
+            % TODO: Finish
             %First we determine the session that is selected
             %We can select mutliple nodes at once. Therefore we need to consider if SelectedNodes is a vector
             SelectedNodes = event.SelectedNodes;
             Root = handle;
-            
+
             %We only make changes if a single node is selected
             if length(SelectedNodes)==1
                 ThisSessionNode = SelectedNodes;
-                
+
                 %Find which session is the parent of the current one
                 while ~isempty(ThisSessionNode) && ThisSessionNode.Parent~=Root
                     ThisSessionNode = ThisSessionNode.Parent;
                 end
-                
+
                 %Update which session is currently selected
                 if isempty(ThisSessionNode)
                     app.SelectedSessionIdx = [];
                 else
-                    
+
                     % update path to include drop the UDF for previous session
                     % and include the UDF for current session
                     app.SelectedSession.removeUDF();
                     app.SelectedSessionIdx = find(ThisSessionNode == app.SessionNode);
                     app.SelectedSession.addUDF();
+
                 end
-                
+
                 %Now that we have the correct session, we can work
                 app.refresh();
                 app.UIFigure.Pointer = 'arrow';
             end
         end
-        
-        function onAddItem(app,thisSession,itemType)
+
+        function onAddItem(app,~,thisSession,itemType)
             if isempty(thisSession)
                 thisSession = app.SelectedSession;
             end
-            
+
             %itemType can be a QSP item or just the type as a char
             % This enables adding a blank or complete item to the tree
             if ischar(itemType)
@@ -1071,7 +1236,7 @@ classdef main < handle
             else
                 error('Invalid ItemType');
             end
-            
+
             % special case since vpop data has been renamed to acceptance
             % criteria
             if strcmp(itemType, 'VirtualPopulationData')
@@ -1085,14 +1250,14 @@ classdef main < handle
             else
                 ItemName = itemType;
             end
-            
+
             % Where does the item go?
             if isprop(thisSession,itemType)
                 ParentObj = thisSession;
             else
                 ParentObj = thisSession.Settings;
             end
-            
+
             % What tree branch does this go under?
             ChildNodes = ParentObj.TreeNode.Children;
             ChildTypes = {ChildNodes.UserData};
@@ -1102,19 +1267,19 @@ classdef main < handle
                 ChildNodes = ThisChildNode.Children;
                 ChildTypes = {ChildNodes.UserData};
             end
-            
+
             ParentNode = ChildNodes(strcmp(ChildTypes,itemType));
-            
+
             % Create the new item
             NewName = ThisObj.Name;
             if isempty(NewName)
                 NewName = ['New ' ItemName];
             end
-            
+
             DisallowedNames = {ParentObj.(itemType).Name};
             NewName = matlab.lang.makeUniqueStrings(NewName, DisallowedNames);
             ThisObj.Name = NewName;
-            
+
             %Determine the session associated
             if isprop(ThisObj,'Settings')
                 ThisObj.Settings = thisSession.Settings;
@@ -1122,7 +1287,7 @@ classdef main < handle
             if isprop(ThisObj,'Session')
                 ThisObj.Session = thisSession;
             end
-            
+
             % Place the item and add the tree node
             if isscalar(ParentNode)
                 ParentObj.(itemType)(end+1) = ThisObj;
@@ -1131,36 +1296,188 @@ classdef main < handle
             else
                 error('Invalid tree parent');
             end
-            
+
+            if isa(ParentNode.NodeData, 'QSP.Folder')
+                if isempty(ParentNode.NodeData.Children)
+                    ParentNode.NodeData.Children = ThisObj;
+                else
+                    ParentNode.NodeData.Children(end+1) = ThisObj;
+                end
+            end
+
+            % update "Move to..." context menu
+            updateMovetoContextMenu(app,ParentNode);
+
             % Mark the current session dirty
             app.markDirty(thisSession);
-            
+
             % Update the display
             app.updateTreeNames();
-            
+
             %Update the file menu
             app.updateFileMenu();
-            
+
             %Update the title of the application
             app.updateAppTitle();
         end
-        
+
+        function ThisFolder = onAddFolder(app,ParentNode,thisSession,TfAcceptName)
+            ThisFolder = QSP.Folder;
+            if isa(ParentNode.NodeData, 'QSP.Folder')
+                ThisFolder.Name = 'SubFolder';
+                if isempty(ParentNode.NodeData.Children)
+                    ParentNode.NodeData.Children = ThisFolder;
+                else
+                    ParentNode.NodeData.Children(end+1) = ThisFolder;
+                end
+                ThisFolder.OldParent = ThisFolder.Parent;
+                ThisFolder.Parent = ParentNode.NodeData;
+            else
+                ThisFolder.OldParent = ThisFolder.Parent;
+                ThisFolder.Parent = ParentNode.Text;
+            end
+            ThisFolder.Session = thisSession;
+
+            if ~isempty(ParentNode.Children)
+                allChildren = {ParentNode.Children.NodeData};
+                allFoldersIdx = cellfun(@(x) isa(x, 'QSP.Folder'),allChildren );
+
+                if any(allFoldersIdx)
+                    allFolders = [allChildren{allFoldersIdx}];
+                    DisallowedNames = {allFolders.Name};
+                    NewName = matlab.lang.makeUniqueStrings(ThisFolder.Name, DisallowedNames);
+                    ThisFolder.Name = NewName;
+                end
+            end
+
+            % Place the item and add the tree node
+            if isscalar(ParentNode)
+                app.createTree(ParentNode, ThisFolder);
+                ParentNode.expand();
+            else
+                error('Invalid tree parent');
+            end
+
+            % update "Move to..." context menu
+            updateMovetoContextMenu(app,ParentNode);
+
+            if TfAcceptName
+                % get user input to name folder
+                onRenameFolder(app, ThisFolder.TreeNode);
+            end
+
+            thisSession.Settings.Folder(end+1) = ThisFolder;
+
+            % Mark the current session dirty
+            app.markDirty(thisSession);
+
+            % Update the display
+            app.updateTreeNames();
+
+            %Update the file menu
+            app.updateFileMenu();
+
+            %Update the title of the application
+            app.updateAppTitle();
+
+        end
+
+        function onMoveFolder(app,thisNode)
+            parentItemNode = getParentItemNode(thisNode.NodeData, app.TreeRoot);
+
+            nodeSelDialog = QSPViewerNew.Widgets.TreeNodeSelectionModalDialog (app, ...
+                parentItemNode, ...
+                'ParentAppPosition', app.UIFigure.Position, ...
+                'DialogName', 'Select node to move item(s) to', ...
+                'CurrentFolder', string(thisNode.Text));
+
+            uiwait(nodeSelDialog.MainFigure);
+
+            selNode = app.SelectedNodePath;
+
+            if selNode ~= ""
+                allNodes = split(selNode, filesep);
+                newParentNode = parentItemNode;
+                for i = length(allNodes)-1:-1:1
+                    childName = allNodes(i);
+                    childNodeIdx = childName==string({newParentNode.Children.Text});
+                    newParentNode = newParentNode.Children(childNodeIdx);
+                end
+
+                % assign all current selected nodes to new parent
+                selNodes = [thisNode; app.TreeRoot.SelectedNodes];
+                selNodes = unique(selNodes);
+                for i = 1:length(selNodes)
+                    if isa(selNodes(i).NodeData, class(thisNode.NodeData))
+                        if isequal(getParentItemNode(selNodes(i).NodeData, app.TreeRoot), getParentItemNode(thisNode.NodeData, app.TreeRoot))
+                            if ~isequal(newParentNode, thisNode)
+                                selNodes(i).Parent = newParentNode;
+                                if isa(newParentNode.NodeData, 'QSP.Folder') % if folder, assign the new children
+                                    if isempty(newParentNode.NodeData.Children)
+                                        newParentNode.NodeData.Children = selNodes(i).NodeData;
+                                    else
+                                        newParentNode.NodeData.Children(end+1) = selNodes(i).NodeData;
+                                    end
+                                    selNodes(i).NodeData.OldParent = selNodes(i).NodeData.Parent;
+                                    selNodes(i).NodeData.Parent = newParentNode.NodeData;
+                                else
+                                    selNodes(i).NodeData.Parent = newParentNode.Text;
+                                end
+                                expand(newParentNode);
+                            end
+                        end
+                    end
+                end
+            end
+        end
+
+        function onRenameFolder(app, node)
+            prompt = {'Enter new name'};
+            dlgtitle = 'Folder Name';
+            dims = [1 50];
+            definput = {node.Text};
+            answer = inputdlg(prompt, dlgtitle, dims, definput);
+            if ~isempty(answer)
+                % check if the name is same as other folders for this
+                % itemtype
+                parentNode = node.Parent;
+
+                allChildren = {parentNode.Children.NodeData};
+                allFoldersIdx = cellfun(@(x) isa(x, 'QSP.Folder'), allChildren );
+
+                allFolders = [allChildren{allFoldersIdx}];
+                DisallowedNames = string({allFolders.Name});
+                DisallowedNames(DisallowedNames==node.Text) = [];
+                if any(ismember(answer{1}, DisallowedNames))
+                    msg = sprintf("A folder already exists with the name %s. Please specify another name.", answer{1});
+                    uialert(app.UIFigure, msg, ...
+                        "Inavlid file name");
+                else
+                    node.Text = answer{1};
+                    node.NodeData.Name = answer{1};
+                end
+            end
+            % log to logger
+            loggerObj = QSPViewerNew.Widgets.Logger(thisSession.LoggerName);
+            loggerObj.write(ParentNode.Text, itemType, "MESSAGE", 'added item')
+        end
+
         function onDuplicateItem(app,activeSession,activeNode)
             if isempty(activeSession)
                 activeSession = app.SelectedSession;
             end
-            
+
             activeNodes = [activeNode; app.TreeRoot.SelectedNodes];
             activeNodes = unique(activeNodes);
-            
+
             for i = 1:length(activeNodes)
                 app.duplicateNode(activeNodes(i),activeSession)
             end
-            
+
             app.markDirty(activeSession);
         end
-        
-        function onEmptyDeletedItems(app,activeSession,activeNode,deleteAllTF)
+
+        function onEmptyDeletedItems(app,activeNode,activeSession,deleteAllTF)
             if deleteAllTF
                 TreeRoots = app.SelectedSession.TreeNode.Children;
                 ChildTags = {TreeRoots.Tag};
@@ -1170,7 +1487,7 @@ classdef main < handle
                 if isempty(activeSession)
                     activeSession = app.SelectedSession;
                 end
-                
+
                 if isempty(activeNode)
                     activeNode = app.TreeRoot.SelectedNodes;
                 end
@@ -1178,36 +1495,213 @@ classdef main < handle
             end
             app.markDirty(activeSession);
         end
-        
+
+        function onOpenLogger(app)
+            try
+                app.LoggerDialog = QSPViewerNew.Dialogs.LoggerDialog;
+                app.LoggerDialog.Sessions = app.Sessions;
+            catch ME
+                uialert(app.UIFigure, ME.message, 'Error opening logger dialog');
+            end
+        end
+
+        function updateLoggerSessions(app,~,~)
+            if isvalid(app.LoggerDialog)
+                app.LoggerDialog.Sessions = app.Sessions;
+            end
+        end
+
+        function onMoveToSelectedItem(app,h,~)
+
+            currentNode = h.Parent.UserData;
+            allItemTypeTags = {'Task'; 'Parameters'; 'OptimizationData'; 'VirtualPopulationData'; ...
+                'VirtualPopulationGenerationData'; 'VirtualPopulation'; 'Simulation'; 'Optimization'; ...
+                'CohortGeneration'; 'VirtualPopulationGeneration'; 'GlobalSensitivityAnalysis'};
+            parentNode = currentNode;
+            while ~ismember(parentNode.Tag, allItemTypeTags)
+                parentNode = parentNode.Parent;
+            end
+
+            nodeSelDialog = QSPViewerNew.Widgets.TreeNodeSelectionModalDialog (app, ...
+                parentNode, ...
+                'ParentAppPosition', app.UIFigure.Position, ...
+                'DialogName', 'Select node to move item(s) to');
+
+            uiwait(nodeSelDialog.MainFigure);
+
+            selNode = app.SelectedNodePath;
+            allNodes = split(selNode, filesep);
+            newParentNode = parentNode;
+            for i = length(allNodes)-1:-1:1
+                childName = allNodes(i);
+                childNodeIdx = childName==string({newParentNode.Children.Text});
+                newParentNode = newParentNode.Children(childNodeIdx);
+            end
+
+            % assign all current selected nodes to new parent
+            selNodes = [currentNode; app.TreeRoot.SelectedNodes];
+            selNodes = unique(selNodes);
+            for i = 1:length(selNodes)
+                if isa(selNodes(i).NodeData, class(currentNode.NodeData)) % move all nodes of same type
+                    selNodes(i).Parent = newParentNode;
+                    if isa(newParentNode.NodeData, 'QSP.Folder') % if folder, assign the new children
+                        if isempty(newParentNode.NodeData.Children)
+                            newParentNode.NodeData.Children = selNodes(i).NodeData;
+                        else
+                            newParentNode.NodeData.Children(end+1) = selNodes(i).NodeData;
+                        end
+                    end
+                end
+            end
+            expand(newParentNode);
+            app.markDirty(currentNode.NodeData.Session);
+        end
+
+        function onOpenPluginManager(app)
+            try
+                app.PluginManager = QSPViewerNew.Dialogs.PluginManager;
+                app.PluginManager.Sessions = app.Sessions;
+
+                % Attach listener to plugin table property to update context
+                % menus
+                app.PluginTableDataListener = addlistener(app.PluginManager, 'PluginTableData', ...
+                    'PostSet', @(h,e) onPluginTableChanged(app));
+
+            catch ME
+                uialert(app.UIFigure, ME.message, 'Error opening plugin manager');
+            end
+        end
+
+        function onPluginTableChanged(app)
+            if ~isempty(app.PluginManager.SelectedSession)
+                updateAllPluginMenus(app, app.PluginManager.SelectedSession, ...
+                    app.PluginManager.PluginTableData)
+            end
+        end
+
+        function updateAllPluginMenus(app, Session, pluginTable)
+            %Determine if this ContextMenu is from QSP
+            allTreeNodes = vertcat(Session.TreeNode);
+            allTopTreenodes = vertcat(allTreeNodes.Children);
+            allItemTypes = vertcat(allTopTreenodes.Children);
+
+            for i = 1:length(allItemTypes)
+                for thisItemTypeIdx = 1:length(allItemTypes(i).Children)
+                    thisItemNode = allItemTypes(i).Children(thisItemTypeIdx);
+                    thisItemTypeClass = split(class(thisItemNode.NodeData),'.');
+                    thisItemTypeClass = string(thisItemTypeClass(end));
+                    typeIdx = cellfun(@(x) thisItemTypeClass==string(x), app.ItemTypes(:,2));
+                    type = app.ItemTypes{typeIdx,1};
+                    app.updateItemTypePluginMenus(type, thisItemNode, pluginTable);
+                end
+            end
+        end
+
+        function onOpenPluginListDialog(app, Node, thisItemAvailablePlugins)
+            [indx,tf] = listdlg('ListString', thisItemAvailablePlugins.Name,...
+                'SelectionMode', 'single', ...
+                'OKString', 'Apply', ...
+                'PromptString', 'Select a plugin to run.');
+
+            if tf
+                applyPlugin(app, Node, thisItemAvailablePlugins(indx,:));
+            end
+        end
+
+        function applyPlugin(app, Node, plugin)
+            % Get most recently used plugins for this type and
+            % add current plugin to list
+            defaultPluginTable = table('Size',[0 5],...
+                'VariableTypes',{'string','string','string','string','cell'},...
+                'VariableNames',{'Name','Type','File','Description','FunctionHandle'});
+            mostRecentPlugins = getpref(app.TypeStr, strcat('recent', strtrim(plugin.Type)), defaultPluginTable);
+            mostRecentPlugins = [plugin; mostRecentPlugins];
+
+            % remove function handle column to get unique rows
+            [~, ia] = unique(mostRecentPlugins.File, 'stable', 'rows');
+            mostRecentPlugins = mostRecentPlugins(ia,:);
+
+            setpref(app.TypeStr, strcat('recent', plugin.Type), mostRecentPlugins);
+
+            % update context menus for all children of this node
+            thisNodeParent = Node.Parent;
+            for node =1:length(thisNodeParent.Children)
+                app.updateItemTypePluginMenus(plugin.Type, thisNodeParent.Children(node), ...
+                    QSPViewerNew.Dialogs.PluginManager.getPlugins(app.SelectedSession.PluginsDirectory));
+            end
+
+            % if there are multiple selected nodes, apply plugin to all
+            % selected nodes of plugin type
+            % if there are errors, collect all messages and display at last
+            errormsgs = strings; n=1;
+            selNodes = app.TreeRoot.SelectedNodes;
+
+            d = uiprogressdlg(app.UIFigure,'Title','Running plugins');
+            if length(selNodes)>1
+                selNodeData = vertcat(app.TreeRoot.SelectedNodes.NodeData);
+                selNodeClasses = arrayfun(@(x) class(x), selNodeData, 'UniformOutput', false);
+                selNodeClasses = cellfun(@(x) split(x,'.'), selNodeClasses, 'UniformOutput', false);
+                selNodeClasses = cellfun(@(x) x{end}, selNodeClasses, 'UniformOutput', false);
+                selNodesThisPluginType = selNodes(matches(string(selNodeClasses), plugin.Type));
+
+                for i = 1:length(selNodesThisPluginType)
+                    d.Message = sprintf("Running %s on %s", ...
+                        plugin.Name{1}, selNodesThisPluginType(i).NodeData.Name);
+                    try
+                        plugin.FunctionHandle{1}(selNodesThisPluginType(i).NodeData);
+                    catch ME
+                        nodeName = sprintf("Error running %s on %s", ...
+                            plugin.Name{1}, selNodesThisPluginType(i).NodeData.Name);
+                        errormsgs(n) = sprintf("%s\n%s\n", nodeName, ME.message);
+                        n=n+1;
+                    end
+                    d.Value = i/length(selNodesThisPluginType);
+                end
+            else
+                d.Message = sprintf("Running %s on %s", ...
+                    plugin.Name{1}, Node.NodeData.Name);
+                try
+                    plugin.FunctionHandle{1}(Node.NodeData);
+                catch ME
+                    nodeName = sprintf("Error running %s on %s\n", ...
+                        plugin.Name{1}, Node.NodeData.Name);
+                    errormsgs(n) = strcat(nodeName, ME.message);
+                end
+                d.Value = 1;
+            end
+            if errormsgs~=""
+                uialert(app.UIFigure, errormsgs, 'Error applying plugins');
+            end
+        end
     end
-    
+
     % %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %%
     % Methods for interacting with the active sessions
     % %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %%
     methods (Access = private)
-        
+
         function StatusTF = saveSession(app,sessionIdx,saveAsTF)
             %Retrieve session info
             Session = app.Sessions(sessionIdx);
             IsSessionDirty = app.IsDirty(sessionIdx);
             OldSessionPath = app.SessionPaths{sessionIdx};
             StatusTF = false;
-            
+
             %Get a valid file location to start in
             ThisFile = OldSessionPath;
             IsNewFile = ~exist(ThisFile,'file');
-            
+
             %ValidName. File must be of type QSP.mat
             ValidFileType = length(ThisFile)>8 && strcmpi(ThisFile(end-6:end),'qsp.mat');
-            
+
             if isempty(fileparts(ThisFile))
                 ThisFile = fullfile(app.LastFolder,ThisFile);
             end
-            
+
             % Do we need to prompt for a filename?
             PutFileSuccess = true;
             if saveAsTF || IsNewFile || ~ValidFileType
-                
+
                 % Need special handling for non-PC
                 [PathName,FileName] = fileparts(ThisFile);
                 FileName = regexp(FileName,'\.','split');
@@ -1215,21 +1709,21 @@ classdef main < handle
                     FileName = FileName{1};
                 end
                 ThisFile = fullfile(PathName,FileName);
-                
+
                 %Get file location using UI
                 [FileName,PathName,FilterIndex] = uiputfile(app.FileSpec, ...
                     'Save as',ThisFile);
-                
+
                 %If uiputfile was a success
                 if ~isequal(FileName,0)
-                    
+
                     %get file extension
                     if iscell(app.FileSpec)
                         FileExt = app.FileSpec{FilterIndex,1};
                     else
                         FileExt = app.FileSpec;
                     end
-                    
+
                     % If it's missing the full FileExt (i.e. on Mac/Linux)
                     if isempty(regexp(FileName,FileExt,'once'))
                         FileName = regexp(FileName,'\.','split');
@@ -1241,14 +1735,14 @@ classdef main < handle
                         end
                         FileName = [FileName,FileExt];
                     end
-                    
+
                     ThisFile = fullfile(PathName,FileName);
                     app.LastFolder = PathName;
                 else
                     PutFileSuccess = false;
                 end
             end
-            
+
             % Try save. If it returns ok, then update ui states.
             % Otherwise, return.
             if PutFileSuccess
@@ -1263,9 +1757,9 @@ classdef main < handle
                     app.SessionPaths{sessionIdx} = CurrentSessionPath;
                 end
             end
-            
+
         end
-        
+
         function StatusTF = saveSessionToFile(app,session,filePath)
             StatusTF = true;
             try
@@ -1277,125 +1771,267 @@ classdef main < handle
                 uialert(app.UIFigure,Message,'Save File');
             end
         end
-        
+
         function createUntitledSession(app)
             % Add a new session called 'untitled_x'
             % Clear existing sessions if needed
             if ~app.AllowMultipleSessions
                 app.SessionPaths = cell.empty(0,1);
             end
-            
+
             % Call subclass method to create storage for the new session
             app.createNewSession();
-            
+
             % Create the new session and select it
             NewName = matlab.lang.makeUniqueStrings('untitled',app.SessionNames);
             idxNew = app.NumSessions +1;
             app.SessionPaths{idxNew} = NewName;
             app.IsDirty(idxNew) = true;
-            
+
             % remove UDF from selected session
             app.SelectedSession.removeUDF();
-            app.SelectedSessionIdx = idxNew;
-            
+            if isempty(app.SelectedSessionIdx)
+                app.SelectedSessionIdx = idxNew;
+            end
+
         end
-        
+
         function createNewSession(app,Session)
             % Was a session provided? If not, make a new one
             if nargin < 2
                 Session = QSP.Session();
             end
-            
+
             % Add the session to the tree
             Root = app.TreeRoot;
             app.createTree(Root, Session);
-            
-            
+
+
             % % Update the app state
-            
+
             % Which session is this?
             newIdx = app.NumSessions + 1;
-            
+
             % Add the session to the app
             app.Sessions(newIdx) = Session;
-            
+
             % Start timer
             initializeTimer(Session);
         end
-        
+
+
+        function createFolders(app, Session)
+            allFolders = Session.Settings.Folder;
+
+            if ~isempty(allFolders)
+                topLevelFoldersIdx = arrayfun(@(x) ischar(x.Parent), allFolders);
+                topLevelFolders = allFolders(topLevelFoldersIdx);
+
+                for i = 1:length(topLevelFolders)
+                    createFolderNode(app, topLevelFolders(i), Session);
+                end
+            end
+        end
+
+        function createFolderNode(app, thisFolder, Session)
+            newFolder = QSP.Folder;
+            newFolder.Name = thisFolder.Name;
+            newFolder.Parent = thisFolder.Parent;
+            newFolder.OldParent = thisFolder.OldParent;
+            newFolder.Session = Session;
+
+            if ischar(newFolder.Parent)
+                ParentNode = getParentItemNode(newFolder, app.TreeRoot);
+            else
+                ParentItemNode = getParentItemNode(newFolder, app.TreeRoot);
+                folderNodes = getAllChildrenFolderNodes(newFolder, ParentItemNode);
+                newFolderParent = newFolder.Parent;
+                newFolderParentNodeIdx = arrayfun(@(x) strcmp(x.NodeData.Name, newFolderParent.Name)...
+                    && isequal(x.NodeData.Parent, newFolderParent.Parent), folderNodes);
+                ParentNode = folderNodes(newFolderParentNodeIdx);
+            end
+
+            % Place the item and add the tree node
+            if strcmp(ParentNode.Text, 'Deleted Items')
+                hNode = app.createNode(ParentNode, newFolder, newFolder.Name, ...
+                    QSPViewerNew.Resources.LoadResourcePath('folder_24.png'),...
+                    'Deleted', 'Folder', '');
+                newFolder.TreeNode = hNode; %Store node in the object for cross-ref
+            elseif isscalar(ParentNode)
+                app.createTree(ParentNode, newFolder);
+
+                % update "Move to..." context menu
+                updateMovetoContextMenu(app,ParentNode);
+            else
+                error('Invalid tree parent');
+            end
+
+            if isa(ParentNode.NodeData, 'QSP.Folder')
+                newFolder.Parent = ParentNode.NodeData;
+            end
+
+            if isa(newFolder.OldParent, 'QSP.Folder')
+                oldParent = newFolder.OldParent;
+                ParentItemNode = getParentItemNode(oldParent, app.TreeRoot);
+                folderNodes = getAllChildrenFolderNodes(oldParent, ParentItemNode);
+                oldParentNodeIdx = arrayfun(@(x) strcmp(x.NodeData.Name, oldParent.Name)...
+                    && isequal(x.NodeData.Parent, oldParent.Parent), folderNodes);
+                oldParentNode = folderNodes(oldParentNodeIdx);
+                newFolder.OldParent.TreeNode = oldParentNode;
+            end
+
+            % replace old folder with the new folder under Settings
+            Session.Settings.Folder(Session.Settings.Folder==thisFolder) = newFolder;
+
+            % attach all children nodes
+            for i = 1:length(thisFolder.Children)
+                thisChild = thisFolder.Children(i);
+
+                if isempty(newFolder.Children)
+                    newFolder.Children = thisChild;
+                else
+                    newFolder.Children(end+1) = thisChild;
+                end
+
+                if isa(thisChild, 'QSP.Folder')
+                    createFolderNode(app, thisChild, Session);
+                else
+                    ParentItemNode = getParentItemNode(newFolder, app.TreeRoot);
+                    if strcmp(ParentItemNode.Text, 'Deleted Items')
+                        % create node since it is not already created
+                        app.createTree(ParentItemNode, thisChild);
+                    end
+                    thisChildNodeIdx = arrayfun(@(x) isequal(x.NodeData, thisChild), ParentItemNode.Children);
+                    thisChildNode = ParentItemNode.Children(thisChildNodeIdx);
+
+                    thisFolderNodeIdx = arrayfun(@(x) isequal(x.NodeData, newFolder), ParentNode.Children);
+                    thisFolderNode = ParentNode.Children(thisFolderNodeIdx);
+
+                    thisChildNode.Parent = thisFolderNode;
+                end
+            end
+        end
+
+        function [StatusOk, Message, Session] = verifyValidSession(app, fullFilePath)
+            StatusOk = true;
+            Message='';
+            Session=[];
+
+            %Try to load the session
+            try
+                loadedSession = load(fullFilePath, 'Session');
+            catch err
+                StatusOk = false;
+                Message = sprintf('The file %s could not be loaded:\n%s', fullFilePath, err.message);
+            end
+
+            %Verify that the Session file has the correct atrributes
+            try
+                validateattributes(loadedSession.Session, {'QSP.Session'}, {'scalar'});
+            catch err
+                StatusOk =false;
+                Message = sprintf(['The file %s did not contain a valid '...
+                    'Session object:\n%s'], fullFilePath, err.message);
+            end
+
+            %Check if the file is supposed to be removed
+            if StatusOk && loadedSession.Session.toRemove
+                StatusOk = false;
+                Message = sprintf(['The file %s did not contain a valid '...
+                    'Session object:\n%s'], fullFilePath, err.message);
+            end
+
+            %If any of the above failed, we exit and display why
+            if StatusOk == false
+                uialert(app.UIFigure, Message, 'Invalid File')
+            else
+                %We have verified the session path, now verify the root
+                %directory
+                [StatusOk,newRootDir] = app.getValidSessionRootDirectory(loadedSession.Session.RootDirectory);
+                Session = copy(loadedSession.Session);
+                Session.RootDirectory = newRootDir;
+            end
+        end
+
         function loadSessionFromPath(app, fullFilePath)
             % Loads a session file from disk found at fullFilePath.
-            
             sessionStatus = app.verifyValidSessionFilePath(fullFilePath);
-            StatusOk = true;
+
             if sessionStatus
                 %Try to load the session
-                try
-                    loadedSession = load(fullFilePath, 'Session');
-                catch err
-                    StatusOk = false;
-                    Message = sprintf('The file %s could not be loaded:\n%s', fullFilePath, err.message);
-                end
-                
-                %Verify that the Session file has the correct atrributes
-                try
-                    validateattributes(loadedSession.Session, {'QSP.Session'}, {'scalar'});
-                catch err
-                    StatusOk =false;
-                    Message = sprintf(['The file %s did not contain a valid '...
-                        'Session object:\n%s'], fullFilePath, err.message);
-                end
-                
-                %Check if the file is supposed to be removed
-                if StatusOk && loadedSession.Session.toRemove
-                    StatusOk = false;
-                    Message = sprintf(['The file %s did not contain a valid '...
-                        'Session object:\n%s'], fullFilePath, err.message);
-                end
-                
-                %If any of the above failed, we exit and disply why
+                [StatusOk, Message, Session] = verifyValidSession(app, fullFilePath);
                 if StatusOk == false
                     uialert(app.UIFigure, Message, 'Invalid File')
                 else
-                    %We have verified the session path, now verify the root
-                    %directory
-                    [status,newFilePath] = app.getValidSessionRootDirectory(loadedSession.Session.RootDirectory);
-                    
-                    %If the status is false, we cannot find a valid root. Abandon
-                    %call
-                    if status
-                        %Copy the sessionobject, then add it the application
-                        Session = copy(loadedSession.Session);
-                        Session.RootDirectory = newFilePath;
-                        app.createNewSession(Session);
-                        
-                        %Edit the app properties to reflect a new loaded session was
-                        %added
-                        idxNew = app.NumSessions + 1;
-                        app.SessionPaths{idxNew} = fullFilePath;
-                        app.IsDirty(idxNew) = false;
-                        app.SelectedSessionIdx = idxNew;
-                        app.addRecentSessionPath(fullFilePath);
-                        
+                    % check if autosave more recent than session file exists
+                    [~,autosaveSessName,ext] = fileparts(fullFilePath);
+                    autosaveSessName = insertBefore(autosaveSessName, ".qsp", "_autosave");
+
+                    asvFullPath = fullfile(Session.AutoSaveDirectory, [autosaveSessName, ext]);
+
+                    % if autosave exists and not already loaded in the app
+                    if exist(asvFullPath, 'file') && ~ismember(asvFullPath, app.SessionPaths)
+                        asvMeta = dir(asvFullPath);
+                        sessionMeta = dir(fullFilePath);
+
+                        % if more autosave is more recent than session
+                        if asvMeta.datenum > sessionMeta.datenum
+                            selection = uiconfirm(app.UIFigure, ...
+                                "The there exists a more recent autosave for the session. Do you want to load it instead?", ...
+                                "Load autosave", ...
+                                'Options', {'Yes', 'No (Open original Session)'},...
+                                'DefaultOption',2);
+
+                            if strcmp(selection, 'Yes')
+                                [StatusOk, Message, asvSession] = verifyValidSession(app, asvFullPath);
+                                if StatusOk == false
+                                    uialert(app.UIFigure, strcat(Message, " Using original session file."), ...
+                                        'Invalid Autosave File');
+                                else
+                                    fullFilePath = asvFullPath;
+                                    Session = asvSession;
+                                end
+                            end
+                        end
                     end
+
+                    app.createNewSession(Session);
+
+                    %Edit the app properties to reflect a new loaded session was
+                    %added
+                    idxNew = app.NumSessions + 1;
+                    app.SessionPaths{idxNew} = fullFilePath;
+                    app.IsDirty(idxNew) = false;
+                    app.SelectedSessionIdx = idxNew;
+                    app.addRecentSessionPath(fullFilePath);
                 end
             end
             app.refresh();
+
+            % check if an instance of plugin  manager is
+            % running
+            if isvalid(app.PluginManager)
+                app.PluginManager.Sessions = app.Sessions;
+            else
+                pluginTable = ...
+                    QSPViewerNew.Dialogs.PluginManager.getPlugins(Session.PluginsDirectory);
+                updateAllPluginMenus(app, app.Sessions(idxNew), pluginTable)
+            end
         end
-        
+
         function status = verifyValidSessionFilePath(app, fullFilePath)
             % This status function checks whether the filepath provided is valid
             %If not, it will try to find a valid session path
             %If the user cannot find a valid session path, the output is
             %false
             status = true;
-            
+
             if ~exist(fullFilePath,'file')
                 Message = sprintf('The specified file does not exist: \n%s',fullFilePath);
                 uialert(app.UIFigure,Message,'Invalid File');
                 status =false;
             end
-            
+
             %Check that the file isnt already loaded
             if ismember(fullFilePath, app.SessionPaths)
                 Message = sprintf('The specified file is already open: \n%s',fullFilePath);
@@ -1403,25 +2039,25 @@ classdef main < handle
                 status = false;
             end
         end
-        
+
         function [status,newFilePath] = getValidSessionRootDirectory(app,filePath)
             %Check if a directory exists. If not, find a valid one.
             existence = exist(filePath,'dir');
-            
+
             %Check if the directory exists
             if existence
-                
+
                 %If the directory exists, we set the output values
                 status =true;
                 newFilePath = filePath;
             else
                 questionResult = uiconfirm(app.UIFigure,'Session root directory is invalid. Select a new root directory?',...
                     'Select root directory','Options', {'Yes','Cancel'}, 'Icon', 'question');
-                
+
                 %If they they would like to add a new root directory
                 if strcmp(questionResult,'Yes')
                     rootDir = uigetdir('Select valid session root directory');
-                    
+
                     %If the new root directory is valid
                     if rootDir ~= 0
                         status =true;
@@ -1438,51 +2074,56 @@ classdef main < handle
                 end
             end
         end
-        
+
         function addRecentSessionPath(app,newPath)
             %Check if the new location is already listed
             isInRecent  = ismember(app.RecentSessionPaths,newPath);
             app.RecentSessionPaths(isInRecent) = [];
-            
+
             %Add the File to the top of the list
             app.RecentSessionPaths = vertcat(newPath,app.RecentSessionPaths);
-            
+
             %Crop the 9 most recent entries;
             app.RecentSessionPaths(9:end) = [];
-            
+
             %redraw this context menu
             app.redrawRecentFiles()
         end
-        
+
         function closeSession(app,sessionIdx)
             % Delete timer
             deleteTimer(app.Sessions(sessionIdx));
-            
+
             % remove the session's UDF from the path
             app.Sessions(sessionIdx).removeUDF();
-            
+
             % Delete the session's tree node
             delete(app.Sessions(sessionIdx).TreeNode);
-            
+
             % Remove the session object
             app.Sessions(sessionIdx) = [];
-            
+
             %Update paths and dirtyTF
             app.SessionPaths(sessionIdx) = [];
             app.IsDirty(sessionIdx) = [];
-            
+
             %Update selected session
             app.SelectedSessionIdx = [];
-            
+
+            % update sessions in plugin manager if it is open
+            if isvalid(app.PluginManager)
+                app.PluginManager.Sessions = app.Sessions;
+            end
+
             %update app
             app.refresh();
         end
-        
+
         function CancelTF = savePromptBeforeClose(app,sessionIdx)
             %Ask user if they would like to save
             Prompt = sprintf('Save changes to %s?', app.SessionNames{sessionIdx});
             Result = uiconfirm(app.UIFigure,Prompt,'Save Changes','Options',{'Yes','No','Cancel'},'DefaultOption','Cancel');
-            
+
             CancelTF = false;
             switch Result
                 case 'Yes'
@@ -1497,48 +2138,77 @@ classdef main < handle
                 case 'Cancel'
                     CancelTF = true;
             end
-            
+
         end
-        
+
     end
-    
+
     % %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %%
     % Methods for drawing UI components.
     % %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %%
     methods (Access = public)
-        
+
         function disableInteraction(app)
             app.TreeRoot.Enable = 'off';
             app.FileMenu.Enable = 'off';
             app.QSPMenu.Enable = 'off';
         end
-        
+
         function enableInteraction(app)
             app.TreeRoot.Enable = 'on';
             app.FileMenu.Enable = 'on';
             app.QSPMenu.Enable = 'on';
         end
-        
+
         function changeInBackEnd(app,newObject)
             %This function is for other classes to provide a new session to
             %be added to session and corresponding tree
             switch class(newObject)
-                
+
                 %We have a new backend object to attach to the tree.
                 case 'QSP.Session'
+                    % check if plugins directory has changed
+                    oldPluginsDirectory = app.Sessions(app.SelectedSessionIdx).PluginsDirectory;
+                    newPluginsDirectory = newObject.PluginsDirectory;
+
                     %1.Replace the current Session with the newSession
                     app.Sessions(app.SelectedSessionIdx) = newObject;
-                    
+                    newObject.updateLoggerFileDir(); % move logger file if root directory is changed
+
                     %2. It must update the tree to reflect all the new values from
                     %the session
                     app.updateTreeData(app.TreeRoot.Children(app.SelectedSessionIdx),newObject,'Session')
-                    
+
+                    % update context menus if plugins directory had changed
+                    if ~isequal(oldPluginsDirectory, newPluginsDirectory)
+                        % check if an instance of plugin  manager is
+                        % running
+                        if isvalid(app.PluginManager)
+                            app.PluginManager.Sessions = app.Sessions;
+                        else
+                            pluginTable = ...
+                                QSPViewerNew.Dialogs.PluginManager.getPlugins(newPluginsDirectory);
+                            updateAllPluginMenus(app, app.Sessions(app.SelectedSessionIdx), pluginTable)
+                        end
+                    end
+
                     app.refresh();
                 case 'QSP.VirtualPopulation'
                     NewVirtualPopulation = newObject;
+
                     for idx = 1:numel(NewVirtualPopulation)
-                        app.onAddItem(NewVirtualPopulation(idx).Session,NewVirtualPopulation(idx))
+                        thisVpop = NewVirtualPopulation(idx);
+
+                        thisSession = NewVirtualPopulation(idx).Session;
+                        isbuildBlockNode = string({thisSession.TreeNode.Children.Text})=="Building blocks";
+                        buildBlockNode = thisSession.TreeNode.Children(isbuildBlockNode);
+                        virtualSubParentNode = buildBlockNode.Children(string({buildBlockNode.Children.Text})=="Virtual Subject(s)");
+
+                        app.onAddItem(virtualSubParentNode,thisSession,thisVpop)
+
+                        app.updateVpopFolderStructure(virtualSubParentNode);
                     end
+
                 case 'QSP.Parameters'
                     NewParameters = newObject;
                     for idx = 1:numel(NewParameters)
@@ -1548,7 +2218,7 @@ classdef main < handle
                     error('QSP object is not supported for adding to tree')
             end
         end
-        
+
         %The following 4 functions are required because uiaxes in R2020a do
         %not support buttonDown and buttonUp callbacks. Use these functions
         %to add your callback to the list of callbacks executed on
@@ -1556,7 +2226,7 @@ classdef main < handle
         function addWindowDownCallback(app,functionHandle)
             app.WindowButtonDownCallbacks{end+1} = functionHandle;
         end
-        
+
         function removeWindowDownCallback(app,functionHandle)
             %Need to use loop because == does not support function handles, need
             %to use isequal
@@ -1567,11 +2237,11 @@ classdef main < handle
                 end
             end
         end
-        
+
         function addWindowUpCallback(app,functionHandle)
             app.WindowButtonUpCallbacks{end+1} = functionHandle;
         end
-        
+
         function removeWindowUpCallback(app,functionHandle)
             %Need to use loop because == does not support function handles, need
             %to use isequal
@@ -1582,18 +2252,18 @@ classdef main < handle
                 end
             end
         end
-        
+
     end
-    
+
     % %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %
     %methods for toggling interactivity and updating the view
     % %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %
     methods (Access = private)
-        
+
         function markDirty(app,session)
             %This function can take an empty Session, a session index, or a
             %session object
-            
+
             if isempty(session)
                 app.IsDirty(app.SelectedSessionIdx) = true;
             elseif isnumeric(session)
@@ -1603,52 +2273,52 @@ classdef main < handle
                 %Provided session, need to find index
             end
         end
-        
+
         function markClean(app,session)
             %This function can take an empty Session, a session index, or a
             %session object
-            
+
             if isempty(session)
                 app.IsDirty(app.SelectedSessionIdx) = false;
             elseif isnumeric(session)
                 app.IsDirty(session) = false;
             else
-                app.IsDirty(strcmp(ActiveSession.SessionName,{app.Sessions.SessionName})) = false;
+                app.IsDirty(strcmp(session.SessionName,{app.Sessions.SessionName})) = false;
                 %Provided session, need to find index
             end
         end
-        
+
         function refresh(app)
             %This method refreshes the view of the screen
             if app.IsConstructed
                 %Update the names displayed in the tree
                 app.updateTreeNames();
-                
+
                 %Update the file menu
                 app.updateFileMenu();
-                
+
                 %Update the title of the application
                 app.updateAppTitle();
-                
+
                 %Update the current shown frame
                 app.updatePane();
-                
+
                 drawnow();
             end
         end
-        
+
         function redrawRecentFiles(app)
             % Construct menu items for each path in RecentSessionPaths.
-            
+
             % Delete the old menus
             delete(app.OpenRecentMenuArray);
-            
+
             for idx = 1:numel(app.RecentSessionPaths)
                 app.OpenRecentMenuArray(idx) = uimenu(app.OpenRecentMenu);
                 set(app.OpenRecentMenuArray(idx), 'Text', app.RecentSessionPaths{idx});
                 set(app.OpenRecentMenuArray(idx), 'MenuSelectedFcn', @(h, filePath) app.loadSessionFromPath(app.RecentSessionPaths{idx}));
             end
-            
+
             %If there are no menus to show, remove the option
             if isempty(app.RecentSessionPaths)
                 app.OpenRecentMenu.Enable = 'off';
@@ -1656,26 +2326,26 @@ classdef main < handle
                 app.OpenRecentMenu.Enable = 'on';
             end
         end
-        
+
         function updateFileMenu(app)
             %This will update the file menu interactivity based on the current state of the application
-            
+
             %Find the current Node
             SelNode = app.TreeRoot.SelectedNodes; %Nodes
             sIdx = app.SelectedSessionIdx; %index
-            
+
             %Determine if the Node is deleted and update this menu
             if isscalar(SelNode) && isequal(SelNode.UserData,[])
                 if strcmp(SelNode.Parent.UserData,'Deleted')
                     IsNodeRestorableTF = true;
                     IsNodeRemovableTF = false;
-                    
+
                     %Sessions have blank UserData but cannot be
                     %removed/restored
                 elseif strcmp(SelNode.Tag,'Session')
                     IsNodeRestorableTF = false;
                     IsNodeRemovableTF = false;
-                    
+
                 else
                     IsNodeRestorableTF = false;
                     IsNodeRemovableTF = true;
@@ -1684,21 +2354,21 @@ classdef main < handle
                 IsNodeRestorableTF = false;
                 IsNodeRemovableTF = false;
             end
-            
+
             set(app.DeleteSelectedItemMenu,'Enable',app.tf2onoff(IsNodeRemovableTF));
             set(app.RestoreSelectedItemMenu,'Enable',app.tf2onoff(IsNodeRestorableTF));
-            
+
             %Determine if a new item can be added
             IsOneSessionSelectedTF = isscalar(sIdx);
             set(app.AddNewItemMenu,'Enable',app.tf2onoff(IsOneSessionSelectedTF));
-            
+
             %Determine if the file is new and should be saved as or saved
             SelectionNotEmpty = ~isempty(app.SessionNames) && ~isempty(app.SelectedSessionIdx);
             SelectionIsDirty = SelectionNotEmpty && any(app.IsDirty(app.SelectedSessionIdx));
             set(app.SaveCtrlSMenu,'Enable',app.tf2onoff(SelectionIsDirty));
             set([app.SaveAsMenu, app.CloseMenu],...
                 'Enable',app.tf2onoff(SelectionNotEmpty));
-            
+
             %Update context menus
             %Iterate through each session
             for SessionIdx = 1:numel(app.Sessions)
@@ -1706,11 +2376,36 @@ classdef main < handle
                 SaveContextMenu = TempSession.TreeNode.ContextMenu.Children(2);
                 SaveContextMenu.Enable = app.IsDirty(SessionIdx);
             end
-            
+
         end
-        
+
+        %         function updateFolderContextMenus(app, treeNode)
+        %             allChildren = {treeNode.Children.NodeData};
+        %             isfolderIdx = cellfun(@(x) isa(x, 'QSP.Folder'), allChildren);
+        %
+        %             if any(isfolderIdx)
+        %                 allTopFolders = treeNode.Children(isfolderIdx);
+        %                 allItems = QSPViewerNew.Application.getAllChildrenItemTypeNodes(treeNode);
+        %                 for itemNodeIdx = 1:length(allItems)
+        %                     currentNode = allItems(itemNodeIdx);
+        %                     CM = currentNode.ContextMenu;
+        %                     m = uimenu('Parent',CM,'Label', 'Move to');
+        %                     for folderIdx = 1:length(allTopFolders)
+        %                         uimenu('Parent',m,'Label', allTopFolders(folderIdx).Text);
+        %                     end
+        %                 end
+        %             end
+        %
+        %             CM = uicontextmenu('Parent',app.UIFigure);
+        %             uimenu('Parent',CM,'Label', ['Add new ' ParentItemType],...
+        %                 'MenuSelectedFcn', @(h,e)app.onAddItem(h.Parent.UserData,Node.NodeData.Session,ParentItemType));
+        %
+        %         end
+        %
+        %
+
         function updateAppTitle(app)
-            
+
             % Update title bar
             SelectionNotEmptyTF = ~isempty(app.SessionNames) && ~isempty(app.SelectedSessionIdx);
             SelectionIsDirtyTF = SelectionNotEmptyTF && any(app.IsDirty(app.SelectedSessionIdx));
@@ -1726,19 +2421,22 @@ classdef main < handle
             end
             app.Title = sprintf('%s - %s%s', app.AppName, CurrentFile, StarStr);
             app.UIFigure.Name = app.Title;
-            
+
         end
-        
+
         function updatePane(app)
             %Find the currently selected Node
             NodeSelected = app.TreeRoot.SelectedNodes;
             if length(NodeSelected)>1
                 NodeSelected = NodeSelected(end);
             end
-            
+
             %Determine if the Node will launch a Pane
-            LaunchPaneTF = ~isempty(NodeSelected) && isempty(NodeSelected.UserData);
-            
+            funcNames = ["Simulation", "Optimization", "VirtualPopulationGeneration", "GlobalSensitivityAnalysis", "CohortGeneration"];
+            isFuncTopnode = ~isempty(NodeSelected) && any(matches(funcNames, string(NodeSelected.UserData)));
+            LaunchPaneTF = ~isempty(NodeSelected) && (isempty(NodeSelected.UserData) || ...
+                isFuncTopnode);
+
             %If we shouldnt launch a pane and there is currently a pane,
             %close it
             if ~LaunchPaneTF && ~isempty(app.ActivePane)
@@ -1750,24 +2448,32 @@ classdef main < handle
                 idxPane = app.PaneTypes(strcmp(app.PaneTypes,PaneType));
                 if isempty(idxPane)
                     %Launch a new Panewith the data provided
-                    app.launchNewPane(NodeSelected.NodeData);
+                    if isFuncTopnode
+                        app.launchNewPane(NodeSelected);
+                    else
+                        app.launchNewPane(NodeSelected.NodeData);
+                    end
                 else
-                    %Launch a pane that already exists with the new data
-                    app.launchOldPane(NodeSelected.NodeData);
+                    if isFuncTopnode
+                        app.launchOldPane(NodeSelected);
+                    else
+                        %Launch a pane that already exists with the new data
+                        app.launchOldPane(NodeSelected.NodeData);
+                    end
                 end
             end
         end
-        
+
         function launchNewPane(app,nodeData)
             %Inputs that the pane API should require in the constructor
             classInputs = {app.FlexGridLayout.getGridHandle(),1,3,app};
-            
+
             %Need to hide old pane
             if ~isempty(app.ActivePane)
                 app.ActivePane.hideThisPane();
                 app.ActivePane = [];
             end
-            
+
             %This switch determines the correct type of Pane and creates it
             %The default is that it is not shown
             %TODO: Address this switch statment to refactor
@@ -1808,29 +2514,34 @@ classdef main < handle
                 case 'QSP.GlobalSensitivityAnalysis'
                     app.ActivePane = QSPViewerNew.Application.GlobalSensitivityAnalysisPane(classInputs);
                     app.ActivePane.attachNewGlobalSensitivityAnalysis(nodeData);
-                    
+                case 'matlab.ui.container.TreeNode'
+                    app.ActivePane = QSPViewerNew.Application.FunctionalitySummaryPane(classInputs);
+                    if ~isempty(nodeData.Children)
+                        app.ActivePane.attachNewNodeData([nodeData.Children.NodeData]);
+                    end
+
             end
             if ~isempty(app.ActivePane)
                 %Now take the pane and display it.
-                app.Panes = [app.Panes, app.ActivePane];
+                app.Panes = {app.Panes, app.ActivePane};
                 app.ActivePane.showThisPane();
             end
         end
-        
+
         function launchOldPane(app,nodeData)
             %Find the index of the correct pane type
             PaneType = app.getPaneClassFromQSPClass(class(nodeData));
             idxPane = find(strcmp(PaneType,app.PaneTypes),1);
-            
-            if app.ActivePane~=app.Panes(idxPane)
+
+            if app.ActivePane~=app.Panes{idxPane}
                 %The pane shown is not correct, we need to change it.
                 app.ActivePane.hideThisPane();
-                app.ActivePane = app.Panes(idxPane);
+                app.ActivePane = app.Panes{idxPane};
             elseif isempty(app.ActivePane)
                 %There is no pane shown
-                app.ActivePane = app.Panes(idxPane);
+                app.ActivePane = app.Panes{idxPane};
             end
-            
+
             switch PaneType
                 case 'QSPViewerNew.Application.SessionPane'
                     app.ActivePane.attachNewSession(nodeData);
@@ -1856,15 +2567,21 @@ classdef main < handle
                     app.ActivePane.attachNewVirtualPopulationGeneration(nodeData);
                 case 'QSPViewerNew.Application.GlobalSensitivityAnalysisPane'
                     app.ActivePane.attachNewGlobalSensitivityAnalysis(nodeData);
+                case 'matlab.ui.container.TreeNode'
+                    app.ActivePane.attachNewNodeData([nodeData.Children.NodeData]);
             end
-            
+
             app.ActivePane.showThisPane();
         end
-        
+
+        function launchFuncSummaryPane(app,NodeSelected)
+
+        end
+
         function updateTreeData(app,tree,newData,type)
             %1. Update the Node information
             tree.NodeData = newData;
-            
+
             %2. Determine what type of Node this is.
             % We have to pass the type of the children because the node userdata types are
             % often the same between different types of nodes
@@ -1875,11 +2592,11 @@ classdef main < handle
                     app.updateTreeData(tree.Children(1),newData.Settings,'BuildingBlocks')
                     app.updateTreeData(tree.Children(2),newData,'Functionalities')
                     app.updateTreeData(tree.Children(3),newData.Deleted,'Deleted')
-                    
+
                     %If we are updating the session, we need to update the
                     %name
                     app.setCurrentSessionDirty()
-                    
+
                 case 'Building Blocks'
                     %Iterate through the 5 Subcategories
                     app.updateTreeData(tree.Children(1),newData,'TaskGroup')
@@ -1887,7 +2604,7 @@ classdef main < handle
                     app.updateTreeData(tree.Children(3),newData,'OptimizationDataGroup')
                     app.updateTreeData(tree.Children(4),newData,'VirtualPopulationDataGroup')
                     app.updateTreeData(tree.Children(5),newData,'VirtualPopulationGenerationDataGroup')
-                    
+
                 case 'TaskGroup'
                     for idx = 1:numel(newData.Task)
                         app.updateTreeData(tree.Children(idx),newData.Task(idx),'Task')
@@ -1920,30 +2637,35 @@ classdef main < handle
                     tree.NodeData.Session = app.Sessions(app.SelectedSessionIdx);
             end
         end
-        
+
         function updateTreeNames(app)
             % Update the title of each session to reflect if its dirty
             for idx=1:app.NumSessions
-                
+
                 % Get the session name for this node
                 ThisRawName = app.SessionNames{idx};
                 ThisName = ThisRawName;
-                
+
                 % Add dirty flag if needed
                 if app.IsDirty(idx)
                     ThisName = strcat(ThisName, ' *');
                 end
-                
+
                 %Update the Node
                 app.SessionNode(idx).Text = ThisName;
-                
+
                 %Assign the new name
                 setSessionName(app.Sessions(idx),ThisRawName);
             end
-            
+            updateLoggerSessions(app);
+
             %Update the selected node's name in the tree based on the
             %name,unless it is a session
-            SelNode = app.TreeRoot.SelectedNodes;
+            if ~isempty(app.TreeRoot.SelectedNodes)
+                SelNode = app.TreeRoot.SelectedNodes(end);
+            else
+                SelNode =[];
+            end
             checkScalerTF = isscalar(SelNode) && isscalar(SelNode.NodeData);
             checkTypeTF =~isempty(SelNode) && isprop(SelNode.NodeData,'Name') && ~strcmp(SelNode.NodeData.Name, SelNode.Text) && ...
                 ~strcmpi(class(SelNode.NodeData),'QSP.Session'); %We dont want to update the name for a session
@@ -1951,101 +2673,148 @@ classdef main < handle
                 SelNode.Text = SelNode.NodeData.Name;
             end
         end
-        
+
         function restoreNode(app,node,session)
-            
-            % What is the data object?
-            ThisObj = node.NodeData;
-            
-            % What type of item?
-            ItemTypes = {
-                'Dataset',                          'OptimizationData'
-                'Parameter',                        'Parameters'
-                'Task',                             'Task'
-                'Virtual Subject(s)',               'VirtualPopulation'
-                'Acceptance Criteria',              'VirtualPopulationData'
-                'Target Statistics',                'VirtualPopulationGenerationData'
-                'Simulation',                       'Simulation'
-                'Optimization',                     'Optimization'
-                'Cohort Generation',                'CohortGeneration'
-                'Virtual Population Generation',    'VirtualPopulationGeneration'
-                'Global Sensitivity Analysis',      'GlobalSensitivityAnalysis'
-                };
-            ItemClass = strrep(class(ThisObj), 'QSP.', '');
-            ItemType = ItemTypes{strcmpi(ItemClass,ItemTypes(:,2)),1};
-            
-            % Where does the item go?
-            if isprop(session,ItemType)
-                ParentObj = session;
-                SuperParentArray = ParentObj.TreeNode.Children;
-                ChildTags = {SuperParentArray.Tag};
-                SuperParent = SuperParentArray(strcmpi(ChildTags,'Functionalities'));
-                ParentArray = SuperParent.Children;
-                
-            else
-                ParentObj = session.Settings;
-                ParentArray = ParentObj.TreeNode.Children;
+            try
+                % What is the data object?
+                ThisObj = node.NodeData;
+
+                ItemClass = strrep(class(ThisObj), 'QSP.', '');
+                ItemType = app.ItemTypes{strcmpi(ItemClass,app.ItemTypes(:,2)),1};
+
+                % Where does the item go?
+                if isprop(session,ItemType)
+                    ParentObj = session ;
+                    SuperParentArray = ParentObj.TreeNode.Children;
+                    ChildTags = {SuperParentArray.Tag};
+                    SuperParent = SuperParentArray(strcmpi(ChildTags,'Functionalities'));
+                    ParentArray = SuperParent.Children;
+                    ParentArrayTypes = {ParentArray.Tag};
+                    ParentNode = ParentArray(strcmp(ParentArrayTypes,ItemType));
+                    allChildNames = {ParentObj.(ItemType).Name};
+                elseif strcmp(ItemType, "Folder")
+                    restoreFolderNodes(app, node);
+
+                    if ischar(ThisObj.Parent)
+                        ParentNode = getParentItemNode(ThisObj, app.TreeRoot);
+                    else
+                        ParentNode = ThisObj.Parent.TreeNode;
+                    end
+
+                    if ~isempty(ParentNode.Children)
+                        allChildren = {ParentNode.Children.NodeData};
+                        allFoldersIdx = cellfun(@(x) isa(x, 'QSP.Folder'),allChildren );
+                        if ~any(allFoldersIdx)
+                            allChildNames = '';
+                        else
+                            allFolders = [allChildren{allFoldersIdx}];
+                            allChildNames = {allFolders.Name};
+                        end
+                    else
+                        allChildNames = '';
+                    end
+
+                    ParentObj = session.Settings;
+                else
+                    ParentObj = session.Settings;
+                    ParentArray = ParentObj.TreeNode.Children;
+                    ParentArrayTypes = {ParentArray.Tag};
+                    ParentNode = ParentArray(strcmp(ParentArrayTypes,ItemType));
+                    allChildNames = {ParentObj.(ItemType).Name};
+                end
+
+                % Update the name to include the timestamp
+                TimeStamp = datestr(now,'dd-mmm-yyyy_HH-MM-SS');
+
+                % Strip out date
+                SplitName = regexp(ThisObj.Name,'\(\d\d-\D\D\D-\d\d\d\d_\d\d-\d\d-\d\d\)','split');
+                if ~isempty(SplitName) && iscell(SplitName)
+                    SplitName = SplitName{1}; % Take first
+                end
+                ThisObj.Name = strtrim(SplitName);
+
+                ThisObj.Name = sprintf('%s (%s)',ThisObj.Name,TimeStamp);
+
+                % check for duplicate names
+                if any(strcmp(ThisObj.Name, allChildNames))
+                    uialert(app.UIFigure,'Cannot restore deleted item because its name is identical to an existing item.','Restore');
+                    return;
+                end
+
+                if ~strcmp(ItemType, "Folder")
+                    % Move the object from deleted to the new parent
+                    % for folders, this is already done in restoreFolderNodes
+                    ParentObj.(ItemType)(end+1) = ThisObj;
+                end
+
+                MatchIdx = false(size(session.Deleted));
+                for idx = 1:numel(session.Deleted)
+                    MatchIdx(idx) = session.Deleted(idx)==ThisObj;
+                end
+                session.Deleted( MatchIdx ) = [];
+
+                % Update the tree
+                node.Parent = ParentNode;
+                ParentNode.expand();
+
+                % Change context menu
+                delete(node.UIContextMenu.Children);
+                app.createContextMenu(node, ItemType);
+
+                % Update the display
+                app.refresh();
+                app.markDirty(session);
+            catch ME
+                ThisSession = node.NodeData.Session;
+                loggerObj = QSPViewerNew.Widgets.Logger(ThisSession.LoggerName);
+                loggerObj.write(node.Text, ItemType ,ME)
             end
-            
-            ParentArrayTypes = {ParentArray.Tag};
-            ParentNode = ParentArray(strcmp(ParentArrayTypes,ItemClass));
-            
-            % check for duplicate names
-            if any(strcmp(ThisObj.Name,{ParentObj.(ItemClass).Name} ))
-                uialert(app.UIFigure,'Cannot restore deleted item because its name is identical to an existing item.','Restore');
-            end
-            
-            % Move the object from deleted to the new parent
-            ParentObj.(ItemClass)(end+1) = ThisObj;
-            MatchIdx = false(size(session.Deleted));
-            for idx = 1:numel(session.Deleted)
-                MatchIdx(idx) = session.Deleted(idx)==ThisObj;
-            end
-            session.Deleted( MatchIdx ) = [];
-            
-            % Update the name to include the timestamp
-            TimeStamp = datestr(now,'dd-mmm-yyyy_HH-MM-SS');
-            
-            % Strip out date
-            SplitName = regexp(ThisObj.Name,'\(\d\d-\D\D\D-\d\d\d\d_\d\d-\d\d-\d\d\)','split');
-            if ~isempty(SplitName) && iscell(SplitName)
-                SplitName = SplitName{1}; % Take first
-            end
-            ThisObj.Name = strtrim(SplitName);
-            
-            ThisObj.Name = sprintf('%s (%s)',ThisObj.Name,TimeStamp);
-            
-            % Update the tree
-            node.Parent = ParentNode;
-            ParentNode.expand();
-            
-            % Change context menu
-            delete(node.UIContextMenu.Children);
-            app.createContextMenu(node, ItemType);
-            
-            % Update the display
-            app.refresh();
-            app.markDirty(session);
         end
-        
+
+        function restoreFolderNodes(app, node)
+            ThisObj = node.NodeData;
+            % old parent becomes current parent when restoring
+            oldParent = ThisObj.Parent;
+            ThisObj.Parent = ThisObj.OldParent;
+            ThisObj.OldParent = oldParent;
+
+            % loop through all children
+            for i = 1:length(node.Children)
+                thisChild = node.Children(i);
+                if isa(thisChild.NodeData, 'QSP.Folder')
+                    restoreFolderNodes(app, thisChild);
+                else
+                    ParentNode = getParentItemNode(ThisObj, app.TreeRoot);
+                    ItemType = ParentNode.Tag;
+                    ParentObj = ParentNode.NodeData;
+                    ParentObj.(ItemType)( end+1 ) = thisChild.NodeData;
+                end
+            end
+
+            node.NodeData.Session.Settings.Folder(end+1) = ThisObj;
+        end
+
         function duplicateNode(app,Node,~)
-            
+
             % What type of item?
             ParentNode = Node.Parent;
+            while isa(ParentNode.NodeData, 'QSP.Folder')
+                ParentNode = ParentNode.Parent;
+            end
             ItemType = ParentNode.Tag;
-            
+
             % What are the data object and its parent?
             ParentObj = ParentNode.NodeData;
-            
+
             ThisObj = Node.NodeData;
-            
+
             % Create the duplicate item
             DisallowedNames = {ParentObj.(ItemType).Name};
             NewName = matlab.lang.makeUniqueStrings(ThisObj.Name, DisallowedNames);
             ThisObj = ThisObj.copy();
             ThisObj.Name = NewName;
             ThisObj.clearData();
-            
+
             % Place the item and add the tree node
             if isscalar(ParentNode)
                 ParentObj.(ItemType)(end+1) = ThisObj;
@@ -2054,92 +2823,215 @@ classdef main < handle
             else
                 error('Invalid tree parent');
             end
-            
+
             % Mark the current session dirty
-            app.markDirty(Node.NodeData.Session);
-            
+            ThisSession = Node.NodeData.Session;
+            app.markDirty(ThisSession);
+
             % Update the display
             app.refresh();
+
+            % update log
+            loggerObj = QSPViewerNew.Widgets.Logger(ThisSession.LoggerName);
+            loggerObj.write(Node.Text, ItemType, "INFO", 'duplicated item')
         end
-        
+
         function deleteNode(app,Node,session)
-            
+
             % What type of item?
             PackageContents = strsplit(class(Node.NodeData),'.');
             ItemType = PackageContents{end};
-            
+
             % Where is the Deleted Items node?
             hDeletedNode = session.TreeNode.Children(3);
-            
+
             % What are the data object and its parent?
             ThisObj = Node.NodeData;
-            ParentObj = Node.Parent.NodeData;
-            
+            ParentNode = Node.Parent;
+            while isa(ParentNode.NodeData, 'QSP.Folder')
+                ParentNode = ParentNode.Parent;
+            end
+            ParentObj = ParentNode.NodeData;
+
             % Move the object from its parent to deleted
             session.Deleted(end+1) = ThisObj;
-            ParentObj.(ItemType)( ParentObj.(ItemType)==ThisObj ) = [];
+            if ~strcmp(ItemType, "Folder")
+                ParentObj.(ItemType)( ParentObj.(ItemType)==ThisObj ) = [];
+            else
+                deleteFolderNodes(app, Node)
+            end
             Node.Parent = hDeletedNode;
             app.TreeRoot.SelectedNodes = Node;
-            
+
             % Change context menu
             app.createContextMenu(Node,'Deleted')
-            
+
             app.SelectedSessionIdx = []; % switch to summary view
-            
+
             hDeletedNode.expand();
-            
+
             % Mark the current session dirty
             app.markDirty(session);
-            
+
             % Update the display
             app.refresh();
-            
+
+            % update log
+            loggerObj = QSPViewerNew.Widgets.Logger(ThisObj.Session.LoggerName);
+            loggerObj.write(Node.Text, ItemType, "WARNING", 'deleted item')
         end
-        
+
+        function deleteFolderNodes(app, node)
+            % loop through all children
+            for i = 1:length(node.Children)
+                thisChild = node.Children(i);
+                if isa(thisChild.NodeData, 'QSP.Folder')
+                    deleteFolderNodes(app, thisChild);
+                else
+                    ParentNode = getParentItemNode(node.NodeData, app.TreeRoot);
+                    ItemType = ParentNode.Tag;
+                    ParentObj = ParentNode.NodeData;
+                    ParentObj.(ItemType)( ParentObj.(ItemType)==thisChild.NodeData ) = [];
+                end
+            end
+
+            node.NodeData.OldParent = node.NodeData.Parent;
+            allFolders = node.NodeData.Session.Settings.Folder;
+            nodeFolderIdx = arrayfun(@(x) isequal(x.Parent, node.NodeData.Parent)&&...
+                strcmp(x.Name, node.NodeData.Name), allFolders);
+
+            node.NodeData.Session.Settings.Folder(nodeFolderIdx).Parent = 'Deleted Items';
+            node.NodeData.Session.Settings.Folder(nodeFolderIdx) = [];
+        end
+
         function permDelete(app,nodes,session)
             %Determine node names
             NodeNames = {nodes.Text};
-            
+
             % Confirm with user they would like to delete all
             Messages = cellfun(@(x) sprintf('Permanently delete "%s"?', x),NodeNames,'UniformOutput',false);
             Result = uiconfirm(app.UIFigure,Messages,'Delete','Options', {'Delete','Cancel'});
-            
+
             if strcmpi(Result,'Delete')
                 for Nodeidx = 1:numel(nodes)
                     % Delete the selected item
                     ThisNode = nodes(Nodeidx);
                     ThisObj = ThisNode.NodeData;
-                    
+
+                    % update log
+                    % What type of item?
+                    itemType = split(class(ThisObj), '.');
+                    loggerObj = QSPViewerNew.Widgets.Logger(session.Session.LoggerName);
+                    loggerObj.write(ThisNode.Text, itemType{end}, "DEBUG", 'permanently deleted item')
+
                     %Find the node in the deleted array
                     MatchIdx = false(size(session.Deleted));
                     for idx = 1:numel(session.Deleted)
                         MatchIdx(idx) = session.Deleted(idx)==ThisObj;
                     end
-                    
+
                     % Remove from deleted items in the session
                     session.Deleted( MatchIdx ) = [];
-                    
+
                     % Now delete tree node
                     delete(ThisNode);
-                    
+
                     % Mark the current session dirty
                     app.markDirty(session);
-                    
+
                 end
-                
+
                 % Update the display
                 app.refresh();
             end
-            
+
         end
-        
+
+        function updateMovetoContextMenu(app,currentNode)
+            allItemTypeTags = {'Task'; 'Parameters'; 'OptimizationData'; 'VirtualPopulationData'; ...
+                'VirtualPopulationGenerationData'; 'VirtualPopulation'; 'Simulation'; 'Optimization'; ...
+                'CohortGeneration'; 'VirtualPopulationGeneration'; 'GlobalSensitivityAnalysis'};
+            while ~ismember(currentNode.Tag, allItemTypeTags)
+                currentNode = currentNode.Parent;
+            end
+
+            parentNode = currentNode;
+            isfolderIdx = arrayfun(@(x) isa(x.NodeData, 'QSP.Folder'), parentNode.Children);
+
+            allChildNodes = app.getAllChildrenItemTypeNodes(parentNode);
+
+            if any(isfolderIdx)
+                for i = 1:length(allChildNodes)
+                    thisNode = allChildNodes(i);
+                    isMovetoMenu = arrayfun(@(x) strcmp(x.Text, 'Move to ...'), thisNode.ContextMenu.Children);
+                    thisNode.ContextMenu.Children(isMovetoMenu).Enable = 'on';
+                end
+            else
+                for i = 1:length(allChildNodes)
+                    thisNode = allChildNodes(i);
+                    isMovetoMenu = arrayfun(@(x) strcmp(x.Text, 'Move to ...'), thisNode.ContextMenu.Children);
+                    thisNode.ContextMenu.Children(isMovetoMenu).Enable = 'off';
+                end
+            end
+
+        end
+
+        function nodes = getAllChildrenItemTypeNodes(app, node)
+            % get all item type children nodes below "node"
+            nodes = [];
+            for i = 1:length(node.Children)
+                currentNode = node.Children(i);
+                if ~isa(currentNode.NodeData, 'QSP.Folder')
+                    nodes = [nodes; currentNode];
+                else
+                    nodes = [nodes; getAllChildrenItemTypeNodes(app, currentNode)];
+                end
+            end
+        end
+
+        function updateVpopFolderStructure(app, parentVpopNode)
+            allChildrenInit = parentVpopNode.Children;
+            for i = 1:length(allChildrenInit)
+                if ~isa(allChildrenInit(i).NodeData, 'QSP.Folder')
+                    thisVpop = allChildrenInit(i).NodeData;
+                    if contains(thisVpop.Name, "Results -")
+                        allChildren = thisVpop.TreeNode.Parent.Children;
+                        sourceNodeName = extractBetween(thisVpop.Name, "= ", " ");
+                        isExistSourceFolder = false;
+
+                        if ~isempty(sourceNodeName)
+                            % check if a folder exists with this name
+                            isfolderidx = arrayfun(@(x) isa(x.NodeData, 'QSP.Folder'), allChildren);
+                            if any(isfolderidx)
+                                allFolders = allChildren(isfolderidx);
+                                isSourceFolderIdx = arrayfun(@(x) strcmp(x.NodeData.Name,sourceNodeName{1}), ...
+                                    allFolders);
+                                if any(isSourceFolderIdx)
+                                    isExistSourceFolder = true;
+                                    SourceFolder = allFolders(isSourceFolderIdx).NodeData;
+                                end
+                            end
+                        end
+
+                        if ~isExistSourceFolder
+                            SourceFolder = onAddFolder(app,parentVpopNode,thisVpop.Session,false);
+                            SourceFolder.TreeNode.Text = sourceNodeName{1};
+                            SourceFolder.Name = sourceNodeName{1};
+                        end
+
+                        thisVpop.TreeNode.Parent = SourceFolder.TreeNode;
+                        expand(SourceFolder.TreeNode);
+                    end
+                end
+            end
+        end
     end
-    
+
     % %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %%
     %Static Methods
     % %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %%
     methods(Static)
-        
+
         function answer = tf2onoff(TorF)
             if TorF ==true
                 answer =  'on';
@@ -2147,28 +3039,7 @@ classdef main < handle
                 answer = 'off';
             end
         end
-        
-        function paneClass = getPaneClassFcnFromPaneType(paneType)
-            arguments
-                paneType (1,1) string
-            end
-            
-            prefix = "QSPViewerNew.Application.";
-            switch paneType
-                case 'Task'
-                    paneClass = "TaskPane";
-                case 'Parameters'
-                    paneClass = "ParametersPane";
-                case 'Simulation'
-                    paneClass = "SimulationPane";
-                case 'Optimization'
-                    paneClass = "OptimizationPane";
-                otherwise
-                    paneClass = "SessionPane";            
-            end
-            paneClass = eval("@" + prefix + paneClass);
-        end
-        
+
         function PaneClass = getPaneClassFromQSPClass(QSPClass)
             %This method takes a QSP class and returns what type of pane it
             %launches
@@ -2197,28 +3068,32 @@ classdef main < handle
                     PaneClass = 'QSPViewerNew.Application.VirtualPopulationGenerationDataPane';
                 case 'QSP.GlobalSensitivityAnalysis'
                     PaneClass = 'QSPViewerNew.Application.GlobalSensitivityAnalysisPane';
+                case 'QSP.Folder'
+                    PaneClass = 'QSPViewerNew.Application.FolderPane';
             end
         end
-        
+
         function executeCallbackArray(functionArray,h,e)
             for i = 1:length(functionArray)
                 feval(functionArray{i},h,e)
             end
         end
-        
+
+
+
     end
-    
+
     % %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %%
     %Get/Set Methods
     % %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %%
     methods
-        
+
         function value = get.SessionNames(app)
             [~,value,ext] = cellfun(@fileparts, app.SessionPaths,...
                 'UniformOutput', false);
             value = strcat(value,ext);
         end
-        
+
         function value = get.LastFolder(app)
             % If the LastFolder doesn't exist, update it
             if ~exist(app.LastFolder,'dir')
@@ -2226,7 +3101,7 @@ classdef main < handle
             end
             value = app.LastFolder;
         end
-        
+
         function value = get.SelectedSessionPath(app)
             % Grab the session object for the selected session
             sIdx = app.SelectedSessionIdx;
@@ -2236,7 +3111,7 @@ classdef main < handle
                 value = app.SessionPaths{app.SelectedSessionIdx};
             end
         end
-        
+
         function value = get.SelectedSessionName(app)
             % Grab the session object for the selected session
             sIdx = app.SelectedSessionIdx;
@@ -2246,11 +3121,11 @@ classdef main < handle
                 value = app.SessionNames{app.SelectedSessionIdx};
             end
         end
-        
+
         function value = get.NumSessions(app)
             value = numel(app.SessionPaths);
         end
-        
+
         function value = get.SelectedSessionIdx(app)
             ns = app.NumSessions;
             if ns==0
@@ -2261,17 +3136,20 @@ classdef main < handle
                 value = app.SelectedSessionIdx;
             end
         end
-        
+
+        function set.Sessions(app,value)
+            app.Sessions = value;
+        end
+
         function set.SelectedSessionIdx(app,value)
             if isempty(value)
                 app.SelectedSessionIdx = double.empty(0,1);
             else
-                validateattributes(value, {'double'},...
-                    {'scalar','positive','integer','<=',app.NumSessions}) %TODO and Discuss
+                validateattributes(value, {'double'},{'scalar','positive','integer','<=',app.NumSessions}); %TODO and Discuss
                 app.SelectedSessionIdx = value;
             end
         end
-        
+
         function set.SessionPaths(app,value)
             if isempty(value)
                 app.SessionPaths = cell.empty(0,1);
@@ -2279,17 +3157,17 @@ classdef main < handle
                 app.SessionPaths = value;
             end
         end
-        
+
         function value = get.SelectedSession(app)
             % Grab the session object for the selected session
             value = app.Sessions(app.SelectedSessionIdx);
         end
-        
+
         function set.SelectedSession(app,value)
             % Grab the session object for the selected session
             app.Sessions(app.SelectedSessionIdx) = value;
         end
-        
+
         function value = get.SessionNode(app)
             if isempty(app.Sessions)
                 value = matlab.ui.container.TreeNode;
@@ -2297,23 +3175,27 @@ classdef main < handle
                 value = [app.Sessions.TreeNode];
             end
         end
-        
+
         function value = get.PaneTypes(app)
-            value = arrayfun(@class, app.Panes, 'UniformOutput', false);
+            if ~isempty(app.Panes)
+                value = cellfun(@class, app.Panes, 'UniformOutput', false);
+            else
+                value = [];
+            end
         end
-        
+
         function setCurrentSessionDirty(app)
             app.IsDirty(app.SelectedSessionIdx) = true;
         end
-        
+
         function setCurrentSessionClean(app)
             app.IsDirty(app.SelectedSessionIdx) = true;
         end
-        
+
         function value = getUIFigure(app)
             value = app.UIFigure;
         end
-        
+
     end
-    
+
 end
