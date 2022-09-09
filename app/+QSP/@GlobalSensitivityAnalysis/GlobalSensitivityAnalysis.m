@@ -484,20 +484,21 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
                 message = 'Internal error.';
             end            
         end 
-        
-        function [statusOk, message] = duplicate(obj, idx)
-            % Duplicate a GSA item.
-            if idx == 0
-                statusOk = false;
-                message = 'Select a row to mark it for duplication.';
-                return;
-            end
-            statusOk = true;
-            message  = '';
-            
-            numPlotSobolIndices = numel(obj.PlotSobolIndex);
-            obj.PlotSobolIndex = obj.PlotSobolIndex([1:numPlotSobolIndices, idx]);
-        end 
+
+        % TODOpax
+%         function [statusOk, message] = duplicate(obj, idx)
+%             % Duplicate a GSA item.
+%             if idx == 0
+%                 statusOk = false;
+%                 message = 'Select a row to mark it for duplication.';
+%                 return;
+%             end
+%             statusOk = true;
+%             message  = '';
+%             
+%             numPlotSobolIndices = numel(obj.PlotSobolIndex);
+%             obj.PlotSobolIndex = obj.PlotSobolIndex([1:numPlotSobolIndices, idx]);
+%         end 
         
         function [statusOk, message] = propagateValue(obj, property, idx)
             % Helper method to propagate a property value from one 
