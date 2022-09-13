@@ -33,8 +33,8 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
         Metric              = {'mean', 'median', 'max', 'min'}
 
         SelectedRow = struct('TaskTable', [0,0], ...         % selected [row, column]
-                             'PlotItemsTable', 0, ...        % selected column
-                             'PlotSobolIndexTable', [0,0])   % selected row in [displayed, ui-] table
+            'PlotItemsTable', 0, ...        % selected column
+            'PlotSobolIndexTable', [0,0])   % selected row in [displayed, ui-] table
 
         StaleFlag
         ValidFlag
@@ -113,27 +113,32 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
         IterationsTable             matlab.ui.control.Table
         IterationsTableContextMenu  matlab.ui.container.ContextMenu
         IterationsTableMenu         matlab.ui.container.Menu
-
-
     end
-    
+
     % public property to be set by the pop-up dialog
     properties
-        SelectedNodePath 
+        SelectedNodePath
     end
-    
+
     % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Constructor and destructor
     % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     methods
+        function obj = GlobalSensitivityAnalysisPane(pvargs)
+            arguments
+                pvargs.Parent (1,1) matlab.ui.container.GridLayout
+                pvargs.layoutrow (1,1) double = 1
+                pvargs.layoutcolumn (1,1) double = 1
+                pvargs.parentApp
+                pvargs.HasVisualization (1,1) logical = true
+            end
 
-        function obj = GlobalSensitivityAnalysisPane(varargin)
-            obj = obj@QSPViewerNew.Application.ViewPane(varargin{:}{:},true);
+            % TODOpax. This does not work. args = namedargs2cell(pvargs);
+            obj = obj@QSPViewerNew.Application.ViewPane(Parent=pvargs.Parent, HasVisualization=pvargs.HasVisualization, ParentApp=pvargs.parentApp);
             obj.create();
             obj.createListenersAndCallbacks();
             obj.PlotSelectionCallback = @(src,~)obj.lineSelectionCallback(src);
         end
-
     end
 
     % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -147,10 +152,10 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             obj.EditGrid = uigridlayout(obj.getEditGrid());
             obj.EditGrid.ColumnWidth   = {'1x'};
             obj.EditGrid.RowHeight     = {obj.WidgetHeight, ...        % results folder selection
-                                          obj.WidgetHeight, ...        % sensitivity inputs
-                                          obj.WidgetHeight, ...        % random number seed
-                                          obj.WidgetHeight, '1x', ...  % task selection table
-                                          obj.WidgetHeight};           % tolerance for convergence
+                obj.WidgetHeight, ...        % sensitivity inputs
+                obj.WidgetHeight, ...        % random number seed
+                obj.WidgetHeight, '1x', ...  % task selection table
+                obj.WidgetHeight};           % tolerance for convergence
             obj.EditGrid.Layout.Row    = 3;
             obj.EditGrid.Layout.Column = 1;
             obj.EditGrid.Padding       = obj.WidgetPadding;
@@ -159,18 +164,18 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
 
             % Results path selector
             obj.ResultFolderSelector = QSPViewerNew.Widgets.FolderSelector(obj.EditGrid,1,1,'Results Path');
-             
-            % Sensitivity inputs grid 
+
+            % Sensitivity inputs grid
             obj.SensitivityInputsGrid = uigridlayout(obj.EditGrid);
-            obj.SensitivityInputsGrid.ColumnWidth   = {2.00*obj.LabelLength, 2.00*obj.LabelLength, '1x', obj.ButtonWidth};     
+            obj.SensitivityInputsGrid.ColumnWidth   = {2.00*obj.LabelLength, 2.00*obj.LabelLength, '1x', obj.ButtonWidth};
             obj.SensitivityInputsGrid.RowHeight     = {obj.WidgetHeight}; % sensitivity inputs
             obj.SensitivityInputsGrid.Layout.Row    = 2;
             obj.SensitivityInputsGrid.Layout.Column = 1;
             obj.SensitivityInputsGrid.Padding       = obj.WidgetPadding;
             obj.SensitivityInputsGrid.RowSpacing    = obj.WidgetHeightSpacing;
             obj.SensitivityInputsGrid.ColumnSpacing = 0;
-            
-            % Sensitivity inputs 
+
+            % Sensitivity inputs
             obj.SensitivityInputsLabel               = uilabel(obj.SensitivityInputsGrid);
             obj.SensitivityInputsLabel.Layout.Column = 1;
             obj.SensitivityInputsLabel.Layout.Row    = 1;
@@ -184,10 +189,10 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             obj.SensitivityInputsButton.Layout.Row      = 1;
             obj.SensitivityInputsButton.Text            = '...';
             obj.SensitivityInputsButton.ButtonPushedFcn = @(h,e)obj.onSensitivityInputButtonPushed();
-            
+
             % Random seed configuration grid
             obj.SeedConfigurationGrid               = uigridlayout(obj.EditGrid);
-            obj.SeedConfigurationGrid.ColumnWidth   = {2.00*obj.LabelLength, 2.00*obj.LabelLength, obj.LabelLength, '1x'};  
+            obj.SeedConfigurationGrid.ColumnWidth   = {2.00*obj.LabelLength, 2.00*obj.LabelLength, obj.LabelLength, '1x'};
             obj.SeedConfigurationGrid.RowHeight     = {obj.WidgetHeight};    % random seed
             obj.SeedConfigurationGrid.Layout.Row    = 3;
             obj.SeedConfigurationGrid.Layout.Column = 1;
@@ -235,9 +240,9 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             obj.TaskButtonGrid = uigridlayout(obj.TaskGrid);
             obj.TaskButtonGrid.ColumnWidth = {'1x'};
             obj.TaskButtonGrid.RowHeight = {obj.ButtonHeight, ... % add
-                                            obj.ButtonHeight, ... % remove
-                                            obj.ButtonHeight, ... % propagate value
-                                            obj.ButtonHeight};    % duplicate row
+                obj.ButtonHeight, ... % remove
+                obj.ButtonHeight, ... % propagate value
+                obj.ButtonHeight};    % duplicate row
             obj.TaskButtonGrid.Layout.Row = 1;
             obj.TaskButtonGrid.Layout.Column = 1;
             obj.TaskButtonGrid.Padding = [0,0,0,0];
@@ -275,7 +280,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             obj.DuplicateRowButton.Text            = '';
             obj.DuplicateRowButton.Tooltip         = 'Duplicate the selected row';
             obj.DuplicateRowButton.ButtonPushedFcn = @(h,e)obj.onDuplicateRowTaskTable();
-            
+
             % task table
             obj.TaskTable                       = uitable(obj.TaskGrid, 'ColumnSortable', true);
             obj.TaskTable.Layout.Row            = 1;
@@ -295,7 +300,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             obj.TaskTableContextMenu = uicontextmenu(obj.getUIFigure());
             obj.TaskTableMenu = uimenu(obj.TaskTableContextMenu);
             obj.TaskTableMenu.Label = sprintf('Select a value in the column ''%s'' or ''%s'' to propagate it to all tasks.',...
-                    obj.TaskTable.ColumnName{2}, obj.TaskTable.ColumnName{3});
+                obj.TaskTable.ColumnName{2}, obj.TaskTable.ColumnName{3});
             obj.TaskTableMenu.MenuSelectedFcn = @(h,e)obj.onPropagateSensitivityOutputValue();
             obj.TaskTable.ContextMenu = obj.TaskTableContextMenu;
 
@@ -323,10 +328,10 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             obj.PlotGrid.Layout.Row    = 2;
             obj.PlotGrid.Layout.Column = 1;
             obj.PlotGrid.RowHeight     = {obj.WidgetHeight, '2x', ...  % Sobol index table
-                                          obj.WidgetHeight, ...        % summary mode
-                                          obj.WidgetHeight, '1x', ...  % task selection table
-                                          obj.WidgetHeight, '1x', ...  % iterations table
-                                          obj.WidgetHeight};           % show iterations checkbox
+                obj.WidgetHeight, ...        % summary mode
+                obj.WidgetHeight, '1x', ...  % task selection table
+                obj.WidgetHeight, '1x', ...  % iterations table
+                obj.WidgetHeight};           % show iterations checkbox
             obj.PlotGrid.ColumnWidth   = {'1x', obj.LabelLength};
 
             % Table for selecting Sobol indices for plotting
@@ -347,11 +352,11 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             obj.SobolIndexButtonGrid               = uigridlayout(obj.SobolIndexGrid);
             obj.SobolIndexButtonGrid.ColumnWidth   = {'1x'};
             obj.SobolIndexButtonGrid.RowHeight     = {obj.ButtonHeight,... % add
-                                                      obj.ButtonHeight,... % edit
-                                                      obj.ButtonHeight,... % copy
-                                                      obj.ButtonHeight,... % remove
-                                                      obj.ButtonHeight,... % move up
-                                                      obj.ButtonHeight};   % move down
+                obj.ButtonHeight,... % edit
+                obj.ButtonHeight,... % copy
+                obj.ButtonHeight,... % remove
+                obj.ButtonHeight,... % move up
+                obj.ButtonHeight};   % move down
             obj.SobolIndexButtonGrid.Layout.Row    = 1;
             obj.SobolIndexButtonGrid.Layout.Column = 1;
             obj.SobolIndexButtonGrid.Padding       = [0,0,0,0];
@@ -406,7 +411,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             obj.SobolIndexTable.Data                  = cell(0,8);
             obj.SobolIndexTable.ColumnName            = {'Plot','Style','Input','Output','Type','Mode','Metric','Display'};
             obj.SobolIndexTable.ColumnFormat          = {obj.PlotNumber, obj.MarkerStyles, 'char', 'char', ...
-                                                         obj.Types, obj.Modes, obj.Metric, 'char'};
+                obj.Types, obj.Modes, obj.Metric, 'char'};
             obj.SobolIndexTable.ColumnEditable        = [true,true,false,false,true,true,true,true];
             obj.SobolIndexTable.ColumnWidth           = 'auto';
             obj.SobolIndexTable.SelectionHighlight    = 'off';
@@ -502,7 +507,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             if DeleteIdx == 0
                 uialert(obj.getUIFigure(), ...
                     ['Select a task to remove the corresponding ', ...
-                     'global sensitivity analysis.'],'Selection required');
+                    'global sensitivity analysis.'],'Selection required');
                 return;
             end
             [statusOk, message] = obj.TemporaryGlobalSensitivityAnalysis.remove('gsaItem', DeleteIdx);
@@ -531,13 +536,13 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             obj.updateTaskTable();
             obj.IsDirty = true;
         end
-        
+
         function onDuplicateRowTaskTable(obj)
             DuplicateIdx = obj.SelectedRow.TaskTable(1);
             if DuplicateIdx == 0
                 uialert(obj.getUIFigure(), ...
                     ['Select a row to duplicate the corresponding ', ...
-                     'global sensitivity analysis.'],'Selection required');
+                    'global sensitivity analysis.'],'Selection required');
                 return;
             end
             obj.TemporaryGlobalSensitivityAnalysis.duplicate(DuplicateIdx);
@@ -545,7 +550,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             obj.SelectedRow.TaskTable = [0, 0];
             obj.IsDirty = true;
         end
-        
+
         function onPropagateSensitivityOutputValue(obj)
             if isempty(obj.SensitivityOutputs) || ...
                     obj.SelectedRow.TaskTable(2) == 1 || ...
@@ -597,7 +602,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             obj.TemporaryGlobalSensitivityAnalysis.ParametersName = obj.SensitivityInputsDropDown.Value;
             obj.IsDirty = true;
         end
-        
+
         function onTableSelectionChange(obj, source, eventData)
             % Keep track of selected row in GSA tables
             if isempty(eventData.Indices) || ~isvector(eventData.Indices)
@@ -606,7 +611,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             if source == obj.TaskTable
                 % Sensitivity output table
                 obj.SelectedRow.TaskTable = eventData.Indices;
-                
+
                 % if one of the task cells is selected, bring up the dialog
                 if size(obj.SelectedRow.TaskTable,1)==1 && ...
                         obj.SelectedRow.TaskTable(2)==1
@@ -751,8 +756,8 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
                         obj.SelectedRow.PlotSobolIndexTable(1) = tableIdx;
                         obj.selectRow(obj.SobolIndexTable, obj.SelectedRow.PlotSobolIndexTable(1), false);
                         selectPlotItem(obj.GlobalSensitivityAnalysis, obj.SelectedRow.PlotSobolIndexTable(1));
-    %                     s = uistyle('FontWeight', 'bold');
-    %                     addStyle(obj.SobolIndexTable, s, 'row', tableIdx);
+                        %                     s = uistyle('FontWeight', 'bold');
+                        %                     addStyle(obj.SobolIndexTable, s, 'row', tableIdx);
                         tfSetHightlightInPlot = true;
                     end
                     break;
@@ -840,7 +845,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
                     selections = {{}; {}};
 
                     modalWindow = QSPViewerNew.Widgets.MultiDataSelector("Select sensitivity inputs and outputs", ...
-                    ["Sensitivity Inputs", "Sensitivity Outputs"], options, selections, @(selections)obj.inputOutputPlotSelectionCallback(row, selections));
+                        ["Sensitivity Inputs", "Sensitivity Outputs"], options, selections, @(selections)obj.inputOutputPlotSelectionCallback(row, selections));
                     modalWindow.open(obj.getUIFigure());
                     plotSobolIndices(obj.GlobalSensitivityAnalysis,obj.getPlotArray(),obj.PlotSelectionCallback);
                 end
@@ -852,12 +857,12 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
                 selections = {obj.GlobalSensitivityAnalysis.PlotSobolIndex(row).Inputs; obj.GlobalSensitivityAnalysis.PlotSobolIndex(row).Outputs};
 
                 modalWindow = QSPViewerNew.Widgets.MultiDataSelector("Select sensitivity inputs and outputs", ...
-                ["Sensitivity Inputs", "Sensitivity Outputs"], options, selections, @(selections)obj.inputOutputPlotSelectionCallback(row, selections));
+                    ["Sensitivity Inputs", "Sensitivity Outputs"], options, selections, @(selections)obj.inputOutputPlotSelectionCallback(row, selections));
                 modalWindow.open(obj.getUIFigure());
                 statusOk = true;
 
                 plotSobolIndices(obj.GlobalSensitivityAnalysis,obj.getPlotArray(),obj.PlotSelectionCallback);
-           elseif src == obj.DuplicateSobolIndexButton
+            elseif src == obj.DuplicateSobolIndexButton
                 [statusOk, message] = obj.GlobalSensitivityAnalysis.duplicate(obj.SelectedRow.PlotSobolIndexTable(1));
                 plotSobolIndices(obj.GlobalSensitivityAnalysis,obj.getPlotArray(),obj.PlotSelectionCallback);
             elseif src == obj.RemoveSobolIndexButton
@@ -966,13 +971,13 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             obj.TemporaryGlobalSensitivityAnalysis = copy(obj.GlobalSensitivityAnalysis);
 
             for index = 1:obj.MaxNumPlots
-               Summary = obj.GlobalSensitivityAnalysis.PlotSettings(index);
-               % If Summary is empty (i.e., new node), then use
-               % defaults
-               if isempty(fieldnames(Summary))
-                   Summary = QSP.PlotSettings.getDefaultSummary();
-               end
-               obj.setPlotSettings(index,fieldnames(Summary),struct2cell(Summary)');
+                Summary = obj.GlobalSensitivityAnalysis.PlotSettings(index);
+                % If Summary is empty (i.e., new node), then use
+                % defaults
+                if isempty(fieldnames(Summary))
+                    Summary = QSP.PlotSettings.getDefaultSummary();
+                end
+                obj.setPlotSettings(index,fieldnames(Summary),struct2cell(Summary)');
             end
 
             obj.draw();
@@ -1009,7 +1014,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
                     end
                 end
                 selection = uiconfirm(obj.getUIFigure, staleMessage, 'Remove results',...
-                        'Options', {'Remove', 'Cancel'}, 'DefaultOption', 2, 'CancelOption',2, 'Icon', 'warning');
+                    'Options', {'Remove', 'Cancel'}, 'DefaultOption', 2, 'CancelOption',2, 'Icon', 'warning');
                 if strcmp(selection, 'Cancel')
                     return;
                 else
@@ -1074,7 +1079,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             obj.IterationsLabel.Text = ['Iterations: ', obj.GlobalSensitivityAnalysis.Item(selectedRow).TaskName];
             if isempty(obj.GlobalSensitivityAnalysis.Item(selectedRow).Results)
                 obj.IterationsLabel.Text = [obj.IterationsLabel.Text, ...
-                   ' (no iterations available)'];
+                    ' (no iterations available)'];
                 obj.IterationsTable.Data = cell(0,2);
             else
                 [numSamples, maxDifferences] = obj.GlobalSensitivityAnalysis.getConvergenceStats(selectedRow);
@@ -1112,7 +1117,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             %Validate the temporary data
             FlagRemoveInvalid = false;
             [StatusOK,Message,DuplicateFlag] = obj.TemporaryGlobalSensitivityAnalysis.validate(FlagRemoveInvalid);
-            
+
             % check if it contains duplicate message
             if DuplicateFlag
                 selection = uiconfirm(obj.getUIFigure, ...
@@ -1127,7 +1132,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
                     Message = [];
                 end
             end
-            
+
             [StatusOK,Message] = obj.checkForDuplicateNames(StatusOK,Message);
 
             if StatusOK
@@ -1215,8 +1220,8 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
         function BackEnd = getBackEnd(obj)
             BackEnd = obj.GlobalSensitivityAnalysis;
         end
-        
-         function updateSessionParallelOption(obj, parallelOption)
+
+        function updateSessionParallelOption(obj, parallelOption)
             if strcmp(parallelOption, 'off')
                 obj.GlobalSensitivityAnalysis.Session.UseParallel = false;
             elseif strcmp(parallelOption, 'on')
@@ -1224,7 +1229,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             end
             notifyOfChange(obj,obj.GlobalSensitivityAnalysis.Session)
         end
-        
+
         function updateSessionGitOption(obj, gitOption)
             if strcmp(gitOption, 'off')
                 obj.GlobalSensitivityAnalysis.Session.AutoSaveGit = false;
@@ -1257,7 +1262,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
                 paramNames = {parameters.Name};
                 if isempty(obj.TemporaryGlobalSensitivityAnalysis.ParametersName) || ...
                         ~ismember(obj.TemporaryGlobalSensitivityAnalysis.ParametersName, ...
-                            paramNames)
+                        paramNames)
                     obj.TemporaryGlobalSensitivityAnalysis.ParametersName = ...
                         paramNames{1};
                     obj.SensitivityInputsValueLabel.Text = ...
@@ -1318,7 +1323,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
                 for index = MatchIdx(:)'
                     Data{index,3} = QSP.makeInvalid(Data{index,3});
                     invalidIdx{end+1} = [index,3];
-                end        
+                end
             end
             obj.PlotItemsTable.Data = Data;
 
@@ -1327,7 +1332,7 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
                 style = uistyle('BackgroundColor', taskColor{i});
                 addStyle(obj.PlotItemsTable,style,'cell',[i,2]);
             end
-            
+
             for i = 1:length(invalidIdx)
                 QSP.makeInvalidStyle(obj.PlotItemsTable, invalidIdx{i});
             end
@@ -1352,8 +1357,8 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
                 totalNumberSamples    = existingNumberSamples + prod(iterationInfo, 2);
                 taskNames             = {obj.TemporaryGlobalSensitivityAnalysis.Item.TaskName}';
                 samplesInfo           = arrayfun(@(i,j) sprintf('%d/%d', i, j), ...
-                                             existingNumberSamples, totalNumberSamples, ...
-                                             'UniformOutput', false);
+                    existingNumberSamples, totalNumberSamples, ...
+                    'UniformOutput', false);
 
                 Data = [taskNames, num2cell(iterationInfo), samplesInfo];
 
@@ -1364,12 +1369,12 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
                     MatchIdx = find(~ismember(taskNames(:),obj.SensitivityOutputs(:)));
                     for index = MatchIdx(:)'
                         if isempty(Data{index,1})
-                           Data{index,1} = 'Click to configure';
+                            Data{index,1} = 'Click to configure';
                         else
                             Data{index,1} = QSP.makeInvalid(Data{index,1});
                             invalidIdx{end+1} = [index,1];
                         end
-                    end        
+                    end
                 end
             else
                 Data = cell(0,4);
@@ -1377,14 +1382,14 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
 
             %Reset the data
             obj.TaskTable.Data = Data;
-            
+
             % add style to any invalid entries
             if ~isempty(obj.TemporaryGlobalSensitivityAnalysis.Item)
                 for i = 1:length(invalidIdx)
                     QSP.makeInvalidStyle(obj.TaskTable, invalidIdx{i});
                 end
             end
-            
+
             % Dis-/enable drop down menu for sensitivity outputs if the are
             % empty/nonempty.
             if isempty(obj.SensitivityOutputs)
@@ -1434,35 +1439,35 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             while ~strcmp(sessionNode.Tag, 'Session')
                 sessionNode = sessionNode.Parent;
             end
-            
+
             % get parent task node
-             allChildrenTag = string({sessionNode.Children.Tag});
-             buildingBlockNode = sessionNode.Children(allChildrenTag=="Building blocks");
-             buildBlockChildrenTag = string({buildingBlockNode.Children.Tag});
-             parentTypeNode = buildingBlockNode.Children(buildBlockChildrenTag==type);
-             
-             % launch tree selection node dialog for user's input
-             if verLessThan('matlab','9.9')
+            allChildrenTag = string({sessionNode.Children.Tag});
+            buildingBlockNode = sessionNode.Children(allChildrenTag=="Building blocks");
+            buildBlockChildrenTag = string({buildingBlockNode.Children.Tag});
+            parentTypeNode = buildingBlockNode.Children(buildBlockChildrenTag==type);
+
+            % launch tree selection node dialog for user's input
+            if verLessThan('matlab','9.9')
                 nodeSelDialog = QSPViewerNew.Widgets.TreeNodeSelectionModalDialog (obj, ...
                     parentTypeNode, ...
                     'ParentAppPosition', sessionNode.Parent.Parent.Parent.Parent.Parent.Position, ...
                     'DialogName', sprintf('Select %s node', parentTypeNode.Text), ...
                     'ModalOn', false, ...
                     'NodeType', "Other");
-             else % Modal UI figures are supported >= 20b
-                 nodeSelDialog = QSPViewerNew.Widgets.TreeNodeSelectionModalDialog (obj, ...
-                     parentTypeNode, ...
-                     'ParentAppPosition', sessionNode.Parent.Parent.Parent.Parent.Parent.Position, ...
-                     'DialogName', sprintf('Select %s node', parentTypeNode.Text), ...
-                     'NodeType', "Other");
-             end
-             
-             uiwait(nodeSelDialog.MainFigure);
-             
-             selectedNode = split(obj.SelectedNodePath, filesep);
-             selectedNode  = selectedNode(1);
+            else % Modal UI figures are supported >= 20b
+                nodeSelDialog = QSPViewerNew.Widgets.TreeNodeSelectionModalDialog (obj, ...
+                    parentTypeNode, ...
+                    'ParentAppPosition', sessionNode.Parent.Parent.Parent.Parent.Parent.Position, ...
+                    'DialogName', sprintf('Select %s node', parentTypeNode.Text), ...
+                    'NodeType', "Other");
+            end
+
+            uiwait(nodeSelDialog.MainFigure);
+
+            selectedNode = split(obj.SelectedNodePath, filesep);
+            selectedNode  = selectedNode(1);
         end
-        
+
         function tfStopRequested = runProgressIndicator(obj, modalWindow, tfReset, itemIdx, message, samples, data)
             % Usage: progress indicator is a modal window that is open
             % during the computation of GSA results. The modal window can
@@ -1479,33 +1484,33 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             end
         end
     end
-            
-            % get parent task node
-             allChildrenTag = string({sessionNode.Children.Tag});
-             buildingBlockNode = sessionNode.Children(allChildrenTag=="Building blocks");
-             buildBlockChildrenTag = string({buildingBlockNode.Children.Tag});
-             parentTypeNode = buildingBlockNode.Children(buildBlockChildrenTag==type);
-             
-             % launch tree selection node dialog for user's input
-             if verLessThan('matlab','9.9')
-                nodeSelDialog = QSPViewerNew.Widgets.TreeNodeSelectionModalDialog (obj, ...
-                    parentTypeNode, ...
-                    'ParentAppPosition', sessionNode.Parent.Parent.Parent.Parent.Parent.Position, ...
-                    'DialogName', sprintf('Select %s node', parentTypeNode.Text), ...
-                    'ModalOn', false, ...
-                    'NodeType', "Other");
-             else % Modal UI figures are supported >= 20b
-                 nodeSelDialog = QSPViewerNew.Widgets.TreeNodeSelectionModalDialog (obj, ...
-                     parentTypeNode, ...
-                     'ParentAppPosition', sessionNode.Parent.Parent.Parent.Parent.Parent.Position, ...
-                     'DialogName', sprintf('Select %s node', parentTypeNode.Text), ...
-                     'NodeType', "Other");
-             end
-             
-             uiwait(nodeSelDialog.MainFigure);
-             
-             selectedNode = split(obj.SelectedNodePath, filesep);
-             selectedNode  = selectedNode(1);
-        end
+
+    % get parent task node
+    allChildrenTag = string({sessionNode.Children.Tag});
+    buildingBlockNode = sessionNode.Children(allChildrenTag=="Building blocks");
+    buildBlockChildrenTag = string({buildingBlockNode.Children.Tag});
+    parentTypeNode = buildingBlockNode.Children(buildBlockChildrenTag==type);
+
+    % launch tree selection node dialog for user's input
+    if verLessThan('matlab','9.9')
+        nodeSelDialog = QSPViewerNew.Widgets.TreeNodeSelectionModalDialog (obj, ...
+            parentTypeNode, ...
+            'ParentAppPosition', sessionNode.Parent.Parent.Parent.Parent.Parent.Position, ...
+            'DialogName', sprintf('Select %s node', parentTypeNode.Text), ...
+            'ModalOn', false, ...
+            'NodeType', "Other");
+    else % Modal UI figures are supported >= 20b
+        nodeSelDialog = QSPViewerNew.Widgets.TreeNodeSelectionModalDialog (obj, ...
+            parentTypeNode, ...
+            'ParentAppPosition', sessionNode.Parent.Parent.Parent.Parent.Parent.Position, ...
+            'DialogName', sprintf('Select %s node', parentTypeNode.Text), ...
+            'NodeType', "Other");
     end
+
+    uiwait(nodeSelDialog.MainFigure);
+
+    selectedNode = split(obj.SelectedNodePath, filesep);
+    selectedNode  = selectedNode(1);
+end
+end
 end

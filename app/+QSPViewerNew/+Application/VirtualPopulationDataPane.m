@@ -42,13 +42,20 @@ classdef VirtualPopulationDataPane < QSPViewerNew.Application.ViewPane
     % Constructor and destructor
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     methods      
-        
-        function obj = VirtualPopulationDataPane(varargin)
-            obj = obj@QSPViewerNew.Application.ViewPane(varargin{:}{:},false);
+        function obj = VirtualPopulationDataPane(pvargs)
+            arguments
+                pvargs.Parent (1,1) matlab.ui.container.GridLayout
+                pvargs.layoutrow (1,1) double = 1
+                pvargs.layoutcolumn (1,1) double = 1
+                pvargs.parentApp
+                pvargs.HasVisualization (1,1) logical = false
+            end
+    
+            % TODOpax. This does not work. args = namedargs2cell(pvargs);
+            obj = obj@QSPViewerNew.Application.ViewPane(Parent=pvargs.Parent, HasVisualization=pvargs.HasVisualization, ParentApp=pvargs.parentApp);
             obj.create();
             obj.createListenersAndCallbacks();
         end
-        
     end
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

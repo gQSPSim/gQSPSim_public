@@ -20,7 +20,7 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
         LayoutRow
         ParentApp
         Focus = '';
-        HasVisualization
+        HasVisualization (1,1) logical
         PlotSettings = QSP.PlotSettings.empty(1,0)
     end
     
@@ -137,25 +137,21 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     methods 
         
-        function obj = ViewPane(varargin)
-            if nargin == 5 && isa(varargin{1},'matlab.ui.container.GridLayout')
-                obj.Parent = varargin{1};
-                obj.LayoutRow = varargin{2};
-                obj.LayoutColumn = varargin{3};
-                obj.ParentApp = varargin{4};
-                obj.HasVisualization = varargin{5};
-            else
-                message = ['This constructor requires the following inputs' ...
-                    newline '1.' ...
-                    newline '-Graphical Parent: uigridlayout...' ...
-                    newline '-GridRow: int' ...
-                    newline '-GridColumn: int' ...
-                    newline '-uigridlayout...' ...
-                    newline '-Parent application: matlab.apps.AppBase' ...
-                    newline '-VisualizationYorN: boolean'];
-                    error(message)
+        function obj = ViewPane(pvargs)
+            arguments
+                pvargs.Parent (1,1) matlab.ui.container.GridLayout
+                pvargs.layoutrow (1,1) double = 1
+                pvargs.layoutcolumn (1,1) double = 1
+                pvargs.parentApp
+                pvargs.HasVisualization(1,1) logical = false
             end
 
+            obj.Parent = pvargs.Parent;
+            obj.LayoutRow = pvargs.layoutrow;
+            obj.LayoutColumn = pvargs.layoutcolumn;
+            obj.ParentApp = pvargs.parentApp;
+            obj.HasVisualization = pvargs.HasVisualization;
+                    
             %create the objects on our end
             obj.create();
             obj.OuterGrid.Parent = obj.Parent;
@@ -185,7 +181,7 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
     methods (Access = private)
         
        function create(obj)
-           %Setup Outer Panel         
+           %Setup Outer Grid         
            obj.OuterGrid = uigridlayout(obj.Parent);
            obj.OuterGrid.ColumnWidth = {'1x'};
            obj.OuterGrid.RowHeight = {obj.ButtonHeight,'1x'};
@@ -202,6 +198,7 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
            obj.SummaryPanel.Layout.Column = 1;
            obj.SummaryPanel.BackgroundColor = obj.PanelBackgroundColor;
            obj.SummaryPanel.Visible = 'off';
+           
            %Setup SummaryGrid
            obj.SummaryGrid = uigridlayout(obj.SummaryPanel);
            obj.SummaryGrid.ColumnWidth = {'1x'};
@@ -232,7 +229,7 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
            %All Edit Panels have the following 3 subpanels
            % 1. the name and description
            % 2. The contents of the panel
-           % 3. The svae/cancel/remove invalid button
+           % 3. The save/cancel/remove invalid button
         
             %Setup EditGrid
            obj.EditLayout = uigridlayout(obj.EditPanel);
@@ -1052,10 +1049,11 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
         
         function hidePane(obj)           
             %Remove callbacks for pane
-            if obj.HasVisualization
-                obj.ParentApp.removeWindowDownCallback(obj.VisualizationGrid.getButtonDownCallback());
-                obj.ParentApp.removeWindowUpCallback(obj.VisualizationGrid.getButtonUpCallback());
-            end
+            % TODOpax
+%             if obj.HasVisualization
+%                 obj.ParentApp.removeWindowDownCallback(obj.VisualizationGrid.getButtonDownCallback());
+%                 obj.ParentApp.removeWindowUpCallback(obj.VisualizationGrid.getButtonUpCallback());
+%             end
             
             %hide this pane
             obj.OuterGrid.Visible = 'off';
