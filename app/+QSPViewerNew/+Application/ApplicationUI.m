@@ -142,18 +142,19 @@ classdef ApplicationUI < matlab.apps.AppBase
                 pOptions.Region = 'left';
                 pOptions.Title = 'Session Explorer';
                 parentPanel = matlab.ui.internal.FigurePanel(pOptions);
-                app.container.addPanel(parentPanel);                        
+                app.container.addPanel(parentPanel);
                 
-                tree = uitree('Parent', parentPanel.Figure);
-                tree.SelectionChangedFcn = @app.onTreeSelectionChanged;
-                figurePosition = parentPanel.Figure.Position;
-                tree.Position = [10 10 figurePosition(3)-20 figurePosition(4)-20]; % TODOpax position is not correct
-                app.TreeRoot = tree; %TODOpax do this for now.
+                parentPanel.Figure.AutoResizeChildren = 'off';
+                parentPanel.Figure.SizeChangedFcn = @(h,e) onFigurePanelSizeChanged(app,h,e);                
+
+                app.TreeRoot = uitree('Parent', parentPanel.Figure);
+                app.TreeRoot.SelectionChangedFcn = @app.onTreeSelectionChanged;
+                addlistener(app.container, 'StateChanged', @app.onContainerStateChanged);
                 
                 % TODOpax. For development purposes load a Session here
                 Session = load('tests/baselines/CaseStudy_TMDD_complete/CaseStudy1_TMDD.qsp.mat');            
                 app.Sessions = Session.Session;
-                app.createSession(tree, app.Sessions); 
+                app.createSession(app.TreeRoot, app.Sessions); 
                 
                 % Create RHS panel            
                 app.figureDocGroup = matlab.ui.internal.FigureDocumentGroup();
@@ -206,6 +207,16 @@ classdef ApplicationUI < matlab.apps.AppBase
                 app.container.Visible = true;
             end
     
+            function onFigurePanelSizeChanged(app, h, e)
+                app.TreeRoot.Position = h.Position;                
+                h.SizeChangedFcn = [];
+                h.AutoResizeChildren = 'on';
+            end
+            
+            function onContainerStateChanged(app, ~, evt)                
+                % Could finalize the layout here
+            end
+
             % new function from reorg. %
             function createSession(app, tree, session)
                 arguments
