@@ -30,7 +30,7 @@ classdef OuterShell_UIFigureBased < handle
         LoggerMenu               matlab.ui.container.Menu
         HelpMenu                 matlab.ui.container.Menu
         AboutMenu                matlab.ui.container.Menu
-        FlexGridLayout           QSPViewerNew.Widgets.GridFlex
+        FlexGridLayout           matlab.ui.container.GridLayout %QSPViewerNew.Widgets.GridFlex
         SessionExplorerPanel     matlab.ui.container.Panel
         SessionExplorerGrid      matlab.ui.container.GridLayout
         TreeRoot                 matlab.ui.container.Tree
@@ -120,37 +120,105 @@ classdef OuterShell_UIFigureBased < handle
 
             constructMenuItems(obj);
 
-            % Create GridLayout
-            obj.FlexGridLayout = QSPViewerNew.Widgets.GridFlex(obj.UIFigure);
-            obj.FlexGridLayout.getGridHandle();
-            %             obj.addWindowDownCallback(obj.FlexGridLayout.getButtonDownCallback());
-            %             obj.addWindowUpCallback(obj.FlexGridLayout.getButtonUpCallback());
+            if false
+                % Create GridLayout
+                obj.FlexGridLayout = QSPViewerNew.Widgets.GridFlex(obj.UIFigure);
+                obj.FlexGridLayout.getGridHandle();
+                %             obj.addWindowDownCallback(obj.FlexGridLayout.getButtonDownCallback());
+                %             obj.addWindowUpCallback(obj.FlexGridLayout.getButtonUpCallback());
 
-            % Create SessionExplorerPanel
-            obj.SessionExplorerPanel = uipanel(obj.FlexGridLayout.getGridHandle());
-            obj.SessionExplorerPanel.Title = 'Session Explorer';
-            obj.SessionExplorerPanel.Layout.Row = 1;
-            obj.SessionExplorerPanel.Layout.Column = 1;
+                % Create SessionExplorerPanel
+                obj.SessionExplorerPanel = uipanel(obj.FlexGridLayout.getGridHandle());
+                obj.SessionExplorerPanel.Title = 'Session Explorer';
+                obj.SessionExplorerPanel.Layout.Row = 1;
+                obj.SessionExplorerPanel.Layout.Column = 1;
 
-            % Create TreeGrid
-            obj.SessionExplorerGrid = uigridlayout(obj.SessionExplorerPanel);
-            obj.SessionExplorerGrid.ColumnWidth = {'1x'};
-            obj.SessionExplorerGrid.RowHeight = {'1x'};
+                % Create TreeGrid
+                obj.SessionExplorerGrid = uigridlayout(obj.SessionExplorerPanel);
+                obj.SessionExplorerGrid.ColumnWidth = {'1x'};
+                obj.SessionExplorerGrid.RowHeight = {'1x'};
 
-            % Create Tree
-            obj.TreeRoot = uitree(obj.SessionExplorerGrid);
-            obj.TreeRoot.Multiselect = 'on';
-            obj.TreeRoot.SelectionChangedFcn = @obj.onTreeSelectionChange;
+                % Create Tree
+                obj.TreeRoot = uitree(obj.SessionExplorerGrid);
+                obj.TreeRoot.Multiselect = 'on';
+                obj.TreeRoot.SelectionChangedFcn = @obj.onTreeSelectionChange;
 
-            % Pane gridlayout
-            obj.paneGridLayout = uigridlayout(obj.FlexGridLayout.getGridHandle());
-            obj.paneGridLayout.Layout.Row = 1;
-            obj.paneGridLayout.Layout.Column = 3;
-            obj.paneGridLayout.RowHeight = {'1x'};
-            obj.paneGridLayout.ColumnWidth = {'1x'};
+                % Pane gridlayout
+                obj.paneGridLayout = uigridlayout(obj.FlexGridLayout.getGridHandle());
+                obj.paneGridLayout.Layout.Row = 1;
+                obj.paneGridLayout.Layout.Column = 3;
+                obj.paneGridLayout.RowHeight = {'1x'};
+                obj.paneGridLayout.ColumnWidth = {'1x'};
+            else
+                obj.FlexGridLayout = uigridlayout(obj.UIFigure);
+                gOuter = obj.FlexGridLayout;
+                gOuter.RowHeight = {'1x'};
+                gOuter.ColumnWidth = {'33x', 5, '67x'};
+                gOuter.ColumnSpacing = 0;
+                gOuter.Padding = [0 0 0 0]+10;
+
+                gLeft = uigridlayout(gOuter);
+                gLeft.Layout.Row = 1;
+                gLeft.Layout.Column = 1;
+                gLeft.RowHeight = {20, '1x'};
+                gLeft.ColumnWidth = {'1x'};
+                gLeft.Padding = [0 0 0 0];
+                gLeft.RowSpacing = 0;
+
+                pLeft = uipanel(gLeft);
+                pLeft.Layout.Row = 1;
+                pLeft.Layout.Column = 1;
+                pLeft.BorderType = 'none';
+                pLeft.Title = 'Session Explorer';
+
+                pCenter = uipanel(gOuter);
+                pCenter.Layout.Row = 1;
+                pCenter.Layout.Column = 2;
+                pCenter.BorderType = 'none';
+                pCenter.BackgroundColor = [1 1 1]*.85;
+                pCenter.Tag = 'divider';
+
+                t = uitree(gLeft);
+                t.Layout.Row = 2;
+                t.Layout.Column = 1;
+                obj.TreeRoot = t;
+                obj.TreeRoot.Multiselect = 'on';
+                obj.TreeRoot.SelectionChangedFcn = @obj.onTreeSelectionChange;
+
+                pRight = uipanel(gOuter);
+                pRight.Layout.Row = 1;
+                pRight.Layout.Column = 3;
+                pRight.BorderType = 'line';
+
+                obj.paneGridLayout = uigridlayout(pRight);
+                obj.paneGridLayout.RowHeight = {'1x'};
+                obj.paneGridLayout.ColumnWidth = {'1x'};
+            end
+
+            obj.UIFigure.WindowButtonDownFcn = @obj.onWindowButtonDown;
+            obj.UIFigure.WindowButtonUpFcn   = @obj.onWindowButtonUp;
 
             % Show the figure after all components are created
             obj.UIFigure.Visible = 'on';
+        end
+
+        function onWindowButtonUp(~, src, ~)
+            src.WindowButtonMotionFcn = '';
+            src.Pointer = 'arrow';
+        end
+
+        function onWindowButtonDown(obj, src, ~)
+            co = src.CurrentObject;
+            if co.Tag == "divider"
+                src.Pointer = 'left';
+                src.WindowButtonMotionFcn = @obj.onWindowButtonMotion;
+            end
+        end
+        
+        function onWindowButtonMotion(obj, src, ~)
+            currentPoint = src.CurrentPoint;
+            xFraction = 100*currentPoint(1)./src.Position(3);
+            obj.FlexGridLayout.ColumnWidth = {sprintf('%dx', xFraction), 5, sprintf('%dx',100-xFraction)};
         end
 
         function onTreeSelectionChange(obj, hSource, eData)
