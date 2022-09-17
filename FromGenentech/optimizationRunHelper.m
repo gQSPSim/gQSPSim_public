@@ -357,8 +357,14 @@ switch obj.AlgorithmName
             UB = estParamData(:,2);
             p0 = estParamData(:,3);
 
+            if obj.Session.ShowProgressBars
+                plotFcn = @pswplotbestf;
+            else
+                plotFcn = [];
+            end
+
             options = optimoptions('ParticleSwarm', 'Display', 'iter', 'FunctionTolerance', .1, 'MaxTime', 12000, ...
-                'UseParallel', logical(obj.Session.UseParallel), 'FunValCheck', 'on', 'UseVectorized', false, 'PlotFcn',  @pswplotbestf, ...
+                'UseParallel', logical(obj.Session.UseParallel), 'FunValCheck', 'on', 'UseVectorized', false, 'PlotFcn',  plotFcn, ...
                 'InitialSwarmMatrix', p0');
             
             VpopParams = particleswarm( @(est_p) objectiveFun(est_p',paramObj,ItemModels,Groups,IDs,Time,optimData,weights,dataNames,obj), N, LB, UB, options);
