@@ -1,4 +1,4 @@
-classdef ApplicationUI < matlab.apps.AppBase
+classdef ApplicationUI < handle
     % ApplicationUI - this class will create the window for the UI.
     % ---------------------------------------------------------------------
     % Instantiates the Application figure window
@@ -28,7 +28,7 @@ classdef ApplicationUI < matlab.apps.AppBase
             'Task',                             'Task'
             'Parameter',                        'Parameters'
             'Dataset',                          'OptimizationData'
-            'Acceptance Criteria',              'VirtualPopulationData'            
+            'Acceptance Criteria',              'VirtualPopulationData'
             'Target Statistics',                'VirtualPopulationGenerationData'
             'Virtual Subject(s)',               'VirtualPopulation'
             'Simulation',                       'Simulation'
@@ -46,12 +46,13 @@ classdef ApplicationUI < matlab.apps.AppBase
         SessionPaths = cell.empty(0,1)
         IsDirty = logical.empty(0,1)
         RecentSessionPaths = cell.empty(0,1)
-        LastFolder = pwd 
+        LastFolder = pwd
         ActivePane
         Panes = cell.empty(0,1);
         IsConstructed = false;
-        Type
-        TypeStr
+        PreferencesGroupName (1,1) string  = "gQSPSim_preferences";
+        Type % replaced with PreferencesGroupName
+        TypeStr %todopax remove.
         WindowButtonDownCallbacks = {};
         WindowButtonUpCallbacks = {};
         ModelManagerDialog ModelManager
@@ -68,44 +69,11 @@ classdef ApplicationUI < matlab.apps.AppBase
         PaneTypes
     end
 
-    properties (Access = public)
-        container      (1,1) matlab.ui.container.internal.AppContainer
-        figureDocGroup (1,1) matlab.ui.internal.FigureDocumentGroup
-        figDocument    (1,1) matlab.ui.internal.FigureDocument
-        paneGridLayout (1,1) matlab.ui.container.GridLayout 
+    properties (Access = public)        
+        paneGridLayout (1,1) matlab.ui.container.GridLayout
         paneHolder     (1,1) struct
-        %Session QSP.Session % TODOpax could we just add a listener to Session events?
-        
-        UIFigure                 matlab.ui.Figure  %TODOpax remove
-        FileMenu                 matlab.ui.container.Menu
-        NewCtrlNMenu             matlab.ui.container.Menu
-        OpenCtrl0Menu            matlab.ui.container.Menu
-        OpenRecentMenu           matlab.ui.container.Menu
-        CloseMenu                matlab.ui.container.Menu
-        SaveCtrlSMenu            matlab.ui.container.Menu
-        SaveAsMenu               matlab.ui.container.Menu
-        ExitCtrlQMenu            matlab.ui.container.Menu
-        QSPMenu                  matlab.ui.container.Menu
-        AddNewItemMenu           matlab.ui.container.Menu
-        DatasetMenu              matlab.ui.container.Menu
-        ParameterMenu            matlab.ui.container.Menu
-        TaskMenu                 matlab.ui.container.Menu
-        VirtualSubjectsMenu      matlab.ui.container.Menu
-        AcceptanceCriteriaMenu   matlab.ui.container.Menu
-        TargetStatisticsMenu     matlab.ui.container.Menu
-        SimulationMenu           matlab.ui.container.Menu
-        OptimizationMenu         matlab.ui.container.Menu
-        CohortGenerationMenu     matlab.ui.container.Menu
-        VirtualPopulationGenerationMenu  matlab.ui.container.Menu
-        GlobalSensitivityAnalysisMenu    matlab.ui.container.Menu
-        DeleteSelectedItemMenu   matlab.ui.container.Menu
-        RestoreSelectedItemMenu  matlab.ui.container.Menu
-        ToolsMenu                matlab.ui.container.Menu
-        ModelManagerMenu         matlab.ui.container.Menu
-        PluginsMenu              matlab.ui.container.Menu
-        LoggerMenu               matlab.ui.container.Menu
-        HelpMenu                 matlab.ui.container.Menu
-        AboutMenu                matlab.ui.container.Menu
+        OuterShell     
+
         FlexGridLayout           QSPViewerNew.Widgets.GridFlex
         SessionExplorerPanel     matlab.ui.container.Panel
         SessionExplorerGrid      matlab.ui.container.GridLayout
@@ -126,262 +94,66 @@ classdef ApplicationUI < matlab.apps.AppBase
         PluginTableDataListener event.listener
     end
 
+    events
+        NewSession
+    end
+
     methods (Access = public)
 
-        function app = alternateConstructor(app)            
-                app.container = matlab.ui.container.internal.AppContainer;
-                app.container.WindowBounds = [ 11   175   916   678];
-                app.container.Title = "gQSPSim";
-                app.container.Tag = 'gQSPimViewer';
-                app.container.ShowSingleDocumentTab = false;
-                
-                % Toolstrip
-                constructToolstrip(app);
-                
-                % Session Explorer
-                pOptions.Region = 'left';
-                pOptions.Title = 'Session Explorer';
-                parentPanel = matlab.ui.internal.FigurePanel(pOptions);
-                app.container.addPanel(parentPanel);
-                
-                parentPanel.Figure.AutoResizeChildren = 'off';
-                parentPanel.Figure.SizeChangedFcn = @(h,e) onFigurePanelSizeChanged(app,h,e);                
+        function app = ApplicationUI
 
-                app.TreeRoot = uitree('Parent', parentPanel.Figure);
-                app.TreeRoot.SelectionChangedFcn = @app.onTreeSelectionChanged;
-                addlistener(app.container, 'StateChanged', @app.onContainerStateChanged);
-                
-                % TODOpax. For development purposes load a Session here
-                Session = load('tests/baselines/CaseStudy_TMDD_complete/CaseStudy1_TMDD.qsp.mat');            
-                app.Sessions = Session.Session;
-                app.createSession(app.TreeRoot, app.Sessions); 
-                
-                % Create RHS panel            
-                app.figureDocGroup = matlab.ui.internal.FigureDocumentGroup();
-                app.figureDocGroup.Tag = 'Panes';
-                app.figureDocGroup.Maximizable = true;
-                app.figureDocGroup.Closable = false;
-                app.container.registerDocumentGroup(app.figureDocGroup);
-                
-                figOptions.Title = "Panes";
-                figOptions.DocumentGroupTag = "Panes";
-                app.figDocument = matlab.ui.internal.FigureDocument(figOptions);
-                
-                app.figDocument.Closable = false;
-                
-                app.container.add(app.figDocument);
-                
-                app.paneGridLayout = uigridlayout(app.figDocument.Figure);
-                
-                app.paneGridLayout.ColumnWidth = {'1x'};
-                app.paneGridLayout.RowHeight   = {'1x'};
-                
-                if false
-                    % Plotting Area
-                    % Create and register a Figure-based document group
-                    % TODO, the documentGroup.SubGridDimensions does not take
-                    % effect until the appContainer has rendered. Need a callback
-                    % to get this to work.
-                    app.plotGrid = Viewer.PlotGrid(app);
-                    app.container.registerDocumentGroup(app.plotGrid.figureDocGroup);
-                    
-                    % Hook Viewer callbacks
-                    
-                    % Listen for GeneralSettings functionality changes
-                    addlistener(app.generalSettings, 'FunctionalityChange', @app.functionalityChange);
-                    
-                    % Within Viewer events/listeners (these don't go in the
-                    % controller)
-                    gs = app.generalSettings;
-                    addlistener(app.simulationTask, 'createNewVariant', @gs.addVariant);
-                    
-                    % 1. Listen to the AppContainer StateChanged event for
-                    % initialization purposes.
-                    addlistener(app.container, 'StateChanged', @(x,y)app.initializationState(y));
-                    
-                    % 2. PlotGrid rows and columns controlled by dropdown widget in plot settings.
-                    % Fix this listener connection.
-                    addlistener(app.plotSettings.plotLayout, 'ValueChanged', @(x,y)app.plotGridChangeFcn(y));
-                    
-                end
-                app.container.Visible = true;
-            end
-    
-            function onFigurePanelSizeChanged(app, h, e)
-                app.TreeRoot.Position = h.Position;                
-                h.SizeChangedFcn = [];
-                h.AutoResizeChildren = 'on';
+            app.AppName = "gQSPsim " + app.Version;
+            app.FileSpec = {'*.qsp.mat','MATLAB QSP MAT File'};
+            app.PreferencesGroupName = "gQSPSim_preferences";
+
+            if false
+                app.OuterShell = QSPViewerNew.Application.OuterShell_ContainerBased;
+                addlistener(app.OuterShell, 'ReadyState', @(h,e)app.readyState(h,e));
+                addlistener(app, 'NewSession', @(h,e)app.OuterShell.onNewSession(h, e));
+            else
+
+                % Construct the view
+                app.OuterShell = QSPViewerNew.Application.OuterShell_UIFigureBased(app.AppName);
+
+                %Save the type of the app for use in preferences
+                app.Type = class(app); %TODOpax this is not going to work well. We need to pick a name for the preferences and make sure we are backwards compatible. E.g., a name change for the class would break this.
+                app.TypeStr = matlab.lang.makeValidName(app.Type);
+
+                %Get the previous file locations from preferences
+                app.LastFolder = getpref(app.TypeStr,'LastFolder',app.LastFolder);
+                app.RecentSessionPaths = getpref(app.TypeStr,'RecentSessionPaths',app.RecentSessionPaths);
+
+                % Validate each recent file, and remove any invalid files
+                idxOk = cellfun(@(x)exist(x,'file'),app.RecentSessionPaths);
+                app.RecentSessionPaths(~idxOk) = [];
+
+                % Draw the recent files to the menu
+                % TODOpax. app.redrawRecentFiles();
+
+                % Refresh the entire view
+                %TODOpax. app.refresh();
+
+                %                 if nargout == 0
+                %                     clear app
+                %                 end
+            
+                addlistener(app, 'NewSession', @(h,e)app.OuterShell.onNewSession(h, e));
+
+                % load a session for rapid devel.
+                app.readyState;
             end
             
-            function onContainerStateChanged(app, ~, evt)                
-                % Could finalize the layout here
-            end
+            addlistener(app.OuterShell, 'TreeSelectionChange', @app.onTreeSelectionChanged);            
+        end
 
-            % new function from reorg. %
-            function createSession(app, tree, session)
-                arguments
-                    app
-                    tree
-                    session (1,1) QSP.Session
-                end
-
-                sessionNode = app.createTreeNode(tree, session, session.SessionName, 'folder_24.png', 'Session');
-                
-                buildingBlocksNode = app.createTreeNode(sessionNode, [], 'Building Blocks', 'settings_24.png', 'Session');
-    
-                % TODOpax fix this map..
-                iconFileName = ["flask2.png", "param_edit_24.png", "datatable_24.png", "target_stats.png", "acceptance_criteria.png", "stickman3.png"];
-
-                buildingBlockNodeNames     = string({app.ItemTypes{1:6,1}});
-                buildingBlockSettingsNames = string({app.ItemTypes{1:6,2}});
-                
-                for i = 1:numel(buildingBlockNodeNames)
-                    
-                    baseNode = app.createTreeNode(buildingBlocksNode, [], buildingBlockNodeNames(i), iconFileName(i), buildingBlockNodeNames(i));
-                    nodes = session.Settings.(buildingBlockSettingsNames(i));
-                    
-                    for j = 1:numel(nodes)
-                        app.createTreeNode(baseNode, nodes(j), nodes(j).Name, iconFileName(i), buildingBlockNodeNames(i));
-                    end
-                end
-                
-                functionalityNode  = app.createTreeNode(sessionNode, [], 'Functionalities', 'settings_24.png', 'Session');
-                
-                functionalityBlockNodeNames = string({app.ItemTypes{7:end,2}});
-                iconFileNames = ["simbio_24.png", "optim_24.png", "stickman-3.png", "stickman-3-color.png", "sensitivity.png"];
-                
-                for i = 1:numel(functionalityBlockNodeNames)
-                    baseNode = app.createTreeNode(functionalityNode, [], functionalityBlockNodeNames(i), iconFileNames(i), functionalityBlockNodeNames(i));
-                    nodes = session.(functionalityBlockNodeNames(i));
-                    for j = 1:numel(nodes)
-                        app.createTreeNode(baseNode, nodes(j), nodes(j).Name, iconFileNames(i), functionalityBlockNodeNames(i));
-                    end
-                end
-                
-                trashNode = app.createTreeNode(sessionNode, [], 'Deleted Items', 'trash_24.png', 'Session');
-            end
-    
-            function treeNode = createTreeNode(~, Parent, Data, Name, Icon, PaneType)                        
-                treeNode = uitreenode(...
-                    'Parent',   Parent,...
-                    'NodeData', Data,...
-                    'Text',     Name,...
-                    'UserData', PaneType,...
-                    'Icon',     QSPViewerNew.Resources.LoadResourcePath(Icon));
-            end
-    
-            function constructToolstrip(app)
-                app.container.ToolstripEnabled = true;
-                TabGroup = matlab.ui.internal.toolstrip.TabGroup();
-                homeTab = matlab.ui.internal.toolstrip.Tab("HOME");
-                TabGroup.Tag = "Home";
-                TabGroup.add(homeTab);
-                
-                % Project
-                projectSection = homeTab.addSection("Project");
-                % Open
-                newColumn = projectSection.addColumn();
-                openButton = matlab.ui.internal.toolstrip.SplitButton('Open', 'src/+view/icons/open_24.png');
-                newColumn.add(openButton);
-                popup = matlab.ui.internal.toolstrip.PopupList();
-                openItem = matlab.ui.internal.toolstrip.ListItem('Open');
-                openRecentItem = matlab.ui.internal.toolstrip.ListItemWithPopup('Open Recent');
-                popup.add(openItem);
-                popup.add(openRecentItem);
-                openButton.Popup = popup;
-%                 openRecentItem.DynamicPopupFcn = @app.openRecentListFcn;       TODOpax
-                
-                % Save
-                newColumn = projectSection.addColumn();
-                saveButton = matlab.ui.internal.toolstrip.SplitButton('Save', 'src/+view/icons/save_24.png');
-                newColumn.add(saveButton);
-                popup = matlab.ui.internal.toolstrip.PopupList();
-                SaveListItem = matlab.ui.internal.toolstrip.ListItem('Save');
-                SaveAsListItem = matlab.ui.internal.toolstrip.ListItem('Save as');
-                popup.add(SaveListItem);
-                popup.add(SaveAsListItem);
-                saveButton.Popup = popup;
-                
-                % Close
-                newColumn = projectSection.addColumn();
-                newColumn.add(matlab.ui.internal.toolstrip.Button('Close', 'src/+view/icons/close_24.png'));
-                
-                % Tools
-                toolsSection = homeTab.addSection("Tools");
-                               
-                % Model Manager
-                newColumn = toolsSection.addColumn();
-                newColumn.add(matlab.ui.internal.toolstrip.Button('Model Manager', 'src/+view/icons/close_24.png'));
-                
-                % Plugin Manager
-                newColumn = toolsSection.addColumn();
-                newColumn.add(matlab.ui.internal.toolstrip.Button('Plugin Manager', 'src/+view/icons/close_24.png'));
-                
-                % Logger
-                newColumn = toolsSection.addColumn();
-                newColumn.add(matlab.ui.internal.toolstrip.Button('Logger', 'src/+view/icons/close_24.png'));
-                
-                % Run
-                runSection = homeTab.addSection("Run");
-                newColumn = runSection.addColumn();
-                runButton = matlab.ui.internal.toolstrip.Button('Run', 'src/+view/icons/run_24.png');
-                runButton.ButtonPushedFcn = @app.runPushedFcn;
-                newColumn.add(runButton);
-                
-                % Help
-                runSection = homeTab.addSection("Resources");
-                newColumn = runSection.addColumn();
-                helpButton = matlab.ui.internal.toolstrip.SplitButton('Help', 'src/+view/icons/help_24.png');
-                newColumn.add(helpButton);
-                
-                popup = matlab.ui.internal.toolstrip.PopupList();
-                userGuideItem = matlab.ui.internal.toolstrip.ListItem('User Guide...');
-                aboutItem = matlab.ui.internal.toolstrip.ListItem('About gPKPDSim...');
-                popup.add(userGuideItem);
-                popup.add(aboutItem);
-                helpButton.Popup = popup;
-                
-                app.container.add(TabGroup);
-            end
-    
-        function app = ApplicationUI
-            if true
-                app = app.alternateConstructor;
-                app.IsConstructed = true;
-                app.TypeStr = "QSPSimViewer_Preferences";
-                return;
-            end
-
-            app.AppName = ['gQSPsim ' app.Version];
-            app.FileSpec = {'*.qsp.mat','MATLAB QSP MAT File'};
-
-            % Create the graphics objects
-            app.create();
-
-            % Register the app with App Designer
+        function readyState(app, h, e)
             app.IsConstructed = true;
 
-            %Save the type of the  for use in preferences
-            app.Type = class(app);
-            app.TypeStr = matlab.lang.makeValidName(app.Type);
-
-            %Get the previous file locations from preferences
-            app.LastFolder = getpref(app.TypeStr,'LastFolder',app.LastFolder);
-            app.RecentSessionPaths = getpref(app.TypeStr,'RecentSessionPaths',app.RecentSessionPaths);
-
-            % Validate each recent file, and remove any invalid files
-            idxOk = cellfun(@(x)exist(x,'file'),app.RecentSessionPaths);
-            app.RecentSessionPaths(~idxOk) = [];
-
-            % Draw the recent files to the menu
-            app.redrawRecentFiles();
-
-            % Refresh the entire view
-            app.refresh();
-
-            if nargout == 0
-                clear app
-            end
+            % TODOpax. For development purposes load a Session here
+            Session = load('tests/baselines/CaseStudy_TMDD_complete/CaseStudy1_TMDD.qsp.mat');
+            app.Sessions = Session.Session;
+            eventData = QSPViewerNew.Application.SessionEventData(Session.Session, app.ItemTypes);
+            notify(app, 'NewSession', eventData);
         end
 
         function delete(app)
@@ -409,189 +181,6 @@ classdef ApplicationUI < matlab.apps.AppBase
 
 
     methods (Access = private)
-
-        function create(app)
-            %for reference in callbacks
-            %Create UIFigure and hide until all components are created
-            app.UIFigure = uifigure('Visible', 'off');
-            app.UIFigure.Position = [100 100 1005 864];
-            app.UIFigure.Name = 'UI Figure';
-            app.UIFigure.WindowButtonUpFcn = @(h,e) app.executeCallbackArray(app.WindowButtonUpCallbacks,h,e);
-            app.UIFigure.WindowButtonDownFcn = @(h,e) app.executeCallbackArray(app.WindowButtonDownCallbacks,h,e);
-            app.UIFigure.CloseRequestFcn = @app.onExit;
-
-            % Create FileMenu
-            app.FileMenu = uimenu(app.UIFigure);
-            app.FileMenu.Text = 'File';
-
-            % Create NewCtrlNMenu
-            app.NewCtrlNMenu = uimenu(app.FileMenu);
-            app.NewCtrlNMenu.Text = 'New...';
-            app.NewCtrlNMenu.Accelerator = 'N';
-            app.NewCtrlNMenu.MenuSelectedFcn = @app.onNew;
-
-            % Create OpenCtrl0Menu
-            app.OpenCtrl0Menu = uimenu(app.FileMenu);
-            app.OpenCtrl0Menu.Text = 'Open...';
-            app.OpenCtrl0Menu.MenuSelectedFcn = @app.onOpen;
-            app.OpenCtrl0Menu.Accelerator = 'O';
-
-            % Create OpenRecentMenu
-            app.OpenRecentMenu = uimenu(app.FileMenu);
-            app.OpenRecentMenu.Text = 'Open Recent';
-
-            % Create CloseMenu
-            app.CloseMenu = uimenu(app.FileMenu);
-            app.CloseMenu.Separator = 'on';
-            app.CloseMenu.Text = 'Close';
-            app.CloseMenu.MenuSelectedFcn = @(h,e) app.onClose([]);
-
-            % Create SaveCtrlSMenu
-            app.SaveCtrlSMenu = uimenu(app.FileMenu);
-            app.SaveCtrlSMenu.Separator = 'on';
-            app.SaveCtrlSMenu.Text = 'Save';
-            app.SaveCtrlSMenu.MenuSelectedFcn = @(h,e) app.onSave([]);
-            app.SaveCtrlSMenu.Accelerator = 'S';
-
-            % Create SaveAsMenu
-            app.SaveAsMenu = uimenu(app.FileMenu);
-            app.SaveAsMenu.Text = 'Save As...';
-            app.SaveAsMenu.MenuSelectedFcn = @(h,e) app.onSaveAs([]);
-
-            % Create ExitCtrlQMenu
-            app.ExitCtrlQMenu = uimenu(app.FileMenu);
-            app.ExitCtrlQMenu.Separator = 'on';
-            app.ExitCtrlQMenu.Text = 'Exit';
-            app.ExitCtrlQMenu.MenuSelectedFcn = @app.onExit;
-            app.ExitCtrlQMenu.Accelerator = 'Q';
-
-            % Create QSPMenu
-            app.QSPMenu = uimenu(app.UIFigure);
-            app.QSPMenu.Text = 'QSP';
-
-            % Create AddNewItemMenu
-            app.AddNewItemMenu = uimenu(app.QSPMenu);
-            app.AddNewItemMenu.Text = 'Add New Item';
-
-            % Create DatasetMenu
-            app.DatasetMenu = uimenu(app.AddNewItemMenu);
-            app.DatasetMenu.Text = 'Dataset';
-            app.DatasetMenu.MenuSelectedFcn = @(h,e) app.onAddItem([],'OptimizationData');
-
-            % Create ParameterMenu
-            app.ParameterMenu = uimenu(app.AddNewItemMenu);
-            app.ParameterMenu.Text = 'Parameter';
-            app.ParameterMenu.MenuSelectedFcn = @(h,e) app.onAddItem([],'Parameters');
-
-            % Create TaskMenu
-            app.TaskMenu = uimenu(app.AddNewItemMenu);
-            app.TaskMenu.Text = 'Task';
-            app.TaskMenu.MenuSelectedFcn =@(h,e) app.onAddItem([],'Task');
-
-            % Create VirtualSubjectsMenu
-            app.VirtualSubjectsMenu = uimenu(app.AddNewItemMenu);
-            app.VirtualSubjectsMenu.Text = 'Virtual Subject(s)';
-            app.VirtualSubjectsMenu.MenuSelectedFcn = @(h,e) app.onAddItem([],'VirtualPopulation');
-
-            % Create AcceptanceCriteriaMenu
-            app.AcceptanceCriteriaMenu = uimenu(app.AddNewItemMenu);
-            app.AcceptanceCriteriaMenu.Text = 'Acceptance Criteria';
-            app.AcceptanceCriteriaMenu.MenuSelectedFcn =@(h,e) app.onAddItem([],'VirtualPopulationData');
-
-            % Create TargetStatisticsMenu
-            app.TargetStatisticsMenu = uimenu(app.AddNewItemMenu);
-            app.TargetStatisticsMenu.Text = 'Target Statistics ';
-            app.TargetStatisticsMenu.MenuSelectedFcn =@(h,e) app.onAddItem([],'VirtualPopulationGenerationData');
-
-            % Create SimulationMenu
-            app.SimulationMenu = uimenu(app.AddNewItemMenu);
-            app.SimulationMenu.Text = 'Simulation';
-            app.SimulationMenu.MenuSelectedFcn = @(h,e) app.onAddItem([],'Simulation');
-
-            % Create OptimizationMenu
-            app.OptimizationMenu = uimenu(app.AddNewItemMenu);
-            app.OptimizationMenu.Text = 'Optimization';
-            app.OptimizationMenu.MenuSelectedFcn =@(h,e) app.onAddItem([],'Optimization');
-
-            % Create CohortGenerationMenu
-            app.CohortGenerationMenu = uimenu(app.AddNewItemMenu);
-            app.CohortGenerationMenu.Text = 'Cohort Generation';
-            app.CohortGenerationMenu.MenuSelectedFcn = @(h,e) app.onAddItem([],'CohortGeneration');
-
-            % Create VirtualPopulationGenerationMenu
-            app.VirtualPopulationGenerationMenu = uimenu(app.AddNewItemMenu);
-            app.VirtualPopulationGenerationMenu.Text = 'Virtual Population Generation';
-            app.VirtualPopulationGenerationMenu.MenuSelectedFcn = @(h,e) app.onAddItem([],'VirtualPopulationGeneration');
-
-            % Create GlobalSensitivityAnalysisMenu
-            app.GlobalSensitivityAnalysisMenu = uimenu(app.AddNewItemMenu);
-            app.GlobalSensitivityAnalysisMenu.Text = 'Global Sensitivity Analysis';
-            app.GlobalSensitivityAnalysisMenu.MenuSelectedFcn = @(h,e) app.onAddItem([],'GlobalSensitivityAnalysis');
-
-            % Create DeleteSelectedItemMenu
-            app.DeleteSelectedItemMenu = uimenu(app.QSPMenu);
-            app.DeleteSelectedItemMenu.Text = 'Delete Selected Item';
-            app.DeleteSelectedItemMenu.MenuSelectedFcn =@(h,e) app.onDeleteSelectedItem([],[]);
-
-            % Create RestoreSelectedItemMenu
-            app.RestoreSelectedItemMenu = uimenu(app.QSPMenu);
-            app.RestoreSelectedItemMenu.Text = 'Restore Selected Item';
-            app.RestoreSelectedItemMenu.MenuSelectedFcn =@(h,e) app.onRestoreSelectedItem([],[]);
-
-            % Create Tools menu
-            app.ToolsMenu = uimenu(app.UIFigure);
-            app.ToolsMenu.Text = 'Tools';
-
-
-            % Create logger menu
-            app.ModelManagerMenu = uimenu(app.ToolsMenu);
-            app.ModelManagerMenu.Text = 'Model Manager';
-            app.ModelManagerMenu.MenuSelectedFcn = @(h, e) app.onOpenModelManager;
-
-            % Create plugins menu
-            app.PluginsMenu = uimenu(app.ToolsMenu);
-            app.PluginsMenu.Text = 'Plugin Manager';
-            app.PluginsMenu.MenuSelectedFcn = @(h, e) app.onOpenPluginManager;
-
-            % Create logger menu
-            app.LoggerMenu = uimenu(app.ToolsMenu);
-            app.LoggerMenu.Text = 'Logger';
-            app.LoggerMenu.MenuSelectedFcn = @(h, e) app.onOpenLogger;
-
-            % Create HelpMenu
-            app.HelpMenu = uimenu(app.UIFigure);
-            app.HelpMenu.Text = 'Help';
-
-            % Create AboutMenu
-            app.AboutMenu = uimenu(app.HelpMenu);
-            app.AboutMenu.Text = 'About';
-            app.AboutMenu.MenuSelectedFcn = @app.onAbout;
-
-            % Create GridLayout
-            app.FlexGridLayout = QSPViewerNew.Widgets.GridFlex(app.UIFigure);
-            app.FlexGridLayout.getGridHandle();
-            app.addWindowDownCallback(app.FlexGridLayout.getButtonDownCallback());
-            app.addWindowUpCallback(app.FlexGridLayout.getButtonUpCallback());
-
-            % Create SessionExplorerPanel
-            app.SessionExplorerPanel = uipanel(app.FlexGridLayout.getGridHandle());
-            app.SessionExplorerPanel.Title = 'Session Explorer';
-            app.SessionExplorerPanel.Layout.Row = 1;
-            app.SessionExplorerPanel.Layout.Column = 1;
-
-            %Create TreeGrid
-            app.SessionExplorerGrid = uigridlayout(app.SessionExplorerPanel);
-            app.SessionExplorerGrid.ColumnWidth = {'1x'};
-            app.SessionExplorerGrid.RowHeight = {'1x'};
-
-            % Create Tree
-            app.TreeRoot = uitree(app.SessionExplorerGrid);
-            app.TreeRoot.Multiselect = 'on';
-            app.TreeRoot.SelectionChangedFcn = @app.onTreeSelectionChanged;
-
-            % Show the figure after all components are created
-            app.UIFigure.Visible = 'on';
-        end
 
         function createTree(app, parent, allData)
             % Nodes that take children have the type of child as a string in the UserData
@@ -1130,46 +719,18 @@ classdef ApplicationUI < matlab.apps.AppBase
 
         end
 
-        function onExit(app,~,~)
-            CancelTF = false;
-            while ~CancelTF && (~isempty(app.Sessions))
-                if app.IsDirty(1)
-                    CancelTF = app.savePromptBeforeClose(1);
-                else
-                    app.closeSession(1)
-                end
-            end
-
-            if ~CancelTF
-                app.delete();
-            end
-
-        end
-
-        function onAbout(app,~,~)
-            Message = {'gQSPsim version 1.0', ...
-                '', ...
-                'http://www.github.com/feigelman/gQSPsim', ...
-                '', ...
-                'Authors:', ...
-                '', ...
-                'Justin Feigelman (feigelman.justin@gene.com)', ...
-                'Iraj Hosseini (hosseini.iraj@gene.com)', ...
-                'Anita Gajjala (agajjala@mathworks.com)'};
-            uialert(app.UIFigure,Message,'About','Icon','');
-        end
 
         function onTreeSelectionChanged(app,handle,event)
             %TODOpax app.UIFigure.Pointer = 'watch'; This action should be fast
             %enough that we don't need the pointer to change.
-             %app.container.Busy =0 this brings up the busy.
+            %app.container.Busy =0 this brings up the busy.
 
             %TODOpax drawnow limitrate;
             % TODO: Finish
             %First we determine the session that is selected
             %We can select mutliple nodes at once. Therefore we need to consider if SelectedNodes is a vector
             SelectedNodes = event.SelectedNodes;
-            Root = handle;
+            Root = handle.TreeRoot;
 
             %We only make changes if a single node is selected
             if length(SelectedNodes)==1
@@ -1197,7 +758,7 @@ classdef ApplicationUI < matlab.apps.AppBase
                 % TODOpax. I see no need to refresh everthing on tree selection
                 % change.
                 %app.refresh();
-                app.updatePane(SelectedNodes);
+                app.updatePane(handle.paneGridLayout, SelectedNodes);
 
                 %app.UIFigure.Pointer = 'arrow'; TODOpax no longer this
                 %way.
@@ -2070,7 +1631,7 @@ classdef ApplicationUI < matlab.apps.AppBase
             app.RecentSessionPaths(9:end) = [];
 
             %redraw this context menu
-            app.redrawRecentFiles()
+            %             app.redrawRecentFiles() TODOpax
         end
 
         function closeSession(app,sessionIdx)
@@ -2133,16 +1694,16 @@ classdef ApplicationUI < matlab.apps.AppBase
 
         %TODOpax. What is this trying to do?
         function disableInteraction(app)
-%             app.TreeRoot.Enable = 'off';
-%             app.FileMenu.Enable = 'off';
-%             app.QSPMenu.Enable = 'off';
+            %             app.TreeRoot.Enable = 'off';
+            %             app.FileMenu.Enable = 'off';
+            %             app.QSPMenu.Enable = 'off';
         end
 
         %TODOpax. What is this trying to do?
         function enableInteraction(app)
-%             app.TreeRoot.Enable = 'on';
-%             app.FileMenu.Enable = 'on';
-%             app.QSPMenu.Enable = 'on';
+            %             app.TreeRoot.Enable = 'on';
+            %             app.FileMenu.Enable = 'on';
+            %             app.QSPMenu.Enable = 'on';
         end
 
         function changeInBackEnd(app,newObject)
@@ -2410,60 +1971,62 @@ classdef ApplicationUI < matlab.apps.AppBase
         end
 
         % TODOpax. move this to viewpane manager.
-        function updatePane(app, selectedNode)
+        function updatePane(app, paneParent, selectedNode)
             arguments
                 app
+                paneParent
                 selectedNode (1,1) matlab.ui.container.TreeNode
             end
-%             %Find the currently selected Node
-%             NodeSelected = app.TreeRoot.SelectedNodes;
-%             if length(NodeSelected)>1
-%                 NodeSelected = NodeSelected(end); % TODOpax rather arbitrary descison here.
-%             end
+            %             %Find the currently selected Node
+            %             NodeSelected = app.TreeRoot.SelectedNodes;
+            %             if length(NodeSelected)>1
+            %                 NodeSelected = NodeSelected(end); % TODOpax rather arbitrary descison here.
+            %             end
 
             %Determine if the Node will launch a Pane
             funcNames = ["Simulation", "Optimization", "VirtualPopulationGeneration", "GlobalSensitivityAnalysis", "CohortGeneration"];
             isFuncTopnode = any(matches(funcNames, string(selectedNode.UserData)));
             LaunchPaneTF = isempty(selectedNode.UserData) || isFuncTopnode;
-            
-            app.launchNewPane(selectedNode);
+
+            app.launchNewPane(paneParent, selectedNode);
 
             if false
-            %If we shouldnt launch a pane and there is currently a pane,
-            %close it
-            if ~LaunchPaneTF && ~isempty(app.ActivePane)
-                app.ActivePane.hideThisPane();
-                app.ActivePane = [];
-            elseif LaunchPaneTF
-                %Determine if the pane type has already been loaded
-                PaneType = app.getPaneClassFromQSPClass(class(selectedNode.NodeData));
-                idxPane = app.PaneTypes(strcmp(app.PaneTypes,PaneType));
-                if isempty(idxPane)
-                    %Launch a new Pane with the data provided
-                    if isFuncTopnode
-                        app.launchNewPane(selectedNode);
+                %If we shouldnt launch a pane and there is currently a pane,
+                %close it
+                if ~LaunchPaneTF && ~isempty(app.ActivePane)
+                    app.ActivePane.hideThisPane();
+                    app.ActivePane = [];
+                elseif LaunchPaneTF
+                    %Determine if the pane type has already been loaded
+                    PaneType = app.getPaneClassFromQSPClass(class(selectedNode.NodeData));
+                    idxPane = app.PaneTypes(strcmp(app.PaneTypes,PaneType));
+                    if isempty(idxPane)
+                        %Launch a new Pane with the data provided
+                        if isFuncTopnode
+                            app.launchNewPane(selectedNode);
+                        else
+                            app.launchNewPane(selectedNode.NodeData);
+                        end
                     else
-                        app.launchNewPane(selectedNode.NodeData);
-                    end
-                else
-                    if isFuncTopnode
-                        app.launchOldPane(selectedNode);
-                    else
-                        %Launch a pane that already exists with the new data
-                        app.launchOldPane(selectedNode.NodeData);
+                        if isFuncTopnode
+                            app.launchOldPane(selectedNode);
+                        else
+                            %Launch a pane that already exists with the new data
+                            app.launchOldPane(selectedNode.NodeData);
+                        end
                     end
                 end
             end
-            end
         end
 
-        function launchNewPane(app, selectedNode)
+        function launchNewPane(app, paneParent, selectedNode)
             arguments
                 app
+                paneParent
                 selectedNode (1,1) matlab.ui.container.TreeNode
             end
             %Inputs that the pane API should require in the constructor
-%             Parent=app.paneGridLayout, parentApp=app = {app.FlexGridLayout.getGridHandle(),1,3,app};           TODOpax
+            %             Parent=app.paneGridLayout, parentApp=app = {app.FlexGridLayout.getGridHandle(),1,3,app};           TODOpax
 
             %Need to hide old pane
             if ~isempty(app.ActivePane)
@@ -2473,50 +2036,50 @@ classdef ApplicationUI < matlab.apps.AppBase
 
             %This switch determines the correct type of Pane and creates it
             %The default is that it is not shown
-            %TODO: Address this switch statment to refactor                       
+            %TODO: Address this switch statement to refactor
 
             nodeData = selectedNode.NodeData;
             assert(~isempty(nodeData));
 
             switch class(nodeData)
                 case 'QSP.Session'
-                    app.ActivePane = QSPViewerNew.Application.SessionPane(Parent=app.paneGridLayout, parentApp=app);
+                    app.ActivePane = QSPViewerNew.Application.SessionPane(Parent=paneParent, parentApp=app);
                     app.ActivePane.attachNewSession(nodeData);
                 case 'QSP.OptimizationData'
-                    app.ActivePane = QSPViewerNew.Application.OptimizationDataPane(Parent=app.paneGridLayout, parentApp=app);
+                    app.ActivePane = QSPViewerNew.Application.OptimizationDataPane(Parent=paneParent, parentApp=app);
                     app.ActivePane.attachNewOptimizationData(nodeData);
                 case 'QSP.Parameters'
-                    app.ActivePane = QSPViewerNew.Application.ParametersPane(Parent=app.paneGridLayout, parentApp=app);
+                    app.ActivePane = QSPViewerNew.Application.ParametersPane(Parent=paneParent, parentApp=app);
                     app.ActivePane.attachNewParameters(nodeData);
                 case 'QSP.Task'
-                    app.ActivePane = QSPViewerNew.Application.TaskPane(Parent = app.paneGridLayout, parentApp = app);
+                    app.ActivePane = QSPViewerNew.Application.TaskPane(Parent = paneParent, parentApp = app);
                     app.ActivePane.attachNewTask(nodeData);
                 case 'QSP.VirtualPopulation'
-                    app.ActivePane = QSPViewerNew.Application.VirtualPopulationPane(Parent=app.paneGridLayout, parentApp=app);
+                    app.ActivePane = QSPViewerNew.Application.VirtualPopulationPane(Parent=paneParent, parentApp=app);
                     app.ActivePane.attachNewVirtualPopulation(nodeData);
                 case 'QSP.VirtualPopulationData'
-                    app.ActivePane = QSPViewerNew.Application.VirtualPopulationDataPane(Parent=app.paneGridLayout, parentApp=app);
+                    app.ActivePane = QSPViewerNew.Application.VirtualPopulationDataPane(Parent=paneParent, parentApp=app);
                     app.ActivePane.attachNewVirtPopData(nodeData);
                 case 'QSP.Simulation'
-                    app.ActivePane = QSPViewerNew.Application.SimulationPane(Parent = app.paneGridLayout, parentApp = app);
+                    app.ActivePane = QSPViewerNew.Application.SimulationPane(Parent = paneParent, parentApp = app);
                     app.ActivePane.attachNewSimulation(nodeData);
                 case 'QSP.Optimization'
-                    app.ActivePane = QSPViewerNew.Application.OptimizationPane(Parent=app.paneGridLayout, parentApp=app);
+                    app.ActivePane = QSPViewerNew.Application.OptimizationPane(Parent=paneParent, parentApp=app);
                     app.ActivePane.attachNewOptimization(nodeData);
                 case 'QSP.CohortGeneration'
-                    app.ActivePane = QSPViewerNew.Application.CohortGenerationPane(Parent=app.paneGridLayout, parentApp=app);
+                    app.ActivePane = QSPViewerNew.Application.CohortGenerationPane(Parent=paneParent, parentApp=app);
                     app.ActivePane.attachNewCohortGeneration(nodeData);
                 case 'QSP.VirtualPopulationGeneration'
-                    app.ActivePane = QSPViewerNew.Application.VirtualPopulationGenerationPane(Parent=app.paneGridLayout, parentApp=app);
+                    app.ActivePane = QSPViewerNew.Application.VirtualPopulationGenerationPane(Parent=paneParent, parentApp=app);
                     app.ActivePane.attachNewVirtualPopulationGeneration(nodeData);
                 case 'QSP.VirtualPopulationGenerationData'
-                    app.ActivePane = QSPViewerNew.Application.VirtualPopulationGenerationDataPane(Parent=app.paneGridLayout, parentApp=app);
+                    app.ActivePane = QSPViewerNew.Application.VirtualPopulationGenerationDataPane(Parent=paneParent, parentApp=app);
                     app.ActivePane.attachNewVirtPopGenData(nodeData);
                 case 'QSP.GlobalSensitivityAnalysis'
-                    app.ActivePane = QSPViewerNew.Application.GlobalSensitivityAnalysisPane(Parent=app.paneGridLayout, parentApp=app);
+                    app.ActivePane = QSPViewerNew.Application.GlobalSensitivityAnalysisPane(Parent=paneParent, parentApp=app);
                     app.ActivePane.attachNewGlobalSensitivityAnalysis(nodeData);
                 case 'matlab.ui.container.TreeNode'
-                    app.ActivePane = QSPViewerNew.Application.FunctionalitySummaryPane(Parent=app.paneGridLayout, parentApp=app);
+                    app.ActivePane = QSPViewerNew.Application.FunctionalitySummaryPane(Parent=paneParent, parentApp=app);
                     if ~isempty(selectedNode.Children)
                         app.ActivePane.attachNewNodeData([selectedNode.Children.NodeData]);
                     end

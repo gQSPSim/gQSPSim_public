@@ -117,7 +117,6 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
             end
 
             args = namedargs2cell(pvargs);
-            % obj = obj@QSPViewerNew.Application.ViewPane(Parent=pvargs.Parent, HasVisualization=pvargs.HasVisualization, ParentApp=pvargs.parentApp);
             obj = obj@QSPViewerNew.Application.ViewPane(args{:});
             obj.create();
             obj.createListenersAndCallbacks();
