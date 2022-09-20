@@ -47,9 +47,9 @@ classdef ApplicationUI < handle
         IsDirty = logical.empty(0,1)
         RecentSessionPaths = cell.empty(0,1)
         LastFolder = pwd
-        ActivePane
-        Panes = cell.empty(0,1);
-        IsConstructed = false;
+        ActivePane % TODOpax remove this.. 
+        Panes = cell.empty(0,1); % TODOpax remove this.. 
+        IsConstructed = false; % TODOpax remove this.. 
         PreferencesGroupName (1,1) string  = "gQSPSim_preferences";
         Type % replaced with PreferencesGroupName
         TypeStr %todopax remove.
@@ -66,7 +66,7 @@ classdef ApplicationUI < handle
         SessionNames %TODOpax remove
         SelectedSession
         SessionNode
-        PaneTypes
+        PaneTypes %TODOpax remove
     end
 
     properties (Access = public)        
@@ -74,12 +74,13 @@ classdef ApplicationUI < handle
         paneHolder     (1,1) struct
         OuterShell     
 
-        FlexGridLayout           QSPViewerNew.Widgets.GridFlex
+        FlexGridLayout           QSPViewerNew.Widgets.GridFlex %TODOpax remove
         SessionExplorerPanel     matlab.ui.container.Panel
         SessionExplorerGrid      matlab.ui.container.GridLayout
-        TreeRoot                 matlab.ui.container.Tree
+        TreeRoot                 matlab.ui.container.Tree %TODOpax remove this.. moved to OuterShell.
         TreeMenu
         OpenRecentMenuArray
+        paneManager
     end
 
     properties (SetAccess = private, SetObservable, AbortSet)
@@ -137,12 +138,15 @@ classdef ApplicationUI < handle
                 %                     clear app
                 %                 end
             
+                % Todopax move this construction to the OuterShell
+                app.paneManager = QSPViewerNew.Application.PaneManager(app.ItemTypes, app.OuterShell.paneGridLayout, app);
+
                 addlistener(app, 'NewSession', @(h,e)app.OuterShell.onNewSession(h, e));
 
                 % load a session for rapid devel.
                 app.readyState;
             end
-            
+                        
             addlistener(app.OuterShell, 'TreeSelectionChange', @app.onTreeSelectionChanged);            
         end
 
@@ -174,11 +178,10 @@ classdef ApplicationUI < handle
             end
 
             %Delete UI
-            delete(app.UIFigure)
+%             delete(app.UIFigure)
+            delete(app.OuterShell)
         end
-
     end
-
 
     methods (Access = private)
 
@@ -720,6 +723,7 @@ classdef ApplicationUI < handle
         end
 
 
+        % TODOpax. this needs to move out of this class.
         function onTreeSelectionChanged(app,handle,event)
             %TODOpax app.UIFigure.Pointer = 'watch'; This action should be fast
             %enough that we don't need the pointer to change.
@@ -758,7 +762,8 @@ classdef ApplicationUI < handle
                 % TODOpax. I see no need to refresh everthing on tree selection
                 % change.
                 %app.refresh();
-                app.updatePane(handle.paneGridLayout, SelectedNodes);
+                app.paneManager.openPane(SelectedNodes.NodeData);
+%                 app.updatePane(handle.paneGridLayout, SelectedNodes);
 
                 %app.UIFigure.Pointer = 'arrow'; TODOpax no longer this
                 %way.
@@ -2019,78 +2024,82 @@ classdef ApplicationUI < handle
             end
         end
 
-        function launchNewPane(app, paneParent, selectedNode)
-            arguments
-                app
-                paneParent
-                selectedNode (1,1) matlab.ui.container.TreeNode
-            end
-            %Inputs that the pane API should require in the constructor
-            %             Parent=app.paneGridLayout, parentApp=app = {app.FlexGridLayout.getGridHandle(),1,3,app};           TODOpax
-
-            %Need to hide old pane
-            if ~isempty(app.ActivePane)
-                app.ActivePane.hideThisPane();
-                app.ActivePane = [];
-            end
-
-            %This switch determines the correct type of Pane and creates it
-            %The default is that it is not shown
-            %TODO: Address this switch statement to refactor
-
-            nodeData = selectedNode.NodeData;
-            assert(~isempty(nodeData));
-
-            switch class(nodeData)
-                case 'QSP.Session'
-                    app.ActivePane = QSPViewerNew.Application.SessionPane(Parent=paneParent, parentApp=app);
-                    app.ActivePane.attachNewSession(nodeData);
-                case 'QSP.OptimizationData'
-                    app.ActivePane = QSPViewerNew.Application.OptimizationDataPane(Parent=paneParent, parentApp=app);
-                    app.ActivePane.attachNewOptimizationData(nodeData);
-                case 'QSP.Parameters'
-                    app.ActivePane = QSPViewerNew.Application.ParametersPane(Parent=paneParent, parentApp=app);
-                    app.ActivePane.attachNewParameters(nodeData);
-                case 'QSP.Task'
-                    app.ActivePane = QSPViewerNew.Application.TaskPane(Parent = paneParent, parentApp = app);
-                    app.ActivePane.attachNewTask(nodeData);
-                case 'QSP.VirtualPopulation'
-                    app.ActivePane = QSPViewerNew.Application.VirtualPopulationPane(Parent=paneParent, parentApp=app);
-                    app.ActivePane.attachNewVirtualPopulation(nodeData);
-                case 'QSP.VirtualPopulationData'
-                    app.ActivePane = QSPViewerNew.Application.VirtualPopulationDataPane(Parent=paneParent, parentApp=app);
-                    app.ActivePane.attachNewVirtPopData(nodeData);
-                case 'QSP.Simulation'
-                    app.ActivePane = QSPViewerNew.Application.SimulationPane(Parent = paneParent, parentApp = app);
-                    app.ActivePane.attachNewSimulation(nodeData);
-                case 'QSP.Optimization'
-                    app.ActivePane = QSPViewerNew.Application.OptimizationPane(Parent=paneParent, parentApp=app);
-                    app.ActivePane.attachNewOptimization(nodeData);
-                case 'QSP.CohortGeneration'
-                    app.ActivePane = QSPViewerNew.Application.CohortGenerationPane(Parent=paneParent, parentApp=app);
-                    app.ActivePane.attachNewCohortGeneration(nodeData);
-                case 'QSP.VirtualPopulationGeneration'
-                    app.ActivePane = QSPViewerNew.Application.VirtualPopulationGenerationPane(Parent=paneParent, parentApp=app);
-                    app.ActivePane.attachNewVirtualPopulationGeneration(nodeData);
-                case 'QSP.VirtualPopulationGenerationData'
-                    app.ActivePane = QSPViewerNew.Application.VirtualPopulationGenerationDataPane(Parent=paneParent, parentApp=app);
-                    app.ActivePane.attachNewVirtPopGenData(nodeData);
-                case 'QSP.GlobalSensitivityAnalysis'
-                    app.ActivePane = QSPViewerNew.Application.GlobalSensitivityAnalysisPane(Parent=paneParent, parentApp=app);
-                    app.ActivePane.attachNewGlobalSensitivityAnalysis(nodeData);
-                case 'matlab.ui.container.TreeNode'
-                    app.ActivePane = QSPViewerNew.Application.FunctionalitySummaryPane(Parent=paneParent, parentApp=app);
-                    if ~isempty(selectedNode.Children)
-                        app.ActivePane.attachNewNodeData([selectedNode.Children.NodeData]);
-                    end
-
-            end
-            if ~isempty(app.ActivePane)
-                %Now take the pane and display it.
-                app.Panes = {app.Panes, app.ActivePane};
-                app.ActivePane.showThisPane();
-            end
-        end
+%         function launchNewPane(app, paneParent, selectedNode)
+%             arguments
+%                 app
+%                 paneParent
+%                 selectedNode (1,1) matlab.ui.container.TreeNode
+%             end
+%             %Inputs that the pane API should require in the constructor
+%             %             Parent=app.paneGridLayout, parentApp=app = {app.FlexGridLayout.getGridHandle(),1,3,app};           TODOpax
+% 
+%             %Need to hide old pane
+%             if ~isempty(app.ActivePane)
+%                 app.ActivePane.hideThisPane();
+%                 app.ActivePane = [];
+%             end
+% 
+%             %This switch determines the correct type of Pane and creates it
+%             %The default is that it is not shown
+%             %TODO: Address this switch statement to refactor
+% 
+%             nodeData = selectedNode.NodeData;
+% 
+%             if isempty(nodeData)
+%                 % Must be a summary node
+%                 app.ActivePane = QSPViewerNew.Application.FunctionalitySummaryPane(Parent=paneParent, parentApp=app);
+%                 if ~isempty(selectedNode.Children)
+%                     app.ActivePane.attachNewNodeData([selectedNode.Children.NodeData]);
+%                 end
+%             else
+% 
+%                 switch class(nodeData)
+%                     case 'QSP.Session'
+%                         app.ActivePane = QSPViewerNew.Application.SessionPane(Parent=paneParent, parentApp=app);
+%                         app.ActivePane.attachNewSession(nodeData);
+%                     case 'QSP.OptimizationData'
+%                         app.ActivePane = QSPViewerNew.Application.OptimizationDataPane(Parent=paneParent, parentApp=app);
+%                         app.ActivePane.attachNewOptimizationData(nodeData);
+%                     case 'QSP.Parameters'
+%                         app.ActivePane = QSPViewerNew.Application.ParametersPane(Parent=paneParent, parentApp=app);
+%                         app.ActivePane.attachNewParameters(nodeData);
+%                     case 'QSP.Task'
+%                         app.ActivePane = QSPViewerNew.Application.TaskPane(Parent = paneParent, parentApp = app);
+%                         app.ActivePane.attachNewTask(nodeData);
+%                     case 'QSP.VirtualPopulation'
+%                         app.ActivePane = QSPViewerNew.Application.VirtualPopulationPane(Parent=paneParent, parentApp=app);
+%                         app.ActivePane.attachNewVirtualPopulation(nodeData);
+%                     case 'QSP.VirtualPopulationData'
+%                         app.ActivePane = QSPViewerNew.Application.VirtualPopulationDataPane(Parent=paneParent, parentApp=app);
+%                         app.ActivePane.attachNewVirtPopData(nodeData);
+%                     case 'QSP.Simulation'
+%                         app.ActivePane = QSPViewerNew.Application.SimulationPane(Parent = paneParent, parentApp = app);
+%                         app.ActivePane.attachNewSimulation(nodeData);
+%                     case 'QSP.Optimization'
+%                         app.ActivePane = QSPViewerNew.Application.OptimizationPane(Parent=paneParent, parentApp=app);
+%                         app.ActivePane.attachNewOptimization(nodeData);
+%                     case 'QSP.CohortGeneration'
+%                         app.ActivePane = QSPViewerNew.Application.CohortGenerationPane(Parent=paneParent, parentApp=app);
+%                         app.ActivePane.attachNewCohortGeneration(nodeData);
+%                     case 'QSP.VirtualPopulationGeneration'
+%                         app.ActivePane = QSPViewerNew.Application.VirtualPopulationGenerationPane(Parent=paneParent, parentApp=app);
+%                         app.ActivePane.attachNewVirtualPopulationGeneration(nodeData);
+%                     case 'QSP.VirtualPopulationGenerationData'
+%                         app.ActivePane = QSPViewerNew.Application.VirtualPopulationGenerationDataPane(Parent=paneParent, parentApp=app);
+%                         app.ActivePane.attachNewVirtPopGenData(nodeData);
+%                     case 'QSP.GlobalSensitivityAnalysis'
+%                         app.ActivePane = QSPViewerNew.Application.GlobalSensitivityAnalysisPane(Parent=paneParent, parentApp=app);
+%                         app.ActivePane.attachNewGlobalSensitivityAnalysis(nodeData);
+%                     otherwise
+%                         error('Uknown nodeData type.');
+%                 end
+%             end
+%             if ~isempty(app.ActivePane)
+%                 %Now take the pane and display it.
+%                 app.Panes = {app.Panes, app.ActivePane};
+%                 app.ActivePane.showThisPane();
+%             end
+%         end
 
         function launchOldPane(app,nodeData)
             %Find the index of the correct pane type
