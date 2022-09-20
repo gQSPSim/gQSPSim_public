@@ -91,9 +91,9 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
     % Constants for UI specification
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     properties (Constant = true)
-        ButtonPadding = [0,0,0,0];
-        ButtonWidthSpacing = 0; 
-        ButtonHeightSpacing = 0; 
+%         ButtonPadding = [0,0,0,0];
+        %ButtonWidthSpacing = 0; 
+        %ButtonHeightSpacing = 0; 
         WidgetPadding = [0,0,0,0];
         WidgetWidthSpacing = 5; 
         WidgetHeightSpacing = 5; 
@@ -106,8 +106,8 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
         OuterGridPadding = [5,5,5,0];
         OuterGridColumnSpacing = 0;
         OuterGridRowSpacing = 0;
-        ButtonWidth = 30;
-        ButtonHeight = 30;
+%         ButtonWidth = 30;
+%         ButtonHeight = 30;
         WidgetHeight = 30;
         TextBoxHeight = 30;
         HeaderColor = [.25,.60,.72];
@@ -140,7 +140,7 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
         function obj = ViewPane(pvargs)
             arguments
                 pvargs.Parent (1,1) matlab.ui.container.GridLayout
-                pvargs.layoutrow (1,1) double = 1
+                pvargs.layoutrow (1,1) double = 2
                 pvargs.layoutcolumn (1,1) double = 1
                 pvargs.parentApp
                 pvargs.HasVisualization(1,1) logical = false
@@ -184,17 +184,25 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
            %Setup Outer Grid         
            obj.OuterGrid = uigridlayout(obj.Parent);
            obj.OuterGrid.ColumnWidth = {'1x'};
-           obj.OuterGrid.RowHeight = {obj.ButtonHeight,'1x'};
-           obj.OuterGrid.ColumnWidth = {'1x'};
-           obj.OuterGrid.Padding = obj.OuterGridPadding;
+           %obj.OuterGrid.RowHeight = {obj.ButtonHeight,'1x'}; todopax          
+           %will need a way to ask the toolbar for the height.
+           obj.OuterGrid.RowHeight = {'1x'};
+%            obj.OuterGrid.RowHeight = {30, '1x'};
+            obj.OuterGrid.Tag = "ViewPane:OuterGrid";
+            
+           
+%            obj.OuterGrid.ColumnWidth = {'1x'};
+           obj.OuterGrid.Padding = [0 0 0 0];
            obj.OuterGrid.RowSpacing = obj.OuterGridRowSpacing;
-           obj.OuterGrid.Layout.Row = obj.LayoutRow;
-           obj.OuterGrid.Layout.Column = obj.LayoutColumn;
+%            obj.OuterGrid.Layout.Row = obj.LayoutRow;
+%            obj.OuterGrid.Layout.Column = obj.LayoutColumn;
+           obj.OuterGrid.Layout.Row = 2;
+           obj.OuterGrid.Layout.Column = 1;
 
            %Setup the Summary Panel and Button
            obj.SummaryPanel = uipanel(obj.OuterGrid);
            obj.SummaryPanel.BackgroundColor = [.9,.9,.9];
-           obj.SummaryPanel.Layout.Row = 2;
+           obj.SummaryPanel.Layout.Row = 1;
            obj.SummaryPanel.Layout.Column = 1;
            obj.SummaryPanel.BackgroundColor = obj.PanelBackgroundColor;
            obj.SummaryPanel.Visible = 'off';
@@ -206,6 +214,7 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
            obj.SummaryGrid.Padding = obj.PanelPadding;
            obj.SummaryGrid.RowSpacing = obj.PanelHeightSpacing;
            obj.SummaryGrid.RowSpacing = obj.PanelWidthSpacing;
+           obj.SummaryGrid.Padding = [0 0 0 0];
            
            %Add label to the top
            obj.SummaryLabel = uilabel(obj.SummaryGrid);
@@ -222,7 +231,7 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
            %Edit Panel
            obj.EditPanel = uipanel(obj.OuterGrid);
            obj.EditPanel.BackgroundColor = obj.PanelBackgroundColor;
-           obj.EditPanel.Layout.Row = 2;
+           obj.EditPanel.Layout.Row = 1;
            obj.EditPanel.Layout.Column = 1;
            obj.EditPanel.Visible = 'off';
            
@@ -234,7 +243,8 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
             %Setup EditGrid
            obj.EditLayout = uigridlayout(obj.EditPanel);
            obj.EditLayout.ColumnWidth = {'1x'};
-           obj.EditLayout.RowHeight = {obj.HeaderHeight,obj.WidgetHeight,'1x',obj.ButtonHeight};
+           %obj.EditLayout.RowHeight = {obj.HeaderHeight,obj.WidgetHeight,'1x',obj.ButtonHeight};
+           obj.EditLayout.RowHeight = {obj.HeaderHeight,obj.WidgetHeight,'1x',30}; % todopax
            obj.EditLayout.Padding = obj.PanelPadding;
            obj.EditLayout.RowSpacing = obj.PanelHeightSpacing;
            obj.EditLayout.RowSpacing = obj.PanelWidthSpacing;
@@ -289,8 +299,8 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
            obj.EditButtonLayout.Layout.Row = 4;
            obj.EditButtonLayout.ColumnWidth = {'1x',obj.RemoveInvalidButtonWidth,obj.SaveButtonWidth,obj.CancelButtonWidth};
            obj.EditButtonLayout.RowHeight = {'1x'};
-           obj.EditButtonLayout.Padding= obj.ButtonPadding;
-           obj.EditButtonLayout.ColumnSpacing = obj.ButtonWidthSpacing;
+           obj.EditButtonLayout.Padding= [0 0 0 0]; %obj.ButtonPadding; %todopax ButtonPadding
+           obj.EditButtonLayout.ColumnSpacing = 0; % todopax. obj.ButtonWidthSpacing;
            
            obj.RemoveButton = uibutton(obj.EditButtonLayout,'push');
            obj.RemoveButton.Layout.Row = 1;
@@ -316,127 +326,127 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
            obj.CancelButton.Tooltip = 'Close without Saving';
            obj.CancelButton.ButtonPushedFcn = @(~,~) obj.onCancel();
            
-           obj.ButtonsLayout = uigridlayout(obj.OuterGrid);
-           obj.ButtonsLayout.Layout.Row =1;
-           obj.ButtonsLayout.Layout.Column = 1;
-           obj.ButtonsLayout.Padding = obj.ButtonPadding;
-           obj.ButtonsLayout.ColumnSpacing = obj.ButtonWidthSpacing;
-           obj.ButtonsLayout.RowSpacing = obj.ButtonHeightSpacing;
-           obj.ButtonsLayout.RowHeight = {'1x'};
-           obj.ButtonsLayout.ColumnWidth = {obj.ButtonWidth,obj.ButtonWidth,...
-           obj.ButtonWidth,obj.ButtonWidth,obj.ButtonWidth,...
-           obj.ButtonWidth,obj.ButtonWidth,obj.ButtonWidth,...
-           obj.ButtonWidth,obj.ButtonWidth,obj.ButtonWidth,...
-           obj.ButtonWidth,'1x'};
-           
-           %Summary Button
-           obj.SummaryButton = uibutton(obj.ButtonsLayout,'push');
-           obj.SummaryButton.Layout.Row = 1;
-           obj.SummaryButton.Layout.Column = 1;
-           obj.SummaryButton.Icon = QSPViewerNew.Resources.LoadResourcePath('report_24.png');
-           obj.SummaryButton.Tooltip = 'View summary';
-           obj.SummaryButton.ButtonPushedFcn = @(h,e)obj.onNavigation('Summary');
-           obj.SummaryButton.Text = '';
-           
-           %Edit Button
-           obj.EditButton = uibutton(obj.ButtonsLayout,'push');
-           obj.EditButton.Layout.Row = 1;
-           obj.EditButton.Layout.Column = 2;
-           obj.EditButton.Icon = QSPViewerNew.Resources.LoadResourcePath('edit_24.png');
-           obj.EditButton.Tooltip = 'Edit the selected item';
-           obj.EditButton.ButtonPushedFcn = @(h,e)obj.onNavigation('Edit');
-           obj.EditButton.Text = '';
+%            obj.ButtonsLayout = uigridlayout(obj.OuterGrid);
+%            obj.ButtonsLayout.Layout.Row =1;
+%            obj.ButtonsLayout.Layout.Column = 1;
+%            obj.ButtonsLayout.Padding = obj.ButtonPadding;
+%            obj.ButtonsLayout.ColumnSpacing = obj.ButtonWidthSpacing;
+%            obj.ButtonsLayout.RowSpacing = obj.ButtonHeightSpacing;
+%            obj.ButtonsLayout.RowHeight = {'1x'};
+%            obj.ButtonsLayout.ColumnWidth = {obj.ButtonWidth,obj.ButtonWidth,...
+%            obj.ButtonWidth,obj.ButtonWidth,obj.ButtonWidth,...
+%            obj.ButtonWidth,obj.ButtonWidth,obj.ButtonWidth,...
+%            obj.ButtonWidth,obj.ButtonWidth,obj.ButtonWidth,...
+%            obj.ButtonWidth,'1x'};
+%            
+%            %Summary Button
+%            obj.SummaryButton = uibutton(obj.ButtonsLayout,'push');
+%            obj.SummaryButton.Layout.Row = 1;
+%            obj.SummaryButton.Layout.Column = 1;
+%            obj.SummaryButton.Icon = QSPViewerNew.Resources.LoadResourcePath('report_24.png');
+%            obj.SummaryButton.Tooltip = 'View summary';
+%            obj.SummaryButton.ButtonPushedFcn = @(h,e)obj.onNavigation('Summary');
+%            obj.SummaryButton.Text = '';
+%            
+%            %Edit Button
+%            obj.EditButton = uibutton(obj.ButtonsLayout,'push');
+%            obj.EditButton.Layout.Row = 1;
+%            obj.EditButton.Layout.Column = 2;
+%            obj.EditButton.Icon = QSPViewerNew.Resources.LoadResourcePath('edit_24.png');
+%            obj.EditButton.Tooltip = 'Edit the selected item';
+%            obj.EditButton.ButtonPushedFcn = @(h,e)obj.onNavigation('Edit');
+%            obj.EditButton.Text = '';
            
            if obj.HasVisualization
                %Draw items specific to the visualization
-               ButtonGroupGrid = obj.getButtonGrid();
+%               ButtonGroupGrid = obj.getButtonGrid();
                %DrawButtons on the top
                %Run Button
-               obj.RunButton = uibutton(ButtonGroupGrid,'push');
-               obj.RunButton.Layout.Row = 1;
-               obj.RunButton.Layout.Column = 3;
-               obj.RunButton.Icon = QSPViewerNew.Resources.LoadResourcePath('play_24.png');
-               obj.RunButton.Tooltip = 'Run the selected item';
-               obj.RunButton.ButtonPushedFcn = @(h,e)obj.onNavigation('Run');
-               obj.RunButton.Text = '';
-               
-               %Run Button
-
-               obj.ParallelButton = uibutton(ButtonGroupGrid,'push');
-               obj.ParallelButton.Layout.Row = 1;
-               obj.ParallelButton.Layout.Column = 4;
-               obj.ParallelButton.Icon = QSPViewerNew.Resources.LoadResourcePath('paralleloff_24.png');
-               obj.ParallelButton.Tooltip = 'Enable Parallel';
-               obj.ParallelButton.UserData = 'off';
-               obj.ParallelButton.ButtonPushedFcn = @(h,e)obj.onNavigation('Parallel');
-               obj.ParallelButton.Text = '';
-
-               obj.GitButton = uibutton(ButtonGroupGrid,'push');
-               obj.GitButton.Layout.Row = 1;
-               obj.GitButton.Layout.Column = 5;
-               obj.GitButton.Icon = QSPViewerNew.Resources.LoadResourcePath('play_24.png');
-               obj.GitButton.Tooltip = 'Enable Git';
-               obj.GitButton.ButtonPushedFcn = @(h,e)obj.onNavigation('Git');
-               obj.GitButton.Text = '';
-
-               %Visualize Button
-               obj.VisualizeButton = uibutton(ButtonGroupGrid,'push');
-               obj.VisualizeButton.Layout.Row = 1;
-               obj.VisualizeButton.Layout.Column = 7;
-               obj.VisualizeButton.Icon = QSPViewerNew.Resources.LoadResourcePath('plot_24.png');
-               obj.VisualizeButton.Tooltip = 'Visualize the selected item';
-               obj.VisualizeButton.ButtonPushedFcn = @(h,e)obj.onNavigation('Visualize');
-               obj.VisualizeButton.Text = '';
-
-               % Settings Button
-               obj.SettingsButton = uibutton(ButtonGroupGrid,'push');
-               obj.SettingsButton.Layout.Row = 1;
-               obj.SettingsButton.Layout.Column = 8;
-               obj.SettingsButton.Icon = QSPViewerNew.Resources.LoadResourcePath('settings_24.png');
-               obj.SettingsButton.Tooltip = 'Customize plot settings the selected item';
-               obj.SettingsButton.ButtonPushedFcn = @(h,e)obj.onNavigation('Settings');
-               obj.SettingsButton.Text = '';
-
-               %ZoomIn
-               obj.ZoomInButton = uibutton(ButtonGroupGrid,'state');
-               obj.ZoomInButton.Layout.Row = 1;
-               obj.ZoomInButton.Layout.Column = 9;
-               obj.ZoomInButton.Icon = QSPViewerNew.Resources.LoadResourcePath('zoomin.png');
-               obj.ZoomInButton.Tooltip = 'Zoom in';
-               obj.ZoomInButton.ValueChangedFcn = @(h,e)obj.onNavigation('ZoomIn');
-               obj.ZoomInButton.Text = '';
-
-               % Zoom out
-               obj.ZoomOutButton = uibutton(ButtonGroupGrid,'state');
-               obj.ZoomOutButton.Layout.Row = 1;
-               obj.ZoomOutButton.Layout.Column = 10;
-               obj.ZoomOutButton.Icon = QSPViewerNew.Resources.LoadResourcePath('zoomout.png');
-               obj.ZoomOutButton.Tooltip = 'Zoom out';
-               obj.ZoomOutButton.ValueChangedFcn = @(h,e)obj.onNavigation('ZoomOut');
-               obj.ZoomOutButton.Text = '';
-
-               % Pan
-               obj.PanButton = uibutton(ButtonGroupGrid,'state');
-               obj.PanButton.Layout.Row = 1;
-               obj.PanButton.Layout.Column = 11;
-               obj.PanButton.Icon = QSPViewerNew.Resources.LoadResourcePath('pan.png');
-               obj.PanButton.Tooltip = 'Pan';
-               obj.PanButton.ValueChangedFcn = @(h,e)obj.onNavigation('Pan');
-               obj.PanButton.Text = '';
-
-               % Explore
-               obj.ExploreButton = uibutton(ButtonGroupGrid,'state');
-               obj.ExploreButton.Layout.Row = 1;
-               obj.ExploreButton.Layout.Column = 12;
-               obj.ExploreButton.Icon = QSPViewerNew.Resources.LoadResourcePath('datatip.png');
-               obj.ExploreButton.Tooltip = 'Explore';
-               obj.ExploreButton.ValueChangedFcn = @(h,e)obj.onNavigation('Explore');
-               obj.ExploreButton.Text = '';
+%                obj.RunButton = uibutton(ButtonGroupGrid,'push');
+%                obj.RunButton.Layout.Row = 1;
+%                obj.RunButton.Layout.Column = 3;
+%                obj.RunButton.Icon = QSPViewerNew.Resources.LoadResourcePath('play_24.png');
+%                obj.RunButton.Tooltip = 'Run the selected item';
+%                obj.RunButton.ButtonPushedFcn = @(h,e)obj.onNavigation('Run');
+%                obj.RunButton.Text = '';
+%                
+%                %Run Button
+% 
+%                obj.ParallelButton = uibutton(ButtonGroupGrid,'push');
+%                obj.ParallelButton.Layout.Row = 1;
+%                obj.ParallelButton.Layout.Column = 4;
+%                obj.ParallelButton.Icon = QSPViewerNew.Resources.LoadResourcePath('paralleloff_24.png');
+%                obj.ParallelButton.Tooltip = 'Enable Parallel';
+%                obj.ParallelButton.UserData = 'off';
+%                obj.ParallelButton.ButtonPushedFcn = @(h,e)obj.onNavigation('Parallel');
+%                obj.ParallelButton.Text = '';
+% 
+%                obj.GitButton = uibutton(ButtonGroupGrid,'push');
+%                obj.GitButton.Layout.Row = 1;
+%                obj.GitButton.Layout.Column = 5;
+%                obj.GitButton.Icon = QSPViewerNew.Resources.LoadResourcePath('play_24.png');
+%                obj.GitButton.Tooltip = 'Enable Git';
+%                obj.GitButton.ButtonPushedFcn = @(h,e)obj.onNavigation('Git');
+%                obj.GitButton.Text = '';
+% 
+%                %Visualize Button
+%                obj.VisualizeButton = uibutton(ButtonGroupGrid,'push');
+%                obj.VisualizeButton.Layout.Row = 1;
+%                obj.VisualizeButton.Layout.Column = 7;
+%                obj.VisualizeButton.Icon = QSPViewerNew.Resources.LoadResourcePath('plot_24.png');
+%                obj.VisualizeButton.Tooltip = 'Visualize the selected item';
+%                obj.VisualizeButton.ButtonPushedFcn = @(h,e)obj.onNavigation('Visualize');
+%                obj.VisualizeButton.Text = '';
+% 
+%                % Settings Button
+%                obj.SettingsButton = uibutton(ButtonGroupGrid,'push');
+%                obj.SettingsButton.Layout.Row = 1;
+%                obj.SettingsButton.Layout.Column = 8;
+%                obj.SettingsButton.Icon = QSPViewerNew.Resources.LoadResourcePath('settings_24.png');
+%                obj.SettingsButton.Tooltip = 'Customize plot settings the selected item';
+%                obj.SettingsButton.ButtonPushedFcn = @(h,e)obj.onNavigation('Settings');
+%                obj.SettingsButton.Text = '';
+% 
+%                %ZoomIn
+%                obj.ZoomInButton = uibutton(ButtonGroupGrid,'state');
+%                obj.ZoomInButton.Layout.Row = 1;
+%                obj.ZoomInButton.Layout.Column = 9;
+%                obj.ZoomInButton.Icon = QSPViewerNew.Resources.LoadResourcePath('zoomin.png');
+%                obj.ZoomInButton.Tooltip = 'Zoom in';
+%                obj.ZoomInButton.ValueChangedFcn = @(h,e)obj.onNavigation('ZoomIn');
+%                obj.ZoomInButton.Text = '';
+% 
+%                % Zoom out
+%                obj.ZoomOutButton = uibutton(ButtonGroupGrid,'state');
+%                obj.ZoomOutButton.Layout.Row = 1;
+%                obj.ZoomOutButton.Layout.Column = 10;
+%                obj.ZoomOutButton.Icon = QSPViewerNew.Resources.LoadResourcePath('zoomout.png');
+%                obj.ZoomOutButton.Tooltip = 'Zoom out';
+%                obj.ZoomOutButton.ValueChangedFcn = @(h,e)obj.onNavigation('ZoomOut');
+%                obj.ZoomOutButton.Text = '';
+% 
+%                % Pan
+%                obj.PanButton = uibutton(ButtonGroupGrid,'state');
+%                obj.PanButton.Layout.Row = 1;
+%                obj.PanButton.Layout.Column = 11;
+%                obj.PanButton.Icon = QSPViewerNew.Resources.LoadResourcePath('pan.png');
+%                obj.PanButton.Tooltip = 'Pan';
+%                obj.PanButton.ValueChangedFcn = @(h,e)obj.onNavigation('Pan');
+%                obj.PanButton.Text = '';
+% 
+%                % Explore
+%                obj.ExploreButton = uibutton(ButtonGroupGrid,'state');
+%                obj.ExploreButton.Layout.Row = 1;
+%                obj.ExploreButton.Layout.Column = 12;
+%                obj.ExploreButton.Icon = QSPViewerNew.Resources.LoadResourcePath('datatip.png');
+%                obj.ExploreButton.Tooltip = 'Explore';
+%                obj.ExploreButton.ValueChangedFcn = @(h,e)obj.onNavigation('Explore');
+%                obj.ExploreButton.Text = '';
                
                %Create Visualization Panel
                obj.VisualizationPanel = uipanel(obj.OuterGrid);
                obj.VisualizationPanel.BackgroundColor = obj.PanelBackgroundColor;
-               obj.VisualizationPanel.Layout.Row = 2;
+               obj.VisualizationPanel.Layout.Row = 1;
                obj.VisualizationPanel.Layout.Column = 1;
                obj.VisualizationPanel.Visible = 'off';
                
@@ -591,10 +601,8 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
                     obj.StandardDeviationMenu(plotIndex).Tag = 'ShowSD';
                     obj.StandardDeviationMenu(plotIndex).MenuSelectedFcn = @(h,e) obj.onAxisContextMenu(h,e);
                end
-           end
-           
-       end
-       
+           end           
+       end       
    end
 
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -835,18 +843,18 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
                         obj.draw();
                         obj.CurrentPane.Visible = 'on';
                         
-                        %Turn the buttons on 
-                        obj.ParentApp.enableInteraction();
-                        obj.SummaryButton.Enable = 'on';
-                        obj.EditButton.Enable = 'on';
-                        if obj.HasVisualization
-                            if obj.isValid()
-                                VisPanelEnable = 'on';
-                            else
-                                VisPanelEnable = 'off';
-                            end
-                             obj.toggleButtonsInteraction({'on','on','on',VisPanelEnable,'on','off','off','off','off'});
-                        end
+%                         %Turn the buttons on 
+%                         obj.ParentApp.enableInteraction();
+%                         obj.SummaryButton.Enable = 'on';
+%                         obj.EditButton.Enable = 'on';
+%                         if obj.HasVisualization
+%                             if obj.isValid()
+%                                 VisPanelEnable = 'on';
+%                             else
+%                                 VisPanelEnable = 'off';
+%                             end
+%                              obj.toggleButtonsInteraction({'on','on','on',VisPanelEnable,'on','off','off','off','off'});
+%                         end
                     end
                 case 'Edit'
                     if strcmp(obj.EditPanel.Visible,'off')
@@ -857,14 +865,14 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
                         obj.draw();
                         obj.CurrentPane.Visible = 'on';
                         
-                        %Disable all external buttons and other views
-                        obj.ParentApp.disableInteraction();
-                        obj.SummaryButton.Enable = 'off';
-                        obj.EditButton.Enable = 'off';
-                        if obj.HasVisualization
-                            obj.toggleButtonsInteraction({'on','on','on','on','on','off','off','off','off'});
-                            %obj.toggleButtonsInteraction({'off','off','off','off','off','off','off','off','off'});
-                        end
+%                         %Disable all external buttons and other views
+%                         obj.ParentApp.disableInteraction();
+%                         obj.SummaryButton.Enable = 'off';
+%                         obj.EditButton.Enable = 'off';
+%                         if obj.HasVisualization
+%                             obj.toggleButtonsInteraction({'on','on','on','on','on','off','off','off','off'});
+%                             %obj.toggleButtonsInteraction({'off','off','off','off','off','off','off','off','off'});
+%                         end
                     end
                 case 'Run'
                     obj.runModel();
@@ -880,21 +888,21 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
                         obj.draw();
                     end
                     
-                    %Turn the buttons on
-                    obj.ParentApp.enableInteraction();
-                    obj.SummaryButton.Enable = 'on';
-                    obj.EditButton.Enable = 'on';
-                    if obj.HasVisualization
-                        obj.toggleButtonsInteraction({'on','on','on','on','on','off','off','off','off'});
-                    end
+%                     %Turn the buttons on
+%                     obj.ParentApp.enableInteraction();
+%                     obj.SummaryButton.Enable = 'on';
+%                     obj.EditButton.Enable = 'on';
+%                     if obj.HasVisualization
+%                         obj.toggleButtonsInteraction({'on','on','on','on','on','off','off','off','off'});
+%                     end
 
                 case 'Parallel'
-                    obj.updateParallelButtonStatus();              
-                    obj.updateSessionParallelOption(obj.ParallelButton.UserData);
+%                     obj.updateParallelButtonStatus();              
+%                     obj.updateSessionParallelOption(obj.ParallelButton.UserData);
 
                 case 'Git'
-                    obj.toggleGitButtonStatus();                    
-                    obj.updateSessionGitOption(obj.GitButton.UserData);
+%                     obj.toggleGitButtonStatus();                    
+%                     obj.updateSessionGitOption(obj.GitButton.UserData);
 
                 case 'Visualize'
                     if strcmp(obj.VisualizationPanel.Visible,'off')
@@ -909,7 +917,7 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
                         obj.UpdateBackendPlotSettings();
                         
                         %Disable all external buttons and other views
-                        obj.toggleButtonsInteraction({'on','on','on','on','on','on','on','on','on'});
+%                         obj.toggleButtonsInteraction({'on','on','on','on','on','on','on','on','on'});
                     end
                 case 'Settings'
                     Figure = ancestor(obj.OuterGrid,'figure');
