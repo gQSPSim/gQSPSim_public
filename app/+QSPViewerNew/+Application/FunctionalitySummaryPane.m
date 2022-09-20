@@ -34,24 +34,20 @@ classdef FunctionalitySummaryPane < matlab.mixin.Heterogeneous & handle
     % Constructor and destructor
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     methods
-        function obj = FunctionalitySummaryPane(varargin)
-             if length(varargin{1}) == 4 && isa(varargin{1}{1},'matlab.ui.container.GridLayout')
-                obj.Parent = varargin{1}{1};
-                obj.LayoutRow = varargin{1}{2};
-                obj.LayoutColumn = varargin{1}{3};
-                obj.ParentApp = varargin{1}{4};
-             else
-                message = ['This constructor requires the following inputs' ...
-                    newline '1.' ...
-                    newline '-Graphical Parent: uigridlayout...' ...
-                    newline '-GridRow: int' ...
-                    newline '-GridColumn: int' ...
-                    newline '-uigridlayout...' ...
-                    newline '-Parent application: matlab.apps.AppBase'];
-                    error(message)
+        function obj = FunctionalitySummaryPane(pvargs)
+            arguments
+                pvargs.Parent (1,1) matlab.ui.container.GridLayout
+                pvargs.layoutrow (1,1) double = 1
+                pvargs.layoutcolumn (1,1) double = 1
+                pvargs.parentApp
+                pvargs.HasVisualization(1,1) logical = false
             end
-
-            %create the objects on our end
+             
+            obj.Parent = pvargs.Parent;
+            obj.LayoutRow = pvargs.layoutrow;
+            obj.LayoutColumn = pvargs.layoutcolumn;
+            obj.ParentApp = pvargs.parentApp;            
+            
             obj.create();
         end
     end

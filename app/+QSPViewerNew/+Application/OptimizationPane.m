@@ -156,6 +156,11 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
         SelectedNodePath
     end
 
+    properties(Constant)
+        ButtonWidth=30;
+        ButtonHeight=30;
+    end
+
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Constructor and destructor
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -168,9 +173,9 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
                 pvargs.parentApp
                 pvargs.HasVisualization (1,1) logical = true
             end
-
-            % TODOpax. This does not work. args = namedargs2cell(pvargs);
-            obj = obj@QSPViewerNew.Application.ViewPane(Parent=pvargs.Parent, HasVisualization=pvargs.HasVisualization, ParentApp=pvargs.parentApp);
+            
+            args = namedargs2cell(pvargs);
+            obj = obj@QSPViewerNew.Application.ViewPane(args{:});
             obj.create();
             obj.createListenersAndCallbacks();
         end
@@ -1425,8 +1430,9 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
             obj.redrawOptimItems();
             obj.redrawSpecies();
             obj.redrawInitialConditions();
-            obj.updateParallelButtonSession(obj.TemporaryOptimization.Session.UseParallel);
-            obj.updateGitButtonSession(obj.TemporaryOptimization.Session.AutoSaveGit);
+            % TODOpax.
+%             obj.updateParallelButtonSession(obj.TemporaryOptimization.Session.UseParallel);
+%             obj.updateGitButtonSession(obj.TemporaryOptimization.Session.AutoSaveGit);
         end
 
         function checkForInvalid(obj)

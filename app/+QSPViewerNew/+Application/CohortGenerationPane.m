@@ -143,6 +143,11 @@ classdef CohortGenerationPane < QSPViewerNew.Application.ViewPane
     properties
         SelectedNodePath
     end
+
+    properties(Constant)
+        ButtonWidth = 30;
+        ButtonHeight = 30;
+    end
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Constructor and destructor
@@ -158,8 +163,8 @@ classdef CohortGenerationPane < QSPViewerNew.Application.ViewPane
                 pvargs.HasVisualization (1,1) logical = true
             end
 
-            % TODOpax. This does not work. args = namedargs2cell(pvargs);
-            obj = obj@QSPViewerNew.Application.ViewPane(Parent=pvargs.Parent, HasVisualization=pvargs.HasVisualization, ParentApp=pvargs.parentApp);
+            args = namedargs2cell(pvargs);
+            obj = obj@QSPViewerNew.Application.ViewPane(args{:});
             obj.create();
             obj.createListenersAndCallbacks();
         end
@@ -185,6 +190,7 @@ classdef CohortGenerationPane < QSPViewerNew.Application.ViewPane
             obj.InnerLayout = uigridlayout(obj.EditLayout());
             obj.InnerLayout.Layout.Row = 2;
             obj.InnerLayout.Layout.Column = 1;
+
             obj.InnerLayout.ColumnWidth = {obj.LabelLength,'1x', obj.ButtonWidth, obj.WidgetWidthSpacing, obj.LabelLength,'1x'};
             obj.InnerLayout.RowHeight = {obj.LabelHeight,obj.LabelHeight,obj.LabelHeight,obj.LabelHeight};
             obj.InnerLayout.ColumnSpacing = 0;
@@ -1105,9 +1111,10 @@ classdef CohortGenerationPane < QSPViewerNew.Application.ViewPane
             obj.redrawVirtualItemsTable();
             obj.redrawSpeciesDataTable();
             obj.redrawParametersTable();
-            obj.updateParallelButtonSession(obj.TemporaryCohortGeneration.Session.UseParallel);
+%             obj.updateParallelButtonSession(obj.TemporaryCohortGeneration.Session.UseParallel);
+%             todopax.
             obj.IsDirty = false;
-            obj.updateGitButtonSession(obj.TemporaryCohortGeneration.Session.AutoSaveGit);
+%             obj.updateGitButtonSession(obj.TemporaryCohortGeneration.Session.AutoSaveGit);
         end
         
         function checkForInvalid(obj)

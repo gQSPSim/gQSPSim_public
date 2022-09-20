@@ -120,6 +120,11 @@ classdef VirtualPopulationGenerationPane < QSPViewerNew.Application.ViewPane
     properties
         SelectedNodePath
     end
+
+    properties(Constant)
+        ButtonWidth = 30;
+        ButtonHeight = 30;
+    end
         
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Constructor and destructor
@@ -800,8 +805,9 @@ classdef VirtualPopulationGenerationPane < QSPViewerNew.Application.ViewPane
             obj.redrawMaxDiversity();
             obj.redrawVirtualItems();
             obj.redrawSpeciesData();
-            obj.updateParallelButtonSession(obj.TemporaryVirtualPopulationGeneration.Session.UseParallel);
-            obj.updateGitButtonSession(obj.TemporaryVirtualPopulationGeneration.Session.AutoSaveGit);
+            % todopax
+%             obj.updateParallelButtonSession(obj.TemporaryVirtualPopulationGeneration.Session.UseParallel);
+%             obj.updateGitButtonSession(obj.TemporaryVirtualPopulationGeneration.Session.AutoSaveGit);
             obj.IsDirty = false;
         end
         

@@ -67,14 +67,7 @@ classdef TaskPane < QSPViewerNew.Application.ViewPane
     % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Constructor and destructor
     % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    methods      
-        
-%         function obj = TaskPane(varargin)
-%             obj = obj@QSPViewerNew.Application.ViewPane(varargin{:}{:},false);
-%             obj.create();
-%             obj.createListenersAndCallbacks();
-%         end
-
+    methods              
         function obj = TaskPane(pvargs)
             arguments
                 pvargs.Parent (1,1) matlab.ui.container.GridLayout
@@ -84,11 +77,11 @@ classdef TaskPane < QSPViewerNew.Application.ViewPane
                 pvargs.HasVisualization (1,1) logical = false
             end
 
-            obj = obj@QSPViewerNew.Application.ViewPane(Parent=pvargs.Parent, HasVisualization=pvargs.HasVisualization, ParentApp=pvargs.parentApp);
+            args = namedargs2cell(pvargs);
+            obj = obj@QSPViewerNew.Application.ViewPane(args{:});
             obj.create();
             obj.createListenersAndCallbacks();
-        end
-        
+        end        
     end
     
     % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

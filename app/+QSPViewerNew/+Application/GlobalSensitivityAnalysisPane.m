@@ -120,6 +120,11 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
         SelectedNodePath
     end
 
+    properties(Constant)
+        ButtonWidth = 30;
+        ButtonHeight = 30;
+    end
+
     % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Constructor and destructor
     % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1189,8 +1194,9 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             obj.updateTaskTable();
             obj.updatePlotTables();
             obj.updateIterationsTable();
-            obj.updateParallelButtonSession(obj.TemporaryGlobalSensitivityAnalysis.Session.UseParallel);
-            obj.updateGitButtonSession(obj.TemporaryGlobalSensitivityAnalysis.Session.AutoSaveGit);
+            % todopax.
+%             obj.updateParallelButtonSession(obj.TemporaryGlobalSensitivityAnalysis.Session.UseParallel);
+%             obj.updateGitButtonSession(obj.TemporaryGlobalSensitivityAnalysis.Session.AutoSaveGit);
 
             obj.IsDirty = false;
         end

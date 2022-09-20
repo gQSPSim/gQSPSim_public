@@ -58,6 +58,11 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
         SelectedNodePath
     end
 
+    properties(Constant)
+        ButtonWidth = 30;
+        ButtonHeight = 30;
+    end
+
     % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Listeners
     % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -68,7 +73,7 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
     % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Graphical Components
     % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    properties(Access=private)
+    properties(Access = private)
         SimulationEditGrid          matlab.ui.container.GridLayout
         ResultFolderSelector        QSPViewerNew.Widgets.FolderSelector
         DatasetGrid                 matlab.ui.container.GridLayout
@@ -1006,8 +1011,9 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
             obj.updateDataset();
             obj.updateGroupColumn();
             obj.updateSimulationTable();
-            obj.updateParallelButtonSession(obj.TemporarySimulation.Session.UseParallel);
-            obj.updateGitButtonSession(obj.TemporarySimulation.Session.AutoSaveGit);
+            % TODOpax. these need to go away.
+%             obj.updateParallelButtonSession(obj.TemporarySimulation.Session.UseParallel);
+%             obj.updateGitButtonSession(obj.TemporarySimulation.Session.AutoSaveGit);
             obj.IsDirty = false;
         end
 
