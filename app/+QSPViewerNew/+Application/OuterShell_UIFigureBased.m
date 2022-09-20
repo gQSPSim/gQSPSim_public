@@ -168,7 +168,8 @@ classdef OuterShell_UIFigureBased < handle
                 pLeft = uipanel(gLeft);
                 pLeft.Layout.Row = 1;
                 pLeft.Layout.Column = 1;
-                pLeft.BorderType = 'none';
+                pLeft.BorderType = 'line';
+                pLeft.BackgroundColor = 'w';
                 pLeft.Title = 'Session Explorer';
 
                 pCenter = uipanel(gOuter);
@@ -191,10 +192,12 @@ classdef OuterShell_UIFigureBased < handle
                 pRight.BorderType = 'line';
 
                 obj.paneGridLayout = uigridlayout(pRight);
-                obj.paneGridLayout.RowHeight = {'1x'};
+                obj.paneGridLayout.RowHeight = {30, '1x'}; % todopax where does this 30 come from?
                 obj.paneGridLayout.ColumnWidth = {'1x'};
             end
 
+%             obj.paneManager = QSPViewerNew.Application.PaneManager();
+%             todopax want this paneManager here.
             obj.UIFigure.WindowButtonDownFcn = @obj.onWindowButtonDown;
             obj.UIFigure.WindowButtonUpFcn   = @obj.onWindowButtonUp;
 
