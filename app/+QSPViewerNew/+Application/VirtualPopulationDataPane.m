@@ -107,7 +107,7 @@ classdef VirtualPopulationDataPane < QSPViewerNew.Application.ViewPane
             obj.hidePane();
         end
         
-        function attachNewVirtPopData(obj,NewVirtPopData)
+        function attachNewVirtualPopulationData(obj,NewVirtPopData)
             obj.VirtPopData = NewVirtPopData;
             obj.TemporaryVirtPopData = copy(obj.VirtPopData);
             obj.draw();

@@ -109,7 +109,7 @@ classdef VirtualPopulationGenerationDataPane < QSPViewerNew.Application.ViewPane
             obj.hidePane();
         end
         
-        function attachNewVirtPopGenData(obj,NewVirtPopGenData)
+        function attachNewVirtualPopulationGenerationData(obj,NewVirtPopGenData)
             obj.VirtPopGenData = NewVirtPopGenData;
             obj.TemporaryVirtPopGenData = copy(obj.VirtPopGenData);
             obj.draw();
