@@ -83,7 +83,7 @@ classdef FunctionalitySummaryPane < matlab.mixin.Heterogeneous & handle
         
         function update(obj)
             if ~isempty(obj.NodeData)
-                summaryData = arrayfun(@(x) x.getSummaryTableItems, obj.NodeData, 'UniformOutput', false);
+                summaryData = arrayfun(@(x) x.getSummaryTableItems, obj.NodeData.ChildNodeData, 'UniformOutput', false);
                 summaryData1 = cellfun(@(x) x(:,2)', summaryData, 'UniformOutput', false);
                 
                 tableData = cell2table(vertcat(summaryData1{:}), 'VariableNames', summaryData{1}(:,1));
@@ -102,6 +102,11 @@ classdef FunctionalitySummaryPane < matlab.mixin.Heterogeneous & handle
         end
         
         function attachNewNodeData(obj, nodeData)
+            obj.NodeData = nodeData;
+            obj.update();
+        end
+
+        function attachNewFunctionalitySummary(obj, nodeData)
             obj.NodeData = nodeData;
             obj.update();
         end
