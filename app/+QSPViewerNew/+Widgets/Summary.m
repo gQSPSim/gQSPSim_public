@@ -28,6 +28,7 @@ classdef Summary < handle
     methods 
         
         function obj = Summary(varargin)
+            %TODOpax update this constructor.
             %This requires a parent that is a grid layout and information
             %For the box
             if nargin ~= 4
