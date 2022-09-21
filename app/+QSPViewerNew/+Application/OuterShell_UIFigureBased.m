@@ -1,6 +1,6 @@
 classdef OuterShell_UIFigureBased < handle
     properties
-        UIFigure                 matlab.ui.Figure  
+        UIFigure                 matlab.ui.Figure
         FileMenu                 matlab.ui.container.Menu
         NewCtrlNMenu             matlab.ui.container.Menu
         OpenCtrl0Menu            matlab.ui.container.Menu
@@ -38,6 +38,7 @@ classdef OuterShell_UIFigureBased < handle
         OpenRecentMenuArray
         IsConstructed (1,1) logical = false
         paneGridLayout
+        paneManager
     end
 
     events
@@ -46,16 +47,17 @@ classdef OuterShell_UIFigureBased < handle
     end
 
     methods
-        function obj = OuterShell_UIFigureBased(appname)
+        function obj = OuterShell_UIFigureBased(appname, app)
             arguments
                 appname (1,1) string
+                app %todopax remove if possible.
             end
-            
+
             % Create the graphics objects
-            obj.create(appname);
+            obj.create(appname, app);
 
             % Register the app with App Designer
-            obj.IsConstructed = true;            
+            obj.IsConstructed = true;
         end
 
         function onNewSession(obj, ~, e)
@@ -82,7 +84,6 @@ classdef OuterShell_UIFigureBased < handle
             buildingBlockSettingsNames = string(itemTypes(1:6,2));
 
             for i = 1:numel(buildingBlockNodeNames)
-
                 baseNode = obj.createTreeNode(buildingBlocksNode, [], buildingBlockNodeNames(i), iconFileName(i), buildingBlockNodeNames(i));
                 nodes = session.Settings.(buildingBlockSettingsNames(i));
 
@@ -97,7 +98,8 @@ classdef OuterShell_UIFigureBased < handle
             iconFileNames = ["simbio_24.png", "optim_24.png", "stickman-3.png", "stickman-3-color.png", "sensitivity.png"];
 
             for i = 1:numel(functionalityBlockNodeNames)
-                baseNode = obj.createTreeNode(functionalityNode, [], functionalityBlockNodeNames(i), iconFileNames(i), functionalityBlockNodeNames(i));
+                dummyNodeData.Type = "FunctionalitySummary";
+                baseNode = obj.createTreeNode(functionalityNode, dummyNodeData, functionalityBlockNodeNames(i), iconFileNames(i), functionalityBlockNodeNames(i));
                 nodes = session.(functionalityBlockNodeNames(i));
                 for j = 1:numel(nodes)
                     obj.createTreeNode(baseNode, nodes(j), nodes(j).Name, iconFileNames(i), functionalityBlockNodeNames(i));
@@ -109,7 +111,7 @@ classdef OuterShell_UIFigureBased < handle
     end
 
     methods(Access = private)
-        function create(obj, appName)
+        function create(obj, appName, app)
             obj.UIFigure = uifigure('Visible', 'off');
             obj.UIFigure.Position = [100 100 1005 864];
             obj.UIFigure.Name = appName;
@@ -120,89 +122,59 @@ classdef OuterShell_UIFigureBased < handle
 
             constructMenuItems(obj);
 
-            if false
-                % Create GridLayout
-                obj.FlexGridLayout = QSPViewerNew.Widgets.GridFlex(obj.UIFigure);
-                obj.FlexGridLayout.getGridHandle();
-                %             obj.addWindowDownCallback(obj.FlexGridLayout.getButtonDownCallback());
-                %             obj.addWindowUpCallback(obj.FlexGridLayout.getButtonUpCallback());
+            obj.FlexGridLayout = uigridlayout(obj.UIFigure);
+            gOuter = obj.FlexGridLayout;
+            gOuter.RowHeight = {'1x'};
+            gOuter.ColumnWidth = {'33x', 5, '67x'};
+            gOuter.ColumnSpacing = 0;
+            gOuter.Padding = [0 0 0 0]+10;
 
-                % Create SessionExplorerPanel
-                obj.SessionExplorerPanel = uipanel(obj.FlexGridLayout.getGridHandle());
-                obj.SessionExplorerPanel.Title = 'Session Explorer';
-                obj.SessionExplorerPanel.Layout.Row = 1;
-                obj.SessionExplorerPanel.Layout.Column = 1;
+            gLeft = uigridlayout(gOuter);
+            gLeft.Layout.Row = 1;
+            gLeft.Layout.Column = 1;
+            gLeft.RowHeight = {20, '1x'};
+            gLeft.ColumnWidth = {'1x'};
+            gLeft.Padding = [0 0 0 0];
+            gLeft.RowSpacing = 0;
 
-                % Create TreeGrid
-                obj.SessionExplorerGrid = uigridlayout(obj.SessionExplorerPanel);
-                obj.SessionExplorerGrid.ColumnWidth = {'1x'};
-                obj.SessionExplorerGrid.RowHeight = {'1x'};
+            pLeft = uipanel(gLeft);
+            pLeft.Layout.Row = 1;
+            pLeft.Layout.Column = 1;
+            pLeft.BorderType = 'line';
+            pLeft.BackgroundColor = 'w';
+            pLeft.Title = 'Session Explorer';
 
-                % Create Tree
-                obj.TreeRoot = uitree(obj.SessionExplorerGrid);
-                obj.TreeRoot.Multiselect = 'on';
-                obj.TreeRoot.SelectionChangedFcn = @obj.onTreeSelectionChange;
+            pCenter = uipanel(gOuter);
+            pCenter.Layout.Row = 1;
+            pCenter.Layout.Column = 2;
+            pCenter.BorderType = 'none';
+            pCenter.BackgroundColor = [1 1 1]*.85;
+            pCenter.Tag = 'divider';
 
-                % Pane gridlayout
-                obj.paneGridLayout = uigridlayout(obj.FlexGridLayout.getGridHandle());
-                obj.paneGridLayout.Layout.Row = 1;
-                obj.paneGridLayout.Layout.Column = 3;
-                obj.paneGridLayout.RowHeight = {'1x'};
-                obj.paneGridLayout.ColumnWidth = {'1x'};
-            else
-                obj.FlexGridLayout = uigridlayout(obj.UIFigure);
-                gOuter = obj.FlexGridLayout;
-                gOuter.RowHeight = {'1x'};
-                gOuter.ColumnWidth = {'33x', 5, '67x'};
-                gOuter.ColumnSpacing = 0;
-                gOuter.Padding = [0 0 0 0]+10;
+            t = uitree(gLeft);
+            t.Layout.Row = 2;
+            t.Layout.Column = 1;
+            obj.TreeRoot = t;
+            obj.TreeRoot.Multiselect = 'on';
+            obj.TreeRoot.SelectionChangedFcn = @obj.onTreeSelectionChange;
 
-                gLeft = uigridlayout(gOuter);
-                gLeft.Layout.Row = 1;
-                gLeft.Layout.Column = 1;
-                gLeft.RowHeight = {20, '1x'};
-                gLeft.ColumnWidth = {'1x'};
-                gLeft.Padding = [0 0 0 0];
-                gLeft.RowSpacing = 0;
+            pRight = uipanel(gOuter);
+            pRight.Layout.Row = 1;
+            pRight.Layout.Column = 3;
+            pRight.BorderType = 'line';
 
-                pLeft = uipanel(gLeft);
-                pLeft.Layout.Row = 1;
-                pLeft.Layout.Column = 1;
-                pLeft.BorderType = 'line';
-                pLeft.BackgroundColor = 'w';
-                pLeft.Title = 'Session Explorer';
+            obj.paneGridLayout = uigridlayout(pRight);
+            obj.paneGridLayout.RowHeight = {30, '1x'}; % todopax where does this 30 come from?
+            obj.paneGridLayout.ColumnWidth = {'1x'};
 
-                pCenter = uipanel(gOuter);
-                pCenter.Layout.Row = 1;
-                pCenter.Layout.Column = 2;
-                pCenter.BorderType = 'none';
-                pCenter.BackgroundColor = [1 1 1]*.85;
-                pCenter.Tag = 'divider';
-
-                t = uitree(gLeft);
-                t.Layout.Row = 2;
-                t.Layout.Column = 1;
-                obj.TreeRoot = t;
-                obj.TreeRoot.Multiselect = 'on';
-                obj.TreeRoot.SelectionChangedFcn = @obj.onTreeSelectionChange;
-
-                pRight = uipanel(gOuter);
-                pRight.Layout.Row = 1;
-                pRight.Layout.Column = 3;
-                pRight.BorderType = 'line';
-
-                obj.paneGridLayout = uigridlayout(pRight);
-                obj.paneGridLayout.RowHeight = {30, '1x'}; % todopax where does this 30 come from?
-                obj.paneGridLayout.ColumnWidth = {'1x'};
-            end
-
-%             obj.paneManager = QSPViewerNew.Application.PaneManager();
-%             todopax want this paneManager here.
+            obj.paneManager = QSPViewerNew.Application.PaneManager(app.ItemTypes, obj.paneGridLayout, app);
             obj.UIFigure.WindowButtonDownFcn = @obj.onWindowButtonDown;
             obj.UIFigure.WindowButtonUpFcn   = @obj.onWindowButtonUp;
 
             % Show the figure after all components are created
             obj.UIFigure.Visible = 'on';
+
+            addlistener(obj.paneManager, "Alert", @(h,e)obj.onAlert(h,e));
         end
 
         function onWindowButtonUp(~, src, ~)
@@ -217,15 +189,67 @@ classdef OuterShell_UIFigureBased < handle
                 src.WindowButtonMotionFcn = @obj.onWindowButtonMotion;
             end
         end
-        
+
         function onWindowButtonMotion(obj, src, ~)
             currentPoint = src.CurrentPoint;
             xFraction = 100*currentPoint(1)./src.Position(3);
             obj.FlexGridLayout.ColumnWidth = {sprintf('%dx', xFraction), 5, sprintf('%dx',100-xFraction)};
         end
 
-        function onTreeSelectionChange(obj, hSource, eData)
-            notify(obj, 'TreeSelectionChange', eData);
+        function onTreeSelectionChange(obj, hSource, eventData)
+            %TODOpax app.UIFigure.Pointer = 'watch'; This action should be fast
+            %enough that we don't need the pointer to change.
+            %app.container.Busy =0 this brings up the busy.
+
+            %TODOpax drawnow limitrate;
+            % TODO: Finish
+            %First we determine the session that is selected
+            %We can select mutliple nodes at once. Therefore we need to consider if SelectedNodes is a vector
+            SelectedNodes = eventData.SelectedNodes;
+            %             Root = handle.TreeRoot;
+
+            %We only make changes if a single node is selected
+            if numel(SelectedNodes) == 1
+                % %                 ThisSessionNode = SelectedNodes;
+                % %
+                % %                 %Find which session is the parent of the current one
+                % %                 while ~isempty(ThisSessionNode) && ThisSessionNode.Parent~=Root
+                % %                     ThisSessionNode = ThisSessionNode.Parent;
+                % %                 end
+
+                %Update which session is currently selected
+                % %                 if isempty(ThisSessionNode)
+                % %                     app.SelectedSessionIdx = [];
+                % %                 else
+                % %
+                % %                     % update path to include drop the UDF for previous session
+                % %                     % and include the UDF for current session
+                % %                     app.SelectedSession.removeUDF();
+                % %                     app.SelectedSessionIdx = find(ThisSessionNode == app.SessionNode);
+                % %                     app.SelectedSession.addUDF();
+                % %
+                % %                 end
+
+                %Now that we have the correct session, we can work
+                % TODOpax. I see no need to refresh everthing on tree selection
+                % change.
+                %app.refresh();
+
+
+                % Determine if a Summary treenode has been selected.
+                if isfield(SelectedNodes.NodeData, "Type")
+                    nodeData = SelectedNodes.NodeData;
+                    nodeData.ChildNodeData = [SelectedNodes.Children.NodeData];
+                    obj.paneManager.openPane(nodeData);
+                else
+                    obj.paneManager.openPane(SelectedNodes.NodeData);
+                end
+
+                %                 app.updatePane(handle.paneGridLayout, SelectedNodes);
+
+                %app.UIFigure.Pointer = 'arrow'; TODOpax no longer this
+                %way.
+            end
         end
 
         function treeNode = createTreeNode(~, Parent, Data, Name, Icon, PaneType)
@@ -266,6 +290,10 @@ classdef OuterShell_UIFigureBased < handle
             uialert(app.UIFigure,Message,'About','Icon','');
         end
 
+        function onAlert(obj, hSource, eventData)
+            uialert(obj.UIFigure, eventData.message, 'Run Failed'); %todopax add this last arg to the eventData
+        end
+
         function constructMenuItems(obj)
             obj.FileMenu                        = obj.createMenuItem(obj.UIFigure, "File");
             obj.NewCtrlNMenu                    = obj.createMenuItem(obj.FileMenu, "New...", @obj.onNew, "N");
@@ -275,7 +303,7 @@ classdef OuterShell_UIFigureBased < handle
             obj.SaveCtrlSMenu                   = obj.createMenuItem(obj.FileMenu, "Save", @(h,e)obj.onSave([]), "S", "on");
             obj.SaveAsMenu                      = obj.createMenuItem(obj.FileMenu, "Save As...", @(h,e)obj.onSaveAs([]));
             obj.ExitCtrlQMenu                   = obj.createMenuItem(obj.FileMenu, "Exit", @obj.onExit, "Q", "on");
-            obj.QSPMenu                         = obj.createMenuItem(obj.UIFigure, "QSP");            
+            obj.QSPMenu                         = obj.createMenuItem(obj.UIFigure, "QSP");
             obj.AddNewItemMenu                  = obj.createMenuItem(obj.QSPMenu, "Add New Item");
             obj.DatasetMenu                     = obj.createMenuItem(obj.AddNewItemMenu, "Dataset", @(h,e)obj.onAddItem([], 'OptimizationData'));
             obj.ParameterMenu                   = obj.createMenuItem(obj.AddNewItemMenu, "Parameter", @(h,e)obj.onAddItem([], 'Parameters'));
@@ -303,7 +331,7 @@ classdef OuterShell_UIFigureBased < handle
                 obj
                 parent
                 text (1,1) string
-                menuSelectedFcn = ''                
+                menuSelectedFcn = ''
                 accelerator (1,1) string = ""
                 separator (1,1) string = "off"
             end
