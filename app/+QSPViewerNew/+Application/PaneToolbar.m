@@ -20,6 +20,10 @@ classdef PaneToolbar < handle
         exploreButton
     end
 
+    events
+        Run
+    end
+
     methods
         function obj = PaneToolbar(parent)
             arguments
@@ -96,6 +100,7 @@ classdef PaneToolbar < handle
 %             obj.refocus;
 %             Figure.Pointer = 'arrow';
             disp('onNavigation called');
+            notify(obj, name, event);
         end
     end
 end

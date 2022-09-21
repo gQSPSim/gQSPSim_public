@@ -1,10 +1,14 @@
 classdef PaneManager < handle
-    properties
+    properties(Access = private)
         paneContainer (1,1) struct
         parent
         parentApp %todopax nice if removed.
         activePane
         paneToolbar
+    end
+
+    events
+        Alert
     end
 
     methods
@@ -15,14 +19,19 @@ classdef PaneManager < handle
                 parentApp
             end
             
+            % Nodes that correspond to Model types.
             for i = 1:size(itemTypes, 1)
                 obj.paneContainer.(itemTypes{i,2}) = [];
             end
 
+            % Nodes purely on the UI side. E.g., summary nodes.
+            obj.paneContainer.FunctionalitySummary = [];
+
             obj.parent = parent;
             obj.parentApp = parentApp;
 
-            obj.paneToolbar = QSPViewerNew.Application.PaneToolbar(obj.parent); % Don't like that panetoolbar decides where to put itself.
+            obj.paneToolbar = QSPViewerNew.Application.PaneToolbar(obj.parent); % Don't like that panetoolbar decides where to put itself. Fix this by standardizing to passing in the row, column.
+            addlistener(obj.paneToolbar, "Run", @(h,e)obj.onRun(h,e));
         end
 
         function openPane(obj, nodeData, type)
@@ -31,20 +40,21 @@ classdef PaneManager < handle
                 nodeData
                 type (1,1) string = "unknown" % TODOpax remove this here. NodeData should be able to tell me what type it is.
             end
-            
-            if ~isempty(nodeData)
-                type = string(class(nodeData)).extractAfter("QSP.");
-            else
-                type = "unknown";
-                return; %TODOpax
-            end
 
-            pane = obj.paneContainer.(type);
-            if isempty(pane)
-                obj.paneContainer.(type) = obj.constructPane(nodeData, type);
-            else
-                obj.paneContainer.(type).("attachNew"+type)(nodeData);                
-            end            
+            if ~isempty(nodeData)
+                if isfield(nodeData, "Type")
+                    type = nodeData.Type;
+                else
+                    type = string(class(nodeData)).extractAfter("QSP.");
+                end
+
+                pane = obj.paneContainer.(type);
+                if isempty(pane)
+                    obj.paneContainer.(type) = obj.constructPane(nodeData, type);
+                else
+                    obj.paneContainer.(type).("attachNew"+type)(nodeData);
+                end
+            end
         end
 
         function activePane = constructPane(obj, nodeData, type)
@@ -56,19 +66,22 @@ classdef PaneManager < handle
             
             constructFcn = eval("@QSPViewerNew.Application." + type + "Pane");            
 
-            if isempty(nodeData)
-                % Must be a summary node
-                activePane = QSPViewerNew.Application.FunctionalitySummaryPane(Parent=obj.parent, parentApp=obj.parentApp);
-                if ~isempty(selectedNode.Children)
-                    activePane.attachNewNodeData([selectedNode.Children.NodeData]);
-                end
-            else                
-                activePane = feval(constructFcn, "Parent", obj.parent, "parentApp", obj.parentApp);
-                activePane.("attachNew"+type)(nodeData);
-            end
+            activePane = feval(constructFcn, "Parent", obj.parent, "parentApp", obj.parentApp);
+            activePane.("attachNew"+type)(nodeData); %todopax, this should just be a call to update method of the pane. No need for custom names.
+
+            addlistener(activePane, "Alert", @(h,e)obj.onAlert(h,e));
 
             obj.activePane = activePane;
             activePane.showThisPane();
-        end        
+        end
+       
+        function onRun(obj, h, e)                        
+            disp('running');
+            obj.activePane.runModel();
+        end
+
+        function onAlert(obj, hSource, eventData)
+            notify(obj, "Alert", eventData);
+        end
     end
 end
