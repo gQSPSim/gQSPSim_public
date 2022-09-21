@@ -67,7 +67,7 @@ if StatusOk
     
     % convert rules and reactions
     
-    Session.validateRulesAndReactions();
+    %Session.validateRulesAndReactions();
     
     
     % Add the session to the app
