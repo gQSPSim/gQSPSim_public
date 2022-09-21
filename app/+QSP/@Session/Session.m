@@ -918,8 +918,10 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
                 value = name;
             end
         end
-            
+         
+        % TODOpax why do we need this
         function addUDF(obj)
+            if false %TODOpax
             % add the UDF to the path
             p = path;
             if isempty(obj.RelativeUserDefinedFunctionsPath)
@@ -934,6 +936,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
                     addpath(genpath(UDF))
                 end
             end    
+            end
         end
         
         function removeUDF(obj)
