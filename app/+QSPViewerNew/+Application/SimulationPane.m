@@ -868,9 +868,10 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
         end
 
         function runModel(obj)
-            [StatusOK,Message,~] = run(obj.Simulation);
+            [StatusOK, Message, ~] = run(obj.Simulation);
+
             if ~StatusOK
-                uialert(obj.getUIFigure,Message,'Run Failed');
+                notify(obj, "Alert", QSPViewerNew.Application.AlertEventData(Message));
             end
         end
 
