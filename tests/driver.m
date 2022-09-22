@@ -17,7 +17,7 @@ disp('NOTE: Only running simple tests.')
 try
     %results = runtests('tgQSPSim', 'ProcedureName', 'tSimulations');
     %results = runtests('tTMDD');
-    results = runtests('tsimple');
+    results = runtests('tsimple', 'strict', false);
 catch e
     results.Failed = true;
     genericError = e.message;
