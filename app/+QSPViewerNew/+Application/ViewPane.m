@@ -1335,9 +1335,15 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
                 case 'Summary'
                     obj.SummaryPanel.Visible = 'on';
                     obj.EditPanel.Visible = 'off';
+                    obj.VisualizationPanel.Visible = 'off';
                 case 'Edit'
                     obj.EditPanel.Visible = 'on';
-                    obj.SummaryPanel.Visible = 'on';
+                    obj.SummaryPanel.Visible = 'off';
+                    obj.VisualizationPanel.Visible = 'off';
+                case 'Visualization'
+                    obj.VisualizationPanel.Visible = 'on';
+                    obj.EditPanel.Visible = 'off';
+                    obj.SummaryPanel.Visible = 'off';
             end            
         end
         
