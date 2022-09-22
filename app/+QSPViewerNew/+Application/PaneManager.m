@@ -32,6 +32,9 @@ classdef PaneManager < handle
 
             obj.paneToolbar = QSPViewerNew.Application.PaneToolbar(obj.parent); % Don't like that panetoolbar decides where to put itself. Fix this by standardizing to passing in the row, column.
             addlistener(obj.paneToolbar, "Run", @(h,e)obj.onRun(h,e));
+            addlistener(obj.paneToolbar, "Edit", @(h,e)obj.onEdit(h,e));
+            addlistener(obj.paneToolbar, "Summary", @(h,e)obj.onSummary(h,e));
+            addlistener(obj.paneToolbar, "Visualize", @(h,e)obj.onVisualize(h,e));
         end
 
         function openPane(obj, nodeData, type)
@@ -74,10 +77,22 @@ classdef PaneManager < handle
             obj.activePane = activePane;
             activePane.showThisPane();
         end
-       
+               
         function onRun(obj, h, e)                        
             disp('running');
             obj.activePane.runModel();
+        end
+
+        function onSummary(obj, h, e)
+            obj.activePane.show('Summary');
+        end
+
+        function onEdit(obj, h, e)
+            obj.activePane.show('Edit');            
+        end
+
+        function onVisualize(obj, h, e)
+            obj.activePane.show('Visualization');
         end
 
         function onAlert(obj, hSource, eventData)
