@@ -7,6 +7,7 @@ classdef tsimple < matlab.unittest.TestCase
     methods(TestClassSetup)
         function setup(testCase)
             testCase.testRootDirectory = fileparts(mfilename('fullpath'));
+            registerUnits;
         end
     end
     
