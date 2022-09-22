@@ -21,13 +21,23 @@ classdef PaneToolbar < handle
     end
 
     events
+        Summary
+        Edit
         Run
+        Parallel
+        Git
+        Visualize
+        Settings
+        ZoomIn
+        ZoomOut
+        Pan
+        Explore
     end
 
     methods
         function obj = PaneToolbar(parent)
             arguments
-                parent
+                parent matlab.ui.container.GridLayout
             end
 
             obj.parent = parent;
@@ -98,8 +108,8 @@ classdef PaneToolbar < handle
 %             Figure.Pointer = 'watch';
 %             obj.Focus = keyword;
 %             obj.refocus;
-%             Figure.Pointer = 'arrow';
-            disp('onNavigation called');
+%             Figure.Pointer = 'arrow';            
+            disp("onNavigation called: " + name);
             notify(obj, name, event);
         end
     end
