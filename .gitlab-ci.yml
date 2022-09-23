@@ -4,19 +4,19 @@ variables:
 stages:
     - test
 
-# R2018a Test:
-#     stage: test
-#     tags:
-#         - maci64
-#     script:
-#         - ./tests/gQSPSimTesterScript.sh /Applications/MATLAB_R2018a.app
+R2018a Test:
+    stage: test
+    tags:
+        - maci64
+    script:
+        - ./tests/gQSPSimTesterScript2.sh BR2018ad
 
-# R2018b Test:
-#     stage: test
-#     tags:
-#         - maci64
-#     script:
-#         - ./tests/gQSPSimTesterScript.sh /Applications/MATLAB_R2018b.app
+R2018b Test:
+    stage: test
+    tags:
+        - maci64
+    script:
+        - ./tests/gQSPSimTesterScript2.sh BR2018bd
 
 R2019a Test:
     stage: test
@@ -39,4 +39,23 @@ R2020a Test:
     script:
         - ./tests/gQSPSimTesterScript2.sh BR2020ad
 
+R2020b Test:
+    stage: test
+    tags:
+        - maci64
+    script:
+        - ./tests/gQSPSimTesterScript2.sh BR2020bd
 
+R2021a Test:
+    stage: test
+    tags:
+        - maci64
+    script:
+        - ./tests/gQSPSimTesterScript2.sh BR2021ad
+
+R2021b Test:
+    stage: test
+    tags:
+        - maci64
+    script:
+        - ./tests/gQSPSimTesterScript2.sh BR2021bd        
