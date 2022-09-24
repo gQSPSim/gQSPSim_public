@@ -873,6 +873,10 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
             if ~StatusOK
                 notify(obj, "Alert", QSPViewerNew.Application.AlertEventData(Message));
             end
+
+            % todopax this seems unnecessary.
+            obj.deleteTemporary(); % this will delete the temporary and copy the simulation (the one run above) and copy it into the temporary.
+            obj.draw(); % todopax need to figure out who does the run/draw. Maybe better in ViewPane.
         end
 
         function drawVisualization(obj)
@@ -955,6 +959,8 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
 
                 %We now need to notify the application
                 obj.notifyOfChange(obj.TemporarySimulation.Session);
+
+%                 notify(obj, "StateChange", QSPViewerNew.Application.ChangeData(obj.TemporarySimulation));
 
             else
                 uialert(obj.getUIFigure,sprintf('Cannot save changes. Please review invalid entries:\n\n%s',Message),'Cannot Save');
@@ -1569,6 +1575,8 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
             end
         end
 
+        % todopax will need review. Why do we want the Pane to deal with
+        % the tree?
         function selectedTaskNode = getSelectionNode(obj, type)
             % get session node for this object
             currentNode = obj.TemporarySimulation.TreeNode;
