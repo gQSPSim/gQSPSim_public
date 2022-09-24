@@ -30,18 +30,19 @@ classdef PaneManager < handle
             obj.parent = parent;
             obj.parentApp = parentApp;
 
-            obj.paneToolbar = QSPViewerNew.Application.PaneToolbar(obj.parent); % Don't like that panetoolbar decides where to put itself. Fix this by standardizing to passing in the row, column.
+            % Don't like that panetoolbar decides where to put itself. Fix this by standardizing to passing in the row, column.
+            obj.paneToolbar = QSPViewerNew.Application.PaneToolbar(obj.parent); 
+            
             addlistener(obj.paneToolbar, "Run", @(h,e)obj.onRun(h,e));
             addlistener(obj.paneToolbar, "Edit", @(h,e)obj.onEdit(h,e));
             addlistener(obj.paneToolbar, "Summary", @(h,e)obj.onSummary(h,e));
             addlistener(obj.paneToolbar, "Visualize", @(h,e)obj.onVisualize(h,e));
         end
 
-        function openPane(obj, nodeData, type)
+        function openPane(obj, nodeData)
             arguments
                 obj (1,1) QSPViewerNew.Application.PaneManager
                 nodeData
-                type (1,1) string = "unknown" % TODOpax remove this here. NodeData should be able to tell me what type it is.
             end
 
             if ~isempty(nodeData)
@@ -50,52 +51,58 @@ classdef PaneManager < handle
                 else
                     type = string(class(nodeData)).extractAfter("QSP.");
                 end
-
+                
                 pane = obj.paneContainer.(type);
+
                 if isempty(pane)
-                    obj.paneContainer.(type) = obj.constructPane(nodeData, type);
-                else
-                    obj.paneContainer.(type).("attachNew"+type)(nodeData);
+                    obj.paneContainer.(type) = obj.constructPane(type);
+                    pane = obj.paneContainer.(type);
                 end
+
+                pane.("attachNew"+type)(nodeData);
+
+                % Configure the Toolbar given the active pane.
+                obj.paneToolbar.mode = pane.toolbarMode;
+
+                % todopax, we can optimize this if we can get a type
+                % off the activePane, that is not available right now.
+
+                if ~isempty(obj.activePane)
+                    obj.activePane.hideThisPane();
+                end
+                pane.showThisPane();
+                obj.activePane = pane;
             end
         end
 
-        function activePane = constructPane(obj, nodeData, type)
+        function newPane = constructPane(obj, type)
             arguments
-                obj
-                nodeData
+                obj                
                 type
-            end
-            
+            end    
+
             constructFcn = eval("@QSPViewerNew.Application." + type + "Pane");            
-
-            activePane = feval(constructFcn, "Parent", obj.parent, "parentApp", obj.parentApp);
-            activePane.("attachNew"+type)(nodeData); %todopax, this should just be a call to update method of the pane. No need for custom names.
-
-            addlistener(activePane, "Alert", @(h,e)obj.onAlert(h,e));
-
-            obj.activePane = activePane;
-            activePane.showThisPane();
+            newPane = feval(constructFcn, "Parent", obj.parent, "parentApp", obj.parentApp);            
+            addlistener(newPane, "Alert", @(h,e)obj.onAlert(h,e));            
         end
                
-        function onRun(obj, h, e)                        
-            disp('running');
+        function onRun(obj, ~, ~)                                    
             obj.activePane.runModel();
         end
 
-        function onSummary(obj, h, e)
+        function onSummary(obj, ~, ~)
             obj.activePane.show('Summary');
         end
 
-        function onEdit(obj, h, e)
+        function onEdit(obj, ~, ~)
             obj.activePane.show('Edit');            
         end
 
-        function onVisualize(obj, h, e)
-            obj.activePane.show('Visualization');
+        function onVisualize(obj, ~, ~)
+            obj.activePane.show('Visualize');
         end
 
-        function onAlert(obj, hSource, eventData)
+        function onAlert(obj, ~, eventData)
             notify(obj, "Alert", eventData);
         end
     end
