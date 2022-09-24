@@ -12,6 +12,10 @@ classdef FunctionalitySummaryPane < matlab.mixin.Heterogeneous & handle
     %  6/24/21
     % ---------------------------------------------------------------------
     
+    events
+        Alert
+    end
+
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Properties
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -21,6 +25,7 @@ classdef FunctionalitySummaryPane < matlab.mixin.Heterogeneous & handle
         LayoutRow
         LayoutColumn
         ParentApp
+        toolbarMode (1,1) QSPViewerNew.Application.ToolbarMode = QSPViewerNew.Application.ToolbarMode.None;
     end
     
     properties(Access = private)
@@ -37,7 +42,7 @@ classdef FunctionalitySummaryPane < matlab.mixin.Heterogeneous & handle
         function obj = FunctionalitySummaryPane(pvargs)
             arguments
                 pvargs.Parent (1,1) matlab.ui.container.GridLayout
-                pvargs.layoutrow (1,1) double = 1
+                pvargs.layoutrow (1,1) double = 2 %todopax come review this setup.
                 pvargs.layoutcolumn (1,1) double = 1
                 pvargs.parentApp
                 pvargs.HasVisualization(1,1) logical = false
