@@ -12,6 +12,15 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
 
     events
         Alert
+        ChangeState
+    end
+
+    properties(Access = public)        
+        HasVisualization (1,1) logical
+    end
+
+    properties(Dependent)
+        toolbarMode (1,1) QSPViewerNew.Application.ToolbarMode
     end
 
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -23,9 +32,7 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
         CurrentPane
         LayoutColumn
         LayoutRow
-        ParentApp
-        Focus = '';
-        HasVisualization (1,1) logical
+        ParentApp          
         PlotSettings = QSP.PlotSettings.empty(1,0)
     end
     
@@ -163,10 +170,7 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
             obj.OuterGrid.Visible = 'off';
             
             %Mark as constructed
-            obj.IsConstructed = true;
-            
-            %Set the focus to the summary screen
-            obj.Focus = 'Summary';
+            obj.IsConstructed = true;            
         end
         
         function delete(~)
@@ -178,6 +182,14 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
             end
         end
         
+        % Pane and pane mode control the toolbar that they want.
+        function toolbarMode = get.toolbarMode(obj)
+            if obj.HasVisualization
+                toolbarMode = QSPViewerNew.Application.ToolbarMode.Maximal;
+            else
+                toolbarMode = QSPViewerNew.Application.ToolbarMode.Minimal;
+            end
+        end
     end
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -614,15 +626,6 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
     % Callbacks
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     methods(Access = private)
-        
-        function onNavigation(obj,keyword)
-            Figure = ancestor(obj.OuterGrid,'figure');
-            Figure.Pointer = 'watch';
-            obj.Focus = keyword;
-            obj.refocus;
-            Figure.Pointer = 'arrow';
-        end
-        
         function onRemoveInvalid(obj)
             obj.checkForInvalid();
         end
@@ -634,8 +637,7 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
         function onSave(obj)
             SuccesfulSave = obj.saveBackEndInformation();
             if SuccesfulSave
-                obj.Focus = 'Summary';
-                obj.refocus();
+               obj.refocus('Summary');
             end
         end
         
@@ -652,8 +654,7 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
            
            %Determine next steps based on their response
             switch selection
-                case 'Save'   
-                   
+                case 'Save'                      
                     %Save as normal
                     obj.onSave();
                     obj.deleteTemporary();
@@ -662,10 +663,8 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
                     %Delete any temporaryCopies
                     obj.deleteTemporary();
                     %Just return to the main screen.
-                    obj.Focus = 'Summary';
-                    obj.refocus;
-                case 'Cancel'
-                    
+                    obj.refocus('Summary');
+                case 'Cancel'                    
                     %Do nothing
             end
         end
@@ -834,9 +833,12 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     methods(Access = private)
         
-        function refocus(obj)
-            %Determine which panel should be in focus
-            switch obj.Focus
+        function refocus(obj, mode)
+            arguments
+                obj
+                mode (1,1) string = "Summary"
+            end
+            switch mode
                 
                 %If the window should be the summary
                 case 'Summary'
@@ -1075,8 +1077,7 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
         function showPane(obj)
             %show this pane. Whenever a pane is shown, start with the
             %summary
-            obj.Focus = 'Summary';
-            obj.refocus;
+            obj.refocus('Summary');
             
             if obj.HasVisualization
                 obj.ParentApp.addWindowDownCallback(obj.VisualizationGrid.getButtonDownCallback());
@@ -1331,20 +1332,25 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
             
             obj.OuterGrid.Visible = 'on';
             
-            switch mode
-                case 'Summary'
-                    obj.SummaryPanel.Visible = 'on';
-                    obj.EditPanel.Visible = 'off';
-                    obj.VisualizationPanel.Visible = 'off';
-                case 'Edit'
-                    obj.EditPanel.Visible = 'on';
-                    obj.SummaryPanel.Visible = 'off';
-                    obj.VisualizationPanel.Visible = 'off';
-                case 'Visualization'
-                    obj.VisualizationPanel.Visible = 'on';
-                    obj.EditPanel.Visible = 'off';
-                    obj.SummaryPanel.Visible = 'off';
-            end            
+            %todopax this switch means that we have the wrong polarity on
+            %the subclassing. The derived class is calling super (not the
+            %right way BTW) to get the show to happen.
+            % switch mode
+            %     case 'Summary'                    
+            %         obj.SummaryPanel.Visible = 'on';
+            %         obj.EditPanel.Visible = 'off';
+            %         obj.VisualizationPanel.Visible = 'off';
+            %     case 'Edit'
+            %         obj.EditPanel.Visible = 'on';
+            %         obj.SummaryPanel.Visible = 'off';
+            %         obj.VisualizationPanel.Visible = 'off';
+            %     case 'Visualization'
+            %         obj.VisualizationPanel.Visible = 'on';
+            %         obj.EditPanel.Visible = 'off';
+            %         obj.SummaryPanel.Visible = 'off';
+            %         obj.drawVisualization();
+            % end 
+            obj.refocus(mode);
         end
         
         function hide(obj)
@@ -1401,7 +1407,7 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
         
     end
     
-    methods(Access = public)
+    methods(Access = public)       
         
         function printAxesHelper(obj,hAxes,SaveFilePath,PlotSettings)
             
