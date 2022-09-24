@@ -44,6 +44,7 @@ classdef OuterShell_UIFigureBased < handle
     events
         ReadyState
         TreeSelectionChange
+        SessionChange
     end
 
     methods
@@ -194,6 +195,7 @@ classdef OuterShell_UIFigureBased < handle
             currentPoint = src.CurrentPoint;
             xFraction = 100*currentPoint(1)./src.Position(3);
             obj.FlexGridLayout.ColumnWidth = {sprintf('%dx', xFraction), 5, sprintf('%dx',100-xFraction)};
+            drawnow limitrate
         end
 
         function onTreeSelectionChange(obj, hSource, eventData)
