@@ -4,9 +4,6 @@ classdef PaneToolbar < handle
         parent
         buttonsLayout
         
-        minimalModeButtons
-        maximalModeButtons
-        
         summaryButton
         editButton
         runButton
@@ -18,6 +15,13 @@ classdef PaneToolbar < handle
         zoomOutButton
         panButton
         exploreButton
+
+        minimalModeButtons
+        maximalModeButtons
+    end
+
+    properties(Dependent)
+        mode (1,1) QSPViewerNew.Application.ToolbarMode
     end
 
     events
@@ -93,22 +97,26 @@ classdef PaneToolbar < handle
             newButton.Visible = true;            
         end
 
-        function setMinimalMode(obj)
-            set(obj.minimalModeButtons, 'Visible', 'on');
-            set(obj.maximalModeButtons, 'Visible', 'off');
+        function set.mode(obj, mode)
+            arguments
+                obj
+                mode (1,1) QSPViewerNew.Application.ToolbarMode
+            end
 
-        end
-
-        function setMaximalMode(obj)
-            set([obj.minimalModeButtons, obj.maximalModeButtons], 'Visible', 'on');
+            switch mode
+                case QSPViewerNew.Application.ToolbarMode.None
+                    set([obj.minimalModeButtons, obj.maximalModeButtons], 'Visible', 'off');
+                case QSPViewerNew.Application.ToolbarMode.Minimal
+                    set(obj.minimalModeButtons, 'Visible', 'on');
+                    set(obj.maximalModeButtons, 'Visible', 'off');
+                case QSPViewerNew.Application.ToolbarMode.Maximal
+                    set([obj.minimalModeButtons, obj.maximalModeButtons], 'Visible', 'on');
+                case QSPViewerNew.Application.ToolbarMode.MaximalToolsDisabled
+                    % Todopax
+            end
         end
 
         function onNavigation(obj, name, source, event)
-%             Figure = ancestor(obj.OuterGrid,'figure');
-%             Figure.Pointer = 'watch';
-%             obj.Focus = keyword;
-%             obj.refocus;
-%             Figure.Pointer = 'arrow';            
             disp("onNavigation called: " + name);
             notify(obj, name, event);
         end
