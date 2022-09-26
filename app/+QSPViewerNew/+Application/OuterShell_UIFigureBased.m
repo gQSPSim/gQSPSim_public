@@ -33,18 +33,26 @@ classdef OuterShell_UIFigureBased < handle
         FlexGridLayout           matlab.ui.container.GridLayout %QSPViewerNew.Widgets.GridFlex
         SessionExplorerPanel     matlab.ui.container.Panel
         SessionExplorerGrid      matlab.ui.container.GridLayout
-        TreeRoot                 matlab.ui.container.Tree
+        TreeCtrl                 matlab.ui.container.Tree
         TreeMenu
         OpenRecentMenuArray
-        IsConstructed (1,1) logical = false
         paneGridLayout
         paneManager
+        iconList (1,1) struct
     end
 
     events
-        ReadyState
-        TreeSelectionChange
+        ReadyState        
         SessionChange
+
+        % Events for File Menu items
+        New, Open, OpenRecent, Close, Save, SaveAs, Exit
+
+        % Event for QSP Menu item
+        AddTreeNode
+
+        % Events for Tools Menu items
+        OpenModelManager, OpenPluginManager, OpenLogger
     end
 
     methods
@@ -54,60 +62,73 @@ classdef OuterShell_UIFigureBased < handle
                 app %todopax remove if possible.
             end
 
+            % initialize the list of icons and the mapping to the 
+            % buildingBlock and functionality list provided by the 
+            % controller. 
+            obj.initializeIconList(app.buildingBlockTypes(:,2), app.functionalityTypes(:,2));
+
             % Create the graphics objects
             obj.create(appname, app);
 
-            % Register the app with App Designer
-            obj.IsConstructed = true;
+            addlistener(obj.paneManager, "Alert", @(h,e)obj.onAlert(h,e));
+            addlistener(app, 'Model_NewItemAdded', @(h,e)obj.onNewTreeItemAdded(e));
         end
 
+        % Callback for NewSession event.
         function onNewSession(obj, ~, e)
-            obj.createSession(e.Session, e.ItemTypes);
+            obj.createSession(e.Session, e.buildingBlockTypes, e.functionalityTypes);
         end
 
-        function createSession(obj, session, itemTypes)
+        function createSession(obj, session, buildingBlockTypes, functionalityTypes)
             arguments
                 obj (1,1) QSPViewerNew.Application.OuterShell_UIFigureBased
                 session (1,1) QSP.Session
-                itemTypes cell
+                buildingBlockTypes cell
+                functionalityTypes cell
             end
 
-            assert(~isempty(obj.TreeRoot));
+            assert(~isempty(obj.TreeCtrl));
 
-            sessionNode = obj.createTreeNode(obj.TreeRoot, session, session.SessionName, 'folder_24.png', 'Session');
+            % Root Session node.
+            sessionNode = obj.createTreeNode(obj.TreeCtrl, session, session.SessionName, 'folder_24.png', 'Session');            
 
+            % Root Building Blocks node.
             buildingBlocksNode = obj.createTreeNode(sessionNode, [], 'Building Blocks', 'settings_24.png', 'Session');
 
-            % TODOpax fix this map..
-            iconFileName = ["flask2.png", "param_edit_24.png", "datatable_24.png", "target_stats.png", "acceptance_criteria.png", "stickman3.png"];
-
-            buildingBlockNodeNames     = string(itemTypes(1:6,1));
-            buildingBlockSettingsNames = string(itemTypes(1:6,2));
+            buildingBlockNodeNames     = string(buildingBlockTypes(:,1));
+            buildingBlockSettingsNames = string(buildingBlockTypes(:,2));
 
             for i = 1:numel(buildingBlockNodeNames)
-                baseNode = obj.createTreeNode(buildingBlocksNode, [], buildingBlockNodeNames(i), iconFileName(i), buildingBlockNodeNames(i));
+                baseNode = obj.createTreeNode(buildingBlocksNode, [], buildingBlockNodeNames(i), obj.iconList.(buildingBlockSettingsNames(i)), buildingBlockNodeNames(i));
+                baseNode.Tag = buildingBlockSettingsNames(i); % Tag the base node of each buildingBlock.
                 nodes = session.Settings.(buildingBlockSettingsNames(i));
 
                 for j = 1:numel(nodes)
-                    obj.createTreeNode(baseNode, nodes(j), nodes(j).Name, iconFileName(i), buildingBlockNodeNames(i));
+                    obj.createTreeNode(baseNode, nodes(j), nodes(j).Name, obj.iconList.(buildingBlockSettingsNames(i)), buildingBlockNodeNames(i));
                 end
             end
 
             functionalityNode  = obj.createTreeNode(sessionNode, [], 'Functionalities', 'settings_24.png', 'Session');
 
-            functionalityBlockNodeNames = string(itemTypes(7:end,2));
-            iconFileNames = ["simbio_24.png", "optim_24.png", "stickman-3.png", "stickman-3-color.png", "sensitivity.png"];
+            functionalityBlockNodeNames = string(functionalityTypes(:,2));
 
             for i = 1:numel(functionalityBlockNodeNames)
                 dummyNodeData.Type = "FunctionalitySummary";
-                baseNode = obj.createTreeNode(functionalityNode, dummyNodeData, functionalityBlockNodeNames(i), iconFileNames(i), functionalityBlockNodeNames(i));
+                baseNode = obj.createTreeNode(functionalityNode, dummyNodeData, functionalityBlockNodeNames(i), obj.iconList.(functionalityBlockNodeNames(i)), functionalityBlockNodeNames(i));
+                baseNode.Tag = functionalityBlockNodeNames(i);
                 nodes = session.(functionalityBlockNodeNames(i));
                 for j = 1:numel(nodes)
-                    obj.createTreeNode(baseNode, nodes(j), nodes(j).Name, iconFileNames(i), functionalityBlockNodeNames(i));
+                    obj.createTreeNode(baseNode, nodes(j), nodes(j).Name, obj.iconList.(functionalityBlockNodeNames(i)), functionalityBlockNodeNames(i));
                 end
             end
 
             obj.createTreeNode(sessionNode, [], 'Deleted Items', 'trash_24.png', 'Session');
+
+            % Default state of the tree is to expand the Session and the
+            % buildingBlocks.
+            drawnow            
+            sessionNode.expand;
+            buildingBlocksNode.expand;
         end
     end
 
@@ -116,12 +137,9 @@ classdef OuterShell_UIFigureBased < handle
             obj.UIFigure = uifigure('Visible', 'off');
             obj.UIFigure.Position = [100 100 1005 864];
             obj.UIFigure.Name = appName;
-            %             obj.UIFigure.WindowButtonUpFcn = @(h,e) obj.executeCallbackArray(obj.WindowButtonUpCallbacks,h,e);
-            %             obj.UIFigure.WindowButtonDownFcn = @(h,e)
-            %             obj.executeCallbackArray(obj.WindowButtonDownCallbacks,h,e);%             TODOpax
             obj.UIFigure.CloseRequestFcn = @obj.onExit;
 
-            constructMenuItems(obj);
+            constructMenuItems(obj, app.ItemTypes);
 
             obj.FlexGridLayout = uigridlayout(obj.UIFigure);
             gOuter = obj.FlexGridLayout;
@@ -152,12 +170,11 @@ classdef OuterShell_UIFigureBased < handle
             pCenter.BackgroundColor = [1 1 1]*.85;
             pCenter.Tag = 'divider';
 
-            t = uitree(gLeft);
-            t.Layout.Row = 2;
-            t.Layout.Column = 1;
-            obj.TreeRoot = t;
-            obj.TreeRoot.Multiselect = 'on';
-            obj.TreeRoot.SelectionChangedFcn = @obj.onTreeSelectionChange;
+            obj.TreeCtrl = uitree(gLeft);
+            obj.TreeCtrl.Layout.Row = 2;
+            obj.TreeCtrl.Layout.Column = 1;
+            obj.TreeCtrl.Multiselect = 'on';
+            obj.TreeCtrl.SelectionChangedFcn = @obj.onTreeSelectionChange;
 
             pRight = uipanel(gOuter);
             pRight.Layout.Row = 1;
@@ -172,10 +189,31 @@ classdef OuterShell_UIFigureBased < handle
             obj.UIFigure.WindowButtonDownFcn = @obj.onWindowButtonDown;
             obj.UIFigure.WindowButtonUpFcn   = @obj.onWindowButtonUp;
 
-            % Show the figure after all components are created
+            % Make the UI visible.
             obj.UIFigure.Visible = 'on';
+        end
 
-            addlistener(obj.paneManager, "Alert", @(h,e)obj.onAlert(h,e));
+        function initializeIconList(obj, buildingBlockTypes, functionalityTypes)
+            arguments
+                obj
+                buildingBlockTypes (:,1) string
+                functionalityTypes (:,1) string
+            end
+
+            % Create a map from itemType to iconfile.
+            % Make a mapping from icon filenames to the item names. Note
+            % that if a change is made to the list of items (buildingblocks
+            % and functionalities) a corresponding icon will be needed.
+            % Also this initialization assumes the order of that list.
+            buildingBlockIcons = ["flask2.png", "param_edit_24.png", "datatable_24.png", "target_stats.png", "acceptance_criteria.png", "stickman3.png"];
+            functionalityIcons = ["simbio_24.png", "optim_24.png", "stickman-3.png", "stickman-3-color.png", "sensitivity.png"];
+            for i = 1:numel(buildingBlockTypes)
+                obj.iconList.(buildingBlockTypes(i)) = buildingBlockIcons(i);
+            end
+
+            for i = 1:numel(functionalityTypes)
+                obj.iconList.(functionalityTypes(i)) = functionalityIcons(i);
+            end
         end
 
         function onWindowButtonUp(~, src, ~)
@@ -198,7 +236,7 @@ classdef OuterShell_UIFigureBased < handle
             drawnow limitrate
         end
 
-        function onTreeSelectionChange(obj, hSource, eventData)
+        function onTreeSelectionChange(obj, ~, eventData)
             %TODOpax app.UIFigure.Pointer = 'watch'; This action should be fast
             %enough that we don't need the pointer to change.
             %app.container.Busy =0 this brings up the busy.
@@ -208,14 +246,14 @@ classdef OuterShell_UIFigureBased < handle
             %First we determine the session that is selected
             %We can select mutliple nodes at once. Therefore we need to consider if SelectedNodes is a vector
             SelectedNodes = eventData.SelectedNodes;
-            %             Root = handle.TreeRoot;
+            %             Ctrl = handle.TreeCtrl;
 
             %We only make changes if a single node is selected
             if numel(SelectedNodes) == 1
                 % %                 ThisSessionNode = SelectedNodes;
                 % %
                 % %                 %Find which session is the parent of the current one
-                % %                 while ~isempty(ThisSessionNode) && ThisSessionNode.Parent~=Root
+                % %                 while ~isempty(ThisSessionNode) && ThisSessionNode.Parent~=Ctrl
                 % %                     ThisSessionNode = ThisSessionNode.Parent;
                 % %                 end
 
@@ -237,12 +275,13 @@ classdef OuterShell_UIFigureBased < handle
                 % change.
                 %app.refresh();
 
-
                 % Determine if a Summary treenode has been selected.
                 if isfield(SelectedNodes.NodeData, "Type")
                     nodeData = SelectedNodes.NodeData;
-                    nodeData.ChildNodeData = [SelectedNodes.Children.NodeData];
-                    obj.paneManager.openPane(nodeData);
+                    if ~isempty(SelectedNodes.Children)
+                        nodeData.ChildNodeData = [SelectedNodes.Children.NodeData];
+                        obj.paneManager.openPane(nodeData);
+                    end
                 else
                     obj.paneManager.openPane(SelectedNodes.NodeData);
                 end
@@ -252,6 +291,15 @@ classdef OuterShell_UIFigureBased < handle
                 %app.UIFigure.Pointer = 'arrow'; TODOpax no longer this
                 %way.
             end
+        end
+
+        function onNewTreeItemAdded(obj, eventData)
+            parent = findobj(obj.TreeCtrl, 'Tag', eventData.itemType);
+            assert(numel(parent) == 1);
+            obj.createTreeNode(parent, eventData.newItem, eventData.newItem.Name, obj.iconList.(eventData.itemType), eventData.itemType);
+
+            % By default expand nodes added.
+            parent.expand;
         end
 
         function treeNode = createTreeNode(~, Parent, Data, Name, Icon, PaneType)
@@ -279,58 +327,72 @@ classdef OuterShell_UIFigureBased < handle
 
         end
 
-        function onAbout(app,~,~)
+        function onAbout(obj, ~, ~)
+            % TODOpax need a way to get the version number.
             Message = {'gQSPsim version 1.0', ...
                 '', ...
-                'http://www.github.com/feigelman/gQSPsim', ...
+                'http://www.github.com/gQSPsim/gQSPsim', ...
                 '', ...
                 'Authors:', ...
                 '', ...
                 'Justin Feigelman (feigelman.justin@gene.com)', ...
                 'Iraj Hosseini (hosseini.iraj@gene.com)', ...
                 'Anita Gajjala (agajjala@mathworks.com)'};
-            uialert(app.UIFigure,Message,'About','Icon','');
+            uialert(obj.UIFigure,Message,'About','Icon','');
         end
 
-        function onAlert(obj, hSource, eventData)
+        function onAlert(obj, ~, eventData)
             uialert(obj.UIFigure, eventData.message, 'Run Failed'); %todopax add this last arg to the eventData
         end
 
-        function constructMenuItems(obj)
+        function onMenuNotify(obj, type)
+            disp(type)
+            notify(obj, type);
+        end
+
+        function onMenuNotifyAdd(obj, type)            
+            ed = QSPViewerNew.Application.NewItemEventData(obj.getCurrentSession(), type);
+            notify(obj, 'AddTreeNode', ed);
+        end
+
+        function constructMenuItems(obj, itemTypes)
+            arguments
+                obj
+                itemTypes cell
+            end
+
             obj.FileMenu                        = obj.createMenuItem(obj.UIFigure, "File");
-            obj.NewCtrlNMenu                    = obj.createMenuItem(obj.FileMenu, "New...", @obj.onNew, "N");
-            obj.OpenCtrl0Menu                   = obj.createMenuItem(obj.FileMenu, "Open...", @obj.onOpen, "O");
-            obj.OpenRecentMenu                  = obj.createMenuItem(obj.FileMenu, "Open Recent");
-            obj.CloseMenu                       = obj.createMenuItem(obj.FileMenu, "Close", @(h,e)obj.onClose([]), "", "on");
-            obj.SaveCtrlSMenu                   = obj.createMenuItem(obj.FileMenu, "Save", @(h,e)obj.onSave([]), "S", "on");
-            obj.SaveAsMenu                      = obj.createMenuItem(obj.FileMenu, "Save As...", @(h,e)obj.onSaveAs([]));
-            obj.ExitCtrlQMenu                   = obj.createMenuItem(obj.FileMenu, "Exit", @obj.onExit, "Q", "on");
-            obj.QSPMenu                         = obj.createMenuItem(obj.UIFigure, "QSP");
-            obj.AddNewItemMenu                  = obj.createMenuItem(obj.QSPMenu, "Add New Item");
-            obj.DatasetMenu                     = obj.createMenuItem(obj.AddNewItemMenu, "Dataset", @(h,e)obj.onAddItem([], 'OptimizationData'));
-            obj.ParameterMenu                   = obj.createMenuItem(obj.AddNewItemMenu, "Parameter", @(h,e)obj.onAddItem([], 'Parameters'));
-            obj.TaskMenu                        = obj.createMenuItem(obj.AddNewItemMenu, "Task", @(h,e)obj.onAddItem([], 'Task'));
-            obj.VirtualSubjectsMenu             = obj.createMenuItem(obj.AddNewItemMenu, "Virtual Subject(s)", @(h,e)obj.onAddItem([], 'VirtualPopulation'));
-            obj.AcceptanceCriteriaMenu          = obj.createMenuItem(obj.AddNewItemMenu, "Acceptance Criteria", @(h,e)obj.onAddItem([], 'VirtualPopulationData'));
-            obj.TargetStatisticsMenu            = obj.createMenuItem(obj.AddNewItemMenu, "Target Statistics", @(h,e)obj.onAddItem([], 'VirtualPopulationGenerationData'));
-            obj.SimulationMenu                  = obj.createMenuItem(obj.AddNewItemMenu, "Simulation", @(h,e)obj.onAddItem([], 'Simulation'));
-            obj.OptimizationMenu                = obj.createMenuItem(obj.AddNewItemMenu, "Optimization", @(h,e)obj.onAddItem([], 'Optimization'));
-            obj.CohortGenerationMenu            = obj.createMenuItem(obj.AddNewItemMenu, "Cohort Generation", @(h,e)obj.onAddItem([], 'CohortGeneration'));
-            obj.VirtualPopulationGenerationMenu = obj.createMenuItem(obj.AddNewItemMenu, "Virtual Population Generation", @(h,e)obj.onAddItem([], 'VirtualPopulationGeneration'));
-            obj.GlobalSensitivityAnalysisMenu   = obj.createMenuItem(obj.AddNewItemMenu, "Global Sensitivity Analysis", @(h,e)obj.onAddItem([], 'GlobalSensitivityAnalysis'));
-            obj.DeleteSelectedItemMenu          = obj.createMenuItem(obj.QSPMenu, "Delete Selected Item", @(h,e)obj.onDeleteSelectedItem([], []));
-            obj.RestoreSelectedItemMenu         = obj.createMenuItem(obj.QSPMenu, "Restore Selected Item", @(h,e)obj.onRestoreSelectedItem([], []));
+            obj.NewCtrlNMenu                    = obj.createMenuItem(obj.FileMenu,   "New...",      @(h,e)obj.onMenuNotify("New"),       "N");
+            obj.OpenCtrl0Menu                   = obj.createMenuItem(obj.FileMenu,   "Open...",     @(h,e)obj.onMenuNotify("Open"),      "O");
+            obj.OpenRecentMenu                  = obj.createMenuItem(obj.FileMenu,   "Open Recent", @(h,e)obj.onMenuNotify("OpenRecent"));
+            obj.CloseMenu                       = obj.createMenuItem(obj.FileMenu,   "Close",       @(h,e)obj.onMenuNotify("Close"),     "",  "on");
+            obj.SaveCtrlSMenu                   = obj.createMenuItem(obj.FileMenu,   "Save",        @(h,e)obj.onMenuNotify("Save"),      "S", "on");
+            obj.SaveAsMenu                      = obj.createMenuItem(obj.FileMenu,   "Save As...",  @(h,e)obj.onMenuNotify("SaveAs"));
+            obj.ExitCtrlQMenu                   = obj.createMenuItem(obj.FileMenu,   "Exit",        @(h,e)obj.onMenuNotify("Exit"),      "Q", "on");
+
+            obj.QSPMenu                         = obj.createMenuItem(obj.UIFigure,    "QSP");
+            obj.AddNewItemMenu                  = obj.createMenuItem(obj.QSPMenu,      "Add New Item");
+            
+            for i = 1:size(itemTypes,1)
+                type = itemTypes{i,2};
+                obj.createMenuItem(obj.AddNewItemMenu, itemTypes{i,1}, @(h,e)obj.onMenuNotifyAdd(type));
+            end
+
+            obj.DeleteSelectedItemMenu          = obj.createMenuItem(obj.QSPMenu,      "Delete Selected Item",            @(h,e)obj.onDeleteSelectedItem([], []));
+            obj.RestoreSelectedItemMenu         = obj.createMenuItem(obj.QSPMenu,      "Restore Selected Item",           @(h,e)obj.onRestoreSelectedItem([], []));
+
             obj.ToolsMenu                       = obj.createMenuItem(obj.UIFigure, "Tools");
-            obj.ModelManagerMenu                = obj.createMenuItem(obj.ToolsMenu, "Model Manager", @(h,e)obj.onOpenModelManager);
-            obj.PluginsMenu                     = obj.createMenuItem(obj.ToolsMenu, "Plugin Manager", @(h,e)obj.onOpenPluginManager);
-            obj.LoggerMenu                      = obj.createMenuItem(obj.ToolsMenu, "Logger", @(h,e)obj.onOpenLogger);
+            obj.ModelManagerMenu                = obj.createMenuItem(obj.ToolsMenu, "Model Manager",  @(h,e)obj.onMenuNotify("OpenModelManager"));
+            obj.PluginsMenu                     = obj.createMenuItem(obj.ToolsMenu, "Plugin Manager", @(h,e)obj.onMenuNotify("OpenPluginManager"));
+            obj.LoggerMenu                      = obj.createMenuItem(obj.ToolsMenu, "Logger",         @(h,e)obj.onMenuNotify("OpenLogger"));
+
             obj.HelpMenu                        = obj.createMenuItem(obj.UIFigure, "Help");
             obj.AboutMenu                       = obj.createMenuItem(obj.HelpMenu, "About", @(h,e)obj.onAbout);
         end
 
-        function menuObj = createMenuItem(obj, parent, text, menuSelectedFcn, accelerator, separator)
+        function menuObj = createMenuItem(~, parent, text, menuSelectedFcn, accelerator, separator)
             arguments
-                obj
+                ~
                 parent
                 text (1,1) string
                 menuSelectedFcn = ''
@@ -338,6 +400,25 @@ classdef OuterShell_UIFigureBased < handle
                 separator (1,1) string = "off"
             end
             menuObj = uimenu(parent, "Text", text, "MenuSelectedFcn", menuSelectedFcn, "Separator", separator, "Accelerator", accelerator);
+        end
+  
+        function selectedSession = getCurrentSession(obj)
+            % GETCURRENTSESSION  Return the current session selected in the
+            % tree. If only one session in the tree that is returned even
+            % when there are no selected tree nodes. If there are more than
+            % one session in the tree then a selection is needed and if
+            % none selected this function returns []
+            selectedSession = [];
+
+            if numel(obj.TreeCtrl.Children) == 1
+                selectedSession = obj.TreeCtrl.Children.NodeData;
+            else
+                if numel(obj.TreeCtrl.SelectedNodes) > 1
+                    % todopax: send an alert.
+                else
+                    selectedSession = ancestor(obj.TreeCtrl.SelectedNodes, 'uitreenode', 'toplevel').NodeData;
+                end
+            end
         end
     end
 end

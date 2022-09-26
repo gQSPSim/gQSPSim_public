@@ -1,12 +1,8 @@
 classdef ApplicationUI < handle
-    % ApplicationUI - this class will create the window for the UI.
-    % ---------------------------------------------------------------------
-    % Instantiates the Application figure window
-    %
-    % Syntax:
-    %           app = QSPViewerNew.Application.ApplicationUI
-    %
-    %
+    % ApplicationUI - This is the Controller class for the application.
+    % In addition is manages the list of Sessions (the model) loaded in the 
+    % application. In other words, this controller hangs on to the Model.
+    
     %   Copyright 2020 The MathWorks, Inc.
 
     properties
@@ -14,17 +10,21 @@ classdef ApplicationUI < handle
         AppName
         Title
         SelectedNodePath (1,1) string
+        ItemTypes cell
     end
 
     properties(Constant)
         Version = 'v1.0'
-        ItemTypes = {
+        buildingBlockTypes = {
             'Task',                             'Task'
             'Parameter',                        'Parameters'
             'Dataset',                          'OptimizationData'
             'Acceptance Criteria',              'VirtualPopulationData'
             'Target Statistics',                'VirtualPopulationGenerationData'
             'Virtual Subject(s)',               'VirtualPopulation'
+            };
+        
+        functionalityTypes = {
             'Simulation',                       'Simulation'
             'Optimization',                     'Optimization'
             'Cohort Generation',                'CohortGeneration'
@@ -90,6 +90,7 @@ classdef ApplicationUI < handle
 
     events
         NewSession
+        Model_NewItemAdded
     end
 
     methods (Access = public)
@@ -99,45 +100,41 @@ classdef ApplicationUI < handle
             app.AppName = "gQSPsim " + app.Version;
             app.FileSpec = {'*.qsp.mat','MATLAB QSP MAT File'};
             app.PreferencesGroupName = "gQSPSim_preferences";
+            app.ItemTypes = vertcat(app.buildingBlockTypes, app.functionalityTypes);
 
-            if false
-                app.OuterShell = QSPViewerNew.Application.OuterShell_ContainerBased;
-                addlistener(app.OuterShell, 'ReadyState', @(h,e)app.readyState(h,e));
-                addlistener(app, 'NewSession', @(h,e)app.OuterShell.onNewSession(h, e));
-            else
+            % Construct the view
+            app.OuterShell = QSPViewerNew.Application.OuterShell_UIFigureBased(app.AppName, app); %todopax send in app for now, remove if possible.
 
-                % Construct the view
-                app.OuterShell = QSPViewerNew.Application.OuterShell_UIFigureBased(app.AppName, app); %todopax send in app for now, remove if possible.
+            %Save the type of the app for use in preferences
+            app.Type = class(app); %TODOpax this is not going to work well. We need to pick a name for the preferences and make sure we are backwards compatible. E.g., a name change for the class would break this.
+            app.TypeStr = matlab.lang.makeValidName(app.Type);
 
-                %Save the type of the app for use in preferences
-                app.Type = class(app); %TODOpax this is not going to work well. We need to pick a name for the preferences and make sure we are backwards compatible. E.g., a name change for the class would break this.
-                app.TypeStr = matlab.lang.makeValidName(app.Type);
+            %Get the previous file locations from preferences
+            app.LastFolder = getpref(app.TypeStr,'LastFolder',app.LastFolder);
+            app.RecentSessionPaths = getpref(app.TypeStr,'RecentSessionPaths',app.RecentSessionPaths);
 
-                %Get the previous file locations from preferences
-                app.LastFolder = getpref(app.TypeStr,'LastFolder',app.LastFolder);
-                app.RecentSessionPaths = getpref(app.TypeStr,'RecentSessionPaths',app.RecentSessionPaths);
+            % Validate each recent file, and remove any invalid files
+            idxOk = cellfun(@(x)exist(x,'file'),app.RecentSessionPaths);
+            app.RecentSessionPaths(~idxOk) = [];
 
-                % Validate each recent file, and remove any invalid files
-                idxOk = cellfun(@(x)exist(x,'file'),app.RecentSessionPaths);
-                app.RecentSessionPaths(~idxOk) = [];
+            % Draw the recent files to the menu
+            % TODOpax. app.redrawRecentFiles();
 
-                % Draw the recent files to the menu
-                % TODOpax. app.redrawRecentFiles();
+            % Refresh the entire view
+            %TODOpax. app.refresh();
 
-                % Refresh the entire view
-                %TODOpax. app.refresh();
+            addlistener(app, 'NewSession', @(h,e)app.OuterShell.onNewSession(h,e));
+            addlistener(app.OuterShell, 'New', @(h,e)app.createNewSession);
 
-                %                 if nargout == 0
-                %                     clear app
-                %                 end
+            % QSP File menu
+            addlistener(app.OuterShell, 'AddTreeNode', @(h,e)app.onAddItemNew(h,e));
 
-                addlistener(app, 'NewSession', @(h,e)app.OuterShell.onNewSession(h, e));
+            addlistener(app.OuterShell, 'OpenModelManager',  @(h,e)app.onOpenModelManager);
+            addlistener(app.OuterShell, 'OpenPluginManager', @(h,e)app.onOpenPluginManager);
+            addlistener(app.OuterShell, 'OpenLogger',        @(h,e)app.onOpenLogger);
 
-                % load a session for rapid devel.
-                app.forDebuggingInit;
-            end
-
-            addlistener(app.OuterShell, 'TreeSelectionChange', @app.onTreeSelectionChanged);
+            % load a session for rapid devel.
+            %app.forDebuggingInit;
         end
 
         function forDebuggingInit(app, h, e)
@@ -172,6 +169,9 @@ classdef ApplicationUI < handle
     methods (Access = private)
 
         function createTree(app, parent, allData)
+
+            error("ApplicationUI:createTree");
+
             % Nodes that take children have the type of child as a string in the UserData
             % property. Nodes that are children and are movable have [] in UserData.
             % Get short name to call this function recursively
@@ -380,6 +380,7 @@ classdef ApplicationUI < handle
             end %for
         end %function
 
+        % todo, move to OuterShell
         function createContextMenu(app,Node,Type)
             %Determine if this ContextMenu is from QSP
             Index = find(strcmpi(Type,app.ItemTypes(:,1)));
@@ -575,6 +576,8 @@ classdef ApplicationUI < handle
     methods (Access = private)
 
         function onNew(app,~,~)
+            error("called ApplicationUI:onNew");
+
             %We are using multiple sessions so
             if app.AllowMultipleSessions || app.promptToSave(1)
                 app.createUntitledSession();
@@ -708,7 +711,46 @@ classdef ApplicationUI < handle
 
         end
 
+        function onAddItemNew(app, ~, eventData)
+            % ONADDITEMNEW Add a new item to the model. The parent session
+            % and the type are provided in the eventData.
+            newItemPrefix = "New ";
+
+            session = eventData.Session;
+            itemType = eventData.type;
+
+            % The Model should provide a way to add to its structure, but
+            % that does not appear to be the case right now so handle it
+            % here at the expense of some technical debt. If the model were
+            % to have this add functionality then it would be the one
+            % notifying the controller (or the view) about the addition.
+            % In addition, the model also does not support default names.
+            % Rather than adding it in the Model deal with it here, but
+            % that is more technical debt.
+            buildingBlockType_TF = strcmp(itemType, app.buildingBlockTypes(:,2));
+            functionalityType_TF = strcmp(itemType, app.functionalityTypes(:,2));
+
+            if any(buildingBlockType_TF)
+                newName = newItemPrefix + app.buildingBlockTypes(buildingBlockType_TF, 1);
+                newIndex = sum(string({session.Settings.(itemType).Name}).contains(newName)) + 1;
+                newName = newName + "_" + newIndex;                
+                newItem = QSP.(itemType)('Name', char(newName));
+                session.Settings.(itemType)(end+1) = newItem;
+            elseif any(functionalityType_TF)
+                newName = char(newItemPrefix + app.functionalityTypes(functionalityType_TF, 1));
+                newIndex = sum(string({session.(itemType).Name}).contains(newName)) + 1;
+                newName = newName + "_" + newIndex;
+                newItem = QSP.(itemType)('Name', char(newName));
+                session.(itemType)(end+1) = newItem;
+            end
+
+            notify(app, 'Model_NewItemAdded', QSPViewerNew.Application.NewItemAddedEventData(newItem, itemType)); % todopax would be nice if we don't need itemType
+        end
+        
         function onAddItem(app,~,thisSession,itemType)
+
+            error('ApplicationUI:onAddItem called.');
+
             if isempty(thisSession)
                 thisSession = app.SelectedSession;
             end
@@ -724,6 +766,7 @@ classdef ApplicationUI < handle
                 error('Invalid ItemType');
             end
 
+            % TODOpax, need to version this.
             % special case since vpop data has been renamed to acceptance
             % criteria
             if strcmp(itemType, 'VirtualPopulationData')
@@ -1259,7 +1302,10 @@ classdef ApplicationUI < handle
             end
         end
 
+        % TODOpax: Why do we need this function?
         function createUntitledSession(app)
+            error("ApplicationUI:createUntitledSession");
+
             % Add a new session called 'untitled_x'
             % Clear existing sessions if needed
             if ~app.AllowMultipleSessions
@@ -1282,23 +1328,29 @@ classdef ApplicationUI < handle
             end
 
         end
-
-        function createNewSession(app,Session)
+        
+        function createNewSession(app, Session)
+            % CREATENEWSESSION  Adds a session to the controller. If none
+            % supplied a new one is built.
             arguments
                 app
                 Session QSP.Session = QSP.Session()
             end
-
-            eventData = QSPViewerNew.Application.SessionEventData(Session, app.ItemTypes);
-            notify(app, 'NewSession', eventData);            
-
-            % % Update the app state
-
-            % Which session is this?
-            newIdx = app.NumSessions + 1;
-
+            
             % Add the session to the app
-            app.Sessions(newIdx) = Session;
+            app.Sessions(end+1) = Session;
+
+            % Need a name for the session. If there is no name on it the
+            % controller will assign a name.
+            if isempty(Session.Name)
+%                 app.initializeName(Session);
+                  Session.Name = 'untitled';
+                  Session.setSessionName(Session.Name); % why do we have two Names?!
+            end
+
+            % Tell the View we have a new session.
+            eventData = QSPViewerNew.Application.NewSessionEventData(Session, app.buildingBlockTypes, app.functionalityTypes);
+            notify(app, 'NewSession', eventData);            
 
             % Start timer
             initializeTimer(Session);
