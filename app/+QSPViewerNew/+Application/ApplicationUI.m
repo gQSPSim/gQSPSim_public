@@ -6,14 +6,14 @@ classdef ApplicationUI < handle
     %   Copyright 2020 The MathWorks, Inc.
 
     properties
-        Sessions (1,:) QSP.Session = QSP.Session.empty(0,1)
-        AppName
+        Sessions (1,:) QSP.Session = QSP.Session.empty(0,1)        
         Title
         SelectedNodePath (1,1) string
         ItemTypes cell
     end
 
     properties(Constant)
+        AppName = "gQSPSim"
         Version = 'v1.0'
         buildingBlockTypes = {
             'Task',                             'Task'
@@ -37,7 +37,7 @@ classdef ApplicationUI < handle
         AllowMultipleSessions = true;
         FileSpec ={'*.mat','MATLAB MAT File'}
         SelectedSessionIdx = double.empty(0,1)
-        SessionPaths = cell.empty(0,1)
+        SessionPaths = cell.empty(0,1) % What is this? TODOpax
         IsDirty = logical.empty(0,1)
         RecentSessionPaths = cell.empty(0,1)
         LastFolder = pwd
@@ -47,8 +47,10 @@ classdef ApplicationUI < handle
         PreferencesGroupName (1,1) string  = "gQSPSim_preferences";
         Type % replaced with PreferencesGroupName
         TypeStr %todopax remove.
-        WindowButtonDownCallbacks = {};
-        WindowButtonUpCallbacks = {};
+        WindowButtonDownCallbacks = {}; % TODOpax remove this
+        WindowButtonUpCallbacks = {}; % TODOpax remove this
+       
+        OuterShell QSPViewerNew.Application.OuterShell_UIFigureBased
         ModelManagerDialog ModelManager
         LoggerDialog QSPViewerNew.Dialogs.LoggerDialog
     end
@@ -59,18 +61,16 @@ classdef ApplicationUI < handle
         NumSessions %TODOpax remove
         SessionNames %TODOpax remove
         SelectedSession
-        SessionNode
+        SessionNode % TODOpax remove
         PaneTypes %TODOpax remove
     end
 
     properties (Access = public)
         paneGridLayout (1,1) matlab.ui.container.GridLayout
         paneHolder     (1,1) struct
-        OuterShell
-
-        FlexGridLayout           QSPViewerNew.Widgets.GridFlex %TODOpax remove
-        SessionExplorerPanel     matlab.ui.container.Panel
-        SessionExplorerGrid      matlab.ui.container.GridLayout
+        
+%         SessionExplorerPanel     matlab.ui.container.Panel
+%         SessionExplorerGrid      matlab.ui.container.GridLayout
         TreeRoot                 matlab.ui.container.Tree %TODOpax remove this.. moved to OuterShell.
         TreeMenu
         OpenRecentMenuArray
@@ -91,19 +91,22 @@ classdef ApplicationUI < handle
     events
         NewSession
         Model_NewItemAdded
+        Model_SessionClosed
     end
 
     methods (Access = public)
 
         function app = ApplicationUI
 
-            app.AppName = "gQSPsim " + app.Version;
+            app.Title = app.AppName + " " + app.Version;
             app.FileSpec = {'*.qsp.mat','MATLAB QSP MAT File'};
             app.PreferencesGroupName = "gQSPSim_preferences";
             app.ItemTypes = vertcat(app.buildingBlockTypes, app.functionalityTypes);
 
-            % Construct the view
-            app.OuterShell = QSPViewerNew.Application.OuterShell_UIFigureBased(app.AppName, app); %todopax send in app for now, remove if possible.
+            % Construct the view. The app (i.e. controller) is supplied to the View
+            % constructor for the purpose of connecting listeners. The app
+            % should not (and is not) stored by the View.
+            app.OuterShell = QSPViewerNew.Application.OuterShell_UIFigureBased(app.Title, app); 
 
             %Save the type of the app for use in preferences
             app.Type = class(app); %TODOpax this is not going to work well. We need to pick a name for the preferences and make sure we are backwards compatible. E.g., a name change for the class would break this.
@@ -114,7 +117,7 @@ classdef ApplicationUI < handle
             app.RecentSessionPaths = getpref(app.TypeStr,'RecentSessionPaths',app.RecentSessionPaths);
 
             % Validate each recent file, and remove any invalid files
-            idxOk = cellfun(@(x)exist(x,'file'),app.RecentSessionPaths);
+            idxOk = cellfun(@(x)exist(x,'file'), app.RecentSessionPaths);
             app.RecentSessionPaths(~idxOk) = [];
 
             % Draw the recent files to the menu
@@ -122,16 +125,16 @@ classdef ApplicationUI < handle
 
             % Refresh the entire view
             %TODOpax. app.refresh();
-
-            addlistener(app, 'NewSession', @(h,e)app.OuterShell.onNewSession(h,e));
-            addlistener(app.OuterShell, 'New', @(h,e)app.createNewSession);
-
-            % QSP File menu
-            addlistener(app.OuterShell, 'AddTreeNode', @(h,e)app.onAddItemNew(h,e));
-
+            
+            % Listen to these events from the View.             
+            addlistener(app.OuterShell, 'New_Request',       @(h,e)app.createNewSession);
+            addlistener(app.OuterShell, 'AddTreeNode',       @(h,e)app.onAddItemNew(e));
             addlistener(app.OuterShell, 'OpenModelManager',  @(h,e)app.onOpenModelManager);
             addlistener(app.OuterShell, 'OpenPluginManager', @(h,e)app.onOpenPluginManager);
             addlistener(app.OuterShell, 'OpenLogger',        @(h,e)app.onOpenLogger);
+            addlistener(app.OuterShell, 'Close_Request',     @(h,e)app.onClose(e));
+            addlistener(app.OuterShell, 'Open_Request',      @(h,e)app.onOpen);
+            addlistener(app.OuterShell, 'Exit_Request',      @(h,e)app.onExit);
 
             % load a session for rapid devel.
             %app.forDebuggingInit;
@@ -160,9 +163,9 @@ classdef ApplicationUI < handle
                 delete(app.LoggerDialog)
             end
 
-            %Delete UI
-            %             delete(app.UIFigure)
-            delete(app.OuterShell)
+            if isvalid(app.OuterShell)
+                delete(app.OuterShell)
+            end
         end
     end
 
@@ -570,9 +573,6 @@ classdef ApplicationUI < handle
 
     end
 
-    % %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %%
-    %Callbacks for menu items and context menus
-    % %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %%
     methods (Access = private)
 
         function onNew(app,~,~)
@@ -598,46 +598,40 @@ classdef ApplicationUI < handle
         end
 
         function onOpen(app,~,~)
-            %Here we will determine the file path of the folder to call.
-            [FileName,PathName] = uigetfile(app.FileSpec,'Open File', app.LastFolder,'MultiSelect','on');
+            % Allow the controller to call this ui utility. We could hide
+            % this implemenation in a utility package but there is little
+            % need for that overhead.
+            [FileName, PathName] = uigetfile(app.FileSpec, 'Open File', app.LastFolder, 'MultiSelect', 'on');
 
-            %Determine what type of output was provided
-            outputType = class(FileName);
+            % If the user did not cancel
+            if ~isequal(FileName, 0)
 
-            %Determine if the output was invalid
-            switch outputType
-                case 'double'
-                    %The user canceled. Do Nothing
-                case 'char'
-                    %The user selected a single path
-                    app.LastFolder = PathName;
-                    fullFilePath = fullfile(PathName,FileName);
-                    app.loadSessionFromPath(fullFilePath);
-                case 'cell'
-                    %The user selected multiple files
-                    app.LastFolder = PathName;
-                    for fileIndex = 1:length(FileName)
-                        fullFilePath = fullfile(PathName,FileName{fileIndex});
+                switch class(FileName)
+                    case 'char'
+                        app.LastFolder = PathName;
+                        fullFilePath = fullfile(PathName,FileName);
                         app.loadSessionFromPath(fullFilePath);
-                    end
+                    case 'cell'                        
+                        app.LastFolder = PathName;
+                        for fileIndex = 1:numel(FileName)
+                            fullFilePath = fullfile(PathName,FileName{fileIndex});
+                            app.loadSessionFromPath(fullFilePath);
+                        end
+                end
             end
-
         end
 
-        function onClose(app,activeSession)
-            if ~isempty(activeSession)
+        function onClose(app, eventData)
+            activeSession = eventData.Session;
+            assert(~isempty(activeSession));
 
-                %Need to find the session index
-                SessionIdx = find(strcmp(activeSession.SessionName,{app.Sessions.SessionName}));
-            else
-                SessionIdx = app.SelectedSessionIdx;
-            end
+            sessionTF = activeSession == app.Sessions;            
 
-            if app.IsDirty(SessionIdx)
-                app.savePromptBeforeClose(SessionIdx);
-            else
-                app.closeSession(SessionIdx);
-            end
+            assert(sum(sessionTF) == 1);            
+
+            app.closeSession(find(sessionTF));
+
+            notify(app, "Model_SessionClosed", QSPViewerNew.Application.Session_EventData(activeSession));
         end
 
         function onSave(app,activeSession)
@@ -667,6 +661,35 @@ classdef ApplicationUI < handle
             if StatusTF
                 app.markClean(activeSession);
             end
+        end
+
+        function onExit(app)            
+            cancelTF = false;
+
+            for i = 1:numel(app.Sessions)
+                if app.IsDirty(i)
+                    cancelTF = app.savePromptBeforeClose(i);
+                    if cancelTF
+                        break
+                    end
+                end
+            end
+
+            if ~cancelTF
+                app.delete();
+            end
+
+%             while ~CancelTF && (~isempty(app.Sessions))
+%                 if app.IsDirty(1)
+%                     CancelTF = app.savePromptBeforeClose(1);
+%                 else
+%                     app.closeSession(1)
+%                 end
+%             end
+% 
+%             if ~CancelTF
+%                 app.delete();
+%             end
         end
 
         function onDeleteSelectedItem(app,activeSession,activeNode)
@@ -711,7 +734,7 @@ classdef ApplicationUI < handle
 
         end
 
-        function onAddItemNew(app, ~, eventData)
+        function onAddItemNew(app, eventData)
             % ONADDITEMNEW Add a new item to the model. The parent session
             % and the type are provided in the eventData.
             newItemPrefix = "New ";
@@ -743,6 +766,11 @@ classdef ApplicationUI < handle
                 newItem = QSP.(itemType)('Name', char(newName));
                 session.(itemType)(end+1) = newItem;
             end
+
+            % I would prefer if the session is not stored in the items but
+            % a lot of code depends on this now.
+            % TODOpax: remove this from the model.
+            newItem.Session = session;
 
             notify(app, 'Model_NewItemAdded', QSPViewerNew.Application.NewItemAddedEventData(newItem, itemType)); % todopax would be nice if we don't need itemType
         end
@@ -1478,7 +1506,7 @@ classdef ApplicationUI < handle
                     'Session object:\n%s'], fullFilePath, err.message);
             end
 
-            %If any of the above failed, we exit and disply why
+            %If any of the above failed, we exit and display why
             if StatusOk == false
                 uialert(app.UIFigure, Message, 'Invalid File')
             else
@@ -1537,8 +1565,8 @@ classdef ApplicationUI < handle
                     %Edit the app properties to reflect a new loaded session was
                     %added
                     idxNew = app.NumSessions + 1;
-                    app.SessionPaths{idxNew} = fullFilePath;
-                    app.IsDirty(idxNew) = false;
+                    app.SessionPaths{end+1} = fullFilePath;
+                    app.IsDirty(end+1) = false;
                     app.SelectedSessionIdx = idxNew;
                     app.addRecentSessionPath(fullFilePath);
                 end
@@ -1578,7 +1606,7 @@ classdef ApplicationUI < handle
             end
         end
 
-        function [status,newFilePath] = getValidSessionRootDirectory(app,filePath)
+        function [status,newFilePath] = getValidSessionRootDirectory(app, filePath)
             %Check if a directory exists. If not, find a valid one.
             existence = exist(filePath,'dir');
 
@@ -1589,7 +1617,7 @@ classdef ApplicationUI < handle
                 status =true;
                 newFilePath = filePath;
             else
-                questionResult = uiconfirm(app.UIFigure,'Session root directory is invalid. Select a new root directory?',...
+                questionResult = uiconfirm(app.getUIFigure(),'Session root directory is invalid. Select a new root directory?',...
                     'Select root directory','Options', {'Yes','Cancel'}, 'Icon', 'question');
 
                 %If they they would like to add a new root directory
@@ -1603,7 +1631,7 @@ classdef ApplicationUI < handle
                     else
                         status =false;
                         newFilePath = '';
-                        uialert(app.UIFigure,'The newly selected root directory was not valid','Invalid Directory');
+                        uialert(app.getUIFigure,'The newly selected root directory was not valid','Invalid Directory');
                     end
                 else
                     %They chose not to select a new file.
@@ -1622,13 +1650,14 @@ classdef ApplicationUI < handle
             app.RecentSessionPaths = vertcat(newPath,app.RecentSessionPaths);
 
             %Crop the 9 most recent entries;
-            app.RecentSessionPaths(9:end) = [];
+            app.RecentSessionPaths(9:end) = []; %todopax parameterize this 9
 
             %redraw this context menu
             %             app.redrawRecentFiles() TODOpax
         end
 
         function closeSession(app,sessionIdx)
+            
             % Delete timer
             deleteTimer(app.Sessions(sessionIdx));
 
@@ -1642,19 +1671,19 @@ classdef ApplicationUI < handle
             app.Sessions(sessionIdx) = [];
 
             %Update paths and dirtyTF
-            app.SessionPaths(sessionIdx) = [];
-            app.IsDirty(sessionIdx) = [];
+%             app.SessionPaths(sessionIdx) = []; % TODOpax
+%            app.IsDirty(sessionIdx) = [];
 
-            %Update selected session
-            app.SelectedSessionIdx = [];
+% Send an event to let the plugin manager know.
+%             % update sessions in plugin manager if it is open
+%             if isvalid(app.PluginManager)
+%                 app.PluginManager.Sessions = app.Sessions;
+%             end
 
-            % update sessions in plugin manager if it is open
-            if isvalid(app.PluginManager)
-                app.PluginManager.Sessions = app.Sessions;
-            end
 
             %update app
-            app.refresh();
+            % TODOpax: Why do we need this?
+            %             app.refresh();
         end
 
         function CancelTF = savePromptBeforeClose(app,sessionIdx)
@@ -1676,9 +1705,7 @@ classdef ApplicationUI < handle
                 case 'Cancel'
                     CancelTF = true;
             end
-
         end
-
     end
 
     % %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %%
@@ -2658,9 +2685,10 @@ classdef ApplicationUI < handle
             app.IsDirty(app.SelectedSessionIdx) = true;
         end
 
-        function value = getUIFigure(app)
-            % Todopax, would be nice if these were not needed.
-            % Looks like this is only used for uialert and uiconfirm UCs
+        function value = getUIFigure(app) %todopax rename getViewTopElement
+            % GETUIFIGURE  For the purpose of showing alerts and confirm
+            % dialogs, the controller uses the view's top level window,
+            % i.e. UIFigure.            
             value = app.OuterShell.UIFigure;
         end
 

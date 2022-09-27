@@ -46,7 +46,7 @@ classdef OuterShell_UIFigureBased < handle
         SessionChange
 
         % Events for File Menu items
-        New, Open, OpenRecent, Close, Save, SaveAs, Exit
+        New_Request, Open_Request, OpenRecent, Close_Request, Save_Request, SaveAs, Exit_Request
 
         % Event for QSP Menu item
         AddTreeNode
@@ -59,7 +59,7 @@ classdef OuterShell_UIFigureBased < handle
         function obj = OuterShell_UIFigureBased(appname, app)
             arguments
                 appname (1,1) string
-                app %todopax remove if possible.
+                app 
             end
 
             % initialize the list of icons and the mapping to the 
@@ -67,15 +67,24 @@ classdef OuterShell_UIFigureBased < handle
             % controller. 
             obj.initializeIconList(app.buildingBlockTypes(:,2), app.functionalityTypes(:,2));
 
-            % Create the graphics objects
+            % Create the view.
             obj.create(appname, app);
 
-            addlistener(obj.paneManager, "Alert", @(h,e)obj.onAlert(h,e));
-            addlistener(app, 'Model_NewItemAdded', @(h,e)obj.onNewTreeItemAdded(e));
+            % Listen to the following paneManager events.
+            addlistener(obj.paneManager, "Alert",   @(h,e)obj.onAlert(h,e));
+
+            % Listen to the following controller events.
+            addlistener(app, 'NewSession',          @(h,e)obj.onNewSession(e));
+            addlistener(app, 'Model_NewItemAdded',  @(h,e)obj.onNewTreeItemAdded(e));
+            addlistener(app, 'Model_SessionClosed', @(h,e)obj.onCloseSession(e)); %todopax need better names for these methods that are responding to app messages.
+        end
+
+        function delete(obj)
+            delete(obj.UIFigure);
         end
 
         % Callback for NewSession event.
-        function onNewSession(obj, ~, e)
+        function onNewSession(obj, e)
             obj.createSession(e.Session, e.buildingBlockTypes, e.functionalityTypes);
         end
 
@@ -126,7 +135,7 @@ classdef OuterShell_UIFigureBased < handle
 
             % Default state of the tree is to expand the Session and the
             % buildingBlocks.
-            drawnow            
+%             drawnow            
             sessionNode.expand;
             buildingBlocksNode.expand;
         end
@@ -324,7 +333,6 @@ classdef OuterShell_UIFigureBased < handle
             if ~CancelTF
                 app.delete();
             end
-
         end
 
         function onAbout(obj, ~, ~)
@@ -346,6 +354,8 @@ classdef OuterShell_UIFigureBased < handle
         end
 
         function onMenuNotify(obj, type)
+            % ONMENUNOTIFY  Simply notifies listeners of the event. No
+            % other processing on the View.
             disp(type)
             notify(obj, type);
         end
@@ -355,24 +365,44 @@ classdef OuterShell_UIFigureBased < handle
             notify(obj, 'AddTreeNode', ed);
         end
 
+        function onMenuNotifyWithSession(obj, type)
+            % ONMENUNOTIFYWITHSESSION  Notifies the controller of an action
+            % that requires the current session. Define the current session
+            % as that containing the selected tree node or, if it is the
+            % case, the only session in the project. Otherwise alert there
+            % is no current session.
+            selectedSession = obj.getCurrentSession();
+            notify(obj, type, QSPViewerNew.Application.Session_EventData(selectedSession));
+        end
+
+        function onCloseSession(obj, eventData)
+            % ONCLOSESESSION  Controller is broadcasting that a session has
+            % been removed. Update the view accordingly.
+            sessions = [obj.TreeCtrl.Children.NodeData];
+            closeSessionTF = eventData.Session == sessions;
+            delete(obj.TreeCtrl.Children(closeSessionTF));
+        end
+
         function constructMenuItems(obj, itemTypes)
+            % CONSTRUCTMENUITEMS  Construct the menu items in the toolbar.
             arguments
                 obj
                 itemTypes cell
             end
 
             obj.FileMenu                        = obj.createMenuItem(obj.UIFigure, "File");
-            obj.NewCtrlNMenu                    = obj.createMenuItem(obj.FileMenu,   "New...",      @(h,e)obj.onMenuNotify("New"),       "N");
-            obj.OpenCtrl0Menu                   = obj.createMenuItem(obj.FileMenu,   "Open...",     @(h,e)obj.onMenuNotify("Open"),      "O");
+            obj.NewCtrlNMenu                    = obj.createMenuItem(obj.FileMenu,   "New...",      @(h,e)obj.onMenuNotify("New_Request"),  "N");
+            obj.OpenCtrl0Menu                   = obj.createMenuItem(obj.FileMenu,   "Open...",     @(h,e)obj.onMenuNotify("Open_Request"), "O");
             obj.OpenRecentMenu                  = obj.createMenuItem(obj.FileMenu,   "Open Recent", @(h,e)obj.onMenuNotify("OpenRecent"));
-            obj.CloseMenu                       = obj.createMenuItem(obj.FileMenu,   "Close",       @(h,e)obj.onMenuNotify("Close"),     "",  "on");
-            obj.SaveCtrlSMenu                   = obj.createMenuItem(obj.FileMenu,   "Save",        @(h,e)obj.onMenuNotify("Save"),      "S", "on");
+            obj.CloseMenu                       = obj.createMenuItem(obj.FileMenu,   "Close",       @(h,e)obj.onMenuNotifyWithSession("Close_Request"), "",  "on");
+            obj.SaveCtrlSMenu                   = obj.createMenuItem(obj.FileMenu,   "Save",        @(h,e)obj.onMenuNotifyWithSession("Save_Request"),  "S", "on");
             obj.SaveAsMenu                      = obj.createMenuItem(obj.FileMenu,   "Save As...",  @(h,e)obj.onMenuNotify("SaveAs"));
-            obj.ExitCtrlQMenu                   = obj.createMenuItem(obj.FileMenu,   "Exit",        @(h,e)obj.onMenuNotify("Exit"),      "Q", "on");
+            obj.ExitCtrlQMenu                   = obj.createMenuItem(obj.FileMenu,   "Exit",        @(h,e)obj.onMenuNotify("Exit_Request"), "Q", "on");
 
             obj.QSPMenu                         = obj.createMenuItem(obj.UIFigure,    "QSP");
             obj.AddNewItemMenu                  = obj.createMenuItem(obj.QSPMenu,      "Add New Item");
             
+            % Create menus for all the QSP Item types.
             for i = 1:size(itemTypes,1)
                 type = itemTypes{i,2};
                 obj.createMenuItem(obj.AddNewItemMenu, itemTypes{i,1}, @(h,e)obj.onMenuNotifyAdd(type));
