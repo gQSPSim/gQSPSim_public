@@ -77,6 +77,8 @@ classdef OuterShell_UIFigureBased < handle
             addlistener(app, 'NewSession',          @(h,e)obj.onNewSession(e));
             addlistener(app, 'Model_NewItemAdded',  @(h,e)obj.onNewTreeItemAdded(e));
             addlistener(app, 'Model_SessionClosed', @(h,e)obj.onCloseSession(e)); %todopax need better names for these methods that are responding to app messages.
+            addlistener(app, 'DirtySessions',       @(h,e)obj.onDirtySessions);
+            addlistener(app, 'CleanSessions',       @(h,e)obj.onCleanSessions);
         end
 
         function delete(obj)
@@ -135,7 +137,6 @@ classdef OuterShell_UIFigureBased < handle
 
             % Default state of the tree is to expand the Session and the
             % buildingBlocks.
-%             drawnow            
             sessionNode.expand;
             buildingBlocksNode.expand;
         end
@@ -146,7 +147,7 @@ classdef OuterShell_UIFigureBased < handle
             obj.UIFigure = uifigure('Visible', 'off');
             obj.UIFigure.Position = [100 100 1005 864];
             obj.UIFigure.Name = appName;
-            obj.UIFigure.CloseRequestFcn = @obj.onExit;
+            obj.UIFigure.CloseRequestFcn =  @(h,e)obj.onMenuNotify("Exit_Request");
 
             constructMenuItems(obj, app.ItemTypes);
 
@@ -319,22 +320,7 @@ classdef OuterShell_UIFigureBased < handle
                 'UserData', PaneType,...
                 'Icon',     QSPViewerNew.Resources.LoadResourcePath(Icon));
         end
-
-        function onExit(app,~,~)
-            CancelTF = false;
-            while ~CancelTF && (~isempty(app.Sessions))
-                if app.IsDirty(1)
-                    CancelTF = app.savePromptBeforeClose(1);
-                else
-                    app.closeSession(1)
-                end
-            end
-
-            if ~CancelTF
-                app.delete();
-            end
-        end
-
+        
         function onAbout(obj, ~, ~)
             % TODOpax need a way to get the version number.
             Message = {'gQSPsim version 1.0', ...
@@ -381,6 +367,14 @@ classdef OuterShell_UIFigureBased < handle
             sessions = [obj.TreeCtrl.Children.NodeData];
             closeSessionTF = eventData.Session == sessions;
             delete(obj.TreeCtrl.Children(closeSessionTF));
+        end
+
+        function onDirtySessions(obj)
+            disp('Mark a Session dirty');
+        end
+
+        function onCleanSessions(obj)
+            disp("Mark a Session clean");
         end
 
         function constructMenuItems(obj, itemTypes)

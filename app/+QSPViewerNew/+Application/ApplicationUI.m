@@ -1,7 +1,7 @@
 classdef ApplicationUI < handle
     % ApplicationUI - This is the Controller class for the application.
-    % In addition is manages the list of Sessions (the model) loaded in the 
-    % application. In other words, this controller hangs on to the Model.
+    % In addition it manages the list of open Sessions loaded in the 
+    % application.
     
     %   Copyright 2020 The MathWorks, Inc.
 
@@ -9,7 +9,11 @@ classdef ApplicationUI < handle
         Sessions (1,:) QSP.Session = QSP.Session.empty(0,1)        
         Title
         SelectedNodePath (1,1) string
-        ItemTypes cell
+        ItemTypes cell       
+    end
+
+    properties(Transient)
+        IsDirty = logical.empty(0,1);
     end
 
     properties(Constant)
@@ -38,7 +42,7 @@ classdef ApplicationUI < handle
         FileSpec ={'*.mat','MATLAB MAT File'}
         SelectedSessionIdx = double.empty(0,1)
         SessionPaths = cell.empty(0,1) % What is this? TODOpax
-        IsDirty = logical.empty(0,1)
+%         IsDirty = logical.empty(0,1)
         RecentSessionPaths = cell.empty(0,1)
         LastFolder = pwd
         ActivePane % TODOpax remove this..
@@ -66,14 +70,14 @@ classdef ApplicationUI < handle
     end
 
     properties (Access = public)
-        paneGridLayout (1,1) matlab.ui.container.GridLayout
-        paneHolder     (1,1) struct
+%         paneGridLayout (1,1) matlab.ui.container.GridLayout
+%         paneHolder     (1,1) struct
         
 %         SessionExplorerPanel     matlab.ui.container.Panel
 %         SessionExplorerGrid      matlab.ui.container.GridLayout
-        TreeRoot                 matlab.ui.container.Tree %TODOpax remove this.. moved to OuterShell.
-        TreeMenu
-        OpenRecentMenuArray
+%         TreeRoot                 matlab.ui.container.Tree %TODOpax remove this.. moved to OuterShell.
+%         TreeMenu
+%         OpenRecentMenuArray
     end
 
     properties (SetAccess = private, SetObservable, AbortSet)
@@ -92,21 +96,23 @@ classdef ApplicationUI < handle
         NewSession
         Model_NewItemAdded
         Model_SessionClosed
+
+        CleanSessions
+        DirtySessions
     end
 
     methods (Access = public)
 
-        function app = ApplicationUI
+        function app = ApplicationUI(useUI)
+            arguments
+                useUI (1,1) logical = true
+            end
 
             app.Title = app.AppName + " " + app.Version;
             app.FileSpec = {'*.qsp.mat','MATLAB QSP MAT File'};
             app.PreferencesGroupName = "gQSPSim_preferences";
             app.ItemTypes = vertcat(app.buildingBlockTypes, app.functionalityTypes);
 
-            % Construct the view. The app (i.e. controller) is supplied to the View
-            % constructor for the purpose of connecting listeners. The app
-            % should not (and is not) stored by the View.
-            app.OuterShell = QSPViewerNew.Application.OuterShell_UIFigureBased(app.Title, app); 
 
             %Save the type of the app for use in preferences
             app.Type = class(app); %TODOpax this is not going to work well. We need to pick a name for the preferences and make sure we are backwards compatible. E.g., a name change for the class would break this.
@@ -125,16 +131,22 @@ classdef ApplicationUI < handle
 
             % Refresh the entire view
             %TODOpax. app.refresh();
-            
-            % Listen to these events from the View.             
-            addlistener(app.OuterShell, 'New_Request',       @(h,e)app.createNewSession);
-            addlistener(app.OuterShell, 'AddTreeNode',       @(h,e)app.onAddItemNew(e));
-            addlistener(app.OuterShell, 'OpenModelManager',  @(h,e)app.onOpenModelManager);
-            addlistener(app.OuterShell, 'OpenPluginManager', @(h,e)app.onOpenPluginManager);
-            addlistener(app.OuterShell, 'OpenLogger',        @(h,e)app.onOpenLogger);
-            addlistener(app.OuterShell, 'Close_Request',     @(h,e)app.onClose(e));
-            addlistener(app.OuterShell, 'Open_Request',      @(h,e)app.onOpen);
-            addlistener(app.OuterShell, 'Exit_Request',      @(h,e)app.onExit);
+
+            % Construct the view. The app (i.e. controller) is supplied to the View
+            % constructor for the purpose of connecting listeners. The app
+            % should not (and is not) stored by the View.
+            if useUI
+                app.OuterShell = QSPViewerNew.Application.OuterShell_UIFigureBased(app.Title, app);
+                % Listen to these events from the View.
+                addlistener(app.OuterShell, 'New_Request',       @(h,e)app.createNewSession);
+                addlistener(app.OuterShell, 'AddTreeNode',       @(h,e)app.onAddItemNew(e));
+                addlistener(app.OuterShell, 'OpenModelManager',  @(h,e)app.onOpenModelManager);
+                addlistener(app.OuterShell, 'OpenPluginManager', @(h,e)app.onOpenPluginManager);
+                addlistener(app.OuterShell, 'OpenLogger',        @(h,e)app.onOpenLogger);
+                addlistener(app.OuterShell, 'Close_Request',     @(h,e)app.onClose(e));
+                addlistener(app.OuterShell, 'Open_Request',      @(h,e)app.onOpen);
+                addlistener(app.OuterShell, 'Exit_Request',      @(h,e)app.onExit);
+            end
 
             % load a session for rapid devel.
             %app.forDebuggingInit;
@@ -692,6 +704,8 @@ classdef ApplicationUI < handle
 %             end
         end
 
+        % TODOpax: rename this method to just deleteItem. No View
+        % implications.
         function onDeleteSelectedItem(app,activeSession,activeNode)
             if isempty(activeSession)
                 activeSession = app.SelectedSession;
@@ -706,6 +720,8 @@ classdef ApplicationUI < handle
             app.markDirty(activeSession);
         end
 
+        % TODOpax: rename this method to just deleteItem. No View
+        % implications.
         function onRestoreSelectedItem(app,activeNode,activeSession)
             if isempty(activeSession)
                 activeSession = app.SelectedSession;
@@ -1122,11 +1138,10 @@ classdef ApplicationUI < handle
 
                 % Attach listener to plugin table property to update context
                 % menus
-                app.PluginTableDataListener = addlistener(app.PluginManager, 'PluginTableData', ...
-                    'PostSet', @(h,e) onPluginTableChanged(app));
+                app.PluginTableDataListener = addlistener(app.PluginManager, 'PluginTableData', 'PostSet', @(h,e) onPluginTableChanged(app));
 
             catch ME
-                uialert(app.UIFigure, ME.message, 'Error opening plugin manager');
+                uialert(app.getUIFigure, ME.message, 'Error opening plugin manager');
             end
         end
 
@@ -1232,13 +1247,11 @@ classdef ApplicationUI < handle
             end
         end
     end
-
-    % %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %%
+   
     % Methods for interacting with the active sessions
-    % %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %%
     methods (Access = private)
 
-        function StatusTF = saveSession(app,sessionIdx,saveAsTF)
+        function StatusTF = saveSession(app, sessionIdx, saveAsTF)
             %Retrieve session info
             Session = app.Sessions(sessionIdx);
             IsSessionDirty = app.IsDirty(sessionIdx);
@@ -1318,7 +1331,7 @@ classdef ApplicationUI < handle
 
         end
 
-        function StatusTF = saveSessionToFile(app,session,filePath)
+        function StatusTF = saveSessionToFile(app, session, filePath)
             StatusTF = true;
             try
                 s.Session = session;
@@ -1367,6 +1380,7 @@ classdef ApplicationUI < handle
             
             % Add the session to the app
             app.Sessions(end+1) = Session;
+            app.IsDirty(end+1)  = false;
 
             % Need a name for the session. If there is no name on it the
             % controller will assign a name.
@@ -1376,14 +1390,13 @@ classdef ApplicationUI < handle
                   Session.setSessionName(Session.Name); % why do we have two Names?!
             end
 
-            % Tell the View we have a new session.
+            % Notify new session.
             eventData = QSPViewerNew.Application.NewSessionEventData(Session, app.buildingBlockTypes, app.functionalityTypes);
             notify(app, 'NewSession', eventData);            
 
             % Start timer
             initializeTimer(Session);
         end
-
 
         function createFolders(app, Session)
             allFolders = Session.Settings.Folder;
@@ -1564,13 +1577,15 @@ classdef ApplicationUI < handle
 
                     %Edit the app properties to reflect a new loaded session was
                     %added
-                    idxNew = app.NumSessions + 1;
-                    app.SessionPaths{end+1} = fullFilePath;
-                    app.IsDirty(end+1) = false;
-                    app.SelectedSessionIdx = idxNew;
-                    app.addRecentSessionPath(fullFilePath);
+                    % This all should be happening in createNewSession.
+%                     idxNew = app.NumSessions + 1;
+%                     app.SessionPaths{end+1} = fullFilePath;                    
+%                     app.SelectedSessionIdx = idxNew;
+%                     app.addRecentSessionPath(fullFilePath);
                 end
             end
+            
+            % TODOpax: I don't think we need this.
             app.refresh();
 
             % Todopax deal with plugin manager separately
@@ -1656,7 +1671,7 @@ classdef ApplicationUI < handle
             %             app.redrawRecentFiles() TODOpax
         end
 
-        function closeSession(app,sessionIdx)
+        function closeSession(app, sessionIdx)
             
             % Delete timer
             deleteTimer(app.Sessions(sessionIdx));
@@ -1671,10 +1686,10 @@ classdef ApplicationUI < handle
             app.Sessions(sessionIdx) = [];
 
             %Update paths and dirtyTF
-%             app.SessionPaths(sessionIdx) = []; % TODOpax
-%            app.IsDirty(sessionIdx) = [];
+            % app.SessionPaths(sessionIdx) = []; % TODOpax
+            app.IsDirty(sessionIdx) = [];
 
-% Send an event to let the plugin manager know.
+            % Send an event to let the plugin manager know.
 %             % update sessions in plugin manager if it is open
 %             if isvalid(app.PluginManager)
 %                 app.PluginManager.Sessions = app.Sessions;
@@ -1708,9 +1723,7 @@ classdef ApplicationUI < handle
         end
     end
 
-    % %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %%
     % Methods for drawing UI components.
-    % %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %%
     methods (Access = public)
 
         %TODOpax. What is this trying to do?
@@ -1826,13 +1839,12 @@ classdef ApplicationUI < handle
         end
 
     end
-
-    % %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %
-    %methods for toggling interactivity and updating the view
-    % %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %
+    
+    % Methods for toggling interactivity and updating the view
     methods (Access = private)
 
-        function markDirty(app,session)
+        function markDirty(app, session)
+            error("ApplicationUI:markDirty");
             %This function can take an empty Session, a session index, or a
             %session object
 
@@ -1847,6 +1859,7 @@ classdef ApplicationUI < handle
         end
 
         function markClean(app,session)
+            error("ApplicationUI:markClean");
             %This function can take an empty Session, a session index, or a
             %session object
 
@@ -1881,6 +1894,7 @@ classdef ApplicationUI < handle
         end
 
         function redrawRecentFiles(app)
+            error("ApplicationUI:redrawRecentFiles");
             % Construct menu items for each path in RecentSessionPaths.
 
             % Delete the old menus
@@ -2518,10 +2532,8 @@ classdef ApplicationUI < handle
         end
 
     end
-
-    % %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %%
-    %Static Methods
-    % %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %%
+    
+    % Static Methods  
     methods(Static)
 
         function answer = tf2onoff(TorF)
@@ -2570,14 +2582,9 @@ classdef ApplicationUI < handle
                 feval(functionArray{i},h,e)
             end
         end
-
-
-
     end
 
-    % %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %%
-    %Get/Set Methods
-    % %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %%
+    % Get/Set Methods  
     methods
 
         function value = get.SessionNames(app)
@@ -2677,13 +2684,61 @@ classdef ApplicationUI < handle
             end
         end
 
-        function setCurrentSessionDirty(app)
-            app.IsDirty(app.SelectedSessionIdx) = true;
+
+        function set.IsDirty(app, value)
+            % This approach is a bit fragile but avoids building a new
+            % associative array to hold sessions and their other metadata
+            % (e.g. a table). See if we can use this for the time being.
+            arguments
+                app
+                value (:,1) logical
+            end
+
+            cleanSessions = [];
+            dirtySessions = [];
+
+            if numel(app.IsDirty) > numel(value)
+                % A session was removed, nothing needed here.
+            elseif numel(app.IsDirty) < numel(value)
+                % A session was added and its the last entry.
+                if value(end) == 1
+                    assert(numel(app.Sessions) == numel(value));
+                    dirtySessions = app.Sessions(end);
+                end
+            else
+                assert(numel(app.Sessions) == numel(app.IsDirty));
+
+                % Determine which session changed.
+                change = value - app.IsDirty;
+
+                % -1 values are now clean
+                cleanSessions = app.Sessions(change == -1);
+                
+                % +1 are values that are now dirty
+                dirtySessions = app.Sessions(change == 1);
+            end
+
+            % Finally store the new value
+            app.IsDirty = value;
+
+            % Notify the dirty state change if any.
+            if ~isempty(cleanSessions)
+                notify(app, 'CleanSessions'); % todo must pass in the sessions
+            end
+
+            if ~isempty(dirtySessions)
+                notify(app, 'DirtySessions'); % todo must pass in the sessions
+            end
         end
 
-        function setCurrentSessionClean(app)
-            app.IsDirty(app.SelectedSessionIdx) = true;
-        end
+        % TODOpax: not useful and not used much.
+%         function setCurrentSessionDirty(app)
+%             app.IsDirty(app.SelectedSessionIdx) = true;
+%         end
+% 
+%         function setCurrentSessionClean(app)
+%             app.IsDirty(app.SelectedSessionIdx) = true;
+%         end
 
         function value = getUIFigure(app) %todopax rename getViewTopElement
             % GETUIFIGURE  For the purpose of showing alerts and confirm
@@ -2691,7 +2746,5 @@ classdef ApplicationUI < handle
             % i.e. UIFigure.            
             value = app.OuterShell.UIFigure;
         end
-
     end
-
 end
