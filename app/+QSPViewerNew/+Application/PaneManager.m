@@ -2,7 +2,7 @@ classdef PaneManager < handle
     properties(Access = private)
         paneContainer (1,1) struct
         parent
-        parentApp %todopax nice if removed.
+        parentApp %todopax nice if removed, only here to pass into panes.
         activePane
         paneToolbar
     end
@@ -25,17 +25,20 @@ classdef PaneManager < handle
             end
 
             % Nodes purely on the UI side. E.g., summary nodes.
+            % Note that since these types are purely in the UI they do not
+            % appear in the itemTypes and should not.
             obj.paneContainer.FunctionalitySummary = [];
+            obj.paneContainer.Session              = []; %todopax: should be called SessionSummary
 
-            obj.parent = parent;
+            obj.parent    = parent;
             obj.parentApp = parentApp;
 
             % Don't like that panetoolbar decides where to put itself. Fix this by standardizing to passing in the row, column.
             obj.paneToolbar = QSPViewerNew.Application.PaneToolbar(obj.parent); 
             
-            addlistener(obj.paneToolbar, "Run", @(h,e)obj.onRun(h,e));
-            addlistener(obj.paneToolbar, "Edit", @(h,e)obj.onEdit(h,e));
-            addlistener(obj.paneToolbar, "Summary", @(h,e)obj.onSummary(h,e));
+            addlistener(obj.paneToolbar, "Run",       @(h,e)obj.onRun);
+            addlistener(obj.paneToolbar, "Edit",      @(h,e)obj.onEdit(h,e));
+            addlistener(obj.paneToolbar, "Summary",   @(h,e)obj.onSummary(h,e));
             addlistener(obj.paneToolbar, "Visualize", @(h,e)obj.onVisualize(h,e));
         end
 
@@ -59,7 +62,7 @@ classdef PaneManager < handle
                     pane = obj.paneContainer.(type);
                 end
 
-                pane.("attachNew"+type)(nodeData);
+                pane.("attachNew" + type)(nodeData);
 
                 % Configure the Toolbar given the active pane.
                 obj.paneToolbar.mode = pane.toolbarMode;
@@ -86,7 +89,7 @@ classdef PaneManager < handle
             addlistener(newPane, "Alert", @(h,e)obj.onAlert(h,e));            
         end
                
-        function onRun(obj, ~, ~)                                    
+        function onRun(obj)                                    
             obj.activePane.runModel();
         end
 

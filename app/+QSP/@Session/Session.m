@@ -545,6 +545,8 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
             
         end %function
         
+        % todopax replace with a set method so that all methods call this
+        % function.
         function setSessionName(obj,SessionName)
             updateLoggerName(obj, SessionName)
             obj.SessionName = SessionName;

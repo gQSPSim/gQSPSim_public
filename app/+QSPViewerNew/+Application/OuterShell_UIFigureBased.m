@@ -304,6 +304,8 @@ classdef OuterShell_UIFigureBased < handle
         end
 
         function onNewTreeItemAdded(obj, eventData)
+            % todopax: there is abug here add two sessions and add a Task
+            % to one. the assertion below will fail.
             parent = findobj(obj.TreeCtrl, 'Tag', eventData.itemType);
             assert(numel(parent) == 1);
             obj.createTreeNode(parent, eventData.newItem, eventData.newItem.Name, obj.iconList.(eventData.itemType), eventData.itemType);

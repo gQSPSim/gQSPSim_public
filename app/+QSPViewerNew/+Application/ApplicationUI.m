@@ -41,8 +41,7 @@ classdef ApplicationUI < handle
         AllowMultipleSessions = true;
         FileSpec ={'*.mat','MATLAB MAT File'}
         SelectedSessionIdx = double.empty(0,1)
-        SessionPaths = cell.empty(0,1) % What is this? TODOpax
-%         IsDirty = logical.empty(0,1)
+        SessionPaths (:,1) string = string.empty(0,1) % Stores the fullPath of the Session on disk (if on disk)
         RecentSessionPaths = cell.empty(0,1)
         LastFolder = pwd
         ActivePane % TODOpax remove this..
@@ -143,7 +142,7 @@ classdef ApplicationUI < handle
                 addlistener(app.OuterShell, 'OpenModelManager',  @(h,e)app.onOpenModelManager);
                 addlistener(app.OuterShell, 'OpenPluginManager', @(h,e)app.onOpenPluginManager);
                 addlistener(app.OuterShell, 'OpenLogger',        @(h,e)app.onOpenLogger);
-                addlistener(app.OuterShell, 'Close_Request',     @(h,e)app.onClose(e));
+                addlistener(app.OuterShell, 'Close_Request',     @(h,e)app.onCloseRequest(e));
                 addlistener(app.OuterShell, 'Open_Request',      @(h,e)app.onOpen);
                 addlistener(app.OuterShell, 'Exit_Request',      @(h,e)app.onExit);
             end
@@ -397,6 +396,7 @@ classdef ApplicationUI < handle
 
         % todo, move to OuterShell
         function createContextMenu(app,Node,Type)
+            error("ApplicationUI:createContextMenu");
             %Determine if this ContextMenu is from QSP
             Index = find(strcmpi(Type,app.ItemTypes(:,1)));
 
@@ -633,17 +633,19 @@ classdef ApplicationUI < handle
             end
         end
 
-        function onClose(app, eventData)
+        function onCloseRequest(app, eventData)
+            % ONCLOSEREQUEST  Close a session. If it is dirty ask to save.
             activeSession = eventData.Session;
             assert(~isempty(activeSession));
-
             sessionTF = activeSession == app.Sessions;            
+            assert(sum(sessionTF) == 1);           
+            sessionIndex = find(sessionTF);
 
-            assert(sum(sessionTF) == 1);            
-
-            app.closeSession(find(sessionTF));
-
-            notify(app, "Model_SessionClosed", QSPViewerNew.Application.Session_EventData(activeSession));
+            if app.IsDirty(sessionIndex)
+                app.savePromptBeforeClose(sessionIndex);
+            else
+                app.closeSession(sessionIndex);
+            end
         end
 
         function onSave(app,activeSession)
@@ -759,8 +761,8 @@ classdef ApplicationUI < handle
             itemType = eventData.type;
 
             % The Model should provide a way to add to its structure, but
-            % that does not appear to be the case right now so handle it
-            % here at the expense of some technical debt. If the model were
+            % that is not the case right now so handle it here at the 
+            % expense of some technical debt. If the model were
             % to have this add functionality then it would be the one
             % notifying the controller (or the view) about the addition.
             % In addition, the model also does not support default names.
@@ -771,14 +773,18 @@ classdef ApplicationUI < handle
 
             if any(buildingBlockType_TF)
                 newName = newItemPrefix + app.buildingBlockTypes(buildingBlockType_TF, 1);
-                newIndex = sum(string({session.Settings.(itemType).Name}).contains(newName)) + 1;
-                newName = newName + "_" + newIndex;                
+                currentIndex = sum(string({session.Settings.(itemType).Name}).contains(newName));
+                if currentIndex > 0                    
+                    newName = newName + "_" + currentIndex;                
+                end
                 newItem = QSP.(itemType)('Name', char(newName));
                 session.Settings.(itemType)(end+1) = newItem;
             elseif any(functionalityType_TF)
                 newName = char(newItemPrefix + app.functionalityTypes(functionalityType_TF, 1));
-                newIndex = sum(string({session.(itemType).Name}).contains(newName)) + 1;
-                newName = newName + "_" + newIndex;
+                currentIndex = sum(string({session.(itemType).Name}).contains(newName));
+                if currentIndex > 0                     
+                    newName = newName + "_" + currentIndex;
+                end
                 newItem = QSP.(itemType)('Name', char(newName));
                 session.(itemType)(end+1) = newItem;
             end
@@ -787,7 +793,9 @@ classdef ApplicationUI < handle
             % a lot of code depends on this now.
             % TODOpax: remove this from the model.
             newItem.Session = session;
-
+                        
+            app.IsDirty(app.Sessions == session) = true;
+            
             notify(app, 'Model_NewItemAdded', QSPViewerNew.Application.NewItemAddedEventData(newItem, itemType)); % todopax would be nice if we don't need itemType
         end
         
@@ -1251,19 +1259,27 @@ classdef ApplicationUI < handle
     % Methods for interacting with the active sessions
     methods (Access = private)
 
+        % TODOpax: cleanup this function.
         function StatusTF = saveSession(app, sessionIdx, saveAsTF)
+            arguments
+                app
+                sessionIdx (1,1) double
+                saveAsTF   (1,1) logical
+            end
+
             %Retrieve session info
             Session = app.Sessions(sessionIdx);
-            IsSessionDirty = app.IsDirty(sessionIdx);
-            OldSessionPath = app.SessionPaths{sessionIdx};
+%             IsSessionDirty = app.IsDirty(sessionIdx);
+            OldSessionPath = app.SessionPaths(sessionIdx);
             StatusTF = false;
 
             %Get a valid file location to start in
             ThisFile = OldSessionPath;
             IsNewFile = ~exist(ThisFile,'file');
 
-            %ValidName. File must be of type QSP.mat
-            ValidFileType = length(ThisFile)>8 && strcmpi(ThisFile(end-6:end),'qsp.mat');
+            % Check for a valid extension.             
+            ValidFileExtension = ThisFile.endsWith(".qsp.mat");
+            ValidFileType = ValidFileExtension;
 
             if isempty(fileparts(ThisFile))
                 ThisFile = fullfile(app.LastFolder,ThisFile);
@@ -1282,8 +1298,7 @@ classdef ApplicationUI < handle
                 ThisFile = fullfile(PathName,FileName);
 
                 %Get file location using UI
-                [FileName,PathName,FilterIndex] = uiputfile(app.FileSpec, ...
-                    'Save as',ThisFile);
+                [FileName,PathName,FilterIndex] = uiputfile(app.FileSpec, 'Save as', ThisFile);
 
                 %If uiputfile was a success
                 if ~isequal(FileName,0)
@@ -1316,16 +1331,17 @@ classdef ApplicationUI < handle
 
             % Try save. If it returns ok, then update ui states.
             % Otherwise, return.
-            if PutFileSuccess
-                app.SessionPaths{sessionIdx} = ThisFile;
-                app.IsDirty(sessionIdx) = false;
+            if PutFileSuccess                
+
                 if  app.saveSessionToFile(Session,ThisFile)
                     app.addRecentSessionPath(ThisFile);
-                    app.refresh();
+%                     app.refresh();
                     StatusTF = true;
-                else
-                    app.IsDirty(sessionIdx) = IsSessionDirty;
-                    app.SessionPaths{sessionIdx} = CurrentSessionPath;
+                    app.SessionPaths(sessionIdx) = ThisFile;
+                    app.IsDirty(sessionIdx) = false;
+%                 else
+%                     app.IsDirty(sessionIdx) = IsSessionDirty;
+%                     app.SessionPaths{sessionIdx} = CurrentSessionPath;
                 end
             end
 
@@ -1370,24 +1386,32 @@ classdef ApplicationUI < handle
 
         end
         
-        function createNewSession(app, Session)
+        function createNewSession(app, Session, filePath)
             % CREATENEWSESSION  Adds a session to the controller. If none
             % supplied a new one is built.
             arguments
                 app
-                Session QSP.Session = QSP.Session()
+                Session (1,1)  QSP.Session = QSP.Session()
+                filePath (1,1) string      = "";
             end
             
             % Add the session to the app
             app.Sessions(end+1) = Session;
             app.IsDirty(end+1)  = false;
+            app.SessionPaths    = filePath;
 
             % Need a name for the session. If there is no name on it the
             % controller will assign a name.
             if isempty(Session.Name)
-%                 app.initializeName(Session);
-                  Session.Name = 'untitled';
-                  Session.setSessionName(Session.Name); % why do we have two Names?!
+                  existingNames = string({app.Sessions.Name});
+                  nextIndex = sum(existingNames.startsWith("untitled"));
+                  if nextIndex == 0
+                      newName = char("untitled");
+                  else
+                      newName = char("untitled_" + nextIndex);
+                  end
+                  Session.Name = newName;
+                  Session.setSessionName(Session.Name); % why do we have two Names?! bc set was done incorrectly.
             end
 
             % Notify new session.
@@ -1573,7 +1597,7 @@ classdef ApplicationUI < handle
                         end
                     end
 
-                    app.createNewSession(Session);
+                    app.createNewSession(Session, fullFilePath);
 
                     %Edit the app properties to reflect a new loaded session was
                     %added
@@ -1662,32 +1686,35 @@ classdef ApplicationUI < handle
             app.RecentSessionPaths(isInRecent) = [];
 
             %Add the File to the top of the list
-            app.RecentSessionPaths = vertcat(newPath,app.RecentSessionPaths);
+            % TODOpax.. come enable this.. types are now different.
+%             app.RecentSessionPaths = vertcat(newPath,app.RecentSessionPaths);
 
             %Crop the 9 most recent entries;
+            % TODOpax: and this.
             app.RecentSessionPaths(9:end) = []; %todopax parameterize this 9
 
-            %redraw this context menu
-            %             app.redrawRecentFiles() TODOpax
+            % NOTIFY
         end
 
-        function closeSession(app, sessionIdx)
+        function closeSession(app, sessionIndex)
+            % CLOSESESSION  Closes the session with index sessionIndex by
+            % removing it from the controller's session list. 
+            % Notifies: Model_SessionClosed            
             
+            closingSession = app.Sessions(sessionIndex);
+
             % Delete timer
-            deleteTimer(app.Sessions(sessionIdx));
+            deleteTimer(closingSession);
 
             % remove the session's UDF from the path
-            app.Sessions(sessionIdx).removeUDF();
-
-            % Delete the session's tree node
-            delete(app.Sessions(sessionIdx).TreeNode);
+            closingSession.removeUDF();
 
             % Remove the session object
-            app.Sessions(sessionIdx) = [];
+            app.Sessions(sessionIndex) = [];
 
-            %Update paths and dirtyTF
+            % Update paths and dirtyTF
             % app.SessionPaths(sessionIdx) = []; % TODOpax
-            app.IsDirty(sessionIdx) = [];
+            app.IsDirty(sessionIndex) = [];
 
             % Send an event to let the plugin manager know.
 %             % update sessions in plugin manager if it is open
@@ -1695,30 +1722,27 @@ classdef ApplicationUI < handle
 %                 app.PluginManager.Sessions = app.Sessions;
 %             end
 
-
-            %update app
-            % TODOpax: Why do we need this?
-            %             app.refresh();
+            notify(app, "Model_SessionClosed", QSPViewerNew.Application.Session_EventData(closingSession));            
         end
 
-        function CancelTF = savePromptBeforeClose(app,sessionIdx)
-            %Ask user if they would like to save
-            Prompt = sprintf('Save changes to %s?', app.SessionNames{sessionIdx});
-            Result = uiconfirm(app.UIFigure,Prompt,'Save Changes','Options',{'Yes','No','Cancel'},'DefaultOption','Cancel');
+        function cancelTF = savePromptBeforeClose(app, sessionIndex)
+            %Ask user if they would like to save            
+            prompt = "Save changes to " + app.Sessions(sessionIndex).Name + "?";
+            Result = uiconfirm(app.getUIFigure, prompt, 'Save Changes','Options',{'Yes','No','Cancel'},'DefaultOption','Cancel');
 
-            CancelTF = false;
+            cancelTF = false;
             switch Result
                 case 'Yes'
-                    SaveOK = app.saveSession(sessionIdx,false);
-                    if SaveOK
-                        app.closeSession(sessionIdx);
+                    savedTF = app.saveSession(sessionIndex, false);
+                    if savedTF
+                        app.closeSession(sessionIndex);
                     else
-                        CancelTF = true;
+                        cancelTF = true;
                     end
                 case 'No'
-                    app.closeSession(sessionIdx);
+                    app.closeSession(sessionIndex);
                 case 'Cancel'
-                    CancelTF = true;
+                    cancelTF = true;
             end
         end
     end
@@ -2730,15 +2754,6 @@ classdef ApplicationUI < handle
                 notify(app, 'DirtySessions', QSPViewerNew.Application.Session_EventData(dirtySessions));
             end
         end
-
-        % TODOpax: not useful and not used much.
-%         function setCurrentSessionDirty(app)
-%             app.IsDirty(app.SelectedSessionIdx) = true;
-%         end
-% 
-%         function setCurrentSessionClean(app)
-%             app.IsDirty(app.SelectedSessionIdx) = true;
-%         end
 
         function value = getUIFigure(app) %todopax rename getViewTopElement
             % GETUIFIGURE  For the purpose of showing alerts and confirm
