@@ -1,6 +1,6 @@
 classdef Session_EventData < event.EventData
     properties
-        Session (1,1) QSP.Session        
+        Session (:,1) QSP.Session        
     end
 
     methods

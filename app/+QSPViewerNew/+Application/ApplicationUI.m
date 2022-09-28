@@ -2723,11 +2723,11 @@ classdef ApplicationUI < handle
 
             % Notify the dirty state change if any.
             if ~isempty(cleanSessions)
-                notify(app, 'CleanSessions'); % todo must pass in the sessions
+                notify(app, 'CleanSessions', QSPViewerNew.Application.Session_EventData(cleanSessions));
             end
 
             if ~isempty(dirtySessions)
-                notify(app, 'DirtySessions'); % todo must pass in the sessions
+                notify(app, 'DirtySessions', QSPViewerNew.Application.Session_EventData(dirtySessions));
             end
         end
 

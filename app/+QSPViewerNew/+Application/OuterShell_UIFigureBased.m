@@ -77,8 +77,8 @@ classdef OuterShell_UIFigureBased < handle
             addlistener(app, 'NewSession',          @(h,e)obj.onNewSession(e));
             addlistener(app, 'Model_NewItemAdded',  @(h,e)obj.onNewTreeItemAdded(e));
             addlistener(app, 'Model_SessionClosed', @(h,e)obj.onCloseSession(e)); %todopax need better names for these methods that are responding to app messages.
-            addlistener(app, 'DirtySessions',       @(h,e)obj.onDirtySessions);
-            addlistener(app, 'CleanSessions',       @(h,e)obj.onCleanSessions);
+            addlistener(app, 'DirtySessions',       @(h,e)obj.onDirtySessions(e));
+            addlistener(app, 'CleanSessions',       @(h,e)obj.onCleanSessions(e));
         end
 
         function delete(obj)
@@ -369,11 +369,19 @@ classdef OuterShell_UIFigureBased < handle
             delete(obj.TreeCtrl.Children(closeSessionTF));
         end
 
-        function onDirtySessions(obj)
+        function onDirtySessions(obj, eventData)
+            sessionNodeIndexTF = [obj.TreeCtrl.Children.NodeData] == eventData.Session;
+            sessionNode = obj.TreeCtrl.Children(sessionNodeIndexTF);
+            
+            sessionNode.Text = sessionNode.Text + " *";
             disp('Mark a Session dirty');
         end
 
-        function onCleanSessions(obj)
+        function onCleanSessions(obj, eventData)
+            sessionNodeIndexTF = [obj.TreeCtrl.Children.NodeData] == eventData.Session;
+            sessionNode = obj.TreeCtrl.Children(sessionNodeIndexTF);
+
+            sessionNode.Text = string(sessionNode.Text).extractBefore(" *");
             disp("Mark a Session clean");
         end
 
