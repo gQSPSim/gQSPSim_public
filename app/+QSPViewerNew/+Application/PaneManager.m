@@ -89,7 +89,7 @@ classdef PaneManager < handle
             addlistener(newPane, "Alert", @(h,e)obj.onAlert(h,e));            
         end
                
-        function onRun(obj)                                    
+        function onRun(obj)
             obj.activePane.runModel();
         end
 
@@ -107,6 +107,15 @@ classdef PaneManager < handle
 
         function onAlert(obj, ~, eventData)
             notify(obj, "Alert", eventData);
+        end
+        
+        function closeActivePane(obj)
+            % this could be done via events or just a function call. 
+            % opting for function call for now since this is all inside the
+            % view.
+            if ~isempty(obj.activePane)
+                obj.activePane.hideThisPane();
+            end
         end
     end
 end

@@ -1,13 +1,13 @@
 classdef ApplicationUI < handle
-    % ApplicationUI - This is the Controller class for gQSPSim.    
-    
+    % ApplicationUI - This is the Controller class for gQSPSim.
+
     %   Copyright 2020 The MathWorks, Inc.
 
     properties
-        Sessions (1,:) QSP.Session = QSP.Session.empty(0,1)        
+        Sessions (1,:) QSP.Session = QSP.Session.empty(0,1)
         Title
         SelectedNodePath (1,1) string
-        ItemTypes cell       
+        ItemTypes cell
     end
 
     properties(Transient)
@@ -25,7 +25,7 @@ classdef ApplicationUI < handle
             'Target Statistics',                'VirtualPopulationGenerationData'
             'Virtual Subject(s)',               'VirtualPopulation'
             };
-        
+
         functionalityTypes = {
             'Simulation',                       'Simulation'
             'Optimization',                     'Optimization'
@@ -50,7 +50,7 @@ classdef ApplicationUI < handle
         TypeStr %todopax remove.
         WindowButtonDownCallbacks = {}; % TODOpax remove this
         WindowButtonUpCallbacks = {}; % TODOpax remove this
-       
+
         OuterShell QSPViewerNew.Application.OuterShell_UIFigureBased
         ModelManagerDialog ModelManager
         LoggerDialog QSPViewerNew.Dialogs.LoggerDialog
@@ -67,14 +67,14 @@ classdef ApplicationUI < handle
     end
 
     properties (Access = public)
-%         paneGridLayout (1,1) matlab.ui.container.GridLayout
-%         paneHolder     (1,1) struct
-        
-%         SessionExplorerPanel     matlab.ui.container.Panel
-%         SessionExplorerGrid      matlab.ui.container.GridLayout
-%         TreeRoot                 matlab.ui.container.Tree %TODOpax remove this.. moved to OuterShell.
-%         TreeMenu
-%         OpenRecentMenuArray
+        %         paneGridLayout (1,1) matlab.ui.container.GridLayout
+        %         paneHolder     (1,1) struct
+
+        %         SessionExplorerPanel     matlab.ui.container.Panel
+        %         SessionExplorerGrid      matlab.ui.container.GridLayout
+        %         TreeRoot                 matlab.ui.container.Tree %TODOpax remove this.. moved to OuterShell.
+        %         TreeMenu
+        %         OpenRecentMenuArray
     end
 
     properties (SetAccess = private, SetObservable, AbortSet)
@@ -93,6 +93,8 @@ classdef ApplicationUI < handle
         NewSession
         Model_NewItemAdded
         Model_SessionClosed
+        Model_ItemDeleted
+        Model_ItemRestored
 
         CleanSessions
         DirtySessions
@@ -140,21 +142,19 @@ classdef ApplicationUI < handle
                 addlistener(app.OuterShell, 'OpenModelManager',  @(h,e)app.onOpenModelManager);
                 addlistener(app.OuterShell, 'OpenPluginManager', @(h,e)app.onOpenPluginManager);
                 addlistener(app.OuterShell, 'OpenLogger',        @(h,e)app.onOpenLogger);
-                
+
                 addlistener(app.OuterShell, 'Close_Request',     @(h,e)app.onCloseRequest(e));
                 addlistener(app.OuterShell, 'Open_Request',      @(h,e)app.onOpenRequest);
                 addlistener(app.OuterShell, 'Exit_Request',      @(h,e)app.onExit);
                 addlistener(app.OuterShell, 'Save_Request',      @(h,e)app.onSaveRequest(e));
                 addlistener(app.OuterShell, 'SaveAs_Request',    @(h,e)app.onSaveRequest(e));
-            end
 
-            % load a session for rapid devel.
-            %app.forDebuggingInit;
+                addlistener(app.OuterShell, 'Delete_Request',    @(h,e)app.onDeleteItem(e));
+                addlistener(app.OuterShell, 'Restore_Request',   @(h,e)app.onRestoreItem(e));
+            end
         end
 
-        function forDebuggingInit(app, h, e)
-            app.IsConstructed = true;
-
+        function forDebuggingInit(app)            
             app.loadSession('tests/baselines/CaseStudy_TMDD_complete/CaseStudy1_TMDD_pax.qsp.mat')
         end
 
@@ -624,7 +624,7 @@ classdef ApplicationUI < handle
                         app.LastFolder = PathName;
                         fullFilePath = fullfile(PathName,FileName);
                         app.loadSession(fullFilePath);
-                    case 'cell'                        
+                    case 'cell'
                         app.LastFolder = PathName;
                         for fileIndex = 1:numel(FileName)
                             fullFilePath = fullfile(PathName,FileName{fileIndex});
@@ -649,10 +649,10 @@ classdef ApplicationUI < handle
             % OnSaveRequest  Save the supplied session. This function
             % handles both save and saveas. This is done in the saveSession
             % method.
-            
+
             % TODOpax: need to think about what handling is needed if
             % statusTF is false.
-            
+
             sessionIndex = app.getSessionIndex(eventData.Session);
 
             if eventData.EventName == "Save_Request"
@@ -662,13 +662,13 @@ classdef ApplicationUI < handle
             end
 
             statusTF = app.saveSession(sessionIndex, requestSaveAs);
-            
+
             if statusTF
-                app.IsDirty(sessionIndex) = false;                
+                app.IsDirty(sessionIndex) = false;
             end
         end
 
-        function onExit(app)            
+        function onExit(app)
             cancelTF = false;
 
             for i = 1:numel(app.Sessions)
@@ -684,49 +684,38 @@ classdef ApplicationUI < handle
                 app.delete();
             end
 
-%             while ~CancelTF && (~isempty(app.Sessions))
-%                 if app.IsDirty(1)
-%                     CancelTF = app.savePromptBeforeClose(1);
-%                 else
-%                     app.closeSession(1)
-%                 end
-%             end
-% 
-%             if ~CancelTF
-%                 app.delete();
-%             end
+            %             while ~CancelTF && (~isempty(app.Sessions))
+            %                 if app.IsDirty(1)
+            %                     CancelTF = app.savePromptBeforeClose(1);
+            %                 else
+            %                     app.closeSession(1)
+            %                 end
+            %             end
+            %
+            %             if ~CancelTF
+            %                 app.delete();
+            %             end
         end
 
-        % TODOpax: rename this method to just deleteItem. No View
-        % implications.
-        function onDeleteSelectedItem(app,activeSession,activeNode)
-            if isempty(activeSession)
-                activeSession = app.SelectedSession;
-            end
+        function onDeleteItem(app, eventData)
+            activeSession = eventData.Session;
 
-            activeNodes = [activeNode; app.TreeRoot.SelectedNodes];
-            activeNodes = unique(activeNodes);
+            activeNodes = eventData.Items;
 
             for i = 1:length(activeNodes)
-                app.deleteNode(activeNodes(i),activeSession)
+                app.deleteNode(activeNodes(i), activeSession);
             end
-            app.markDirty(activeSession);
+
         end
 
-        % TODOpax: rename this method to just deleteItem. No View
-        % implications.
-        function onRestoreSelectedItem(app,activeNode,activeSession)
-            if isempty(activeSession)
-                activeSession = app.SelectedSession;
-            end
-
-            activeNodes = [activeNode; app.TreeRoot.SelectedNodes];
-            activeNodes = unique(activeNodes);
+        function onRestoreItem(app, eventData)
+            activeSession = eventData.Session;
+            
+            activeNodes = eventData.Items;
 
             for i = 1:length(activeNodes)
-                app.restoreNode(activeNodes(i),activeSession)
+                app.restoreNode(activeNodes(i), activeSession)
             end
-            app.markDirty(activeSession);
         end
 
         function onOpenModelManager(app,~,~)
@@ -752,7 +741,7 @@ classdef ApplicationUI < handle
             itemType = eventData.type;
 
             % The Model should provide a way to add to its structure, but
-            % that is not the case right now so handle it here at the 
+            % that is not the case right now so handle it here at the
             % expense of some technical debt. If the model were
             % to have this add functionality then it would be the one
             % notifying the controller (or the view) about the addition.
@@ -765,15 +754,15 @@ classdef ApplicationUI < handle
             if any(buildingBlockType_TF)
                 newName = newItemPrefix + app.buildingBlockTypes(buildingBlockType_TF, 1);
                 currentIndex = sum(string({session.Settings.(itemType).Name}).contains(newName));
-                if currentIndex > 0                    
-                    newName = newName + "_" + currentIndex;                
+                if currentIndex > 0
+                    newName = newName + "_" + currentIndex;
                 end
                 newItem = QSP.(itemType)('Name', char(newName));
                 session.Settings.(itemType)(end+1) = newItem;
             elseif any(functionalityType_TF)
                 newName = char(newItemPrefix + app.functionalityTypes(functionalityType_TF, 1));
                 currentIndex = sum(string({session.(itemType).Name}).contains(newName));
-                if currentIndex > 0                     
+                if currentIndex > 0
                     newName = newName + "_" + currentIndex;
                 end
                 newItem = QSP.(itemType)('Name', char(newName));
@@ -784,12 +773,12 @@ classdef ApplicationUI < handle
             % a lot of code depends on this now.
             % TODOpax: remove this from the model.
             newItem.Session = session;
-                        
+
             app.IsDirty(app.Sessions == session) = true;
-            
+
             notify(app, 'Model_NewItemAdded', QSPViewerNew.Application.NewItemAddedEventData(newItem, itemType)); % todopax would be nice if we don't need itemType
         end
-        
+
         function onAddItem(app,~,thisSession,itemType)
 
             error('ApplicationUI:onAddItem called.');
@@ -1246,7 +1235,7 @@ classdef ApplicationUI < handle
             end
         end
     end
-   
+
     % Methods for interacting with the active sessions
     methods (Access = private)
 
@@ -1267,7 +1256,7 @@ classdef ApplicationUI < handle
             ThisFile = OldSessionPath;
             IsNewFile = ~exist(ThisFile,'file');
 
-            % Check for a valid extension.             
+            % Check for a valid extension.
             ValidFileExtension = ThisFile.endsWith(".qsp.mat");
             ValidFileType = ValidFileExtension;
 
@@ -1282,11 +1271,11 @@ classdef ApplicationUI < handle
                 % Need special handling for non-PC
                 [PathName,FileName] = fileparts(ThisFile);
                 FileName = regexp(FileName,'\.','split');
-                
+
                 if numel(FileName) > 1
                     FileName = FileName(1);
                 end
-                
+
                 ThisFile = fullfile(PathName,FileName);
 
                 %Get file location using UI
@@ -1323,17 +1312,17 @@ classdef ApplicationUI < handle
 
             % Try save. If it returns ok, then update ui states.
             % Otherwise, return.
-            if PutFileSuccess                
+            if PutFileSuccess
 
                 if  app.saveSessionToFile(Session,ThisFile)
                     app.addRecentSessionPath(ThisFile);
-%                     app.refresh();
+                    %                     app.refresh();
                     StatusTF = true;
                     app.SessionPaths(sessionIdx) = ThisFile;
                     app.IsDirty(sessionIdx) = false;
-%                 else
-%                     app.IsDirty(sessionIdx) = IsSessionDirty;
-%                     app.SessionPaths{sessionIdx} = CurrentSessionPath;
+                    %                 else
+                    %                     app.IsDirty(sessionIdx) = IsSessionDirty;
+                    %                     app.SessionPaths{sessionIdx} = CurrentSessionPath;
                 end
             end
 
@@ -1377,7 +1366,7 @@ classdef ApplicationUI < handle
             end
 
         end
-        
+
         function createNewSession(app, Session, filePath)
             % CREATENEWSESSION  Adds a session to the controller. If none
             % supplied a new one is built.
@@ -1386,7 +1375,7 @@ classdef ApplicationUI < handle
                 Session (1,1)  QSP.Session = QSP.Session()
                 filePath (1,1) string      = "";
             end
-            
+
             % Add the session to the app
             app.Sessions(end+1)     = Session;
             app.IsDirty(end+1)      = false;
@@ -1395,20 +1384,20 @@ classdef ApplicationUI < handle
             % Need a name for the session. If there is no name on it the
             % controller will assign a name.
             if isempty(Session.Name)
-                  existingNames = string({app.Sessions.Name});
-                  nextIndex = sum(existingNames.startsWith("untitled"));
-                  if nextIndex == 0
-                      newName = char("untitled");
-                  else
-                      newName = char("untitled_" + nextIndex);
-                  end
-                  Session.Name = newName;
-                  Session.setSessionName(Session.Name); % why do we have two Names?! bc set was done incorrectly.
+                existingNames = string({app.Sessions.Name});
+                nextIndex = sum(existingNames.startsWith("untitled"));
+                if nextIndex == 0
+                    newName = char("untitled");
+                else
+                    newName = char("untitled_" + nextIndex);
+                end
+                Session.Name = newName;
+                Session.setSessionName(Session.Name); % why do we have two Names?! bc set was done incorrectly.
             end
 
             % Notify new session.
             eventData = QSPViewerNew.Application.NewSessionEventData(Session, app.buildingBlockTypes, app.functionalityTypes);
-            notify(app, 'NewSession', eventData);            
+            notify(app, 'NewSession', eventData);
 
             % Start timer
             initializeTimer(Session);
@@ -1594,26 +1583,26 @@ classdef ApplicationUI < handle
                     %Edit the app properties to reflect a new loaded session was
                     %added
                     % This all should be happening in createNewSession.
-%                     idxNew = app.NumSessions + 1;
-%                     app.SessionPaths{end+1} = fullFilePath;                    
-%                     app.SelectedSessionIdx = idxNew;
-%                     app.addRecentSessionPath(fullFilePath);
+                    %                     idxNew = app.NumSessions + 1;
+                    %                     app.SessionPaths{end+1} = fullFilePath;
+                    %                     app.SelectedSessionIdx = idxNew;
+                    %                     app.addRecentSessionPath(fullFilePath);
                 end
             end
-            
+
             % TODOpax: I don't think we need this.
             app.refresh();
 
             % Todopax deal with plugin manager separately
-%             % check if an instance of plugin  manager is
-%             % running
-%             if isvalid(app.PluginManager)
-%                 app.PluginManager.Sessions = app.Sessions;
-%             else
-%                 pluginTable = ...
-%                     QSPViewerNew.Dialogs.PluginManager.getPlugins(Session.PluginsDirectory);
-%                 updateAllPluginMenus(app, app.Sessions(idxNew), pluginTable)
-%             end
+            %             % check if an instance of plugin  manager is
+            %             % running
+            %             if isvalid(app.PluginManager)
+            %                 app.PluginManager.Sessions = app.Sessions;
+            %             else
+            %                 pluginTable = ...
+            %                     QSPViewerNew.Dialogs.PluginManager.getPlugins(Session.PluginsDirectory);
+            %                 updateAllPluginMenus(app, app.Sessions(idxNew), pluginTable)
+            %             end
         end
 
         function status = verifyValidSessionFilePath(app, fullFilePath)
@@ -1679,7 +1668,7 @@ classdef ApplicationUI < handle
 
             %Add the File to the top of the list
             % TODOpax.. come enable this.. types are now different.
-%             app.RecentSessionPaths = vertcat(newPath,app.RecentSessionPaths);
+            %             app.RecentSessionPaths = vertcat(newPath,app.RecentSessionPaths);
 
             %Crop the 9 most recent entries;
             % TODOpax: and this.
@@ -1690,9 +1679,9 @@ classdef ApplicationUI < handle
 
         function closeSession(app, sessionIndex)
             % CLOSESESSION  Closes the session with index sessionIndex by
-            % removing it from the controller's session list. 
-            % Notifies: Model_SessionClosed            
-            
+            % removing it from the controller's session list.
+            % Notifies: Model_SessionClosed
+
             closingSession = app.Sessions(sessionIndex);
 
             % Delete timer
@@ -1704,19 +1693,19 @@ classdef ApplicationUI < handle
             % Remove the session object
             app.Sessions(sessionIndex) = [];
             app.IsDirty(sessionIndex) = [];
-            app.SessionPaths(sessionIndex) = [];            
+            app.SessionPaths(sessionIndex) = [];
 
             % Send an event to let the plugin manager know.
-%             % update sessions in plugin manager if it is open
-%             if isvalid(app.PluginManager)
-%                 app.PluginManager.Sessions = app.Sessions;
-%             end
+            %             % update sessions in plugin manager if it is open
+            %             if isvalid(app.PluginManager)
+            %                 app.PluginManager.Sessions = app.Sessions;
+            %             end
 
-            notify(app, "Model_SessionClosed", QSPViewerNew.Application.Session_EventData(closingSession));            
+            notify(app, "Model_SessionClosed", QSPViewerNew.Application.Session_EventData(closingSession));
         end
 
         function cancelTF = savePromptBeforeClose(app, sessionIndex)
-            %Ask user if they would like to save            
+            %Ask user if they would like to save
             prompt = "Save changes to " + app.Sessions(sessionIndex).Name + "?";
             Result = uiconfirm(app.getUIFigure, prompt, 'Save Changes','Options',{'Yes','No','Cancel'},'DefaultOption','Cancel');
 
@@ -1759,7 +1748,7 @@ classdef ApplicationUI < handle
         function changeInBackEnd(app,newObject)
             %This function is for other classes to provide a new session to
             %be added to session and corresponding tree
-            
+
             %todopax hack for now
             app.SelectedSessionIdx = 1;
 
@@ -1853,7 +1842,7 @@ classdef ApplicationUI < handle
         end
 
     end
-    
+
     % Methods for toggling interactivity and updating the view
     methods (Access = private)
 
@@ -1892,18 +1881,18 @@ classdef ApplicationUI < handle
             %This method refreshes the view of the screen
             if app.IsConstructed
                 %Update the names displayed in the tree
-%                 app.updateTreeNames(); todopax
+                %                 app.updateTreeNames(); todopax
 
                 %Update the file menu
-%                 app.updateFileMenu();
+                %                 app.updateFileMenu();
 
                 %Update the title of the application
-%                 app.updateAppTitle();
+                %                 app.updateAppTitle();
 
                 %Update the current shown frame
-%                 app.updatePane();
+                %                 app.updatePane();
 
-%                 drawnow();
+                %                 drawnow();
             end
         end
 
@@ -1929,6 +1918,7 @@ classdef ApplicationUI < handle
         end
 
         function updateFileMenu(app)
+            error("ApplicationUI:updateFileMenu");
             %This will update the file menu interactivity based on the current state of the application
 
             %Find the current Node
@@ -2007,7 +1997,7 @@ classdef ApplicationUI < handle
 
         % todopax.. look at replacing this.
         function updateAppTitle(app)
-
+            error("ApplicationUI:updateAppTitle");
             % Update title bar
             SelectionNotEmptyTF = ~isempty(app.SessionNames) && ~isempty(app.SelectedSessionIdx);
             SelectionIsDirtyTF = SelectionNotEmptyTF && any(app.IsDirty(app.SelectedSessionIdx));
@@ -2033,6 +2023,7 @@ classdef ApplicationUI < handle
                 paneParent
                 selectedNode (1,1) matlab.ui.container.TreeNode
             end
+            error("AppicationUI:updatePane");
             %             %Find the currently selected Node
             %             NodeSelected = app.TreeRoot.SelectedNodes;
             %             if length(NodeSelected)>1
@@ -2074,11 +2065,6 @@ classdef ApplicationUI < handle
                 end
             end
         end
-
-
-
-% 
-
 
         function updateTreeData(app,tree,newData,type)
             %1. Update the Node information
@@ -2179,114 +2165,150 @@ classdef ApplicationUI < handle
             end
         end
 
-        function restoreNode(app,node,session)
-            try
-                % What is the data object?
-                ThisObj = node.NodeData;
+        function restoreNode(app, nodeToRestore, session)
+            arguments
+                app
+                nodeToRestore
+                session
+            end
 
-                % What type of item?
-                ItemTypes = {
-                    'Dataset',                          'OptimizationData'
-                    'Parameter',                        'Parameters'
-                    'Task',                             'Task'
-                    'Virtual Subject(s)',               'VirtualPopulation'
-                    'Acceptance Criteria',              'VirtualPopulationData'
-                    'Target Statistics',                'VirtualPopulationGenerationData'
-                    'Simulation',                       'Simulation'
-                    'Optimization',                     'Optimization'
-                    'Cohort Generation',                'CohortGeneration'
-                    'Virtual Population Generation',    'VirtualPopulationGeneration'
-                    'Global Sensitivity Analysis',      'GlobalSensitivityAnalysis'
-                    };
-                ItemClass = strrep(class(ThisObj), 'QSP.', '');
-                ItemType = ItemTypes{strcmpi(ItemClass,ItemTypes(:,2)),1};
+            type = string(class(nodeToRestore)).extractAfter("QSP.");
 
-                % Where does the item go?
-                if isprop(session,ItemType)
-                    ParentObj = session ;
-                    SuperParentArray = ParentObj.TreeNode.Children;
-                    ChildTags = {SuperParentArray.Tag};
-                    SuperParent = SuperParentArray(strcmpi(ChildTags,'Functionalities'));
-                    ParentArray = SuperParent.Children;
-                    ParentArrayTypes = {ParentArray.Tag};
-                    ParentNode = ParentArray(strcmp(ParentArrayTypes,ItemType));
-                    allChildNames = {ParentObj.(ItemType).Name};
-                elseif strcmp(ItemType, "Folder")
-                    restoreFolderNodes(app, node);
+            buildingBlocksTF = app.buildingBlockTypes(:,2) == type;
+            functionalityTF  = app.functionalityTypes(:,2) == type;
 
-                    if ischar(ThisObj.Parent)
-                        ParentNode = getParentItemNode(ThisObj, app.TreeRoot);
-                    else
-                        ParentNode = ThisObj.Parent.TreeNode;
-                    end
+            if any(buildingBlocksTF)
+                session.Settings.(type)(end+1) = nodeToRestore;
+            elseif any(functionalityTF)
+                session.(type)(end+1) = nodeToRestore;
+            end
 
-                    if ~isempty(ParentNode.Children)
-                        allChildren = {ParentNode.Children.NodeData};
-                        allFoldersIdx = cellfun(@(x) isa(x, 'QSP.Folder'),allChildren );
-                        if ~any(allFoldersIdx)
-                            allChildNames = '';
+            % We cannot use vectorized eq due to heterogeneous array and
+            % non-sealed eq method.
+            whichOne = 0;
+            for i = 1:numel(session.Deleted)
+                if session.Deleted(i) == nodeToRestore
+                    whichOne = i;
+                    break;
+                end
+            end
+            assert(whichOne > 0 && whichOne <= numel(session.Deleted));
+            session.Deleted(whichOne) = [];
+
+            sessionIndex = app.getSessionIndex(session);
+            app.IsDirty(sessionIndex) = true;
+
+            notify(app, 'Model_ItemRestored', QSPViewerNew.Application.MultipleItems_EventData(session, nodeToRestore));
+
+            if false
+                try
+                    % What is the data object?
+                    ThisObj = node.NodeData;
+
+                    % What type of item?
+                    ItemTypes = {
+                        'Dataset',                          'OptimizationData'
+                        'Parameter',                        'Parameters'
+                        'Task',                             'Task'
+                        'Virtual Subject(s)',               'VirtualPopulation'
+                        'Acceptance Criteria',              'VirtualPopulationData'
+                        'Target Statistics',                'VirtualPopulationGenerationData'
+                        'Simulation',                       'Simulation'
+                        'Optimization',                     'Optimization'
+                        'Cohort Generation',                'CohortGeneration'
+                        'Virtual Population Generation',    'VirtualPopulationGeneration'
+                        'Global Sensitivity Analysis',      'GlobalSensitivityAnalysis'
+                        };
+                    ItemClass = strrep(class(ThisObj), 'QSP.', '');
+                    ItemType = ItemTypes{strcmpi(ItemClass,ItemTypes(:,2)),1};
+
+                    % Where does the item go?
+                    if isprop(session,ItemType)
+                        ParentObj = session ;
+                        SuperParentArray = ParentObj.TreeNode.Children;
+                        ChildTags = {SuperParentArray.Tag};
+                        SuperParent = SuperParentArray(strcmpi(ChildTags,'Functionalities'));
+                        ParentArray = SuperParent.Children;
+                        ParentArrayTypes = {ParentArray.Tag};
+                        ParentNode = ParentArray(strcmp(ParentArrayTypes,ItemType));
+                        allChildNames = {ParentObj.(ItemType).Name};
+                    elseif strcmp(ItemType, "Folder")
+                        restoreFolderNodes(app, node);
+
+                        if ischar(ThisObj.Parent)
+                            ParentNode = getParentItemNode(ThisObj, app.TreeRoot);
                         else
-                            allFolders = [allChildren{allFoldersIdx}];
-                            allChildNames = {allFolders.Name};
+                            ParentNode = ThisObj.Parent.TreeNode;
                         end
+
+                        if ~isempty(ParentNode.Children)
+                            allChildren = {ParentNode.Children.NodeData};
+                            allFoldersIdx = cellfun(@(x) isa(x, 'QSP.Folder'),allChildren );
+                            if ~any(allFoldersIdx)
+                                allChildNames = '';
+                            else
+                                allFolders = [allChildren{allFoldersIdx}];
+                                allChildNames = {allFolders.Name};
+                            end
+                        else
+                            allChildNames = '';
+                        end
+
+                        ParentObj = session.Settings;
                     else
-                        allChildNames = '';
+                        ParentObj = session.Settings;
+                        ParentArray = ParentObj.TreeNode.Children;
+                        ParentArrayTypes = {ParentArray.Tag};
+                        ParentNode = ParentArray(strcmp(ParentArrayTypes,ItemType));
+                        allChildNames = {ParentObj.(ItemType).Name};
                     end
 
-                    ParentObj = session.Settings;
-                else
-                    ParentObj = session.Settings;
-                    ParentArray = ParentObj.TreeNode.Children;
-                    ParentArrayTypes = {ParentArray.Tag};
-                    ParentNode = ParentArray(strcmp(ParentArrayTypes,ItemType));
-                    allChildNames = {ParentObj.(ItemType).Name};
+                    % Update the name to include the timestamp
+                    TimeStamp = datestr(now,'dd-mmm-yyyy_HH-MM-SS');
+
+                    % Strip out date
+                    SplitName = regexp(ThisObj.Name,'\(\d\d-\D\D\D-\d\d\d\d_\d\d-\d\d-\d\d\)','split');
+                    if ~isempty(SplitName) && iscell(SplitName)
+                        SplitName = SplitName{1}; % Take first
+                    end
+                    ThisObj.Name = strtrim(SplitName);
+
+                    ThisObj.Name = sprintf('%s (%s)',ThisObj.Name,TimeStamp);
+
+                    % check for duplicate names
+                    if any(strcmp(ThisObj.Name, allChildNames))
+                        uialert(app.UIFigure,'Cannot restore deleted item because its name is identical to an existing item.','Restore');
+                        return;
+                    end
+
+                    if ~strcmp(ItemType, "Folder")
+                        % Move the object from deleted to the new parent
+                        % for folders, this is already done in restoreFolderNodes
+                        ParentObj.(ItemType)(end+1) = ThisObj;
+                    end
+
+                    MatchIdx = false(size(session.Deleted));
+                    for idx = 1:numel(session.Deleted)
+                        MatchIdx(idx) = session.Deleted(idx)==ThisObj;
+                    end
+                    session.Deleted( MatchIdx ) = [];
+
+                    % Update the tree
+                    node.Parent = ParentNode;
+                    ParentNode.expand();
+
+                    % Change context menu
+                    delete(node.UIContextMenu.Children);
+                    app.createContextMenu(node, ItemType);
+
+                    % Update the display
+                    app.refresh();
+                    app.markDirty(session);
+                catch ME
+                    ThisSession = node.NodeData.Session;
+                    loggerObj = QSPViewerNew.Widgets.Logger(ThisSession.LoggerName);
+                    loggerObj.write(node.Text, ItemType ,ME)
                 end
-
-                % Update the name to include the timestamp
-                TimeStamp = datestr(now,'dd-mmm-yyyy_HH-MM-SS');
-
-                % Strip out date
-                SplitName = regexp(ThisObj.Name,'\(\d\d-\D\D\D-\d\d\d\d_\d\d-\d\d-\d\d\)','split');
-                if ~isempty(SplitName) && iscell(SplitName)
-                    SplitName = SplitName{1}; % Take first
-                end
-                ThisObj.Name = strtrim(SplitName);
-
-                ThisObj.Name = sprintf('%s (%s)',ThisObj.Name,TimeStamp);
-
-                % check for duplicate names
-                if any(strcmp(ThisObj.Name, allChildNames))
-                    uialert(app.UIFigure,'Cannot restore deleted item because its name is identical to an existing item.','Restore');
-                    return;
-                end
-
-                if ~strcmp(ItemType, "Folder")
-                    % Move the object from deleted to the new parent
-                    % for folders, this is already done in restoreFolderNodes
-                    ParentObj.(ItemType)(end+1) = ThisObj;
-                end
-
-                MatchIdx = false(size(session.Deleted));
-                for idx = 1:numel(session.Deleted)
-                    MatchIdx(idx) = session.Deleted(idx)==ThisObj;
-                end
-                session.Deleted( MatchIdx ) = [];
-
-                % Update the tree
-                node.Parent = ParentNode;
-                ParentNode.expand();
-
-                % Change context menu
-                delete(node.UIContextMenu.Children);
-                app.createContextMenu(node, ItemType);
-
-                % Update the display
-                app.refresh();
-                app.markDirty(session);
-            catch ME
-                ThisSession = node.NodeData.Session;
-                loggerObj = QSPViewerNew.Widgets.Logger(ThisSession.LoggerName);
-                loggerObj.write(node.Text, ItemType ,ME)
             end
         end
 
@@ -2355,49 +2377,37 @@ classdef ApplicationUI < handle
             loggerObj.write(Node.Text, ItemType, "INFO", 'duplicated item')
         end
 
-        function deleteNode(app,Node,session)
-
-            % What type of item?
-            PackageContents = strsplit(class(Node.NodeData),'.');
-            ItemType = PackageContents{end};
-
-            % Where is the Deleted Items node?
-            hDeletedNode = session.TreeNode.Children(3);
-
-            % What are the data object and its parent?
-            ThisObj = Node.NodeData;
-            ParentNode = Node.Parent;
-            while isa(ParentNode.NodeData, 'QSP.Folder')
-                ParentNode = ParentNode.Parent;
+        function deleteNode(app, deletedNode, session)
+            % Move a node in session into the session's deleted container.
+            arguments
+                app
+                deletedNode
+                session
             end
-            ParentObj = ParentNode.NodeData;
 
-            % Move the object from its parent to deleted
-            session.Deleted(end+1) = ThisObj;
-            if ~strcmp(ItemType, "Folder")
-                ParentObj.(ItemType)( ParentObj.(ItemType)==ThisObj ) = [];
-            else
-                deleteFolderNodes(app, Node)
+            session.Deleted(end+1) = deletedNode;
+
+            type = string(class(deletedNode)).extractAfter("QSP.");
+
+            buildingBlocksTF = app.buildingBlockTypes(:,2) == type;
+            functionalityTF  = app.functionalityTypes(:,2) == type;
+
+            if any(buildingBlocksTF)
+                whichOneTF = session.Settings.(type) == deletedNode;
+                session.Settings.(type)(whichOneTF) = [];
+            elseif any(functionalityTF)
+                whichOneTF = session.(type) == deletedNode;
+                session.(type)(whichOneTF) = [];
             end
-            Node.Parent = hDeletedNode;
-            app.TreeRoot.SelectedNodes = Node;
 
-            % Change context menu
-            app.createContextMenu(Node,'Deleted')
+            sessionIndex = app.getSessionIndex(session);
+            app.IsDirty(sessionIndex) = true;
 
-            app.SelectedSessionIdx = []; % switch to summary view
+            notify(app, 'Model_ItemDeleted', QSPViewerNew.Application.MultipleItems_EventData(session, deletedNode));
 
-            hDeletedNode.expand();
-
-            % Mark the current session dirty
-            app.markDirty(session);
-
-            % Update the display
-            app.refresh();
-
-            % update log
-            loggerObj = QSPViewerNew.Widgets.Logger(ThisObj.Session.LoggerName);
-            loggerObj.write(Node.Text, ItemType, "WARNING", 'deleted item')
+            % update log todopax
+            %             loggerObj = QSPViewerNew.Widgets.Logger(ThisObj.Session.LoggerName);
+            %             loggerObj.write(Node.Text, ItemType, "WARNING", 'deleted item')
         end
 
         function deleteFolderNodes(app, node)
@@ -2546,8 +2556,8 @@ classdef ApplicationUI < handle
         end
 
     end
-    
-    % Static Methods  
+
+    % Static Methods
     methods(Static)
 
         function answer = tf2onoff(TorF)
@@ -2598,7 +2608,7 @@ classdef ApplicationUI < handle
         end
     end
 
-    % Get/Set Methods  
+    % Get/Set Methods
     methods
 
         function value = get.SessionNames(app)
@@ -2702,7 +2712,6 @@ classdef ApplicationUI < handle
             end
         end
 
-
         function set.IsDirty(app, value)
             % This approach is a bit fragile but avoids building a new
             % associative array to hold sessions and their other metadata
@@ -2731,7 +2740,7 @@ classdef ApplicationUI < handle
 
                 % -1 values are now clean
                 cleanSessions = app.Sessions(change == -1);
-                
+
                 % +1 are values that are now dirty
                 dirtySessions = app.Sessions(change == 1);
             end
@@ -2752,7 +2761,7 @@ classdef ApplicationUI < handle
         function value = getUIFigure(app) %todopax rename getViewTopElement
             % GETUIFIGURE  For the purpose of showing alerts and confirm
             % dialogs, the controller uses the view's top level window,
-            % i.e. UIFigure.            
+            % i.e. UIFigure.
             value = app.OuterShell.UIFigure;
         end
 
@@ -2762,8 +2771,8 @@ classdef ApplicationUI < handle
                 session (1,1) QSP.Session
             end
 
-            sessionTF = session == app.Sessions;            
-            assert(sum(sessionTF) == 1);           
+            sessionTF = session == app.Sessions;
+            assert(sum(sessionTF) == 1);
             sessionIndex = find(sessionTF);
         end
     end

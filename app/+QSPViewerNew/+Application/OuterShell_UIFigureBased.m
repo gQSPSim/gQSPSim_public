@@ -48,6 +48,8 @@ classdef OuterShell_UIFigureBased < handle
         % Events for File Menu items
         New_Request, Open_Request, OpenRecent, Close_Request, Save_Request, SaveAs_Request, Exit_Request
 
+        Delete_Request, Restore_Request
+
         % Event for QSP Menu item
         AddTreeNode
 
@@ -77,6 +79,8 @@ classdef OuterShell_UIFigureBased < handle
             addlistener(app, 'NewSession',          @(h,e)obj.onNewSession(e));
             addlistener(app, 'Model_NewItemAdded',  @(h,e)obj.onNewTreeItemAdded(e));
             addlistener(app, 'Model_SessionClosed', @(h,e)obj.onCloseSession(e)); %todopax need better names for these methods that are responding to app messages.
+            addlistener(app, 'Model_ItemDeleted',   @(h,e)obj.onItemDeleted(e));
+            addlistener(app, 'Model_ItemRestored',  @(h,e)obj.onItemRestored(e));
             addlistener(app, 'DirtySessions',       @(h,e)obj.onDirtySessions(e));
             addlistener(app, 'CleanSessions',       @(h,e)obj.onCleanSessions(e));
         end
@@ -101,10 +105,12 @@ classdef OuterShell_UIFigureBased < handle
             assert(~isempty(obj.TreeCtrl));
 
             % Root Session node.
-            sessionNode = obj.createTreeNode(obj.TreeCtrl, session, session.SessionName, 'folder_24.png', 'Session');            
+            sessionNode = obj.createTreeNode(obj.TreeCtrl, session, session.SessionName, 'folder_24.png', 'Session');
+            sessionNode.Tag = "Session";
 
             % Root Building Blocks node.
             buildingBlocksNode = obj.createTreeNode(sessionNode, [], 'Building Blocks', 'settings_24.png', 'Session');
+            buildingBlocksNode.Tag = "BuildingBlocks";
 
             buildingBlockNodeNames     = string(buildingBlockTypes(:,1));
             buildingBlockSettingsNames = string(buildingBlockTypes(:,2));
@@ -120,6 +126,7 @@ classdef OuterShell_UIFigureBased < handle
             end
 
             functionalityNode  = obj.createTreeNode(sessionNode, [], 'Functionalities', 'settings_24.png', 'Session');
+            functionalityNode.Tag = "Functionality";
 
             functionalityBlockNodeNames = string(functionalityTypes(:,2));
 
@@ -133,7 +140,8 @@ classdef OuterShell_UIFigureBased < handle
                 end
             end
 
-            obj.createTreeNode(sessionNode, [], 'Deleted Items', 'trash_24.png', 'Session');
+            deletedItemsNode = obj.createTreeNode(sessionNode, [], 'Deleted Items', 'trash_24.png', 'Session');
+            deletedItemsNode.Tag = "DeletedItems";
 
             % Default state of the tree is to expand the Session and the
             % buildingBlocks.
@@ -376,6 +384,55 @@ classdef OuterShell_UIFigureBased < handle
             sessions = [obj.TreeCtrl.Children.NodeData];
             closeSessionTF = eventData.Session == sessions;
             delete(obj.TreeCtrl.Children(closeSessionTF));
+            % NOTIFY with an event is an option here but since this is all view internal
+            % keep this as a direct call. 
+            obj.paneManager.closeActivePane();
+        end
+
+        function onItemDeleted(obj, eventData)
+            % An Item has been deleted on the model and needs to be moved
+            % into the Deleted Items node in the UI.            
+            item = eventData.Items;
+            sessionTF = [obj.TreeCtrl.Children.NodeData] == eventData.Session;
+            sessionNode = obj.TreeCtrl.Children(sessionTF);
+            type = string(class(item)).extractAfter("QSP.");
+            typeNode = findobj(sessionNode, 'Tag', type);
+            treeNodeToDelete = typeNode.Children([typeNode.Children.NodeData] == item);
+    
+            deletedItems = findobj(sessionNode, 'Tag', 'DeletedItems');
+            treeNodeToDelete.Parent = deletedItems;
+            deletedItems.expand();
+        end
+
+        function onItemRestored(obj, eventData)
+            arguments
+                obj
+                eventData
+            end
+            % An Item has been restored on the model and needs to be moved
+            % into the Deleted Items node in the UI.                        
+            sessionTF = [obj.TreeCtrl.Children.NodeData] == eventData.Session;
+            sessionNode = obj.TreeCtrl.Children(sessionTF);
+            
+            item = eventData.Items;
+            type = string(class(item)).extractAfter("QSP.");
+            newParentNode = findobj(sessionNode, 'Tag', type);                       
+    
+            deletedItemsNode = findobj(sessionNode, 'Tag', 'DeletedItems');
+
+            % Cannot use vectore compare since eq is not sealed and
+            % deletedItemsNode.Children is a heterogeneous array.
+            itemToRestoreIndex = 0;
+            for i = 1:numel(deletedItemsNode.Children)
+                if deletedItemsNode.Children(i).NodeData == item
+                    itemToRestoreIndex = i;
+                    break;
+                end
+            end
+
+            deletedItemsNode.Children(itemToRestoreIndex).Parent = newParentNode;            
+            
+            newParentNode.expand();
         end
 
         function onDirtySessions(obj, eventData)
@@ -394,8 +451,13 @@ classdef OuterShell_UIFigureBased < handle
             disp("Mark a Session clean");
         end
 
-        function onDeleteSelectedItem(obj, eventData)            
-            obj.TreeCtrl.SelectedNodes.Parent = findobj(obj.getCurrentSessionTreeNode, 'Text', 'Deleted Items');
+        function onSelectedItemsAction(obj, eventType)
+
+            % Todopax: do we need to support items from multiple sessions
+            % here? currently assuming items are in one session.
+            eventData = QSPViewerNew.Application.MultipleItems_EventData(obj.getCurrentSession(), [obj.TreeCtrl.SelectedNodes.NodeData]);
+            notify(obj, eventType, eventData);
+%             obj.TreeCtrl.SelectedNodes.Parent = findobj(obj.getCurrentSessionTreeNode, 'Text', 'Deleted Items');
         end
 
         function constructMenuItems(obj, itemTypes)
@@ -424,8 +486,9 @@ classdef OuterShell_UIFigureBased < handle
                 obj.createMenuItem(obj.AddNewItemMenu, itemTypes{i,1}, @(h,e)obj.onMenuNotifyAdd(type), shortCuts(i));
             end
 
-            obj.DeleteSelectedItemMenu          = obj.createMenuItem(obj.QSPMenu,      "Delete Selected Item",            @(h,e)obj.onDeleteSelectedItem(e));
-            obj.RestoreSelectedItemMenu         = obj.createMenuItem(obj.QSPMenu,      "Restore Selected Item",           @(h,e)obj.onRestoreSelectedItem(e));
+%             obj.DeleteSelectedItemMenu          = obj.createMenuItem(obj.QSPMenu,      "Delete Selected Item",  @(h,e)obj.onDeleteSelectedItem(e));
+            obj.DeleteSelectedItemMenu          = obj.createMenuItem(obj.QSPMenu,      "Delete Selected Item",  @(h,e)obj.onSelectedItemsAction("Delete_Request"));
+            obj.RestoreSelectedItemMenu         = obj.createMenuItem(obj.QSPMenu,      "Restore Selected Item", @(h,e)obj.onSelectedItemsAction("Restore_Request"));
 
             obj.ToolsMenu                       = obj.createMenuItem(obj.UIFigure, "Tools");
             obj.ModelManagerMenu                = obj.createMenuItem(obj.ToolsMenu, "Model Manager",  @(h,e)obj.onMenuNotify("OpenModelManager"));
