@@ -42,11 +42,11 @@ classdef OuterShell_UIFigureBased < handle
     end
 
     events
-        ReadyState        
+%         ReadyState        
         SessionChange
 
         % Events for File Menu items
-        New_Request, Open_Request, OpenRecent, Close_Request, Save_Request, SaveAs, Exit_Request
+        New_Request, Open_Request, OpenRecent, Close_Request, Save_Request, SaveAs_Request, Exit_Request
 
         % Event for QSP Menu item
         AddTreeNode
@@ -301,12 +301,19 @@ classdef OuterShell_UIFigureBased < handle
                 %app.UIFigure.Pointer = 'arrow'; TODOpax no longer this
                 %way.
             end
+
+            if numel(SelectedNodes) >= 1
+                obj.DeleteSelectedItemMenu.Enable = true;
+            else
+                obj.DeleteSelectedItemMenu.Enable = false;
+            end
         end
 
         function onNewTreeItemAdded(obj, eventData)
-            % todopax: there is abug here add two sessions and add a Task
-            % to one. the assertion below will fail.
-            parent = findobj(obj.TreeCtrl, 'Tag', eventData.itemType);
+            % A new item has been added to the model. Respond by creating
+            % a treeNode for it the current session. 
+            sessionTreeNode = getCurrentSessionTreeNode(obj);
+            parent = findobj(sessionTreeNode, 'Tag', eventData.itemType);
             assert(numel(parent) == 1);
             obj.createTreeNode(parent, eventData.newItem, eventData.newItem.Name, obj.iconList.(eventData.itemType), eventData.itemType);
 
@@ -387,6 +394,10 @@ classdef OuterShell_UIFigureBased < handle
             disp("Mark a Session clean");
         end
 
+        function onDeleteSelectedItem(obj, eventData)            
+            obj.TreeCtrl.SelectedNodes.Parent = findobj(obj.getCurrentSessionTreeNode, 'Text', 'Deleted Items');
+        end
+
         function constructMenuItems(obj, itemTypes)
             % CONSTRUCTMENUITEMS  Construct the menu items in the toolbar.
             arguments
@@ -398,22 +409,23 @@ classdef OuterShell_UIFigureBased < handle
             obj.NewCtrlNMenu                    = obj.createMenuItem(obj.FileMenu,   "New...",      @(h,e)obj.onMenuNotify("New_Request"),  "N");
             obj.OpenCtrl0Menu                   = obj.createMenuItem(obj.FileMenu,   "Open...",     @(h,e)obj.onMenuNotify("Open_Request"), "O");
             obj.OpenRecentMenu                  = obj.createMenuItem(obj.FileMenu,   "Open Recent", @(h,e)obj.onMenuNotify("OpenRecent"));
-            obj.CloseMenu                       = obj.createMenuItem(obj.FileMenu,   "Close",       @(h,e)obj.onMenuNotifyWithSession("Close_Request"), "",  "on");
+            obj.CloseMenu                       = obj.createMenuItem(obj.FileMenu,   "Close",       @(h,e)obj.onMenuNotifyWithSession("Close_Request"), "W", "on");
             obj.SaveCtrlSMenu                   = obj.createMenuItem(obj.FileMenu,   "Save",        @(h,e)obj.onMenuNotifyWithSession("Save_Request"),  "S", "on");
-            obj.SaveAsMenu                      = obj.createMenuItem(obj.FileMenu,   "Save As...",  @(h,e)obj.onMenuNotify("SaveAs"));
+            obj.SaveAsMenu                      = obj.createMenuItem(obj.FileMenu,   "Save As...",  @(h,e)obj.onMenuNotifyWithSession("SaveAs_Request"));
             obj.ExitCtrlQMenu                   = obj.createMenuItem(obj.FileMenu,   "Exit",        @(h,e)obj.onMenuNotify("Exit_Request"), "Q", "on");
 
             obj.QSPMenu                         = obj.createMenuItem(obj.UIFigure,    "QSP");
             obj.AddNewItemMenu                  = obj.createMenuItem(obj.QSPMenu,      "Add New Item");
             
             % Create menus for all the QSP Item types.
+            shortCuts = ["T", "P", "D", "A", "S", "V", "I", "F", "C", "G", "Z"]; % maybe useful but here now for debugging.
             for i = 1:size(itemTypes,1)
                 type = itemTypes{i,2};
-                obj.createMenuItem(obj.AddNewItemMenu, itemTypes{i,1}, @(h,e)obj.onMenuNotifyAdd(type));
+                obj.createMenuItem(obj.AddNewItemMenu, itemTypes{i,1}, @(h,e)obj.onMenuNotifyAdd(type), shortCuts(i));
             end
 
-            obj.DeleteSelectedItemMenu          = obj.createMenuItem(obj.QSPMenu,      "Delete Selected Item",            @(h,e)obj.onDeleteSelectedItem([], []));
-            obj.RestoreSelectedItemMenu         = obj.createMenuItem(obj.QSPMenu,      "Restore Selected Item",           @(h,e)obj.onRestoreSelectedItem([], []));
+            obj.DeleteSelectedItemMenu          = obj.createMenuItem(obj.QSPMenu,      "Delete Selected Item",            @(h,e)obj.onDeleteSelectedItem(e));
+            obj.RestoreSelectedItemMenu         = obj.createMenuItem(obj.QSPMenu,      "Restore Selected Item",           @(h,e)obj.onRestoreSelectedItem(e));
 
             obj.ToolsMenu                       = obj.createMenuItem(obj.UIFigure, "Tools");
             obj.ModelManagerMenu                = obj.createMenuItem(obj.ToolsMenu, "Model Manager",  @(h,e)obj.onMenuNotify("OpenModelManager"));
@@ -442,6 +454,8 @@ classdef OuterShell_UIFigureBased < handle
             % when there are no selected tree nodes. If there are more than
             % one session in the tree then a selection is needed and if
             % none selected this function returns []
+
+            % TODOpax, replace this with the function getCurrentSessionTreeNode
             selectedSession = [];
 
             if numel(obj.TreeCtrl.Children) == 1
@@ -452,6 +466,19 @@ classdef OuterShell_UIFigureBased < handle
                 else
                     selectedSession = ancestor(obj.TreeCtrl.SelectedNodes, 'uitreenode', 'toplevel').NodeData;
                 end
+            end
+        end
+
+        function currentSessionTreeNode = getCurrentSessionTreeNode(obj)
+            % Current session is either the only one open or one that has 
+            % any nodes selected in the tree. If there is no session maybe
+            % we want to create one? 
+            
+            % TODOpax add support for multi-selection on the tree.
+            if numel(obj.TreeCtrl.Children) == 1
+                currentSessionTreeNode = obj.TreeCtrl.Children;
+            else
+                currentSessionTreeNode = ancestor(obj.TreeCtrl.SelectedNodes, 'matlab.ui.container.TreeNode', 'toplevel');
             end
         end
     end

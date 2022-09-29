@@ -1,7 +1,5 @@
 classdef ApplicationUI < handle
-    % ApplicationUI - This is the Controller class for the application.
-    % In addition it manages the list of open Sessions loaded in the 
-    % application.
+    % ApplicationUI - This is the Controller class for gQSPSim.    
     
     %   Copyright 2020 The MathWorks, Inc.
 
@@ -142,9 +140,12 @@ classdef ApplicationUI < handle
                 addlistener(app.OuterShell, 'OpenModelManager',  @(h,e)app.onOpenModelManager);
                 addlistener(app.OuterShell, 'OpenPluginManager', @(h,e)app.onOpenPluginManager);
                 addlistener(app.OuterShell, 'OpenLogger',        @(h,e)app.onOpenLogger);
+                
                 addlistener(app.OuterShell, 'Close_Request',     @(h,e)app.onCloseRequest(e));
-                addlistener(app.OuterShell, 'Open_Request',      @(h,e)app.onOpen);
+                addlistener(app.OuterShell, 'Open_Request',      @(h,e)app.onOpenRequest);
                 addlistener(app.OuterShell, 'Exit_Request',      @(h,e)app.onExit);
+                addlistener(app.OuterShell, 'Save_Request',      @(h,e)app.onSaveRequest(e));
+                addlistener(app.OuterShell, 'SaveAs_Request',    @(h,e)app.onSaveRequest(e));
             end
 
             % load a session for rapid devel.
@@ -154,7 +155,7 @@ classdef ApplicationUI < handle
         function forDebuggingInit(app, h, e)
             app.IsConstructed = true;
 
-            app.loadSessionFromPath('tests/baselines/CaseStudy_TMDD_complete/CaseStudy1_TMDD_pax.qsp.mat')
+            app.loadSession('tests/baselines/CaseStudy_TMDD_complete/CaseStudy1_TMDD_pax.qsp.mat')
         end
 
         function delete(app)
@@ -609,7 +610,7 @@ classdef ApplicationUI < handle
             end
         end
 
-        function onOpen(app,~,~)
+        function onOpenRequest(app)
             % Allow the controller to call this ui utility. We could hide
             % this implemenation in a utility package but there is little
             % need for that overhead.
@@ -622,12 +623,12 @@ classdef ApplicationUI < handle
                     case 'char'
                         app.LastFolder = PathName;
                         fullFilePath = fullfile(PathName,FileName);
-                        app.loadSessionFromPath(fullFilePath);
+                        app.loadSession(fullFilePath);
                     case 'cell'                        
                         app.LastFolder = PathName;
                         for fileIndex = 1:numel(FileName)
                             fullFilePath = fullfile(PathName,FileName{fileIndex});
-                            app.loadSessionFromPath(fullFilePath);
+                            app.loadSession(fullFilePath);
                         end
                 end
             end
@@ -635,11 +636,7 @@ classdef ApplicationUI < handle
 
         function onCloseRequest(app, eventData)
             % ONCLOSEREQUEST  Close a session. If it is dirty ask to save.
-            activeSession = eventData.Session;
-            assert(~isempty(activeSession));
-            sessionTF = activeSession == app.Sessions;            
-            assert(sum(sessionTF) == 1);           
-            sessionIndex = find(sessionTF);
+            sessionIndex = app.getSessionIndex(eventData.Session);
 
             if app.IsDirty(sessionIndex)
                 app.savePromptBeforeClose(sessionIndex);
@@ -648,32 +645,26 @@ classdef ApplicationUI < handle
             end
         end
 
-        function onSave(app,activeSession)
-            if ~isempty(activeSession)
+        function onSaveRequest(app, eventData)
+            % OnSaveRequest  Save the supplied session. This function
+            % handles both save and saveas. This is done in the saveSession
+            % method.
+            
+            % TODOpax: need to think about what handling is needed if
+            % statusTF is false.
+            
+            sessionIndex = app.getSessionIndex(eventData.Session);
 
-                %Need to find the session index
-                Idx = find(strcmp(activeSession.SessionName,{app.Sessions.SessionName}));
-            else
-                Idx = app.SelectedSessionIdx;
+            if eventData.EventName == "Save_Request"
+                requestSaveAs = false;
+            elseif eventData.EventName == "SaveAs_Request"
+                requestSaveAs = true;
             end
 
-            StatusTF = app.saveSession(Idx,false);
-            if StatusTF
-                app.markClean(activeSession);
-            end
-        end
-
-        function onSaveAs(app,activeSession)
-            if ~isempty(activeSession)
-
-                %Need to find the session index
-                Idx = find(strcmp(activeSession.Name,{app.Sessions.Name}));
-            else
-                Idx = app.SelectedSessionIdx;
-            end
-            StatusTF = app.saveSession(Idx,true);
-            if StatusTF
-                app.markClean(activeSession);
+            statusTF = app.saveSession(sessionIndex, requestSaveAs);
+            
+            if statusTF
+                app.IsDirty(sessionIndex) = false;                
             end
         end
 
@@ -1269,7 +1260,6 @@ classdef ApplicationUI < handle
 
             %Retrieve session info
             Session = app.Sessions(sessionIdx);
-%             IsSessionDirty = app.IsDirty(sessionIdx);
             OldSessionPath = app.SessionPaths(sessionIdx);
             StatusTF = false;
 
@@ -1292,9 +1282,11 @@ classdef ApplicationUI < handle
                 % Need special handling for non-PC
                 [PathName,FileName] = fileparts(ThisFile);
                 FileName = regexp(FileName,'\.','split');
-                if iscell(FileName)
-                    FileName = FileName{1};
+                
+                if numel(FileName) > 1
+                    FileName = FileName(1);
                 end
+                
                 ThisFile = fullfile(PathName,FileName);
 
                 %Get file location using UI
@@ -1396,9 +1388,9 @@ classdef ApplicationUI < handle
             end
             
             % Add the session to the app
-            app.Sessions(end+1) = Session;
-            app.IsDirty(end+1)  = false;
-            app.SessionPaths    = filePath;
+            app.Sessions(end+1)     = Session;
+            app.IsDirty(end+1)      = false;
+            app.SessionPaths(end+1) = filePath;
 
             % Need a name for the session. If there is no name on it the
             % controller will assign a name.
@@ -1555,7 +1547,7 @@ classdef ApplicationUI < handle
             end
         end
 
-        function loadSessionFromPath(app, fullFilePath)
+        function loadSession(app, fullFilePath)
             % Loads a session file from disk found at fullFilePath.
             sessionStatus = app.verifyValidSessionFilePath(fullFilePath);
 
@@ -1711,10 +1703,8 @@ classdef ApplicationUI < handle
 
             % Remove the session object
             app.Sessions(sessionIndex) = [];
-
-            % Update paths and dirtyTF
-            % app.SessionPaths(sessionIdx) = []; % TODOpax
             app.IsDirty(sessionIndex) = [];
+            app.SessionPaths(sessionIndex) = [];            
 
             % Send an event to let the plugin manager know.
 %             % update sessions in plugin manager if it is open
@@ -1927,7 +1917,7 @@ classdef ApplicationUI < handle
             for idx = 1:numel(app.RecentSessionPaths)
                 app.OpenRecentMenuArray(idx) = uimenu(app.OpenRecentMenu);
                 set(app.OpenRecentMenuArray(idx), 'Text', app.RecentSessionPaths{idx});
-                set(app.OpenRecentMenuArray(idx), 'MenuSelectedFcn', @(h, filePath) app.loadSessionFromPath(app.RecentSessionPaths{idx}));
+                set(app.OpenRecentMenuArray(idx), 'MenuSelectedFcn', @(h, filePath) app.loadSession(app.RecentSessionPaths{idx}));
             end
 
             %If there are no menus to show, remove the option
@@ -2614,7 +2604,7 @@ classdef ApplicationUI < handle
         function value = get.SessionNames(app)
             [~,value,ext] = cellfun(@fileparts, app.SessionPaths,'UniformOutput', false);
             value = strcat(value,ext);
-            warning('deprecating this function');
+            error('deprecating this function');
         end
 
         function value = get.LastFolder(app)
@@ -2650,6 +2640,7 @@ classdef ApplicationUI < handle
         end
 
         function value = get.SelectedSessionIdx(app)
+            error("ApplicationUI:get.SelecgtedSessionIdx");
             ns = app.NumSessions;
             if ns==0
                 value = double.empty(0,1);
@@ -2665,6 +2656,7 @@ classdef ApplicationUI < handle
         end
 
         function set.SelectedSessionIdx(app,value)
+            error("ApplicationUI:set.SelectedSessionIdx");
             if isempty(value)
                 app.SelectedSessionIdx = double.empty(0,1);
             else
@@ -2674,20 +2666,22 @@ classdef ApplicationUI < handle
             end
         end
 
-        function set.SessionPaths(app,value)
-            if isempty(value)
-                app.SessionPaths = cell.empty(0,1);
-            else
-                app.SessionPaths = value;
+        function set.SessionPaths(app, value)
+            arguments
+                app
+                value (:,1) string
             end
+            app.SessionPaths = value;
         end
 
         function value = get.SelectedSession(app)
+            error("deprecating this function");
             % Grab the session object for the selected session
             value = app.Sessions(app.SelectedSessionIdx);
         end
 
         function set.SelectedSession(app,value)
+            error("deprecating this function");
             % Grab the session object for the selected session
             app.Sessions(app.SelectedSessionIdx) = value;
         end
@@ -2760,6 +2754,17 @@ classdef ApplicationUI < handle
             % dialogs, the controller uses the view's top level window,
             % i.e. UIFigure.            
             value = app.OuterShell.UIFigure;
+        end
+
+        function sessionIndex = getSessionIndex(app, session)
+            arguments
+                app
+                session (1,1) QSP.Session
+            end
+
+            sessionTF = session == app.Sessions;            
+            assert(sum(sessionTF) == 1);           
+            sessionIndex = find(sessionTF);
         end
     end
 end
