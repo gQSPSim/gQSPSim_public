@@ -47,6 +47,7 @@ classdef OuterShell_UIFigureBased < handle
 
         % Events for File Menu items
         New_Request, Open_Request, OpenRecent, Close_Request, Save_Request, SaveAs_Request, Exit_Request
+        OpenFile_Request
 
         Delete_Request, Restore_Request
 
@@ -83,6 +84,8 @@ classdef OuterShell_UIFigureBased < handle
             addlistener(app, 'Model_ItemRestored',  @(h,e)obj.onItemRestored(e));
             addlistener(app, 'DirtySessions',       @(h,e)obj.onDirtySessions(e));
             addlistener(app, 'CleanSessions',       @(h,e)obj.onCleanSessions(e));
+            
+            addlistener(app, 'Controller_RecentSessionPathsChange', @(h,e)obj.onUpdateRecentListChange(e));
         end
 
         function delete(obj)
@@ -121,7 +124,8 @@ classdef OuterShell_UIFigureBased < handle
                 nodes = session.Settings.(buildingBlockSettingsNames(i));
 
                 for j = 1:numel(nodes)
-                    obj.createTreeNode(baseNode, nodes(j), nodes(j).Name, obj.iconList.(buildingBlockSettingsNames(i)), buildingBlockNodeNames(i));
+                    instanceNode = obj.createTreeNode(baseNode, nodes(j), nodes(j).Name, obj.iconList.(buildingBlockSettingsNames(i)), buildingBlockNodeNames(i));
+                    instanceNode.Tag = "instance";
                 end
             end
 
@@ -136,7 +140,8 @@ classdef OuterShell_UIFigureBased < handle
                 baseNode.Tag = functionalityBlockNodeNames(i);
                 nodes = session.(functionalityBlockNodeNames(i));
                 for j = 1:numel(nodes)
-                    obj.createTreeNode(baseNode, nodes(j), nodes(j).Name, obj.iconList.(functionalityBlockNodeNames(i)), functionalityBlockNodeNames(i));
+                    instanceNode = obj.createTreeNode(baseNode, nodes(j), nodes(j).Name, obj.iconList.(functionalityBlockNodeNames(i)), functionalityBlockNodeNames(i));
+                    instanceNode.Tag = "instance";
                 end
             end
 
@@ -255,65 +260,43 @@ classdef OuterShell_UIFigureBased < handle
         end
 
         function onTreeSelectionChange(obj, ~, eventData)
-            %TODOpax app.UIFigure.Pointer = 'watch'; This action should be fast
-            %enough that we don't need the pointer to change.
-            %app.container.Busy =0 this brings up the busy.
+            arguments
+                obj
+                ~
+                eventData (1,1) matlab.ui.eventdata.SelectedNodesChangedData
+            end
 
-            %TODOpax drawnow limitrate;
-            % TODO: Finish
-            %First we determine the session that is selected
-            %We can select mutliple nodes at once. Therefore we need to consider if SelectedNodes is a vector
             SelectedNodes = eventData.SelectedNodes;
-            %             Ctrl = handle.TreeCtrl;
 
             %We only make changes if a single node is selected
             if numel(SelectedNodes) == 1
-                % %                 ThisSessionNode = SelectedNodes;
-                % %
-                % %                 %Find which session is the parent of the current one
-                % %                 while ~isempty(ThisSessionNode) && ThisSessionNode.Parent~=Ctrl
-                % %                     ThisSessionNode = ThisSessionNode.Parent;
-                % %                 end
-
-                %Update which session is currently selected
-                % %                 if isempty(ThisSessionNode)
-                % %                     app.SelectedSessionIdx = [];
-                % %                 else
-                % %
-                % %                     % update path to include drop the UDF for previous session
-                % %                     % and include the UDF for current session
-                % %                     app.SelectedSession.removeUDF();
-                % %                     app.SelectedSessionIdx = find(ThisSessionNode == app.SessionNode);
-                % %                     app.SelectedSession.addUDF();
-                % %
-                % %                 end
-
-                %Now that we have the correct session, we can work
-                % TODOpax. I see no need to refresh everthing on tree selection
-                % change.
-                %app.refresh();
-
                 % Determine if a Summary treenode has been selected.
-                if isfield(SelectedNodes.NodeData, "Type")
+                if isfield(SelectedNodes.NodeData, "Type") %TODOpax, convert this to use Tag.
                     nodeData = SelectedNodes.NodeData;
                     if ~isempty(SelectedNodes.Children)
                         nodeData.ChildNodeData = [SelectedNodes.Children.NodeData];
-                        obj.paneManager.openPane(nodeData);
-                    end
+                        obj.paneManager.openPane(nodeData);                    
+                    end                    
                 else
                     obj.paneManager.openPane(SelectedNodes.NodeData);
                 end
-
-                %                 app.updatePane(handle.paneGridLayout, SelectedNodes);
-
-                %app.UIFigure.Pointer = 'arrow'; TODOpax no longer this
-                %way.
             end
-
-            if numel(SelectedNodes) >= 1
+            
+            % Delete and Restore selected menu items' enabled state depends
+            % on the selection. The Tag is used to more quickly determine
+            % what is selected.
+            selectedNodesTags = string({SelectedNodes.Tag});
+            
+            if all(selectedNodesTags == "instance")
                 obj.DeleteSelectedItemMenu.Enable = true;
             else
                 obj.DeleteSelectedItemMenu.Enable = false;
+            end
+
+            if all(selectedNodesTags == "deleted_instance")
+                obj.RestoreSelectedItemMenu.Enable = true;
+            else
+                obj.RestoreSelectedItemMenu.Enable = false;
             end
         end
 
@@ -378,6 +361,10 @@ classdef OuterShell_UIFigureBased < handle
             notify(obj, type, QSPViewerNew.Application.Session_EventData(selectedSession));
         end
 
+        function onMenuNotifyWithFile(obj, type, eventData)
+            notify(obj, type, QSPViewerNew.Application.RecentSessionPaths_EventData(eventData.Source.Text));            
+        end
+
         function onCloseSession(obj, eventData)
             % ONCLOSESESSION  Controller is broadcasting that a session has
             % been removed. Update the view accordingly.
@@ -401,6 +388,7 @@ classdef OuterShell_UIFigureBased < handle
     
             deletedItems = findobj(sessionNode, 'Tag', 'DeletedItems');
             treeNodeToDelete.Parent = deletedItems;
+            treeNodeToDelete.Tag = "deleted_instance";
             deletedItems.expand();
         end
 
@@ -452,12 +440,24 @@ classdef OuterShell_UIFigureBased < handle
         end
 
         function onSelectedItemsAction(obj, eventType)
-
             % Todopax: do we need to support items from multiple sessions
             % here? currently assuming items are in one session.
             eventData = QSPViewerNew.Application.MultipleItems_EventData(obj.getCurrentSession(), [obj.TreeCtrl.SelectedNodes.NodeData]);
             notify(obj, eventType, eventData);
-%             obj.TreeCtrl.SelectedNodes.Parent = findobj(obj.getCurrentSessionTreeNode, 'Text', 'Deleted Items');
+        end
+
+        function onUpdateRecentListChange(obj, eventData)
+
+            delete(obj.OpenRecentMenu.Children);
+
+            paths = eventData.Paths;
+
+            for i = 1:numel(paths)
+                uimenu(obj.OpenRecentMenu, 'Text', paths(i), 'MenuSelectedFcn', @(h,e)obj.onMenuNotifyWithFile('OpenFile_Request', e));
+%                 app.OpenRecentMenuArray(idx) = uimenu(app.OpenRecentMenu);
+%                 set(app.OpenRecentMenuArray(idx), 'Text', app.RecentSessionPaths{idx});
+%                 set(app.OpenRecentMenuArray(idx), 'MenuSelectedFcn', @(h, filePath) app.loadSession(app.RecentSessionPaths{idx}));
+            end            
         end
 
         function constructMenuItems(obj, itemTypes)
@@ -470,7 +470,8 @@ classdef OuterShell_UIFigureBased < handle
             obj.FileMenu                        = obj.createMenuItem(obj.UIFigure, "File");
             obj.NewCtrlNMenu                    = obj.createMenuItem(obj.FileMenu,   "New...",      @(h,e)obj.onMenuNotify("New_Request"),  "N");
             obj.OpenCtrl0Menu                   = obj.createMenuItem(obj.FileMenu,   "Open...",     @(h,e)obj.onMenuNotify("Open_Request"), "O");
-            obj.OpenRecentMenu                  = obj.createMenuItem(obj.FileMenu,   "Open Recent", @(h,e)obj.onMenuNotify("OpenRecent"));
+            obj.OpenRecentMenu                  = obj.createMenuItem(obj.FileMenu,   "Open Recent");%, @(h,e)obj.onMenuNotifyWithFile('OpenFile_Request', e));
+            %obj.OpenRecentMenu                  = obj.createMenuItem(obj.FileMenu,   "Open Recent", @(h,e)obj.onMenuNotify("OpenRecent"));
             obj.CloseMenu                       = obj.createMenuItem(obj.FileMenu,   "Close",       @(h,e)obj.onMenuNotifyWithSession("Close_Request"), "W", "on");
             obj.SaveCtrlSMenu                   = obj.createMenuItem(obj.FileMenu,   "Save",        @(h,e)obj.onMenuNotifyWithSession("Save_Request"),  "S", "on");
             obj.SaveAsMenu                      = obj.createMenuItem(obj.FileMenu,   "Save As...",  @(h,e)obj.onMenuNotifyWithSession("SaveAs_Request"));
@@ -486,12 +487,16 @@ classdef OuterShell_UIFigureBased < handle
                 obj.createMenuItem(obj.AddNewItemMenu, itemTypes{i,1}, @(h,e)obj.onMenuNotifyAdd(type), shortCuts(i));
             end
 
-%             obj.DeleteSelectedItemMenu          = obj.createMenuItem(obj.QSPMenu,      "Delete Selected Item",  @(h,e)obj.onDeleteSelectedItem(e));
             obj.DeleteSelectedItemMenu          = obj.createMenuItem(obj.QSPMenu,      "Delete Selected Item",  @(h,e)obj.onSelectedItemsAction("Delete_Request"));
             obj.RestoreSelectedItemMenu         = obj.createMenuItem(obj.QSPMenu,      "Restore Selected Item", @(h,e)obj.onSelectedItemsAction("Restore_Request"));
-
+            
+            % Start with these disabled. Their state depends on treeNode
+            % selection.
+            obj.DeleteSelectedItemMenu.Enable  = false;
+            obj.RestoreSelectedItemMenu.Enable = false;
+            
             obj.ToolsMenu                       = obj.createMenuItem(obj.UIFigure, "Tools");
-            obj.ModelManagerMenu                = obj.createMenuItem(obj.ToolsMenu, "Model Manager",  @(h,e)obj.onMenuNotify("OpenModelManager"));
+            obj.ModelManagerMenu                = obj.createMenuItem(obj.ToolsMenu, "Model Manager",  @(h,e)obj.onMenuNotifyWithSession("OpenModelManager"));
             obj.PluginsMenu                     = obj.createMenuItem(obj.ToolsMenu, "Plugin Manager", @(h,e)obj.onMenuNotify("OpenPluginManager"));
             obj.LoggerMenu                      = obj.createMenuItem(obj.ToolsMenu, "Logger",         @(h,e)obj.onMenuNotify("OpenLogger"));
 
