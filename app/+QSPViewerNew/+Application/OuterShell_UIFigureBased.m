@@ -42,7 +42,6 @@ classdef OuterShell_UIFigureBased < handle
     end
 
     events
-%         ReadyState        
         SessionChange
 
         % Events for File Menu items
@@ -90,11 +89,6 @@ classdef OuterShell_UIFigureBased < handle
 
         function delete(obj)
             delete(obj.UIFigure);
-        end
-
-        % Callback for NewSession event.
-        function onNewSession(obj, e)
-            obj.createSession(e.Session, e.buildingBlockTypes, e.functionalityTypes);
         end
 
         function createSession(obj, session, buildingBlockTypes, functionalityTypes)
@@ -342,7 +336,6 @@ classdef OuterShell_UIFigureBased < handle
         function onMenuNotify(obj, type)
             % ONMENUNOTIFY  Simply notifies listeners of the event. No
             % other processing on the View.
-            disp(type)
             notify(obj, type);
         end
 
@@ -363,6 +356,10 @@ classdef OuterShell_UIFigureBased < handle
 
         function onMenuNotifyWithFile(obj, type, eventData)
             notify(obj, type, QSPViewerNew.Application.RecentSessionPaths_EventData(eventData.Source.Text));            
+        end
+
+        function onNewSession(obj, e)
+            obj.createSession(e.Session, e.buildingBlockTypes, e.functionalityTypes);
         end
 
         function onCloseSession(obj, eventData)
@@ -428,7 +425,6 @@ classdef OuterShell_UIFigureBased < handle
             sessionNode = obj.TreeCtrl.Children(sessionNodeIndexTF);
             
             sessionNode.Text = sessionNode.Text + " *";
-            disp('Mark a Session dirty');
         end
 
         function onCleanSessions(obj, eventData)
@@ -436,7 +432,6 @@ classdef OuterShell_UIFigureBased < handle
             sessionNode = obj.TreeCtrl.Children(sessionNodeIndexTF);
 
             sessionNode.Text = string(sessionNode.Text).extractBefore(" *");
-            disp("Mark a Session clean");
         end
 
         function onSelectedItemsAction(obj, eventType)
