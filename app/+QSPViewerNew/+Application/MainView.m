@@ -1,4 +1,4 @@
-classdef OuterShell_UIFigureBased < handle
+classdef MainView < handle
     properties
         UIFigure                 matlab.ui.Figure
         FileMenu                 matlab.ui.container.Menu
@@ -58,7 +58,7 @@ classdef OuterShell_UIFigureBased < handle
     end
 
     methods
-        function obj = OuterShell_UIFigureBased(appname, app)
+        function obj = MainView(appname, app)
             arguments
                 appname (1,1) string
                 app 
@@ -93,7 +93,7 @@ classdef OuterShell_UIFigureBased < handle
 
         function createSession(obj, session, buildingBlockTypes, functionalityTypes)
             arguments
-                obj (1,1) QSPViewerNew.Application.OuterShell_UIFigureBased
+                obj (1,1) QSPViewerNew.Application.MainView
                 session (1,1) QSP.Session
                 buildingBlockTypes cell
                 functionalityTypes cell
