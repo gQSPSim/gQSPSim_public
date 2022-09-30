@@ -447,6 +447,8 @@ classdef PluginManager < matlab.apps.AppBase
                     'VariableTypes',{'string','string','string','string','cell','string'},...
                     'VariableNames',{'Name','Type','File','Description','FunctionHandle','All Dependencies within root directory'});
                 
+                itemTypes = QSPViewerNew.Application.ApplicationUI.getItemTypes();
+
                 for i = 1:length(pluginFiles)
                     fileloc = fullfile(pluginFolder, pluginFiles(i).name);
                     fID = fopen(fileloc, 'r');
@@ -469,10 +471,10 @@ classdef PluginManager < matlab.apps.AppBase
                     if ~isempty(typeLineIdx)
                         inputType =  strtrim(split(data(typeLineIdx)));
                         inputType = split(inputType(2),'.');
-                        if ~isempty(inputType) && inputType(end) ~= ""
-                            itemTypeIdx = strcmp(inputType(end), QSPViewerNew.Application.ApplicationUI.ItemTypes(:,2));
+                        if ~isempty(inputType) && inputType(end) ~= ""                            
+                            itemTypeIdx = strcmp(inputType(end), itemTypes(:,2));
                             if any(itemTypeIdx)
-                                pluginTable.Type(i) = QSPViewerNew.Application.ApplicationUI.ItemTypes{itemTypeIdx,1};
+                                pluginTable.Type(i) = itemTypes{itemTypeIdx,1};
                             else
                                 pluginTable.Type(i) = inputType(end);
                             end
@@ -501,7 +503,7 @@ classdef PluginManager < matlab.apps.AppBase
                 
                 % remove rows that do not contain valid functionalities
                 allTypes = unique(pluginTable.Type);
-                isValidFunc = ismember(allTypes, QSPViewerNew.Application.ApplicationUI.ItemTypes(:,1));
+                isValidFunc = ismember(allTypes, itemTypes(:,1));
                 pluginTable(matches(pluginTable.Type, allTypes(~isValidFunc)),:) = [];
                 pluginTable(ismissing(pluginTable.Type),:) = [];
             else
