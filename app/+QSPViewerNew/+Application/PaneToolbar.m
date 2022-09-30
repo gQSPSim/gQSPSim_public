@@ -89,9 +89,9 @@ classdef PaneToolbar < handle
             newButton.Icon = QSPViewerNew.Resources.LoadResourcePath(iconName);
             newButton.Tooltip = tooltipText;
             if type == "push"
-                newButton.ButtonPushedFcn = @(h,e)obj.onNavigation(name, h, e);
+                newButton.ButtonPushedFcn = @(h,e)obj.onNavigation(name, e);
             elseif type == "state"
-                newButton.ValueChangedFcn = @(h,e)obj.onNavigation(name, h, e);
+                newButton.ValueChangedFcn = @(h,e)obj.onNavigation(name, e);
             end
             newButton.Text = '';
             newButton.Visible = true;            
@@ -116,8 +116,7 @@ classdef PaneToolbar < handle
             end
         end
 
-        function onNavigation(obj, name, source, event)
-            disp("onNavigation called: " + name);
+        function onNavigation(obj, name, event)            
             notify(obj, name, event);
         end
     end
