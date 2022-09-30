@@ -2,7 +2,7 @@ classdef PaneManager < handle
     properties(Access = private)
         paneContainer (1,1) struct
         parent
-        parentApp %todopax nice if removed, only here to pass into panes.
+        parentApp
         activePane
         paneToolbar
     end
@@ -41,7 +41,7 @@ classdef PaneManager < handle
             addlistener(obj.paneToolbar, "Summary",   @(h,e)obj.onSummary(h,e));
             addlistener(obj.paneToolbar, "Visualize", @(h,e)obj.onVisualize(h,e));
         end
-
+                
         function openPane(obj, nodeData)
             arguments
                 obj (1,1) QSPViewerNew.Application.PaneManager
@@ -54,7 +54,7 @@ classdef PaneManager < handle
                 else
                     type = string(class(nodeData)).extractAfter("QSP.");
                 end
-                
+
                 pane = obj.paneContainer.(type);
 
                 if isempty(pane)
@@ -77,7 +77,9 @@ classdef PaneManager < handle
                 obj.activePane = pane;
             end
         end
+    end
 
+    methods(Access = private)
         function newPane = constructPane(obj, type)
             arguments
                 obj                
