@@ -91,7 +91,7 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
     
     %% Constructor
     methods
-        function obj = GlobalSensitivityAnalysis()
+        function obj = GlobalSensitivityAnalysis(varargin)
             % GlobalSensitivityAnalysis - Constructor for QSP.GlobalSensitivityAnalysis
             % -------------------------------------------------------------------------
             % Abstract: Constructs a new QSP.GlobalSensitivityAnalysis object.
@@ -108,6 +108,9 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
             % Example:
             %    obj = QSP.GlobalSensitivityAnalysis();
             
+            % Populate public properties from P-V input pairs
+            obj.assignPVPairs(varargin{:});
+
             obj.Item           = obj.ItemTemplate([]);
             obj.PlotSobolIndex = obj.PlotSobolIndexTemplate([]);
                        
