@@ -33,6 +33,8 @@ classdef ApplicationUI < handle
             'Virtual Population Generation',    'VirtualPopulationGeneration'
             'Global Sensitivity Analysis',      'GlobalSensitivityAnalysis'
             };
+
+        PreferencesGroupName (1,1) string  = "gQSPSim_preferences";
     end
 
     properties (SetAccess = private)
@@ -40,12 +42,11 @@ classdef ApplicationUI < handle
         FileSpec ={'*.mat','MATLAB MAT File'}
         SelectedSessionIdx = double.empty(0,1)
         SessionPaths (:,1) string = string.empty(0,1) % Stores the fullPath of the Session on disk (if on disk)
-        RecentSessionPaths = cell.empty(0,1)
+        RecentSessionPaths = string.empty(0,1)
         LastFolder = pwd
         ActivePane % TODOpax remove this..
         Panes = cell.empty(0,1); % TODOpax remove this..
         IsConstructed = false; % TODOpax remove this..
-        PreferencesGroupName (1,1) string  = "gQSPSim_preferences";
         Type % replaced with PreferencesGroupName
         TypeStr %todopax remove.
         WindowButtonDownCallbacks = {}; % TODOpax remove this
@@ -64,17 +65,6 @@ classdef ApplicationUI < handle
         SelectedSession
         SessionNode % TODOpax remove
         PaneTypes %TODOpax remove
-    end
-
-    properties (Access = public)
-        %         paneGridLayout (1,1) matlab.ui.container.GridLayout
-        %         paneHolder     (1,1) struct
-
-        %         SessionExplorerPanel     matlab.ui.container.Panel
-        %         SessionExplorerGrid      matlab.ui.container.GridLayout
-        %         TreeRoot                 matlab.ui.container.Tree %TODOpax remove this.. moved to OuterShell.
-        %         TreeMenu
-        %         OpenRecentMenuArray
     end
 
     properties (SetAccess = private, SetObservable, AbortSet)
@@ -96,6 +86,8 @@ classdef ApplicationUI < handle
         Model_ItemDeleted
         Model_ItemRestored
 
+        Controller_RecentSessionPathsChange
+
         CleanSessions
         DirtySessions
     end
@@ -108,28 +100,14 @@ classdef ApplicationUI < handle
             end
 
             app.Title = app.AppName + " " + app.Version;
-            app.FileSpec = {'*.qsp.mat','MATLAB QSP MAT File'};
-            app.PreferencesGroupName = "gQSPSim_preferences";
+            app.FileSpec = {'*.qsp.mat','MATLAB QSP MAT File'};            
             app.ItemTypes = vertcat(app.buildingBlockTypes, app.functionalityTypes);
 
-
-            %Save the type of the app for use in preferences
+            % Save the type of the app for use in preferences
             app.Type = class(app); %TODOpax this is not going to work well. We need to pick a name for the preferences and make sure we are backwards compatible. E.g., a name change for the class would break this.
             app.TypeStr = matlab.lang.makeValidName(app.Type);
 
-            %Get the previous file locations from preferences
-            app.LastFolder = getpref(app.TypeStr,'LastFolder',app.LastFolder);
-            app.RecentSessionPaths = getpref(app.TypeStr,'RecentSessionPaths',app.RecentSessionPaths);
-
-            % Validate each recent file, and remove any invalid files
-            idxOk = cellfun(@(x)exist(x,'file'), app.RecentSessionPaths);
-            app.RecentSessionPaths(~idxOk) = [];
-
-            % Draw the recent files to the menu
-            % TODOpax. app.redrawRecentFiles();
-
-            % Refresh the entire view
-            %TODOpax. app.refresh();
+            app.loadPreferences();
 
             % Construct the view. The app (i.e. controller) is supplied to the View
             % constructor for the purpose of connecting listeners. The app
@@ -139,12 +117,13 @@ classdef ApplicationUI < handle
                 % Listen to these events from the View.
                 addlistener(app.OuterShell, 'New_Request',       @(h,e)app.createNewSession);
                 addlistener(app.OuterShell, 'AddTreeNode',       @(h,e)app.onAddItemNew(e));
-                addlistener(app.OuterShell, 'OpenModelManager',  @(h,e)app.onOpenModelManager);
+                addlistener(app.OuterShell, 'OpenModelManager',  @(h,e)app.onOpenModelManager(e));
                 addlistener(app.OuterShell, 'OpenPluginManager', @(h,e)app.onOpenPluginManager);
                 addlistener(app.OuterShell, 'OpenLogger',        @(h,e)app.onOpenLogger);
 
                 addlistener(app.OuterShell, 'Close_Request',     @(h,e)app.onCloseRequest(e));
                 addlistener(app.OuterShell, 'Open_Request',      @(h,e)app.onOpenRequest);
+                addlistener(app.OuterShell, 'OpenFile_Request',  @(h,e)app.onOpenWithFileRequest(e));
                 addlistener(app.OuterShell, 'Exit_Request',      @(h,e)app.onExit);
                 addlistener(app.OuterShell, 'Save_Request',      @(h,e)app.onSaveRequest(e));
                 addlistener(app.OuterShell, 'SaveAs_Request',    @(h,e)app.onSaveRequest(e));
@@ -159,11 +138,11 @@ classdef ApplicationUI < handle
         end
 
         function delete(app)
-            %Upon deletion, save the recent sessions and last folder to use
+            % Upon deletion, save the recent sessions and last folder to use
             %in the next instance of the application
             setpref(app.TypeStr, 'LastFolder', app.LastFolder)
             setpref(app.TypeStr, 'RecentSessionPaths', app.RecentSessionPaths)
-            % TODOpax. Restore saving the window position. setpref(app.TypeStr, 'Position', app.UIFigure.Position)
+            setpref(app.TypeStr, 'Position', app.getUIFigure().Position)
 
             % close plugin manager if open
             if isvalid(app.PluginManager)
@@ -511,6 +490,7 @@ classdef ApplicationUI < handle
         end
 
         function hNode = createNode(app,Parent, Data, Name, Icon, CMenu, PaneType, ~)
+            error("ApplicationUI:createNode");
             % Create the node
             hNode = uitreenode(...
                 'Parent', Parent,...
@@ -584,6 +564,19 @@ classdef ApplicationUI < handle
             end
         end
 
+        function loadPreferences(app)
+            % TODOpax: migrate old preferences group name to new one.
+            if ispref(app.PreferencesGroupName)
+                preferences = getpref(app.PreferencesGroupName);
+
+                app.LastFolder         = preferences.LastFolder;
+                app.RecentSessionPaths = preferences.RecentSessionPaths;
+
+                % Remove invalid file paths
+                idxOk = arrayfun(@(x)exist(x, 'file'), app.RecentSessionPaths);
+                app.RecentSessionPaths(~idxOk) = [];
+            end
+        end
     end
 
     methods (Access = private)
@@ -607,6 +600,15 @@ classdef ApplicationUI < handle
                 pluginTable = ...
                     QSPViewerNew.Dialogs.PluginManager.getPlugins(thisSession.PluginsDirectory);
                 updateAllPluginMenus(app, thisSession, pluginTable)
+            end
+        end
+
+        function onOpenWithFileRequest(app, eventData)            
+            path = eventData.Paths;
+            if exist(path, 'file')
+                app.loadSession(path);
+            else
+                % send alert
             end
         end
 
@@ -718,18 +720,17 @@ classdef ApplicationUI < handle
             end
         end
 
-        function onOpenModelManager(app,~,~)
-            if ~isempty(app.SelectedSession)
-                rootDir = app.SelectedSession.RootDirectory;
-            else
-                rootDir = [];
-            end
+        function onOpenModelManager(app, eventData)
+            % Open the ModelManager UI.
+            session = eventData.Session;
+            rootDir = session.RootDirectory;
+            % Used to handle empty rootDir. Why? What does the ModelManager
+            % do with an empty RootDir?
 
-            % singleton only
+            % Allow only one instance of the ModelManager
             if isempty(app.ModelManagerDialog) || ~isvalid(app.ModelManagerDialog)
                 app.ModelManagerDialog = ModelManager(rootDir);
             end
-
         end
 
         function onAddItemNew(app, eventData)
@@ -1074,7 +1075,7 @@ classdef ApplicationUI < handle
         end
 
         function onMoveToSelectedItem(app,h,~)
-
+            error("ApplicationUI:onMoveToSelectedItem");
             currentNode = h.Parent.UserData;
             allItemTypeTags = {'Task'; 'Parameters'; 'OptimizationData'; 'VirtualPopulationData'; ...
                 'VirtualPopulationGenerationData'; 'VirtualPopulation'; 'Simulation'; 'Optimization'; ...
@@ -1380,6 +1381,7 @@ classdef ApplicationUI < handle
             app.Sessions(end+1)     = Session;
             app.IsDirty(end+1)      = false;
             app.SessionPaths(end+1) = filePath;
+            app.addRecentSessionPath(filePath);
 
             % Need a name for the session. If there is no name on it the
             % controller will assign a name.
@@ -1621,7 +1623,7 @@ classdef ApplicationUI < handle
             %Check that the file isnt already loaded
             if ismember(fullFilePath, app.SessionPaths)
                 Message = sprintf('The specified file is already open: \n%s',fullFilePath);
-                uialert(app.UIFigure,Message,'Invalid File');
+                uialert(app.getUIFigure,Message,'Invalid File');
                 status = false;
             end
         end
@@ -1661,20 +1663,21 @@ classdef ApplicationUI < handle
             end
         end
 
-        function addRecentSessionPath(app,newPath)
-            %Check if the new location is already listed
-            isInRecent  = ismember(app.RecentSessionPaths,newPath);
-            app.RecentSessionPaths(isInRecent) = [];
+        function addRecentSessionPath(app, newPath)
+            % Adds recently used paths (load/save) to a list. Keep the list
+            % to 10 items.
+            listSize = 10;
+            inRecentListTF = app.RecentSessionPaths == newPath;            
+            app.RecentSessionPaths(inRecentListTF) = [];
 
-            %Add the File to the top of the list
-            % TODOpax.. come enable this.. types are now different.
-            %             app.RecentSessionPaths = vertcat(newPath,app.RecentSessionPaths);
+            app.RecentSessionPaths = vertcat(newPath, app.RecentSessionPaths);            
 
-            %Crop the 9 most recent entries;
-            % TODOpax: and this.
-            app.RecentSessionPaths(9:end) = []; %todopax parameterize this 9
+            % Keep the first 'listSize' items. 
+            if numel(app.RecentSessionPaths) > listSize
+                app.RecentSessionPaths = app.RecentSessionPaths(1:listSize);
+            end
 
-            % NOTIFY
+            notify(app, 'Controller_RecentSessionPathsChange', QSPViewerNew.Application.RecentSessionPaths_EventData(app.RecentSessionPaths));
         end
 
         function closeSession(app, sessionIndex)
@@ -1876,26 +1879,6 @@ classdef ApplicationUI < handle
             end
         end
 
-        % todopax
-        function refresh(app)
-            %This method refreshes the view of the screen
-            if app.IsConstructed
-                %Update the names displayed in the tree
-                %                 app.updateTreeNames(); todopax
-
-                %Update the file menu
-                %                 app.updateFileMenu();
-
-                %Update the title of the application
-                %                 app.updateAppTitle();
-
-                %Update the current shown frame
-                %                 app.updatePane();
-
-                %                 drawnow();
-            end
-        end
-
         function redrawRecentFiles(app)
             error("ApplicationUI:redrawRecentFiles");
             % Construct menu items for each path in RecentSessionPaths.
@@ -2067,6 +2050,7 @@ classdef ApplicationUI < handle
         end
 
         function updateTreeData(app,tree,newData,type)
+            error("ApplicationUI:updateTreeData");
             %1. Update the Node information
             tree.NodeData = newData;
 
@@ -2129,6 +2113,7 @@ classdef ApplicationUI < handle
         % TODOpax, this should be done via an event not wholesale like
         % this.
         function updateTreeNames(app)
+            error("ApplicationUI:updateTreeNames");
             % Update the title of each session to reflect if its dirty
             for idx=1:numel(app.Sessions)
 
@@ -2477,6 +2462,7 @@ classdef ApplicationUI < handle
         end
 
         function updateMovetoContextMenu(app,currentNode)
+            error("ApplicationUI:updateMoveToContextMenu");
             allItemTypeTags = {'Task'; 'Parameters'; 'OptimizationData'; 'VirtualPopulationData'; ...
                 'VirtualPopulationGenerationData'; 'VirtualPopulation'; 'Simulation'; 'Optimization'; ...
                 'CohortGeneration'; 'VirtualPopulationGeneration'; 'GlobalSensitivityAnalysis'};
@@ -2506,6 +2492,7 @@ classdef ApplicationUI < handle
         end
 
         function nodes = getAllChildrenItemTypeNodes(app, node)
+            error("ApplicationUI:getAllChildrenItemTypeNodes");
             % get all item type children nodes below "node"
             nodes = [];
             for i = 1:length(node.Children)
@@ -2561,6 +2548,7 @@ classdef ApplicationUI < handle
     methods(Static)
 
         function answer = tf2onoff(TorF)
+            error("ApplicationUI:tf2onoff");
             if TorF ==true
                 answer =  'on';
             else
@@ -2569,6 +2557,7 @@ classdef ApplicationUI < handle
         end
 
         function PaneClass = getPaneClassFromQSPClass(QSPClass)
+            error("ApplicationUI:getPaneClassFromQSPClass");
             %This method takes a QSP class and returns what type of pane it
             %launches
             switch QSPClass
@@ -2601,7 +2590,14 @@ classdef ApplicationUI < handle
             end
         end
 
+        function itemTypes = getItemTypes()
+            % This function should be removed. It is here to support
+            % unconverted View functionality such as the plugin manager.
+            itemTypes = vertcat(QSPViewerNew.Application.ApplicationUI.buildingBlockTypes, QSPViewerNew.Application.ApplicationUI.functionalityTypes);
+        end
+
         function executeCallbackArray(functionArray,h,e)
+            error("ApplicationUI:executeCallbackArray");
             for i = 1:length(functionArray)
                 feval(functionArray{i},h,e)
             end
