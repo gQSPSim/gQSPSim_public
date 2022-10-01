@@ -76,9 +76,9 @@ classdef MainView < handle
             addlistener(obj.paneManager, "Alert",   @(h,e)obj.onAlert(h,e));
 
             % Listen to the following controller events.
-            addlistener(app, 'NewSession',          @(h,e)obj.onNewSession(e));
+            addlistener(app, 'Model_NewSession',    @(h,e)obj.onNewSession(e));
             addlistener(app, 'Model_NewItemAdded',  @(h,e)obj.onNewTreeItemAdded(e));
-            addlistener(app, 'Model_SessionClosed', @(h,e)obj.onCloseSession(e)); %todopax need better names for these methods that are responding to app messages.
+            addlistener(app, 'Model_SessionClosed', @(h,e)obj.onCloseSession(e));
             addlistener(app, 'Model_ItemDeleted',   @(h,e)obj.onItemDeleted(e));
             addlistener(app, 'Model_ItemRestored',  @(h,e)obj.onItemRestored(e));
             addlistener(app, 'DirtySessions',       @(h,e)obj.onDirtySessions(e));
@@ -449,9 +449,6 @@ classdef MainView < handle
 
             for i = 1:numel(paths)
                 uimenu(obj.OpenRecentMenu, 'Text', paths(i), 'MenuSelectedFcn', @(h,e)obj.onMenuNotifyWithFile('OpenFile_Request', e));
-%                 app.OpenRecentMenuArray(idx) = uimenu(app.OpenRecentMenu);
-%                 set(app.OpenRecentMenuArray(idx), 'Text', app.RecentSessionPaths{idx});
-%                 set(app.OpenRecentMenuArray(idx), 'MenuSelectedFcn', @(h, filePath) app.loadSession(app.RecentSessionPaths{idx}));
             end            
         end
 
