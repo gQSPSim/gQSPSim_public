@@ -48,7 +48,7 @@ classdef Controller < handle
         WindowButtonDownCallbacks = {}; % TODOpax remove this
         WindowButtonUpCallbacks = {}; % TODOpax remove this
 
-        OuterShell (0,1) QSPViewerNew.Application.MainView
+        OuterShell QSPViewerNew.Application.MainView
         ModelManagerDialog ModelManager
         LoggerDialog QSPViewerNew.Dialogs.LoggerDialog
     end
