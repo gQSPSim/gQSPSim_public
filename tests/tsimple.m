@@ -23,5 +23,39 @@ classdef tsimple < matlab.unittest.TestCase
             
             testCase.assertNotEmpty(session);                        
         end
+
+        function QSPMenu(testCase)
+            a = QSPappN(true);
+
+            for i = 1:size(a.buildingBlockTypes, 1)
+                type = a.buildingBlockTypes{i,2};
+                before.(type) = string({a.Sessions.Settings.(type).Name});
+            end
+
+            for i = 1:size(a.functionalityTypes, 1)
+                type = a.functionalityTypes{i,2};
+                before.(type) = string({a.Sessions.(type).Name});
+            end
+
+            % Get the menu items and run the Add Item callback for each
+            QSPMenu = findobj(a.OuterShell.QSPMenu, 'Text', 'Add New Item');
+            addItemMenus = QSPMenu.Children;
+            for i = 1:numel(addItemMenus)
+                addItemMenus(i).MenuSelectedFcn();
+            end
+
+            for i = 1:size(a.buildingBlockTypes, 1)
+                type = a.buildingBlockTypes{i,2};
+                after.(type) = string({a.Sessions.Settings.(type).Name});
+            end
+
+            for i = 1:size(a.functionalityTypes, 1)
+                type = a.functionalityTypes{i,2};
+                after.(type) = string({a.Sessions.(type).Name});
+            end
+
+            disp('adf');
+
+        end
     end
 end
