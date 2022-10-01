@@ -58,4 +58,19 @@ R2021b Test:
     tags:
         - maci64
     script:
-        - ./tests/gQSPSimTesterScript2.sh BR2021bd        
+        - ./tests/gQSPSimTesterScript2.sh BR2021bd
+
+R2022a Test:
+    stage: test
+    tags:
+        - maci64
+    script:
+        - ./tests/gQSPSimTesterScript2.sh BR2022ad
+
+R2022b Test:
+    stage: test
+    tags:
+        - maci64
+    script:
+        - ./tests/gQSPSimTesterScript2.sh BR2022bd
+        
