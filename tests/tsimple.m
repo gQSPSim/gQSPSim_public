@@ -8,6 +8,11 @@ classdef tsimple < matlab.unittest.TestCase
         function setup(testCase)
             testCase.testRootDirectory = fileparts(mfilename('fullpath'));
             registerUnits;
+%             currentPWD = pwd;
+%             cd('..');
+            addpath(genpath('..'));
+%             DefinePaths;
+%             cd(currentPWD);
         end
     end
     
@@ -24,11 +29,18 @@ classdef tsimple < matlab.unittest.TestCase
             testCase.assertNotEmpty(session);                        
         end
 
-        function QSPMenu(testCase)
+        function QSPMenu(testCase)            
             a = QSPappN(true);
+            a.forDebuggingInit;
+
+            cleanup = onCleanup(@()delete(a));
+            
+            drawnow;
+
+            testCase.verifyInstanceOf(a, 'QSPViewerNew.Application.Controller', 'ExpectedClass');
 
             for i = 1:size(a.buildingBlockTypes, 1)
-                type = a.buildingBlockTypes{i,2};
+                type = a.builans.dingBlockTypes{i,2};
                 before.(type) = string({a.Sessions.Settings.(type).Name});
             end
 
@@ -54,8 +66,12 @@ classdef tsimple < matlab.unittest.TestCase
                 after.(type) = string({a.Sessions.(type).Name});
             end
 
-            disp('adf');
+            itemsToCheck = fields(after);
 
+            for i = 1:numel(itemsToCheck)
+                result = setdiff(after.(itemsToCheck{i}), before.(itemsToCheck{i}));
+                testCase.verifyEqual(result, "New " + a.ItemTypes{i,1});
+            end            
         end
     end
 end
