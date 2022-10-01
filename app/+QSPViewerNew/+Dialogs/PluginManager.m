@@ -100,12 +100,12 @@ classdef PluginManager < matlab.apps.AppBase
     methods
         function addFile(~)
             % prompt user for type of input to autofill template
-            [indx,~] = listdlg('ListString',QSPViewerNew.Application.ApplicationUI.ItemTypes(:,1),...
+            [indx,~] = listdlg('ListString',QSPViewerNew.Application.Controller.ItemTypes(:,1),...
                 'SelectionMode', 'single', ...
                 'PromptString', {'Please select an input type',...
                 'for plugin'});
             if ~isempty(indx)
-                inputType = QSPViewerNew.Application.ApplicationUI.ItemTypes{indx,2};
+                inputType = QSPViewerNew.Application.Controller.ItemTypes{indx,2};
                 
                 editorService = com.mathworks.mlservices.MLEditorServices; %#ok<JAPIMATHWORKS>
                 editorApplication = editorService.getEditorApplication();
@@ -447,7 +447,7 @@ classdef PluginManager < matlab.apps.AppBase
                     'VariableTypes',{'string','string','string','string','cell','string'},...
                     'VariableNames',{'Name','Type','File','Description','FunctionHandle','All Dependencies within root directory'});
                 
-                itemTypes = QSPViewerNew.Application.ApplicationUI.getItemTypes();
+                itemTypes = QSPViewerNew.Application.Controller.getItemTypes();
 
                 for i = 1:length(pluginFiles)
                     fileloc = fullfile(pluginFolder, pluginFiles(i).name);

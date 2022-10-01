@@ -55,7 +55,7 @@ classdef MessageLogger < mlog.Message
         
         function set.Type(obj, value)
             validatestring(value, ...
-                vertcat(QSPViewerNew.Application.ApplicationUI.ItemTypes(:,2), 'Note'));
+                vertcat(QSPViewerNew.Application.Controller.ItemTypes(:,2), 'Note'));
             obj.Type = value;
         end
     end

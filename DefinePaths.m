@@ -18,13 +18,6 @@ function OutPaths = DefinePaths(varargin)
 %
 % Notes: This function must reside in the root directory for the tools.
 %
-
-% Copyright 2013 The MathWorks, Inc.
-%
-% Auth/Revision:
-%   MathWorks Consulting
-%   $Author: rjackey $
-%   $Revision: 312 $  $Date: 2016-09-08 13:06:09 -0400 (Thu, 08 Sep 2016) $
 % ---------------------------------------------------------------------
 
 if nargin < 1

@@ -13,7 +13,7 @@ function varargout = QSPappN(useUI)
     % run the units script
     registerUnits
 
-    app = QSPViewerNew.Application.ApplicationUI(useUI);
+    app = QSPViewerNew.Application.Controller(useUI);
 
     if nargout == 1
         varargout{1} = app;
