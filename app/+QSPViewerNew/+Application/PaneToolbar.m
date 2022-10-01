@@ -1,5 +1,4 @@
 classdef PaneToolbar < handle
-
     properties
         parent
         buttonsLayout
