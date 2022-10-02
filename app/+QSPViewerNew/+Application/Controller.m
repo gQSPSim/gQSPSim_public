@@ -31,6 +31,8 @@ classdef Controller < handle
             'Virtual Population Generation',    'VirtualPopulationGeneration'
             'Global Sensitivity Analysis',      'GlobalSensitivityAnalysis'
             };
+            
+            
 
         PreferencesGroupName (1,1) string  = "gQSPSim_preferences";
     end
@@ -73,6 +75,17 @@ classdef Controller < handle
 
         % listener handle for PluginTableData property
         PluginTableDataListener event.listener
+
+        aboutMessage = [
+            "gQSPsim version "
+            ""
+            "http://www.github.com/gQSPsim/gQSPsim"
+            ""
+            "Authors:"
+            ""
+            "Justin Feigelman (feigelman.justin@gene.com)"
+            "Iraj Hosseini (hosseini.iraj@gene.com)"
+            "Anita Gajjala (agajjala@mathworks.com)"];
     end
 
     events
@@ -103,13 +116,17 @@ classdef Controller < handle
             app.Type = class(app); %TODOpax this is not going to work well. We need to pick a name for the preferences and make sure we are backwards compatible. E.g., a name change for the class would break this.
             app.TypeStr = matlab.lang.makeValidName(app.Type);
 
-            app.loadPreferences();
+            try
+                app.loadPreferences();
+            catch e
+%                 disp(e.getReport());
+            end
 
             % Construct the view. The app (i.e. controller) is supplied to the View
             % constructor for the purpose of connecting listeners. The app
             % should not (and is not) stored by the View.
             if useUI
-                app.OuterShell = QSPViewerNew.Application.MainView(app.Title, app);
+                app.OuterShell = QSPViewerNew.Application.MainView(app);
                 % Listen to these events from the View.
                 addlistener(app.OuterShell, 'New_Request',       @(h,e)app.createNewSession);
                 addlistener(app.OuterShell, 'AddTreeNode',       @(h,e)app.onAddItemNew(e));
@@ -136,9 +153,9 @@ classdef Controller < handle
         function delete(app)
             % Upon deletion, save the recent sessions and last folder to use
             %in the next instance of the application
-            setpref(app.TypeStr, 'LastFolder', app.LastFolder)
-            setpref(app.TypeStr, 'RecentSessionPaths', app.RecentSessionPaths)
-            setpref(app.TypeStr, 'Position', app.getUIFigure().Position)
+            setpref(app.PreferencesGroupName, 'LastFolder',         app.LastFolder)
+            setpref(app.PreferencesGroupName, 'RecentSessionPaths', app.RecentSessionPaths)
+            %setpref(app.PreferencesGroupName, 'Position',           app.getUIFigure().Position)
 
             % close plugin manager if open
             if isvalid(app.PluginManager)
@@ -153,6 +170,15 @@ classdef Controller < handle
             if isvalid(app.OuterShell)
                 delete(app.OuterShell)
             end
+        end
+        
+        function addFolder(app)
+            ed = QSPViewerNew.Application.NewItemEventData(app.Sessions(1), "Task:Folder");
+            app.onAddItemNew(ed);
+        end
+
+        function newSession(app)
+            app.createNewSession();
         end
     end
 
@@ -232,8 +258,9 @@ classdef Controller < handle
         end
     end
 
+    % Event handlers
+    % TODOpax: some methods in here are not event handlers.
     methods (Access = private)
-
         function onNew(app,~,~)
             error("called Controller:onNew");
 
@@ -269,6 +296,7 @@ classdef Controller < handle
             % Allow the controller to call this ui utility. We could hide
             % this implemenation in a utility package but there is little
             % need for that overhead.
+            % TODOpax: This function requires UI. Should be protected with UseUI
             [FileName, PathName] = uigetfile(app.FileSpec, 'Open File', app.LastFolder, 'MultiSelect', 'on');
 
             % If the user did not cancel
@@ -389,10 +417,15 @@ classdef Controller < handle
         function onAddItemNew(app, eventData)
             % ONADDITEMNEW Add a new item to the model. The parent session
             % and the type are provided in the eventData.
+            arguments
+                app
+                eventData (1,1) QSPViewerNew.Application.NewItemEventData
+            end
+            
             newItemPrefix = "New ";
 
             session = eventData.Session;
-            itemType = eventData.type;
+            itemType = eventData.type;            
 
             % The Model should provide a way to add to its structure, but
             % that is not the case right now so handle it here at the
@@ -421,6 +454,15 @@ classdef Controller < handle
                 end
                 newItem = QSP.(itemType)('Name', char(newName));
                 session.(itemType)(end+1) = newItem;
+            elseif itemType.contains(":Folder")
+                qspType = "Folder";
+                folderType = itemType.extractBefore(":Folder");
+                newName = char(newItemPrefix + " Folder");                
+                newItem = QSP.(qspType)('Name', char(newName));
+                % if parentFolder is a buildingblock or functionality this
+                % will work. If parentFolder is a "user" folder then need
+                % to find it based on the parentFolder name.
+                session.Settings.(folderType)(end+1) = newItem;
             end
 
             % I would prefer if the session is not stored in the items but
@@ -433,32 +475,42 @@ classdef Controller < handle
             notify(app, 'Model_NewItemAdded', QSPViewerNew.Application.NewItemAddedEventData(newItem, itemType)); % todopax would be nice if we don't need itemType
         end
 
-        function ThisFolder = onAddFolder(app,ParentNode,thisSession,TfAcceptName)
+        function ThisFolder = onAddFolder(app,thisSession,TfAcceptName)
+
+            % suspect code duplication with createFolderNode
+            app.createFolderNode();
+
+            ParentNode = thisSession.Settings.Task;
+
             ThisFolder = QSP.Folder;
-            if isa(ParentNode.NodeData, 'QSP.Folder')
+            if isa(ParentNode, 'QSP.Folder')
                 ThisFolder.Name = 'SubFolder';
-                if isempty(ParentNode.NodeData.Children)
-                    ParentNode.NodeData.Children = ThisFolder;
+                if isempty(ParentNode.Children)
+                    ParentNode.Children = ThisFolder;
                 else
-                    ParentNode.NodeData.Children(end+1) = ThisFolder;
+                    ParentNode.Children(end+1) = ThisFolder;
                 end
                 ThisFolder.OldParent = ThisFolder.Parent;
                 ThisFolder.Parent = ParentNode.NodeData;
             else
                 ThisFolder.OldParent = ThisFolder.Parent;
-                ThisFolder.Parent = ParentNode.Text;
+                %todopax: ThisFolder.Parent = ParentNode.Text;
             end
-            ThisFolder.Session = thisSession;
+            
+            ThisFolder.Session = thisSession; % todopax: why do we need to store the session in the folder
 
-            if ~isempty(ParentNode.Children)
-                allChildren = {ParentNode.Children.NodeData};
-                allFoldersIdx = cellfun(@(x) isa(x, 'QSP.Folder'),allChildren );
+            % todopax: Why do we care about the children here?
+            if false
+                if ~isempty(ParentNode.Children)
+                    allChildren = {ParentNode.Children.NodeData};
+                    allFoldersIdx = cellfun(@(x) isa(x, 'QSP.Folder'),allChildren );
 
-                if any(allFoldersIdx)
-                    allFolders = [allChildren{allFoldersIdx}];
-                    DisallowedNames = {allFolders.Name};
-                    NewName = matlab.lang.makeUniqueStrings(ThisFolder.Name, DisallowedNames);
-                    ThisFolder.Name = NewName;
+                    if any(allFoldersIdx)
+                        allFolders = [allChildren{allFoldersIdx}];
+                        DisallowedNames = {allFolders.Name};
+                        NewName = matlab.lang.makeUniqueStrings(ThisFolder.Name, DisallowedNames);
+                        ThisFolder.Name = NewName;
+                    end
                 end
             end
 
@@ -480,8 +532,8 @@ classdef Controller < handle
 
             thisSession.Settings.Folder(end+1) = ThisFolder;
 
-            % Mark the current session dirty
-            app.markDirty(thisSession);
+            % finish this pax
+            app.IsDirty()
 
             % Update the display
             app.updateTreeNames();
@@ -494,7 +546,7 @@ classdef Controller < handle
 
         end
 
-        function onMoveFolder(app,thisNode)
+        function onMoveFolder(app, thisNode)
             parentItemNode = getParentItemNode(thisNode.NodeData, app.TreeRoot);
 
             nodeSelDialog = QSPViewerNew.Widgets.TreeNodeSelectionModalDialog (app, ...
@@ -788,7 +840,6 @@ classdef Controller < handle
 
     % Session methods
     methods (Access = private)
-
         % TODOpax: cleanup this function.
         function StatusTF = saveSession(app, sessionIdx, saveAsTF)
             arguments
@@ -1243,8 +1294,8 @@ classdef Controller < handle
         end
     end
 
-    methods (Access = public)
-
+    methods (Access = public)        
+        
         function changeInBackEnd(app,newObject)
             %This function is for other classes to provide a new session to
             %be added to session and corresponding tree
@@ -1343,7 +1394,6 @@ classdef Controller < handle
     end
 
     methods (Access = private)
-
         function restoreNode(app, nodeToRestore, session)
             arguments
                 app
@@ -1704,6 +1754,10 @@ classdef Controller < handle
 
     % Get/Set Methods
     methods
+        function value = get.aboutMessage(app)
+            value = app.aboutMessage;
+            value(1) = value(1) + app.Version;
+        end
 
         function value = get.SessionNames(app)
             [~,value,ext] = cellfun(@fileparts, app.SessionPaths,'UniformOutput', false);
@@ -1856,7 +1910,10 @@ classdef Controller < handle
             % GETUIFIGURE  For the purpose of showing alerts and confirm
             % dialogs, the controller uses the view's top level window,
             % i.e. UIFigure.
-            value = app.OuterShell.UIFigure;
+            value = [];
+            if ~isempty(app.OuterShell)
+                value = app.OuterShell.UIFigure;
+            end
         end
 
         function sessionIndex = getSessionIndex(app, session)
