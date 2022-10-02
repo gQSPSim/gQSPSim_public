@@ -45,13 +45,19 @@ classdef PaneManager < handle
         function openPane(obj, nodeData)
             arguments
                 obj (1,1) QSPViewerNew.Application.PaneManager
-                nodeData
+                nodeData (1,1)
             end
 
             if ~isempty(nodeData)
+                % Summary panes will be invoked for nodeDatas of type
+                % struct with a Type filed in them.
                 if isfield(nodeData, "Type")
                     type = nodeData.Type;
-                else
+                elseif class(nodeData) == "QSP.Folder"
+                    % Also invoke a summary pane for the children in the
+                    % Folder
+                    type = "FunctionalitySummary";
+                else                    
                     type = string(class(nodeData)).extractAfter("QSP.");
                 end
 
@@ -75,6 +81,15 @@ classdef PaneManager < handle
                 end
                 pane.showThisPane();
                 obj.activePane = pane;
+            end
+        end
+
+        function closeActivePane(obj)
+            % this could be done via events or just a function call. 
+            % opting for function call for now since this is all inside the
+            % view.
+            if ~isempty(obj.activePane)
+                obj.activePane.hideThisPane();
             end
         end
     end
@@ -109,15 +124,6 @@ classdef PaneManager < handle
 
         function onAlert(obj, ~, eventData)
             notify(obj, "Alert", eventData);
-        end
-        
-        function closeActivePane(obj)
-            % this could be done via events or just a function call. 
-            % opting for function call for now since this is all inside the
-            % view.
-            if ~isempty(obj.activePane)
-                obj.activePane.hideThisPane();
-            end
-        end
+        end        
     end
 end
