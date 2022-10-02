@@ -45,8 +45,8 @@ classdef PaneToolbar < handle
 
             obj.parent = parent;
             obj.construct();
-            obj.minimalModeButtons = [obj.summaryButton, obj.editButton];
-            obj.maximalModeButtons = [obj.runButton, obj.parallelButton, obj.gitButton, obj.visualizeButton, obj.settingsButton, obj.zoomInButton, obj.zoomOutButton, obj.panButton, obj.exploreButton];
+
+            obj.mode = "Minimal";
         end
 
         function construct(obj)
@@ -79,6 +79,11 @@ classdef PaneToolbar < handle
             obj.zoomOutButton   = obj.createButton(10, "state", "ZoomOut",   "zoomout.png",        "Zoom Out");
             obj.panButton       = obj.createButton(11, "state", "Pan",       "pan.png",            "Pan");
             obj.exploreButton   = obj.createButton(12, "state", "Explore",   "datatip.png",        "Explore");
+
+            % Make sets of buttons that make up a "mode"
+            obj.minimalModeButtons = [obj.summaryButton, obj.editButton];
+            obj.maximalModeButtons = [obj.runButton, obj.parallelButton, obj.gitButton, obj.visualizeButton, obj.settingsButton,...
+                obj.zoomInButton, obj.zoomOutButton, obj.panButton, obj.exploreButton];
         end
 
         function newButton = createButton(obj, positionIndex, type, name, iconName, tooltipText)
