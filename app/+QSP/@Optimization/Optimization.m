@@ -261,7 +261,7 @@ classdef Optimization < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             end
             
             % Get the parameter used            
-            Names = {obj.Settings.Parameters.Name};
+            Names = arrayfun(@(x)x.Parameters.Name, obj.Settings, 'UniformOutput', false);
             MatchIdx = strcmpi(Names,obj.RefParamName);
             if any(MatchIdx)
                 pObj = obj.Settings.Parameters(MatchIdx);
