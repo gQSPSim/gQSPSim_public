@@ -30,7 +30,7 @@ classdef MainView < handle
         LoggerMenu               matlab.ui.container.Menu
         HelpMenu                 matlab.ui.container.Menu
         AboutMenu                matlab.ui.container.Menu
-        FlexGridLayout           matlab.ui.container.GridLayout %QSPViewerNew.Widgets.GridFlex
+        FlexGridLayout           matlab.ui.container.GridLayout
         SessionExplorerPanel     matlab.ui.container.Panel
         SessionExplorerGrid      matlab.ui.container.GridLayout
         TreeCtrl                 matlab.ui.container.Tree
@@ -39,6 +39,7 @@ classdef MainView < handle
         paneGridLayout
         paneManager
         iconList (1,1) struct
+        aboutMessage (:,1) string
     end
 
     events
@@ -58,9 +59,12 @@ classdef MainView < handle
     end
 
     methods
-        function obj = MainView(appname, app)
-            arguments
-                appname (1,1) string
+        function obj = MainView(app)
+            % Main View object constructor. 
+            % ctrl is the controller and is supplied in order to connect
+            % listeners on the controller with function in the View.
+            % The controller should not be stored on the View.
+            arguments                
                 app 
             end
 
@@ -70,7 +74,10 @@ classdef MainView < handle
             obj.initializeIconList(app.buildingBlockTypes(:,2), app.functionalityTypes(:,2));
 
             % Create the view.
-            obj.create(appname, app);
+            obj.create(app);
+
+            % Get the About Message 
+            obj.aboutMessage = app.aboutMessage;
 
             % Listen to the following paneManager events.
             addlistener(obj.paneManager, "Alert",   @(h,e)obj.onAlert(h,e));
@@ -102,45 +109,45 @@ classdef MainView < handle
             assert(~isempty(obj.TreeCtrl));
 
             % Root Session node.
-            sessionNode = obj.createTreeNode(obj.TreeCtrl, session, session.SessionName, 'folder_24.png', 'Session');
-            sessionNode.Tag = "Session";
+            sessionNode = obj.createTreeNode(obj.TreeCtrl, session, session.SessionName, 'folder_24.png', 'Session', "Session");
+            %sessionNode.Tag = "Session";
 
             % Root Building Blocks node.
-            buildingBlocksNode = obj.createTreeNode(sessionNode, [], 'Building Blocks', 'settings_24.png', 'Session');
-            buildingBlocksNode.Tag = "BuildingBlocks";
+            buildingBlocksNode = obj.createTreeNode(sessionNode, [], 'Building Blocks', 'settings_24.png', 'Session', "BuildingBlocks");
+            %buildingBlocksNode.Tag = "BuildingBlocks";
 
             buildingBlockNodeNames     = string(buildingBlockTypes(:,1));
             buildingBlockSettingsNames = string(buildingBlockTypes(:,2));
 
             for i = 1:numel(buildingBlockNodeNames)
-                baseNode = obj.createTreeNode(buildingBlocksNode, [], buildingBlockNodeNames(i), obj.iconList.(buildingBlockSettingsNames(i)), buildingBlockNodeNames(i));
-                baseNode.Tag = buildingBlockSettingsNames(i); % Tag the base node of each buildingBlock.
+                baseNode = obj.createTreeNode(buildingBlocksNode, [], buildingBlockNodeNames(i), obj.iconList.(buildingBlockSettingsNames(i)), buildingBlockNodeNames(i), buildingBlockSettingsNames(i));
+                %baseNode.Tag = buildingBlockSettingsNames(i); % Tag the base node of each buildingBlock.
                 nodes = session.Settings.(buildingBlockSettingsNames(i));
 
                 for j = 1:numel(nodes)
-                    instanceNode = obj.createTreeNode(baseNode, nodes(j), nodes(j).Name, obj.iconList.(buildingBlockSettingsNames(i)), buildingBlockNodeNames(i));
-                    instanceNode.Tag = "instance";
+                    obj.createTreeNode(baseNode, nodes(j), nodes(j).Name, obj.iconList.(buildingBlockSettingsNames(i)), buildingBlockNodeNames(i), "instance");
+                    %instanceNode.Tag = "instance";
                 end
             end
 
-            functionalityNode  = obj.createTreeNode(sessionNode, [], 'Functionalities', 'settings_24.png', 'Session');
-            functionalityNode.Tag = "Functionality";
+            functionalityNode  = obj.createTreeNode(sessionNode, [], 'Functionalities', 'settings_24.png', 'Session', "Functionality");
+            %functionalityNode.Tag = "Functionality";
 
             functionalityBlockNodeNames = string(functionalityTypes(:,2));
 
             for i = 1:numel(functionalityBlockNodeNames)
                 dummyNodeData.Type = "FunctionalitySummary";
-                baseNode = obj.createTreeNode(functionalityNode, dummyNodeData, functionalityBlockNodeNames(i), obj.iconList.(functionalityBlockNodeNames(i)), functionalityBlockNodeNames(i));
-                baseNode.Tag = functionalityBlockNodeNames(i);
+                baseNode = obj.createTreeNode(functionalityNode, dummyNodeData, functionalityBlockNodeNames(i), obj.iconList.(functionalityBlockNodeNames(i)), functionalityBlockNodeNames(i), functionalityBlockNodeNames(i));
+                %baseNode.Tag = functionalityBlockNodeNames(i);
                 nodes = session.(functionalityBlockNodeNames(i));
                 for j = 1:numel(nodes)
-                    instanceNode = obj.createTreeNode(baseNode, nodes(j), nodes(j).Name, obj.iconList.(functionalityBlockNodeNames(i)), functionalityBlockNodeNames(i));
-                    instanceNode.Tag = "instance";
+                    instanceNode = obj.createTreeNode(baseNode, nodes(j), nodes(j).Name, obj.iconList.(functionalityBlockNodeNames(i)), functionalityBlockNodeNames(i), "instance");
+                    %instanceNode.Tag = "instance";
                 end
             end
 
-            deletedItemsNode = obj.createTreeNode(sessionNode, [], 'Deleted Items', 'trash_24.png', 'Session');
-            deletedItemsNode.Tag = "DeletedItems";
+            obj.createTreeNode(sessionNode, [], 'Deleted Items', 'trash_24.png', 'Session', "DeletedItems");
+            %deletedItemsNode.Tag = "DeletedItems";
 
             % Default state of the tree is to expand the Session and the
             % buildingBlocks.
@@ -150,10 +157,15 @@ classdef MainView < handle
     end
 
     methods(Access = private)
-        function create(obj, appName, app)
+        function create(obj, app)
+            arguments
+                obj QSPViewerNew.Application.MainView
+                app QSPViewerNew.Application.Controller
+            end
+
             obj.UIFigure = uifigure('Visible', 'off');
             obj.UIFigure.Position = [100 100 1005 864];
-            obj.UIFigure.Name = appName;
+            obj.UIFigure.Name = app.Title;
             obj.UIFigure.CloseRequestFcn =  @(h,e)obj.onMenuNotify("Exit_Request");
 
             constructMenuItems(obj, app.ItemTypes);
@@ -231,6 +243,8 @@ classdef MainView < handle
             for i = 1:numel(functionalityTypes)
                 obj.iconList.(functionalityTypes(i)) = functionalityIcons(i);
             end
+
+            obj.iconList.Folder = "folder_24.png";
         end
 
         function onWindowButtonUp(~, src, ~)
@@ -262,7 +276,7 @@ classdef MainView < handle
 
             SelectedNodes = eventData.SelectedNodes;
 
-            %We only make changes if a single node is selected
+            % Only open panes for singly selected nodes.
             if numel(SelectedNodes) == 1
                 % Determine if a Summary treenode has been selected.
                 if isfield(SelectedNodes.NodeData, "Type") %TODOpax, convert this to use Tag.
@@ -271,8 +285,17 @@ classdef MainView < handle
                         nodeData.ChildNodeData = [SelectedNodes.Children.NodeData];
                         obj.paneManager.openPane(nodeData);                    
                     end                    
-                else
+                elseif ~isempty(SelectedNodes.NodeData)
+                    % There are nodes (e.g. Task root) that don't have
+                    % summary panes associated to them. If that were to be
+                    % needed those nodes simply need to add a struct (as
+                    % the functionality nodes have) and a pane written for
+                    % them. But meanwhile those nodes have no NodeData so
+                    % we need to protect here.                    
                     obj.paneManager.openPane(SelectedNodes.NodeData);
+                else
+                    % Clear out the pane area since the selected node has no associated pane.
+                    obj.paneManager.closeActivePane();
                 end
             end
             
@@ -298,35 +321,39 @@ classdef MainView < handle
             % A new item has been added to the model. Respond by creating
             % a treeNode for it the current session. 
             sessionTreeNode = getCurrentSessionTreeNode(obj);
-            parent = findobj(sessionTreeNode, 'Tag', eventData.itemType);
+
+            % The itemType can specify a Folder so decompose it if needed. 
+            if eventData.itemType.contains(":Folder")
+                parentTag = eventData.itemType.extractBefore(":Folder");
+                iconType = "Folder";
+                itemTag = "folder";
+            else
+                parentTag = eventData.itemType;
+                iconType = eventData.itemType;
+                itemTag = "instance";
+            end
+
+            parent = findobj(sessionTreeNode, 'Tag', parentTag);
+
             assert(numel(parent) == 1);
-            obj.createTreeNode(parent, eventData.newItem, eventData.newItem.Name, obj.iconList.(eventData.itemType), eventData.itemType);
+            obj.createTreeNode(parent, eventData.newItem, eventData.newItem.Name, obj.iconList.(iconType), eventData.itemType, itemTag);
 
             % By default expand nodes added.
             parent.expand;
         end
 
-        function treeNode = createTreeNode(~, Parent, Data, Name, Icon, PaneType)
+        function treeNode = createTreeNode(~, Parent, Data, Name, Icon, PaneType, tag)
             treeNode = uitreenode(...
                 'Parent',   Parent,...
                 'NodeData', Data,...
                 'Text',     Name,...
                 'UserData', PaneType,...
+                'Tag',      tag,...
                 'Icon',     QSPViewerNew.Resources.LoadResourcePath(Icon));
         end
         
         function onAbout(obj, ~, ~)
-            % TODOpax need a way to get the version number.
-            Message = {'gQSPsim version 1.0', ...
-                '', ...
-                'http://www.github.com/gQSPsim/gQSPsim', ...
-                '', ...
-                'Authors:', ...
-                '', ...
-                'Justin Feigelman (feigelman.justin@gene.com)', ...
-                'Iraj Hosseini (hosseini.iraj@gene.com)', ...
-                'Anita Gajjala (agajjala@mathworks.com)'};
-            uialert(obj.UIFigure,Message,'About','Icon','');
+            uialert(obj.UIFigure, obj.aboutMessage, 'About', 'Icon','');
         end
 
         function onAlert(obj, ~, eventData)
@@ -473,7 +500,7 @@ classdef MainView < handle
             obj.AddNewItemMenu                  = obj.createMenuItem(obj.QSPMenu,      "Add New Item");
             
             % Create menus for all the QSP Item types.
-            shortCuts = ["T", "P", "D", "A", "S", "V", "I", "F", "C", "G", "Z"]; % maybe useful but here now for debugging.
+            shortCuts = ["T", "P", "D", "A", "E", "V", "I", "F", "C", "G", "Z"]; % maybe useful but here now for debugging.
             for i = 1:size(itemTypes,1)
                 type = itemTypes{i,2};
                 obj.createMenuItem(obj.AddNewItemMenu, itemTypes{i,1}, @(h,e)obj.onMenuNotifyAdd(type), shortCuts(i));
