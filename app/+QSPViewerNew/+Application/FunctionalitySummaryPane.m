@@ -48,10 +48,10 @@ classdef FunctionalitySummaryPane < matlab.mixin.Heterogeneous & handle
                 pvargs.HasVisualization(1,1) logical = false
             end
              
-            obj.Parent = pvargs.Parent;
-            obj.LayoutRow = pvargs.layoutrow;
+            obj.Parent       = pvargs.Parent;
+            obj.LayoutRow    = pvargs.layoutrow;
             obj.LayoutColumn = pvargs.layoutcolumn;
-            obj.ParentApp = pvargs.parentApp;            
+            obj.ParentApp    = pvargs.parentApp;            
             
             obj.create();
         end
@@ -88,12 +88,18 @@ classdef FunctionalitySummaryPane < matlab.mixin.Heterogeneous & handle
         
         function update(obj)
             if ~isempty(obj.NodeData)
-                summaryData = arrayfun(@(x) x.getSummaryTableItems, obj.NodeData.ChildNodeData, 'UniformOutput', false);
+                childrenFieldName = "ChildNodeData";
+                if class(obj.NodeData) == "QSP.Folder"
+                    childrenFieldName = "Children";
+                end
+                
+                summaryData = arrayfun(@(x) x.getSummaryTableItems, obj.NodeData.(childrenFieldName), 'UniformOutput', false);
                 summaryData1 = cellfun(@(x) x(:,2)', summaryData, 'UniformOutput', false);
                 
-                tableData = cell2table(vertcat(summaryData1{:}), 'VariableNames', summaryData{1}(:,1));
-                
-                obj.TableMain.Data = tableData;
+                if ~isempty(summaryData1)
+                    tableData = cell2table(vertcat(summaryData1{:}), 'VariableNames', summaryData{1}(:,1));
+                    obj.TableMain.Data = tableData;
+                end
             end
         end
         
