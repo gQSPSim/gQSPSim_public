@@ -186,7 +186,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
                 try
                     status = fclose(obj.LogHandle);
                 catch err
-                   warning('Failed to close the log file.\n%s', err.message)
+                   warning(err.identifier, 'Failed to close the log file.\n%s', err.message);
                 end
 
             end
@@ -780,7 +780,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
                 try
                     obj.LogHandle = fopen(fullfile(obj.RootDirectory, obj.LogFile), 'a');
                 catch err
-                    warning('Could not open log file for writing.\n%s', err.message)
+                    warning(err.identifier, 'Could not open log file for writing.\n%s', err.message);
                     obj.LogHandle = -1;
                     return
                 end       
@@ -958,7 +958,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
             try
                 subdirs = genpath(uix.utility.getAbsoluteFilePath(obj.RelativeUserDefinedFunctionsPath, obj.RootDirectory));
             catch err
-                warning('Unable to remove UDF from path\n%s', err.message)
+                warning(err.identifier, 'Unable to remove UDF from path\n%s', err.message);
                 return
             end
             if isempty(subdirs)
