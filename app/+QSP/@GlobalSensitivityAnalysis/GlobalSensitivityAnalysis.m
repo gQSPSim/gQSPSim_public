@@ -703,8 +703,7 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
                     InvalidMessages{index} = 'Invalid Task and/or Parameters';
                 end                
             end 
-        end %function
-        
+        end %function        
     end %methods
     
     
@@ -804,7 +803,6 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
             % TODOGSA, this assumes that object names are unique within
             % Parameters and within Tasks. Is this assumption justified?
             % TODOGSA: this also assumes that names is a subset of all names.
-
         end
         
         function createDefaultPlots(obj)
