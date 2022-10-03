@@ -1086,7 +1086,7 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
             obj.OuterGrid.Visible = 'on';
         end                
         
-        function notifyOfChange(obj,newBackEndObject)
+        function notifyOfChange(obj, newBackEndObject)
             obj.ParentApp.changeInBackEnd(newBackEndObject);
         end
         

@@ -318,8 +318,6 @@ classdef TaskPane < QSPViewerNew.Application.ViewPane
             end
         end
         
-        
-        
         function onModelDropDown(obj,NewValue)
             if ~strcmpi(NewValue,QSP.makeInvalid('-'))
                 obj.modelChange(NewValue,true);
