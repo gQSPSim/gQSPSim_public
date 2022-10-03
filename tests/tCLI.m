@@ -7,6 +7,8 @@ classdef tCLI < matlab.unittest.TestCase
     methods(TestClassSetup)
         function setup(testCase)
             testCase.testRootDirectory = fileparts(mfilename('fullpath'));
+            addpath(genpath('..'));
+            DefinePaths;
         end
     end
 
