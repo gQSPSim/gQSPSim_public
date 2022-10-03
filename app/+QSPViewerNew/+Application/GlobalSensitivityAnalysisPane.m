@@ -138,8 +138,8 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
                 pvargs.HasVisualization (1,1) logical = true
             end
 
-            % TODOpax. This does not work. args = namedargs2cell(pvargs);
-            obj = obj@QSPViewerNew.Application.ViewPane(Parent=pvargs.Parent, HasVisualization=pvargs.HasVisualization, ParentApp=pvargs.parentApp);
+            args = namedargs2cell(pvargs);
+            obj = obj@QSPViewerNew.Application.ViewPane(args{:});
             obj.create();
             obj.createListenersAndCallbacks();
             obj.PlotSelectionCallback = @(src,~)obj.lineSelectionCallback(src);
@@ -1490,33 +1490,4 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             end
         end
     end
-
-    % get parent task node
-    allChildrenTag = string({sessionNode.Children.Tag});
-    buildingBlockNode = sessionNode.Children(allChildrenTag=="Building blocks");
-    buildBlockChildrenTag = string({buildingBlockNode.Children.Tag});
-    parentTypeNode = buildingBlockNode.Children(buildBlockChildrenTag==type);
-
-    % launch tree selection node dialog for user's input
-    if verLessThan('matlab','9.9')
-        nodeSelDialog = QSPViewerNew.Widgets.TreeNodeSelectionModalDialog (obj, ...
-            parentTypeNode, ...
-            'ParentAppPosition', sessionNode.Parent.Parent.Parent.Parent.Parent.Position, ...
-            'DialogName', sprintf('Select %s node', parentTypeNode.Text), ...
-            'ModalOn', false, ...
-            'NodeType', "Other");
-    else % Modal UI figures are supported >= 20b
-        nodeSelDialog = QSPViewerNew.Widgets.TreeNodeSelectionModalDialog (obj, ...
-            parentTypeNode, ...
-            'ParentAppPosition', sessionNode.Parent.Parent.Parent.Parent.Parent.Position, ...
-            'DialogName', sprintf('Select %s node', parentTypeNode.Text), ...
-            'NodeType', "Other");
-    end
-
-    uiwait(nodeSelDialog.MainFigure);
-
-    selectedNode = split(obj.SelectedNodePath, filesep);
-    selectedNode  = selectedNode(1);
-end
-end
 end
