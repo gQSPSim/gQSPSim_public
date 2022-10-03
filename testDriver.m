@@ -1,18 +1,11 @@
 % Script to drive running of gQSPSim tests on gitlab-runner.
-% Want to put all testing infrastructure in this one directory
-% however we want to run tests from the root gQSPSim directory.
-currentPWD = pwd;
 genericError = '';
-cd ..
 
 % Add gQSPSim to the path.
 DefinePaths;
 
-% Add test directory to the path. We need various parts of the model
-% available on the path.
+% Add test directory to the path.
 addpath(genpath('tests'));
-
-disp('NOTE: Only running simple tests.')
 
 try
     %results = runtests('tgQSPSim', 'ProcedureName', 'tSimulations');
@@ -22,8 +15,6 @@ catch e
     results.Failed = true;
     genericError = e.message;
 end
-
-cd(currentPWD);
 
 if any([results.Failed])
     warning('Some errors encountered. See log file for details.');
