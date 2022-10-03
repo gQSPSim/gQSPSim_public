@@ -40,6 +40,10 @@ classdef MainView < handle
         paneManager
         iconList (1,1) struct
         aboutMessage (:,1) string
+        
+        % Keep a reference of these from the app. If they are not written
+        % to then there is no memory overhead (i.e. no copy)
+        itemTypes cell
     end
 
     events
@@ -67,6 +71,11 @@ classdef MainView < handle
             arguments                
                 app 
             end
+
+            % Keep a local reference to the itemTypes. This is needed
+            % beyond the constructor for use by context menus. Note thatif
+            % not modified in the class no copy if made by MATLAB.
+            obj.itemTypes = app.ItemTypes;
 
             % initialize the list of icons and the mapping to the 
             % buildingBlock and functionality list provided by the 
@@ -110,44 +119,36 @@ classdef MainView < handle
 
             % Root Session node.
             sessionNode = obj.createTreeNode(obj.TreeCtrl, session, session.SessionName, 'folder_24.png', 'Session', "Session");
-            %sessionNode.Tag = "Session";
 
             % Root Building Blocks node.
             buildingBlocksNode = obj.createTreeNode(sessionNode, [], 'Building Blocks', 'settings_24.png', 'Session', "BuildingBlocks");
-            %buildingBlocksNode.Tag = "BuildingBlocks";
 
             buildingBlockNodeNames     = string(buildingBlockTypes(:,1));
             buildingBlockSettingsNames = string(buildingBlockTypes(:,2));
 
             for i = 1:numel(buildingBlockNodeNames)
                 baseNode = obj.createTreeNode(buildingBlocksNode, [], buildingBlockNodeNames(i), obj.iconList.(buildingBlockSettingsNames(i)), buildingBlockNodeNames(i), buildingBlockSettingsNames(i));
-                %baseNode.Tag = buildingBlockSettingsNames(i); % Tag the base node of each buildingBlock.
                 nodes = session.Settings.(buildingBlockSettingsNames(i));
 
                 for j = 1:numel(nodes)
                     obj.createTreeNode(baseNode, nodes(j), nodes(j).Name, obj.iconList.(buildingBlockSettingsNames(i)), buildingBlockNodeNames(i), "instance");
-                    %instanceNode.Tag = "instance";
                 end
             end
 
             functionalityNode  = obj.createTreeNode(sessionNode, [], 'Functionalities', 'settings_24.png', 'Session', "Functionality");
-            %functionalityNode.Tag = "Functionality";
 
             functionalityBlockNodeNames = string(functionalityTypes(:,2));
 
             for i = 1:numel(functionalityBlockNodeNames)
                 dummyNodeData.Type = "FunctionalitySummary";
                 baseNode = obj.createTreeNode(functionalityNode, dummyNodeData, functionalityBlockNodeNames(i), obj.iconList.(functionalityBlockNodeNames(i)), functionalityBlockNodeNames(i), functionalityBlockNodeNames(i));
-                %baseNode.Tag = functionalityBlockNodeNames(i);
                 nodes = session.(functionalityBlockNodeNames(i));
                 for j = 1:numel(nodes)
-                    instanceNode = obj.createTreeNode(baseNode, nodes(j), nodes(j).Name, obj.iconList.(functionalityBlockNodeNames(i)), functionalityBlockNodeNames(i), "instance");
-                    %instanceNode.Tag = "instance";
+                    obj.createTreeNode(baseNode, nodes(j), nodes(j).Name, obj.iconList.(functionalityBlockNodeNames(i)), functionalityBlockNodeNames(i), "instance");
                 end
             end
 
             obj.createTreeNode(sessionNode, [], 'Deleted Items', 'trash_24.png', 'Session', "DeletedItems");
-            %deletedItemsNode.Tag = "DeletedItems";
 
             % Default state of the tree is to expand the Session and the
             % buildingBlocks.
@@ -342,7 +343,7 @@ classdef MainView < handle
             parent.expand;
         end
 
-        function treeNode = createTreeNode(~, Parent, Data, Name, Icon, PaneType, tag)
+        function treeNode = createTreeNode(obj, Parent, Data, Name, Icon, PaneType, tag)
             treeNode = uitreenode(...
                 'Parent',   Parent,...
                 'NodeData', Data,...
@@ -350,8 +351,56 @@ classdef MainView < handle
                 'UserData', PaneType,...
                 'Tag',      tag,...
                 'Icon',     QSPViewerNew.Resources.LoadResourcePath(Icon));
+
+            % Create context menus
+            obj.createContextMenus(tag, treeNode);
         end
         
+        function cm = createContextMenus(obj, type, treeNode)
+            arguments
+                obj
+                type     (1,1) string
+                treeNode (1,1) matlab.ui.container.TreeNode
+            end
+
+            cm = uicontextmenu(obj.UIFigure);
+
+            % Check if the type is in the itemTypes if so then handle here
+            % otherwise go to the switch statement.
+            switch type
+                case 'Session'                    
+                    uimenu(cm, "Text", "Close",      "MenuSelectedFcn", @(h,e)obj.onMenuNotifyWithSession("Close_Request"));
+                    uimenu(cm, "Text", "Save",       "MenuSelectedFcn", @(h,e)obj.onMenuNotifyWithSession("Save_Request"));
+                    uimenu(cm, "Text", "Save As...", "MenuSelectedFcn", @(h,e)obj.onMenuNotifyWithSession("SaveAs_Request"));
+                
+                case 'DeletedItems'
+                    uimenu(cm, "Text", "Empty Deleted Items");
+
+                case 'Deleted' % Items in the Deleted Items folder
+                    uimenu(cm, "Text", "Restore");
+                    uimenu(cm, "Text", "Permanently Delete");
+
+                case 'Folder'
+                    disp('Not ready yet');
+                
+                case 'instance'
+                    uimenu(cm, "Text", "Duplicate");
+                    uimenu(cm, "Text", "Delete", "MenuSelectedFcn", @(h,e)obj.onSelectedItemsAction("Delete_Request"));
+                    uimenu(cm, "Text", "Move To:");
+
+                case obj.itemTypes(:,2)
+                    uimenu(cm, "Text", "Add new", "MenuSelectedFcn", @(h,e)obj.onMenuNotifyAdd(type));
+                    uimenu(cm, "Text", "Add new Folder");
+
+                case {'BuildingBlocks', 'Functionality'}
+                    % Do nothing for these nodes. 
+                
+                otherwise
+                    assert(false, "Unhandled type.");
+            end
+            treeNode.ContextMenu = cm;
+        end
+
         function onAbout(obj, ~, ~)
             uialert(obj.UIFigure, obj.aboutMessage, 'About', 'Icon','');
         end
@@ -361,8 +410,8 @@ classdef MainView < handle
         end
 
         function onMenuNotify(obj, type)
-            % ONMENUNOTIFY  Simply notifies listeners of the event. No
-            % other processing on the View.
+            % Simply notifies listeners of the event. No other processing
+            % on the View.
             notify(obj, type);
         end
 
@@ -372,11 +421,10 @@ classdef MainView < handle
         end
 
         function onMenuNotifyWithSession(obj, type)
-            % ONMENUNOTIFYWITHSESSION  Notifies the controller of an action
-            % that requires the current session. Define the current session
-            % as that containing the selected tree node or, if it is the
-            % case, the only session in the project. Otherwise alert there
-            % is no current session.
+            % Notifies the controller of an action that requires the current 
+            % session. Define the current session as that containing the 
+            % selected tree node or, if it is the case, the only session in
+            % the project. Otherwise alert there is no current session.
             selectedSession = obj.getCurrentSession();
             notify(obj, type, QSPViewerNew.Application.Session_EventData(selectedSession));
         end
@@ -390,7 +438,7 @@ classdef MainView < handle
         end
 
         function onCloseSession(obj, eventData)
-            % ONCLOSESESSION  Controller is broadcasting that a session has
+            % Controller is broadcasting that a session has
             % been removed. Update the view accordingly.
             sessions = [obj.TreeCtrl.Children.NodeData];
             closeSessionTF = eventData.Session == sessions;
@@ -490,7 +538,6 @@ classdef MainView < handle
             obj.NewCtrlNMenu                    = obj.createMenuItem(obj.FileMenu,   "New...",      @(h,e)obj.onMenuNotify("New_Request"),  "N");
             obj.OpenCtrl0Menu                   = obj.createMenuItem(obj.FileMenu,   "Open...",     @(h,e)obj.onMenuNotify("Open_Request"), "O");
             obj.OpenRecentMenu                  = obj.createMenuItem(obj.FileMenu,   "Open Recent");%, @(h,e)obj.onMenuNotifyWithFile('OpenFile_Request', e));
-            %obj.OpenRecentMenu                  = obj.createMenuItem(obj.FileMenu,   "Open Recent", @(h,e)obj.onMenuNotify("OpenRecent"));
             obj.CloseMenu                       = obj.createMenuItem(obj.FileMenu,   "Close",       @(h,e)obj.onMenuNotifyWithSession("Close_Request"), "W", "on");
             obj.SaveCtrlSMenu                   = obj.createMenuItem(obj.FileMenu,   "Save",        @(h,e)obj.onMenuNotifyWithSession("Save_Request"),  "S", "on");
             obj.SaveAsMenu                      = obj.createMenuItem(obj.FileMenu,   "Save As...",  @(h,e)obj.onMenuNotifyWithSession("SaveAs_Request"));
@@ -509,8 +556,7 @@ classdef MainView < handle
             obj.DeleteSelectedItemMenu          = obj.createMenuItem(obj.QSPMenu,      "Delete Selected Item",  @(h,e)obj.onSelectedItemsAction("Delete_Request"));
             obj.RestoreSelectedItemMenu         = obj.createMenuItem(obj.QSPMenu,      "Restore Selected Item", @(h,e)obj.onSelectedItemsAction("Restore_Request"));
             
-            % Start with these disabled. Their state depends on treeNode
-            % selection.
+            % Start with these disabled. Their state depends on treeNode selection.
             obj.DeleteSelectedItemMenu.Enable  = false;
             obj.RestoreSelectedItemMenu.Enable = false;
             
