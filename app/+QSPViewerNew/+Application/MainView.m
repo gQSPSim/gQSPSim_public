@@ -575,7 +575,7 @@ classdef MainView < handle
                 parent
                 text (1,1) string
                 menuSelectedFcn = ''
-                accelerator (1,1) char = ''
+                accelerator (1,:) char = ''
                 separator (1,1) string = "off"
             end
             menuObj = uimenu(parent, "Text", text, "MenuSelectedFcn", menuSelectedFcn, "Separator", separator, "Accelerator", accelerator);
