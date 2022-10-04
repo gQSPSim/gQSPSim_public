@@ -41,7 +41,7 @@ classdef Controller < handle
         FileSpec ={'*.mat','MATLAB MAT File'}
         SelectedSessionIdx = double.empty(0,1)
         SessionPaths (:,1) string = string.empty(0,1) % Stores the fullPath of the Session on disk (if on disk)
-        RecentSessionPaths = string.empty(0,1)
+        RecentSessionPaths = string.empty(1,0)
         LastFolder = pwd
         Type % replaced with PreferencesGroupName
         TypeStr %todopax remove.
@@ -515,6 +515,7 @@ classdef Controller < handle
                 end
                 newItem = QSP.(itemType)('Name', char(newName));
                 session.Settings.(itemType)(end+1) = newItem;
+            
             elseif any(functionalityType_TF)
                 newName = char(newItemPrefix + app.functionalityTypes(functionalityType_TF, 1));
                 currentIndex = sum(string({session.(itemType).Name}).contains(newName));
@@ -523,6 +524,13 @@ classdef Controller < handle
                 end
                 newItem = QSP.(itemType)('Name', char(newName));
                 session.(itemType)(end+1) = newItem;
+
+                % This is probably not needed but the old code did it and
+                % changing this would be a lot of work, so maintain this
+                % for now. Hand a reference to the session.Settings to the
+                % functionality nodes.
+                newItem.Settings = session.Settings;
+            
             elseif itemType.contains(":Folder")
                 qspType = "Folder";
                 folderType = itemType.extractBefore(":Folder");
@@ -1035,7 +1043,7 @@ classdef Controller < handle
             app.Sessions(end+1)     = Session;
             app.IsDirty(end+1)      = false;
             app.SessionPaths(end+1) = filePath;
-            app.addRecentSessionPath(filePath);
+            %app.addRecentSessionPath(filePath);
 
             % Need a name for the session. If there is no name on it the
             % controller will assign a name.
