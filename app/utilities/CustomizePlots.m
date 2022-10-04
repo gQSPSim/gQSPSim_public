@@ -25,13 +25,6 @@ function varargout = CustomizePlots(varargin)
 %
 % See also: GUIDE, GUIDATA, GUIHANDLES
 
-%   Copyright 2019 The MathWorks, Inc.
-%
-% Auth/Revision:
-%   MathWorks Consulting
-%   $Author: agajjala $
-%   $Revision: 420 $  $Date: 2017-12-07 14:47:44 -0500 (Thu, 07 Dec 2017) $
-% ---------------------------------------------------------------------
 
 % Edit the above text to modify the response to help CustomizePlots
 

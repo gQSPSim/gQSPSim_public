@@ -4,15 +4,6 @@ classdef VirtualPopulationPane < QSPViewerNew.Application.ViewPane
     %  This is also called Virtual Subjects. 
     %
     % 
-    % ---------------------------------------------------------------------
-    %    Copyright 2020 The Mathworks, Inc.
-    %
-    % Auth/Revision:
-    %   Max Tracy
-    %
-    %  3/2/20
-    % ---------------------------------------------------------------------
-    
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Status of the UI properties
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

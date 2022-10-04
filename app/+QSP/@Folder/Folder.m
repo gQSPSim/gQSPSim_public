@@ -12,12 +12,6 @@ classdef Folder < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
     %
     % QSP.Folder Properties:
     %
-    % Copyright 2021 The MathWorks, Inc.
-    %
-    % Auth/Revision:
-    %   MathWorks Consulting
-    %   Author: Karthiga Mahalingam 
-    % ---------------------------------------------------------------------
     
     %% Properties
     properties

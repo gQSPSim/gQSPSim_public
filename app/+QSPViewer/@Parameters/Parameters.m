@@ -5,15 +5,6 @@ classdef Parameters < uix.abstract.CardViewPane
     %
 
     
-    %   Copyright 2019 The MathWorks, Inc.
-    %
-    % Auth/Revision:
-    %   MathWorks Consulting
-    %   $Author: rjackey $
-    %   $Revision: 284 $
-    %   $Date: 2016-09-01 13:55:31 -0400 (Thu, 01 Sep 2016) $
-    % ---------------------------------------------------------------------
-  
         
     %% Methods in separate files with custom permissions
     methods (Access=protected)

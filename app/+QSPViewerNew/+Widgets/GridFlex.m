@@ -2,12 +2,7 @@ classdef GridFlex < handle
     % GridFlex - A widget for a flexible grid. The grid has 2 sides that
     % can be resized.
     %----------------------------------------------------------------------
-    % Copyright 2020 The MathWorks, Inc.
-    %
-    % Auth/Revision:
-    %   Author: Max Tracy
-    %   Revision: 1
-    %   Date: 3/9/20
+
     properties (Access = private)
         Parent
         OuterGrid matlab.ui.container.GridLayout

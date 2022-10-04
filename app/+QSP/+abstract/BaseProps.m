@@ -31,15 +31,6 @@ classdef (Abstract) BaseProps < matlab.mixin.SetGet & matlab.mixin.Heterogeneous
     %   getSummary, validate
     %
     
-    %   Copyright 2008-2019 The MathWorks, Inc.
-    %
-    % Auth/Revision:
-    %   MathWorks Consulting
-    %   $Author: agajjala $
-    %   $Revision: 331 $
-    %   $Date: 2016-10-05 18:01:36 -0400 (Wed, 05 Oct 2016) $
-    % ---------------------------------------------------------------------
-    
     
     %% Properties
     properties

@@ -3,16 +3,6 @@ classdef OptimizationDataPane < QSPViewerNew.Application.ViewPane
     %  'viewer' counterpart to the 'model' class QSP.OptimizationData. This
     %  is also called Datasets.
     %
-    %
-    % ---------------------------------------------------------------------
-    %    Copyright 2020 The Mathworks, Inc.
-    %
-    % Auth/Revision:
-    %   Max Tracy
-    %
-    %  3/2/20
-    % ---------------------------------------------------------------------
-
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Status of the UI properties
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

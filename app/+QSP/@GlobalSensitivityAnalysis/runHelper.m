@@ -12,12 +12,6 @@ function [statusOk, message] = runHelper(obj, progressCallback)
 %   resultFileNames : character vector of the mat file containing the
 %                     global sensitivity analysis results
 
-% Copyright 2020 The MathWorks, Inc.
-%
-% Auth/Revision:
-%   MathWorks
-%   $Author: faugusti $
-% ---------------------------------------------------------------------
 
     modelObj = obj.Settings.Model.mObj;
     

@@ -3,13 +3,6 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
     % ---------------------------------------------------------------------
     % Base properties that should be observed by all subclasses
     %
-    %    Copyright 2020 The Mathworks, Inc.
-    %
-    % Auth/Revision:
-    %   Max Tracy
-    %   1/14/20
-    % ---------------------------------------------------------------------
-
     events
         Alert
         ChangeState

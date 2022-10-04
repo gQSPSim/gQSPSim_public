@@ -1,12 +1,7 @@
 classdef ModalPopup < handle
     % ModalPopup - Use this class so that a popup window can modal a figure
     %----------------------------------------------------------------------
-    % Copyright 2020 The MathWorks, Inc.
-    %
-    % Auth/Revision:
-    %   Author: Max Tracy
-    %   Revision: 1
-    %   Date: 6/9/20
+
     properties (Access = private)
         Handles
         InteractionTF

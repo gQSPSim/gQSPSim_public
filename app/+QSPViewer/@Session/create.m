@@ -18,14 +18,6 @@ function create(vObj)
 % Notes: none
 %
 
-% Copyright 2014-2019 The MathWorks, Inc.
-%
-% Auth/Revision:
-%   MathWorks Consulting
-%   $Author: rjackey $
-%   $Revision: 282 $  $Date: 2016-09-01 10:04:43 -0400 (Thu, 01 Sep 2016) $
-% ---------------------------------------------------------------------
-
 
 create@uix.abstract.CardViewPane(vObj);
 

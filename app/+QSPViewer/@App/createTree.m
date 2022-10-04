@@ -4,13 +4,6 @@ function createTree(obj, Parent, AllData)
 % Creates node(s) for the tree
 %
 
-% Copyright 2019 The MathWorks, Inc.
-%
-% Auth/Revision:
-%   MathWorks Consulting
-%   $Author: rjackey $
-%   $Revision: 217 $  $Date: 2016-07-29 11:37:42 -0400 (Fri, 29 Jul 2016) $
-% ---------------------------------------------------------------------
 
 % Nodes that take children have the type of child as a string in the UserData
 % property. Nodes that are children and are movable have [] in UserData.

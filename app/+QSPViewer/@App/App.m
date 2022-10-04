@@ -141,14 +141,6 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
     % Examples:
     %  obj = QSPViewer.App()
     
-    %   Copyright 2019 The MathWorks, Inc.
-    %
-    % Auth/Revision:
-    %   MathWorks Consulting
-    %   $Author: agajjala $
-    %   $Revision: 299 $
-    %   $Date: 2016-09-06 17:18:29 -0400 (Tue, 06 Sep 2016) $
-    % ---------------------------------------------------------------------
     
     
     %% Properties

@@ -1,7 +1,5 @@
 classdef Logger < mlog.Logger 
     
-    %   Copyright 2021 The MathWorks Inc.
-    
     
     %% Constructor / Destructor
     methods

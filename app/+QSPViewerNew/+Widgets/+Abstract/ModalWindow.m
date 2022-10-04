@@ -10,10 +10,6 @@ classdef ModalWindow < matlab.apps.AppBase
     %
     %       matlab.apps.AppBase 
     %
-    %
-    %
-    %   Copyright 2020 The MathWorks, Inc.
-    %    
     
     properties (Access = protected)
         UIFigure matlab.ui.Figure

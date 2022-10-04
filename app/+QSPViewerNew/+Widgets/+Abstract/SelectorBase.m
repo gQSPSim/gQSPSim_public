@@ -4,12 +4,6 @@ classdef SelectorBase < handle
     % Create a widget that allows you to specify a file- or foldername by 
     % editable text or by dialog.
     %-----------------------------------------------------------
-    % Copyright 2020 The MathWorks, Inc.
-    %
-    % Auth/Revision:
-    %   Author: Florian Augustin
-    %   Revision: 1
-    %   Date: 12/02/20
     
     properties (Access = private)
         RelativePathParts  = {}

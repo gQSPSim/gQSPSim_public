@@ -18,13 +18,6 @@ function update(vObj)
 % Notes: none
 %
 
-% Copyright 2019 The MathWorks, Inc.
-%
-% Auth/Revision:
-%   MathWorks Consulting
-%   $Author: agajjala $
-%   $Revision: 269 $  $Date: 2016-08-31 00:01:30 -0400 (Wed, 31 Aug 2016) $
-% ---------------------------------------------------------------------
 
 %% Update plot layout
 

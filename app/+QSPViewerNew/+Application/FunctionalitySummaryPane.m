@@ -3,15 +3,6 @@ classdef FunctionalitySummaryPane < matlab.mixin.Heterogeneous & handle
     %  functionality blocks
     %
     % 
-    % ---------------------------------------------------------------------
-    %    Copyright 2021 The Mathworks, Inc.
-    %
-    % Auth/Revision:
-    %   Karthiga Mahalingam
-    %
-    %  6/24/21
-    % ---------------------------------------------------------------------
-    
     events
         Alert
     end

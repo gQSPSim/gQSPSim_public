@@ -18,13 +18,6 @@ classdef GlobalSensitivityAnalysis < QSP.abstract.BaseProps & uix.mixin.HasTreeR
     %
     %
     
-    % Copyright 2020-2021 The MathWorks, Inc.
-    %
-    % Auth/Revision:
-    %   MathWorks
-    %   $Author: faugusti $
-    %   $Revision: 1 $  $Date: Wed, 04 Nov 2020 $
-    % ---------------------------------------------------------------------
     
     % Properties
     properties

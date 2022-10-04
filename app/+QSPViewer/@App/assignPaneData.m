@@ -6,13 +6,6 @@ function assignPaneData(obj, Data, varargin)
 % overridden.
 %
 
-% Copyright 2019 The MathWorks, Inc.
-%
-% Auth/Revision:
-%   MathWorks Consulting $Author: rjackey $ $Revision: 247 $  $Date:
-%   2016-08-03 10:40:59 -0400 (Wed, 03 Aug 2016) $
-% ---------------------------------------------------------------------
-
 
 % Assign data to the pane
 if ~isempty(obj.ActivePane)

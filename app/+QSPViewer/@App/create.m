@@ -4,13 +4,6 @@ function create(obj)
 % Abstract: This method creates all parts of the main obj display
 %
 
-% Copyright 2019 The MathWorks, Inc.
-%
-% Auth/Revision:
-%   MathWorks Consulting
-%   $Author: rjackey $
-%   $Revision: 249 $  $Date: 2016-08-24 08:48:10 -0400 (Wed, 24 Aug 2016) $
-% ---------------------------------------------------------------------
 
 
 %% Create QSP Menus

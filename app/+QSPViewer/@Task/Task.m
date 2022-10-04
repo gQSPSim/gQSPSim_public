@@ -5,16 +5,6 @@ classdef Task < uix.abstract.CardViewPane
     %
 
     
-    %   Copyright 2019 The MathWorks, Inc.
-    %
-    % Auth/Revision:
-    %   MathWorks Consulting
-    %   $Author: agajjala $
-    %   $Revision: 285 $
-    %   $Date: 2016-09-02 13:08:51 -0400 (Fri, 02 Sep 2016) $
-    % ---------------------------------------------------------------------
-  
-        
     %% Methods in separate files with custom permissions
     methods (Access=protected)
         create(obj);        

@@ -5,12 +5,7 @@ classdef DoubleSelectBox < handle
     % This class will be used to describe the graphic used to move items
     % back and forth between 2 list boxes as used in gQSPsim
     %-----------------------------------------------------------
-    % Copyright 2020 The MathWorks, Inc.
-    %
-    % Auth/Revision:
-    %   Author: Max Tracy
-    %   Revision: 1
-    %   Date: 01/15/20
+
     properties(Access = private)
         Parent
         Row

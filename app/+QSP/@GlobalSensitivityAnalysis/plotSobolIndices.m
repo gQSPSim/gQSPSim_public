@@ -18,10 +18,6 @@ function [hLines,hLegend,hLegendChildren] = plotSobolIndices(obj,hAxes,selection
 % Notes: none
 %
 
-% Copyright 2020-2021 The MathWorks, Inc.
-
-% ---------------------------------------------------------------------
-
     %% Turn on hold
     numAxes = numel(hAxes);
     tfAxesVisible = false(numAxes, 1);

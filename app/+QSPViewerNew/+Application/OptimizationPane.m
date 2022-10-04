@@ -3,15 +3,6 @@ classdef OptimizationPane < QSPViewerNew.Application.ViewPane
     %  'viewer' counterpart to the 'model' class
     %  QSP.Optimization
     %
-    %
-    % ---------------------------------------------------------------------
-    %    Copyright 2020 The Mathworks, Inc.
-    %
-    % Auth/Revision:
-    %   Max Tracy
-    %
-    %  6/1/20
-    % ---------------------------------------------------------------------
 
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Status of the UI properties

@@ -4,14 +4,6 @@ classdef VirtualPopulationGenerationPane < QSPViewerNew.Application.ViewPane
     %  QSP.VirtualPopulationGeneration
     %
     % 
-    % ---------------------------------------------------------------------
-    %    Copyright 2020 The Mathworks, Inc.
-    %
-    % Auth/Revision:
-    %   Max Tracy
-    %
-    %  6/1/20
-    % ---------------------------------------------------------------------
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Status of the UI properties

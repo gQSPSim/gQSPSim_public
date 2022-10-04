@@ -18,13 +18,6 @@ function refresh(obj)
 % Notes: none
 %
 
-% Copyright 2019 The MathWorks, Inc.
-%
-% Auth/Revision:
-%   MathWorks Consulting
-%   $Author: rjackey $
-%   $Revision: 281 $  $Date: 2016-09-01 09:27:14 -0400 (Thu, 01 Sep 2016) $
-% ---------------------------------------------------------------------
 
 % Can only run if app construction is complete
 if ~obj.IsConstructed

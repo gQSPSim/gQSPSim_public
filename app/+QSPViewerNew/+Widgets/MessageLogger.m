@@ -1,6 +1,5 @@
 classdef MessageLogger < mlog.Message
     
-    %   Copyright 2021 The MathWorks Inc.
     
     %#ok<*PROP>
     

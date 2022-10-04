@@ -1,12 +1,5 @@
 classdef InputDlgCustom < QSPViewerNew.Widgets.ModalPopup
     % Custom dialog box to use instead of inputdlg used within uidlg;
-    %----------------------------------------------------------------------
-    % Copyright 2020 The MathWorks, Inc.
-    %
-    % Auth/Revision:
-    %   Author: Max Tracy
-    %   Revision: 1
-    %   Date: 6/9/20
     properties (Access = private)
         PanelQuest      matlab.ui.container.Panel
         PanelQuestGrid  matlab.ui.container.GridLayout

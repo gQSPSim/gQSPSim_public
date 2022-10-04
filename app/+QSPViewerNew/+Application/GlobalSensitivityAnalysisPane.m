@@ -3,14 +3,6 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
     %  Analysis Pane view. This is the 'viewer' counterpart to the 'model'
     %  class QSP.GlobalSensitivityAnalysis
 
-    % Copyright 2020-2021 The MathWorks, Inc.
-    %
-    % Auth/Revision:
-    %   MathWorks
-    %   $Author: faugusti $
-    %   $Revision: 1 $  $Date: Wed, 04 Nov 2020 $
-
-    % ---------------------------------------------------------------------
 
     % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Status of the UI properties

@@ -3,14 +3,6 @@ classdef ParametersPane < QSPViewerNew.Application.ViewPane
     %  'viewer' counterpart to the 'model' class QSP.Parameters
     %
     % 
-    % ---------------------------------------------------------------------
-    %    Copyright 2020 The Mathworks, Inc.
-    %
-    % Auth/Revision:
-    %   Max Tracy
-    %
-    %  2/14/20
-    % ---------------------------------------------------------------------
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Status of the UI properties

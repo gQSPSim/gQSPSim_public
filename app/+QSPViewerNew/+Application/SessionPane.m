@@ -3,14 +3,6 @@ classdef SessionPane < QSPViewerNew.Application.ViewPane
     %  'viewer' counterpart to the 'model' class QSP.Session
     %
     % 
-    % ---------------------------------------------------------------------
-    %    Copyright 2020 The Mathworks, Inc.
-    %
-    % Auth/Revision:
-    %   Max Tracy
-    %
-    %  1/9/20
-    % ---------------------------------------------------------------------
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Status of the UI properties

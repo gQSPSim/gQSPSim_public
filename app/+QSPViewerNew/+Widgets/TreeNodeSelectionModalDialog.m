@@ -1,13 +1,6 @@
 classdef TreeNodeSelectionModalDialog < handle & ...
         uix.mixin.AssignPVPairs
     % Custom treenode selection box to pass trees and select node(s)
-    %----------------------------------------------------------------------
-    % Copyright 2020 The MathWorks, Inc.
-    %
-    % Auth/Revision:
-    %   Author: Karthiga Mahalingam
-    %   Revision: 1
-    %   Date: 4/17/21
     
     properties (Access = public)
         ModalOn             (1,1) logical = true

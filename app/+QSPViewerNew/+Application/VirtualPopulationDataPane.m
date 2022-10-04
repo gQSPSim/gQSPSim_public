@@ -4,14 +4,6 @@ classdef VirtualPopulationDataPane < QSPViewerNew.Application.ViewPane
     %  This is also called Acceptance Criteria
     %
     % 
-    % ---------------------------------------------------------------------
-    %    Copyright 2020 The Mathworks, Inc.
-    %
-    % Auth/Revision:
-    %   Max Tracy
-    %
-    %  3/2/20
-    % ---------------------------------------------------------------------
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Status of the UI properties

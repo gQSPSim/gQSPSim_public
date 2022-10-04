@@ -5,15 +5,6 @@ classdef Session < uix.abstract.CardViewPane
     %
 
     
-    %   Copyright 2019 The MathWorks, Inc.
-    %
-    % Auth/Revision:
-    %   MathWorks Consulting
-    %   $Author: rjackey $
-    %   $Revision: 259 $
-    %   $Date: 2016-08-24 16:03:36 -0400 (Wed, 24 Aug 2016) $
-    % ---------------------------------------------------------------------
-  
     
     %% Methods in separate files with custom permissions
     methods (Access=protected)

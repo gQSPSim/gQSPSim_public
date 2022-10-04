@@ -18,14 +18,6 @@ function update(vObj)
 % Notes: none
 %
 
-% Copyright 2019 The MathWorks, Inc.
-%
-% Auth/Revision:
-%   MathWorks Consulting
-%   $Author: rjackey $
-%   $Revision: 284 $  $Date: 2016-09-01 13:55:31 -0400 (Thu, 01 Sep 2016) $
-% ---------------------------------------------------------------------
-
 
 %% Invoke superclass's update
 

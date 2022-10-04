@@ -4,12 +4,7 @@ classdef AddRemoveTable < handle
     %----------------------------------------------------------------------
     % Table sections with dropdown menus should not be able to be edited
     %-----------------------------------------------------------
-    % Copyright 2020 The MathWorks, Inc.
-    %
-    % Auth/Revision:
-    %   Author: Max Tracy
-    %   Revision: 1
-    %   Date: 06/01/20
+
     properties(Access = private)
         Parent
         Row 

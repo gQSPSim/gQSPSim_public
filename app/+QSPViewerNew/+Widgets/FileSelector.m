@@ -4,12 +4,6 @@ classdef FileSelector < QSPViewerNew.Widgets.Abstract.SelectorBase
     % Create a widget that allows you to specify a filename by editable
     % text or by interactive
     %-----------------------------------------------------------
-    % Copyright 2020 The MathWorks, Inc.
-    %
-    % Auth/Revision:
-    %   Author: Max Tracy
-    %   Revision: 1
-    %   Date: 01/16/20
     
     properties (Access = protected)
         FileExtension

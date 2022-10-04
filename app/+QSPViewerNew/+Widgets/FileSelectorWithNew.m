@@ -5,12 +5,6 @@ classdef FileSelectorWithNew < QSPViewerNew.Widgets.FileSelector
     % Create a widget that allows you to specify a filename by editable
     % text or by interactive dialog or create a new file
     %-----------------------------------------------------------
-    % Copyright 2020 The MathWorks, Inc.
-    %
-    % Auth/Revision:
-    %   Author: Max Tracy
-    %   Revision: 1
-    %   Date: 3/2/20
     
     properties (Access = private)
         FileTemplatePath 
