@@ -484,7 +484,11 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
     methods
         
         function set.Settings(obj,Value)
-            validateattributes(Value,{'QSP.Settings'},{'scalar'});
+            arguments
+                obj
+                Value (1,1) QSP.Settings
+            end
+            
             obj.Settings = Value;
         end
         
