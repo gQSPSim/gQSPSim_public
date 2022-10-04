@@ -228,8 +228,8 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
             obj.SimButtonGrid.Layout.Row = 1;
             obj.SimButtonGrid.Layout.Column = 1;
             obj.SimButtonGrid.Padding = [0,0,0,0];
-            obj.SimButtonGrid.RowSpacing = 0;
-            obj.SimButtonGrid.ColumnSpacing = 0;
+            obj.SimButtonGrid.RowSpacing = 2;
+            obj.SimButtonGrid.ColumnSpacing = 2;
 
             % New Button
             obj.NewButton = uibutton(obj.SimButtonGrid,'push');

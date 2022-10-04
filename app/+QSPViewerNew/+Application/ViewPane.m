@@ -310,7 +310,7 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
            obj.EditButtonLayout.ColumnWidth = {'1x',obj.RemoveInvalidButtonWidth,obj.SaveButtonWidth,obj.CancelButtonWidth};
            obj.EditButtonLayout.RowHeight = {'1x'};
            obj.EditButtonLayout.Padding= [0 0 0 0]; %obj.ButtonPadding; %todopax ButtonPadding
-           obj.EditButtonLayout.ColumnSpacing = 0; % todopax. obj.ButtonWidthSpacing;
+           obj.EditButtonLayout.ColumnSpacing = 2; % todopax. obj.ButtonWidthSpacing;
            
            obj.RemoveButton = uibutton(obj.EditButtonLayout,'push');
            obj.RemoveButton.Layout.Row = 1;
