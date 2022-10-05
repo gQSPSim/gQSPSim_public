@@ -4,26 +4,26 @@ variables:
 stages:
     - test
 
-R2018a Test:
-    stage: test
-    tags:
-        - maci64
-    script:
-        - ./tests/gQSPSimTesterScript2.sh BR2018ad
+# R2018a Test:
+#     stage: test
+#     tags:
+#         - maci64
+#     script:
+#         - ./tests/gQSPSimTesterScript2.sh BR2018ad
 
-R2018b Test:
-    stage: test
-    tags:
-        - maci64
-    script:
-        - ./tests/gQSPSimTesterScript2.sh BR2018bd
+# R2018b Test:
+#     stage: test
+#     tags:
+#         - maci64
+#     script:
+#         - ./tests/gQSPSimTesterScript2.sh BR2018bd
 
-R2019a Test:
-    stage: test
-    tags:
-        - maci64
-    script:
-        - ./tests/gQSPSimTesterScript2.sh BR2019ad
+# R2019a Test:
+#     stage: test
+#     tags:
+#         - maci64
+#     script:
+#         - ./tests/gQSPSimTesterScript2.sh BR2019ad
 
 R2019b Test:
     stage: test
