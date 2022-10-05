@@ -13,7 +13,7 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
         IsDirty = false
     end
 
-    properties (Access=private)
+    properties (Access = private)
         DatasetPopupItems = {'-'}
         DatasetPopupItemsWithInvalid = {'-'}
 
@@ -1050,7 +1050,9 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
             notifyOfChange(obj,obj.Simulation.Session)
         end
 
+        % This should go away.
         function updateSessionGitOption(obj, gitOption)
+            error("This should go away.");
             if strcmp(gitOption, 'off')
                 obj.Simulation.Session.AutoSaveGit = false;
             elseif strcmp(gitOption, 'on')

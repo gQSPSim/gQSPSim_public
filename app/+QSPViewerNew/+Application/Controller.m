@@ -41,7 +41,7 @@ classdef Controller < handle
         FileSpec ={'*.mat','MATLAB MAT File'}
         SelectedSessionIdx = double.empty(0,1)
         SessionPaths (:,1) string = string.empty(0,1) % Stores the fullPath of the Session on disk (if on disk)
-        RecentSessionPaths = string.empty(1,0)
+        RecentSessionPaths = string.empty(0,1)
         LastFolder = pwd
         Type % replaced with PreferencesGroupName
         TypeStr %todopax remove.
@@ -402,11 +402,7 @@ classdef Controller < handle
 
         function onSaveRequest(app, eventData)
             % Save the supplied session. This function
-            % handles both save and saveas. This is done in the saveSession
-            % method.
-
-            % TODOpax: need to think about what handling is needed if
-            % statusTF is false.
+            % handles both save and saveas. 
 
             sessionIndex = app.getSessionIndex(eventData.Session);
 
@@ -417,6 +413,9 @@ classdef Controller < handle
             end
 
             statusTF = app.saveSession(sessionIndex, requestSaveAs);
+
+            % TODOpax: need to think about what handling is needed if
+            % statusTF is false.
 
             if statusTF
                 app.IsDirty(sessionIndex) = false;
@@ -950,6 +949,14 @@ classdef Controller < handle
                 saveAsTF   (1,1) logical
             end
 
+            % This function requires user interaction. A cleanup of this
+            % function would allow saveSession to be tested with the CLI
+            % only tests.
+            if ~app.UseUI
+                StatusTF = false;
+                return
+            end
+
             %Retrieve session info
             Session = app.Sessions(sessionIdx);
             OldSessionPath = app.SessionPaths(sessionIdx);
@@ -1023,7 +1030,6 @@ classdef Controller < handle
                     app.IsDirty(sessionIdx) = false;
                 end
             end
-
         end
 
         function StatusTF = saveSessionToFile(app, session, filePath)

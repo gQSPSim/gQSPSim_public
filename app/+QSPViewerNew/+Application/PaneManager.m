@@ -73,7 +73,7 @@ classdef PaneManager < handle
 
                 pane.("attachNew" + type)(nodeData);
 
-                % Configure the Toolbar given the active pane.
+                % Configure the Toolbar according to the pane prefs.
                 obj.paneToolbar.mode = pane.toolbarMode;
 
                 % todopax, we can optimize this if we can get a type
