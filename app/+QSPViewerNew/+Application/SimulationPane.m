@@ -1565,38 +1565,20 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
                 obj.GroupTable.ColumnEditable = [true,false,false,true];
             end
         end
-
-        % todopax will need review. Why do we want the Pane to deal with
-        % the tree?
+        
         function selectedTaskNode = getSelectionNode(obj, type)
-            % get session node for this object
-            currentNode = obj.TemporarySimulation.TreeNode;
-            sessionNode = currentNode.Parent;
-            while ~strcmp(sessionNode.Tag, 'Session')
-                sessionNode = sessionNode.Parent;
-            end
+            % Get the treenode for the Building Blocks for the supplied
+            % type. This is used to generate a dialog for picking which
+            % settings to use for a given "item".
+            parentTypeNode = findobj(obj.ParentApp.OuterShell.TreeCtrl, 'Tag', type);
+            position = obj.ParentApp.OuterShell.UIFigure.Position;
+            text = type;
 
-            % get parent task node
-            allChildrenTag = string({sessionNode.Children.Tag});
-            buildingBlockNode = sessionNode.Children(allChildrenTag=="Building blocks");
-            buildBlockChildrenTag = string({buildingBlockNode.Children.Tag});
-            parentTypeNode = buildingBlockNode.Children(buildBlockChildrenTag==type);
-
-            % launch tree selection node dialog for user's input
-            if verLessThan('matlab','9.9')
-                nodeSelDialog = QSPViewerNew.Widgets.TreeNodeSelectionModalDialog (obj, ...
+            nodeSelDialog = QSPViewerNew.Widgets.TreeNodeSelectionModalDialog (obj, ...
                     parentTypeNode, ...
-                    'ParentAppPosition', sessionNode.Parent.Parent.Parent.Parent.Parent.Position, ...
-                    'DialogName', sprintf('Select %s node', parentTypeNode.Text), ...
-                    'ModalOn', false, ...
+                    'ParentAppPosition', position, ...
+                    'DialogName', sprintf('Select %s node', text), ...                    
                     'NodeType', "Other");
-            else % Modal UI figures are supported >= 20b
-                nodeSelDialog = QSPViewerNew.Widgets.TreeNodeSelectionModalDialog (obj, ...
-                    parentTypeNode, ...
-                    'ParentAppPosition', sessionNode.Parent.Parent.Parent.Parent.Parent.Position, ...
-                    'DialogName', sprintf('Select %s node', parentTypeNode.Text), ...
-                    'NodeType', "Other");
-            end
 
             uiwait(nodeSelDialog.MainFigure);
 

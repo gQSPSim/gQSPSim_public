@@ -24,9 +24,12 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
         Parent
         CurrentPane
         LayoutColumn
-        LayoutRow
-        ParentApp          
+        LayoutRow        
         PlotSettings = QSP.PlotSettings.empty(1,0)
+    end
+
+    properties (Access = protected)
+        ParentApp
     end
     
     properties (SetAccess=protected)       
