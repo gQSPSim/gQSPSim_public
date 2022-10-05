@@ -149,6 +149,9 @@ classdef Controller < handle
 
                 addlistener(app.OuterShell, 'Delete_Request',    @(h,e)app.onDeleteItem(e));
                 addlistener(app.OuterShell, 'Restore_Request',   @(h,e)app.onRestoreItem(e));
+                
+                addlistener(app.OuterShell, 'GitStateChange',         @(h,e)app.onGitStateChange(e));
+                addlistener(app.OuterShell, 'UseParallelStateChange', @(h,e)app.onUseParallelStateChange(e));
             end
         end
 
@@ -858,6 +861,14 @@ classdef Controller < handle
             end
         end
 
+        function onGitStateChange(app, eventData)            
+            app.Sessions.AutoSaveGit = eventData.Value;
+        end
+
+        function onUseParallelStateChange(app, eventData)
+            app.Sessions.UseParallel = eventData.Value;
+        end
+        
         function applyPlugin(app, Node, plugin)
             % Get most recently used plugins for this type and
             % add current plugin to list
@@ -1345,7 +1356,7 @@ classdef Controller < handle
         % an exising object. But leave here for now for reference. There is
         % something happening with the VirtualPopulation and Parameters
         % that needs further investigation.
-        function changeInBackEnd(app,newObject)
+        function changeInBackEnd(~,~)
             %This function is for other classes to provide a new session to
             %be added to session and corresponding tree
 

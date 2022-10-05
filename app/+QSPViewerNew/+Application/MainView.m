@@ -37,7 +37,8 @@ classdef MainView < handle
         TreeMenu
         OpenRecentMenuArray
         paneGridLayout
-        paneManager
+        paneManager QSPViewerNew.Application.PaneManager
+        paneToolbar QSPViewerNew.Application.PaneToolbar
         iconList (1,1) struct
         aboutMessage (:,1) string
         
@@ -60,11 +61,16 @@ classdef MainView < handle
 
         % Events for Tools Menu items
         OpenModelManager, OpenPluginManager, OpenLogger
+
+        % Toolbar events. These are relays from 
+        % view widgets/components.
+        GitStateChange
+        UseParallelStateChange
     end
 
     methods
         function obj = MainView(app)
-            % Main View object constructor. 
+            % Main view constructor. 
             % ctrl is the controller and is supplied in order to connect
             % listeners on the controller with function in the View.
             % The controller should not be stored on the View.
@@ -98,9 +104,13 @@ classdef MainView < handle
             addlistener(app, 'Model_ItemDeleted',   @(h,e)obj.onItemDeleted(e));
             addlistener(app, 'Model_ItemRestored',  @(h,e)obj.onItemRestored(e));
             addlistener(app, 'DirtySessions',       @(h,e)obj.onDirtySessions(e));
-            addlistener(app, 'CleanSessions',       @(h,e)obj.onCleanSessions(e));
+            addlistener(app, 'CleanSessions',       @(h,e)obj.onCleanSessions(e));            
             
             addlistener(app, 'Controller_RecentSessionPathsChange', @(h,e)obj.onUpdateRecentListChange(e));
+
+            % This is just a relay. Arguably overkill but keeps things clean.
+            addlistener(obj.paneToolbar, 'GitStateChange',         @(h,e)obj.passEvent(e));
+            addlistener(obj.paneToolbar, 'UseParallelStateChange', @(h,e)obj.passEvent(e));
         end
 
         function delete(obj)
@@ -215,7 +225,12 @@ classdef MainView < handle
             obj.paneGridLayout.RowHeight = {30, '1x'}; % todopax where does this 30 come from?
             obj.paneGridLayout.ColumnWidth = {'1x'};
 
-            obj.paneManager = QSPViewerNew.Application.PaneManager(app.ItemTypes, obj.paneGridLayout, app);
+            % Construct the paneToolbar.
+            obj.paneToolbar = QSPViewerNew.Application.PaneToolbar(obj.paneGridLayout);
+
+            % Construct the paneManager.
+            obj.paneManager = QSPViewerNew.Application.PaneManager(obj.paneGridLayout, app, app.ItemTypes, obj.paneToolbar);
+
             obj.UIFigure.WindowButtonDownFcn = @obj.onWindowButtonDown;
             obj.UIFigure.WindowButtonUpFcn   = @obj.onWindowButtonUp;
 
@@ -600,6 +615,15 @@ classdef MainView < handle
                     selectedSession = ancestor(obj.TreeCtrl.SelectedNodes, 'uitreenode', 'toplevel').NodeData;
                 end
             end
+        end
+
+        function passEvent(obj, eventData)
+            % This is a relay/passthrough message. Widgets in the View
+            % don't have (and should not have) access to the controller so
+            % the MainView relays messages. This is low overhead and
+            % provides uncoupling between implementation details of the
+            % View from the controller.
+            notify(obj, eventData.EventName, eventData);
         end
 
         function currentSessionTreeNode = getCurrentSessionTreeNode(obj)
