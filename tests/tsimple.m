@@ -10,7 +10,7 @@ classdef tsimple < matlab.unittest.TestCase
         end
     end
     
-    methods(Test)        
+    methods(Test, TestTags = ["NoUI"])
         function basicFunctionality(testCase)
             % Meant to tests the basics:
             % Load a Session
@@ -23,7 +23,9 @@ classdef tsimple < matlab.unittest.TestCase
             
             testCase.assertNotEmpty(session);                        
         end
+    end
 
+    methods(Test, TestTags = ["RequiresUserInterace"])
         function QSPMenu(testCase)
             % Test all the menus under QSP menu. These add nodes to the
             % tree.            
