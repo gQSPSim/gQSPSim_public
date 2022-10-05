@@ -1316,6 +1316,26 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
                 obj.GitButton.UserData = 'off';
             end
         end
+    
+        function selectedTaskNode = getSelectionNode(obj, type)
+            % Get the treenode for the Building Blocks for the supplied
+            % type. This is used to generate a dialog for picking which
+            % settings to use for a given "item".
+            parentTypeNode = findobj(obj.ParentApp.OuterShell.TreeCtrl, 'Tag', type);
+            position = obj.ParentApp.OuterShell.UIFigure.Position;
+            text = type;
+
+            nodeSelDialog = QSPViewerNew.Widgets.TreeNodeSelectionModalDialog (obj, ...
+                parentTypeNode, ...
+                'ParentAppPosition', position, ...
+                'DialogName', sprintf('Select %s node', text), ...
+                'NodeType', "Other");
+
+            uiwait(nodeSelDialog.MainFigure);
+
+            selectedTaskNode = split(obj.SelectedNodePath, filesep);
+            selectedTaskNode  = selectedTaskNode(1);
+        end
     end
     
     methods(Access = public)

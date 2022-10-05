@@ -1430,42 +1430,6 @@ classdef GlobalSensitivityAnalysisPane < QSPViewerNew.Application.ViewPane
             end
         end
 
-        function selectedNode = getSelectionNode(obj, type)
-            % get session node for this object
-            currentNode = obj.TemporaryGlobalSensitivityAnalysis.TreeNode;
-            sessionNode = currentNode.Parent;
-            while ~strcmp(sessionNode.Tag, 'Session')
-                sessionNode = sessionNode.Parent;
-            end
-
-            % get parent task node
-            allChildrenTag = string({sessionNode.Children.Tag});
-            buildingBlockNode = sessionNode.Children(allChildrenTag=="Building blocks");
-            buildBlockChildrenTag = string({buildingBlockNode.Children.Tag});
-            parentTypeNode = buildingBlockNode.Children(buildBlockChildrenTag==type);
-
-            % launch tree selection node dialog for user's input
-            if verLessThan('matlab','9.9')
-                nodeSelDialog = QSPViewerNew.Widgets.TreeNodeSelectionModalDialog (obj, ...
-                    parentTypeNode, ...
-                    'ParentAppPosition', sessionNode.Parent.Parent.Parent.Parent.Parent.Position, ...
-                    'DialogName', sprintf('Select %s node', parentTypeNode.Text), ...
-                    'ModalOn', false, ...
-                    'NodeType', "Other");
-            else % Modal UI figures are supported >= 20b
-                nodeSelDialog = QSPViewerNew.Widgets.TreeNodeSelectionModalDialog (obj, ...
-                    parentTypeNode, ...
-                    'ParentAppPosition', sessionNode.Parent.Parent.Parent.Parent.Parent.Position, ...
-                    'DialogName', sprintf('Select %s node', parentTypeNode.Text), ...
-                    'NodeType', "Other");
-            end
-
-            uiwait(nodeSelDialog.MainFigure);
-
-            selectedNode = split(obj.SelectedNodePath, filesep);
-            selectedNode  = selectedNode(1);
-        end
-
         function tfStopRequested = runProgressIndicator(obj, modalWindow, tfReset, itemIdx, message, samples, data)
             % Usage: progress indicator is a modal window that is open
             % during the computation of GSA results. The modal window can
