@@ -1,5 +1,4 @@
-classdef TreeNodeSelectionModalDialog < handle & ...
-        uix.mixin.AssignPVPairs
+classdef TreeNodeSelectionModalDialog < handle & uix.mixin.AssignPVPairs
     % Custom treenode selection box to pass trees and select node(s)
     
     properties (Access = public)
@@ -33,7 +32,11 @@ classdef TreeNodeSelectionModalDialog < handle & ...
             obj.ParentApp = ParentApp;
             
             obj.ParentNode = ParentNode;
-            
+             
+            if verLessThan('matlab','9.9')
+                obj.ModalOn = false;
+            end
+
             % Assign PV pairs to properties
             obj.assignPVPairs(varargin{:});
             
