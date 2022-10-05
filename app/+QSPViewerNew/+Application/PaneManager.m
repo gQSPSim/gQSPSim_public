@@ -12,11 +12,12 @@ classdef PaneManager < handle
     end
 
     methods
-        function obj = PaneManager(itemTypes, parent, parentApp)
-            arguments
-                itemTypes cell
+        function obj = PaneManager(parent, parentApp, itemTypes, paneToolbar)
+            arguments                
                 parent
                 parentApp
+                itemTypes cell
+                paneToolbar QSPViewerNew.Application.PaneToolbar = QSPViewerNew.Application.PaneToolbar.empty();
             end
             
             % Nodes that correspond to Model types.
@@ -34,12 +35,14 @@ classdef PaneManager < handle
             obj.parentApp = parentApp;
 
             % Don't like that panetoolbar decides where to put itself. Fix this by standardizing to passing in the row, column.
-            obj.paneToolbar = QSPViewerNew.Application.PaneToolbar(obj.parent); 
+            obj.paneToolbar = paneToolbar; %QSPViewerNew.Application.PaneToolbar(obj.parent); 
             
-            addlistener(obj.paneToolbar, "Run",       @(h,e)obj.onRun);
-            addlistener(obj.paneToolbar, "Edit",      @(h,e)obj.onEdit(h,e));
-            addlistener(obj.paneToolbar, "Summary",   @(h,e)obj.onSummary(h,e));
-            addlistener(obj.paneToolbar, "Visualize", @(h,e)obj.onVisualize(h,e));
+            if ~isempty(obj.paneToolbar)
+                addlistener(obj.paneToolbar, "Run",       @(h,e)obj.onRun);
+                addlistener(obj.paneToolbar, "Edit",      @(h,e)obj.onEdit(h,e));
+                addlistener(obj.paneToolbar, "Summary",   @(h,e)obj.onSummary(h,e));
+                addlistener(obj.paneToolbar, "Visualize", @(h,e)obj.onVisualize(h,e));
+            end
         end
                 
         function openPane(obj, nodeData)

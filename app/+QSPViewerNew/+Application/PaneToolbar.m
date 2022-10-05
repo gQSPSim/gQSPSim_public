@@ -28,13 +28,15 @@ classdef PaneToolbar < handle
         Edit
         Run
         Parallel
-        Git
         Visualize
         Settings
         ZoomIn
         ZoomOut
         Pan
         Explore
+
+        GitStateChange
+        UseParallelStateChange
     end
 
     methods
@@ -46,7 +48,7 @@ classdef PaneToolbar < handle
             obj.parent = parent;
             obj.construct();
 
-            obj.mode = "Minimal";
+            obj.mode = "None";
         end
 
         function construct(obj)
@@ -67,18 +69,19 @@ classdef PaneToolbar < handle
             obj.buttonsLayout.RowHeight     = {30};
             obj.buttonsLayout.ColumnWidth   = horzcat(repmat({buttonWidth}, 1, numberOfButtonSpaces), '1x');
 
-            obj.summaryButton   = obj.createButton(1,  "push",  "Summary",   "report_24.png",      "View summary");
-            obj.editButton      = obj.createButton(2,  "push",  "Edit",      "edit_24.png",        "Edit the selected item");            
-            obj.runButton       = obj.createButton(3,  "push",  "Run",       "play_24.png",        "Run the selected item");            
-            obj.parallelButton  = obj.createButton(4,  "state", "Parallel",  "paralleloff_24.png", "Enable Parallel");            
-            obj.gitButton       = obj.createButton(5,  "state", "Git",       "gitoff_24.png",      "Enable Git");
+            obj.summaryButton   = obj.createButton(1,  "push",  "Summary",        "report_24.png",      "View summary");
+            obj.editButton      = obj.createButton(2,  "push",  "Edit",           "edit_24.png",        "Edit the selected item");            
+            obj.runButton       = obj.createButton(3,  "push",  "Run",            "play_24.png",        "Run the selected item");            
+            
+            obj.parallelButton  = obj.createButton(4,  "state", "UseParallelStateChange", ["paralleloff_24.png", "parallelon_24.png"], "Enable Parallel");            
+            obj.gitButton       = obj.createButton(5,  "state", "GitStateChange",         ["gitoff_24.png",      "giton_24.png"],      "Enable Git");
 
             obj.visualizeButton = obj.createButton(7,  "push",  "Visualize", "plot_24.png",        "Visualize the selected item");
             obj.settingsButton  = obj.createButton(8,  "push",  "Settings",  "settings_24.png",    "Customize plot settings the selected item");
-            obj.zoomInButton    = obj.createButton(9,  "state", "ZoomIn",    "zoomin.png",         "Zoom In");
-            obj.zoomOutButton   = obj.createButton(10, "state", "ZoomOut",   "zoomout.png",        "Zoom Out");
-            obj.panButton       = obj.createButton(11, "state", "Pan",       "pan.png",            "Pan");
-            obj.exploreButton   = obj.createButton(12, "state", "Explore",   "datatip.png",        "Explore");
+            obj.zoomInButton    = obj.createButton(9,  "state", "ZoomIn",    ["zoomin.png", ""],   "Zoom In");
+            obj.zoomOutButton   = obj.createButton(10, "state", "ZoomOut",   ["zoomout.png", ""],  "Zoom Out");
+            obj.panButton       = obj.createButton(11, "state", "Pan",       ["pan.png", ""],      "Pan");
+            obj.exploreButton   = obj.createButton(12, "state", "Explore",   ["datatip.png", ""],  "Explore");
 
             % Make sets of buttons that make up a "mode"
             obj.minimalModeButtons = [obj.summaryButton, obj.editButton];
@@ -87,15 +90,21 @@ classdef PaneToolbar < handle
         end
 
         function newButton = createButton(obj, positionIndex, type, name, iconName, tooltipText)
+            % Creates two kinds of buttons, push and state. This makes the
+            % API a little clumsy. I.e. iconName is a string array because
+            % for state we need two names and by assumption the first one is
+            % for the off state. 
             newButton= uibutton(obj.buttonsLayout, type);
-            newButton.Layout.Row = 1;
+            newButton.Layout.Row    = 1;
             newButton.Layout.Column = positionIndex;
-            newButton.Icon = QSPViewerNew.Resources.LoadResourcePath(iconName);
+            newButton.Icon = QSPViewerNew.Resources.LoadResourcePath(iconName(1));
             newButton.Tooltip = tooltipText;
             if type == "push"
-                newButton.ButtonPushedFcn = @(h,e)obj.onNavigation(name, e);
+                newButton.ButtonPushedFcn = @(h,e)obj.onPushButton(name, e);
             elseif type == "state"
-                newButton.ValueChangedFcn = @(h,e)obj.onNavigation(name, e);
+                newButton.ValueChangedFcn = @(h,e)obj.onStateChange(name, e);
+                newButton.UserData.icons.on  = iconName(2);
+                newButton.UserData.icons.off = iconName(1);
             end
             newButton.Text = '';
             newButton.Visible = true;            
@@ -120,7 +129,18 @@ classdef PaneToolbar < handle
             end
         end
 
-        function onNavigation(obj, name, event)            
+        function onStateChange(obj, name, event)
+            % A state button pressed. Change the icon and send a notification.
+            if event.Value == 1                
+                event.Source.Icon = QSPViewerNew.Resources.LoadResourcePath(event.Source.UserData.icons.on);
+            elseif event.Value == 0
+                event.Source.Icon = QSPViewerNew.Resources.LoadResourcePath(event.Source.UserData.icons.off);
+            end
+
+            notify(obj, name, event);            
+        end
+
+        function onPushButton(obj, name, event)            
             notify(obj, name, event);
         end
     end
