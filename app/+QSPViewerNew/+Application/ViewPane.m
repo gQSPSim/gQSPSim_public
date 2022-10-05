@@ -22,16 +22,13 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
     properties(Access = private) 
         IsConstructed = false
         Parent
+        ParentApp
         CurrentPane
         LayoutColumn
         LayoutRow        
         PlotSettings = QSP.PlotSettings.empty(1,0)
     end
 
-    properties (Access = protected)
-        ParentApp
-    end
-    
     properties (SetAccess=protected)       
        PlotArray = matlab.ui.control.UIAxes.empty(12,0);
        VisDirty = false;
