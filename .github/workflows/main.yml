@@ -15,5 +15,5 @@ jobs:
         wget -qO- --retry-connrefused https://ssd.mathworks.com/supportfiles/ci/ephemeral-matlab/v0/install.sh | sudo -E bash
        env:
             MATHWORKS_TOKEN: ${{ secrets.MATHWORKS_TOKEN }}
-     - run: cd tests; matlab -batch "driver"
+     - run: matlab -batch "testDriver"
        
