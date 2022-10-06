@@ -4,6 +4,8 @@ import matlab.unittest.plugins.CodeCoveragePlugin
 import matlab.unittest.plugins.codecoverage.CoberturaFormat
 import matlab.unittest.plugins.XMLPlugin
 
+pwd
+
 DefinePaths;
 
 suite = testsuite('tests', 'Tag', 'RequiresUserInterface');
