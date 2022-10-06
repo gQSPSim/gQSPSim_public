@@ -25,7 +25,7 @@ classdef tsimple < matlab.unittest.TestCase
         end
     end
 
-    methods(Test, TestTags = ["RequiresUserInterace"])
+    methods(Test, TestTags = ["RequiresUserInterface"])
         function QSPMenu(testCase)
             % Test all the menus under QSP menu. These add nodes to the
             % tree.            
