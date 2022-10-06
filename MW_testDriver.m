@@ -6,7 +6,7 @@ import matlab.unittest.plugins.XMLPlugin
 
 pwd
 
-DefinePaths;
+DefinePaths(true);
 
 suite = testsuite('tests', 'Tag', 'RequiresUserInterface');
 

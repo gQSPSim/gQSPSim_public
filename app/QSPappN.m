@@ -6,9 +6,7 @@ function varargout = QSPappN(useUI)
     if verLessThan('matlab','9.8')
         ThisVer = ver('matlab');
         warning('QSPAppN is not supported on %s. Use QSPapp instead.', ThisVer.Release);
-    end
-
-    DefinePaths(false);
+    end   
 
     % run the units script
     registerUnits
