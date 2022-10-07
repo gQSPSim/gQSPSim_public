@@ -12,7 +12,7 @@ classdef tCLI < matlab.unittest.TestCase
         end
     end
 
-    methods(Test, TestTag = ["NoUI"])
+    methods(Test, TestTags = ["NoUI"])
         function loadSession(testCase)
             tmddCaseStudy = testCase.testRootDirectory + join([filesep, "baselines", "CaseStudy_TMDD_complete", "CaseStudy1_TMDD.qsp.mat"], filesep);
 
