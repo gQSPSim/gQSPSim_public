@@ -1,27 +1,19 @@
-% Script to drive running of gQSPSim tests on gitlab-runner.
-genericError = '';
+import matlab.unittest.TestRunner
+import matlab.unittest.Verbosity
+import matlab.unittest.plugins.CodeCoveragePlugin
+import matlab.unittest.plugins.codecoverage.CoberturaFormat
+import matlab.unittest.plugins.XMLPlugin
 
-% Add gQSPSim to the path.
-DefinePaths;
+DefinePaths(true);
 
-% Add test directory to the path.
-addpath(genpath('tests'));
+suite = testsuite('tests', 'Tag', 'NoUI');
 
-try
-    %results = runtests('tgQSPSim', 'ProcedureName', 'tSimulations');
-    %results = runtests('tTMDD');
-    results = runtests('tsimple', 'strict', false);
-catch e
-    results.Failed = true;
-    genericError = e.message;
-end
+[~, ~] = mkdir('artifacts');
 
-if any([results.Failed])
-    warning('Some errors encountered. See log file for details.');
-    if ~isempty(genericError)
-        warning(genericError);
-    end
-    exit(1)
-else
-    exit
-end
+runner = TestRunner.withTextOutput('OutputDetail', Verbosity.Detailed);
+runner.addPlugin(CodeCoveragePlugin.forFolder('tests', 'Producing', CoberturaFormat('artifacts/coverage.xml')));
+runner.addPlugin(XMLPlugin.producingJUnitFormat('artifacts/testResults.xml'));
+
+results = runner.run(suite);
+
+assertSuccess(results);
