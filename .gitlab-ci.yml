@@ -78,5 +78,5 @@ R2022b Test:
             junit: "./artifacts/testResults.xml"
             cobertura: "./artifacts/coverage.xml"
         paths:
-        - "./artifacts"
+          - "./artifacts"
         
