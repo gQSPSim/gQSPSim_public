@@ -73,10 +73,4 @@ R2022b Test:
         - maci64
     script:
         - ./tests/gQSPSimTesterScript2.sh BR2022bd
-    artifacts:
-        reports:
-            junit: "./artifacts/testResults.xml"
-            cobertura: "./artifacts/coverage.xml"
-        paths:
-          - "./artifacts"
         
