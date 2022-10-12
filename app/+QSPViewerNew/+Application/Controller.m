@@ -1331,7 +1331,7 @@ classdef Controller < handle
             inRecentListTF = app.RecentSessionPaths == newPath;
             app.RecentSessionPaths(inRecentListTF) = [];
 
-            app.RecentSessionPaths = vertcat(newPath, app.RecentSessionPaths);
+            app.RecentSessionPaths = horzcat(newPath, app.RecentSessionPaths);
 
             % Keep the first 'listSize' items.
             if numel(app.RecentSessionPaths) > listSize
