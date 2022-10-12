@@ -568,8 +568,8 @@ classdef MainView < handle
                 obj.createMenuItem(obj.AddNewItemMenu, itemTypes{i,1}, @(h,e)obj.onMenuNotifyAdd(type), shortCuts(i));
             end
 
-            obj.DeleteSelectedItemMenu          = obj.createMenuItem(obj.QSPMenu,      "Delete Selected Item",  @(h,e)obj.onSelectedItemsAction("Delete_Request"));
-            obj.RestoreSelectedItemMenu         = obj.createMenuItem(obj.QSPMenu,      "Restore Selected Item", @(h,e)obj.onSelectedItemsAction("Restore_Request"));
+            obj.DeleteSelectedItemMenu          = obj.createMenuItem(obj.QSPMenu, "Delete Selected Item",  @(h,e)obj.onSelectedItemsAction("Delete_Request"));
+            obj.RestoreSelectedItemMenu         = obj.createMenuItem(obj.QSPMenu, "Restore Selected Item", @(h,e)obj.onSelectedItemsAction("Restore_Request"));
             
             % Start with these disabled. Their state depends on treeNode selection.
             obj.DeleteSelectedItemMenu.Enable  = false;

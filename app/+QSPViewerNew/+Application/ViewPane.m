@@ -118,12 +118,12 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
         HeaderColor = [.25,.60,.72];
         FontSize = 15;
         Font = 'default';
-        HeaderHeight = 20;
+%         HeaderHeight = 20;
         RowSpacing = 0;
-        LabelLength = 100;
+        LabelLength = 80;
         LabelHeight = 30;
-        NameProportion = '3x';
-        DescriptionProportion = '5x';
+        NameProportion = '1x';
+        DescriptionProportion = '2x';
         RemoveInvalidButtonWidth = 100;
         SaveButtonWidth = 100;
         CancelButtonWidth = 100;
@@ -151,10 +151,10 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
                 pvargs.HasVisualization(1,1) logical = false
             end
 
-            obj.Parent = pvargs.Parent;
-            obj.LayoutRow = pvargs.layoutrow;
-            obj.LayoutColumn = pvargs.layoutcolumn;
-            obj.ParentApp = pvargs.parentApp;
+            obj.Parent           = pvargs.Parent;
+            obj.LayoutRow        = pvargs.layoutrow;
+            obj.LayoutColumn     = pvargs.layoutcolumn;
+            obj.ParentApp        = pvargs.parentApp;
             obj.HasVisualization = pvargs.HasVisualization;
                     
             %create the objects on our end
@@ -211,28 +211,30 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
 
            %Setup the Summary Panel and Button
            obj.SummaryPanel = uipanel(obj.OuterGrid);
-           obj.SummaryPanel.BackgroundColor = [.9,.9,.9];
+%            obj.SummaryPanel.BackgroundColor = [.9,.9,.9];
            obj.SummaryPanel.Layout.Row = 1;
            obj.SummaryPanel.Layout.Column = 1;
            obj.SummaryPanel.BackgroundColor = obj.PanelBackgroundColor;
            obj.SummaryPanel.Visible = 'off';
+           obj.SummaryPanel.Title = 'Summary';
+           obj.SummaryPanel.BackgroundColor = obj.HeaderColor;
            
            %Setup SummaryGrid
            obj.SummaryGrid = uigridlayout(obj.SummaryPanel);
            obj.SummaryGrid.ColumnWidth = {'1x'};
-           obj.SummaryGrid.RowHeight = {obj.HeaderHeight,'1x'};
+           obj.SummaryGrid.RowHeight = {obj.WidgetHeight,'1x'};
            obj.SummaryGrid.Padding = obj.PanelPadding;
            obj.SummaryGrid.RowSpacing = obj.PanelHeightSpacing;
            obj.SummaryGrid.RowSpacing = obj.PanelWidthSpacing;
            obj.SummaryGrid.Padding = [0 0 0 0];
            
            %Add label to the top
-           obj.SummaryLabel = uilabel(obj.SummaryGrid);
-           obj.SummaryLabel.Text = obj.SummaryLabelText;
-           obj.SummaryLabel.FontName = obj.Font;
-           obj.SummaryLabel.BackgroundColor = obj.HeaderColor;
-           obj.SummaryLabel.Layout.Row = 1;
-           obj.SummaryLabel.Layout.Column = 1;
+%            obj.SummaryLabel = uilabel(obj.SummaryGrid);
+%            obj.SummaryLabel.Text = obj.SummaryLabelText;
+%            obj.SummaryLabel.FontName = obj.Font;
+%            obj.SummaryLabel.BackgroundColor = obj.HeaderColor;
+%            obj.SummaryLabel.Layout.Row = 1;
+%            obj.SummaryLabel.Layout.Column = 1;
            
            %Summary Widget
            obj.SummaryContent = QSPViewerNew.Widgets.Summary(obj.SummaryGrid,2,1,{'Dummy','info';'Purpose','Testing'});
@@ -244,6 +246,8 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
            obj.EditPanel.Layout.Row = 1;
            obj.EditPanel.Layout.Column = 1;
            obj.EditPanel.Visible = 'off';
+           obj.EditPanel.Title = 'Edit';
+           obj.EditPanel.BackgroundColor = obj.HeaderColor;
            
            %All Edit Panels have the following 3 subpanels
            % 1. the name and description
@@ -254,20 +258,21 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
            obj.EditLayout = uigridlayout(obj.EditPanel);
            obj.EditLayout.ColumnWidth = {'1x'};
            %obj.EditLayout.RowHeight = {obj.HeaderHeight,obj.WidgetHeight,'1x',obj.ButtonHeight};
-           obj.EditLayout.RowHeight = {obj.HeaderHeight,obj.WidgetHeight,'1x',30}; % todopax
-           obj.EditLayout.Padding = obj.PanelPadding;
+           obj.EditLayout.RowHeight = {obj.WidgetHeight,obj.WidgetHeight,'1x', obj.WidgetHeight}; % todopax
+%            obj.EditLayout.Padding = obj.PanelPadding;
            obj.EditLayout.RowSpacing = obj.PanelHeightSpacing;
-           obj.EditLayout.RowSpacing = obj.PanelWidthSpacing;
+           obj.EditLayout.ColumnSpacing = obj.PanelWidthSpacing;
+           obj.EditLayout.Padding = [0 0 0 0];
            
            %Setup Edit Panel Label
-           obj.EditLabel = uilabel(obj.EditLayout);
-           obj.EditLabel.Text = obj.EditLabelText;
-           obj.EditLabel.FontName = obj.Font;
-           obj.EditLabel.BackgroundColor = obj.HeaderColor;
-           obj.EditLabel.Layout.Row = 1;
-           obj.EditLabel.Layout.Column = 1;
+%            obj.EditLabel = uilabel(obj.EditLayout);
+%            obj.EditLabel.Text = obj.EditLabelText;
+%            obj.EditLabel.FontName = obj.Font;
+%            obj.EditLabel.BackgroundColor = obj.HeaderColor;
+%            obj.EditLabel.Layout.Row = 1;
+%            obj.EditLabel.Layout.Column = 1;
            
-           %Row 1: The name and desecription
+           %Row 1: The name and description
            obj.FileSelectLayout = uigridlayout(obj.EditLayout);
            obj.FileSelectLayout.ColumnWidth = {obj.LabelLength,obj.NameProportion,obj.LabelLength,obj.DescriptionProportion};
            obj.FileSelectLayout.RowHeight = {'1x'};
@@ -281,7 +286,7 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
            obj.NameLabel.Layout.Row = 1;
            obj.NameLabel.Layout.Column = 1;
            obj.NameLabel.Text = 'Name';
-           obj.NameLabel.HorizontalAlignment = 'center';
+           obj.NameLabel.HorizontalAlignment = 'left';
            obj.NameLabel.FontWeight = 'bold';
            obj.NameLabel.FontName = obj.Font;
            
@@ -294,7 +299,7 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
            obj.DescriptionLabel.Layout.Row = 1;
            obj.DescriptionLabel.Layout.Column = 3;
            obj.DescriptionLabel.Text = 'Description';
-           obj.DescriptionLabel.HorizontalAlignment = 'center';
+           obj.DescriptionLabel.HorizontalAlignment = 'right';
            obj.DescriptionLabel.FontWeight = 'bold';
            obj.DescriptionLabel.FontName = obj.Font;
            

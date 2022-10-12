@@ -136,7 +136,7 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
             obj.SimulationEditGrid.ColumnSpacing = obj.WidgetWidthSpacing;
 
             %Results Path selector
-            obj.ResultFolderSelector = QSPViewerNew.Widgets.FolderSelector(obj.SimulationEditGrid,1,1,' Results Path');
+            obj.ResultFolderSelector = QSPViewerNew.Widgets.FolderSelector(obj.SimulationEditGrid,1,1,'Results Path');
 
             %Data set drop down
             obj.DatasetGrid = uigridlayout(obj.SimulationEditGrid);
@@ -146,7 +146,7 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
             obj.DatasetGrid.Layout.Column = 1;
             obj.DatasetGrid.Padding = [0,0,0,0];
             obj.DatasetGrid.RowSpacing = 0;
-            obj.DatasetGrid.ColumnSpacing = 0;
+            obj.DatasetGrid.ColumnSpacing = 2;
 
             %             obj.DatasetDropDown = uidropdown(obj.DatasetGrid);
             %             obj.DatasetDropDown.Layout.Column = 2;
@@ -195,7 +195,7 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
             obj.GroupColumnLabel = uilabel(obj.GroupColumnGrid);
             obj.GroupColumnLabel.Layout.Column = 1;
             obj.GroupColumnLabel.Layout.Row = 1;
-            obj.GroupColumnLabel.Text = ' Group Column';
+            obj.GroupColumnLabel.Text = 'Group Column';
 
             %Simulation Items label
             obj.SimItemLabelGrid = uigridlayout(obj.SimulationEditGrid);
@@ -210,7 +210,7 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
             obj.SimItemLabel = uilabel(obj.SimItemLabelGrid);
             obj.SimItemLabel.Layout.Column = 1;
             obj.SimItemLabel.Layout.Row = 1;
-            obj.SimItemLabel.Text = ' Simulation Items';
+            obj.SimItemLabel.Text = 'Simulation Items';
 
             %Select Simulation Items
             obj.SimItemGrid = uigridlayout(obj.SimulationEditGrid);
