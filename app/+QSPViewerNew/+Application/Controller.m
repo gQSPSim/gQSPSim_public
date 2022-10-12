@@ -117,16 +117,7 @@ classdef Controller < handle
             app.FileSpec = {'*.qsp.mat','MATLAB QSP MAT File'};
             app.ItemTypes = vertcat(app.buildingBlockTypes, app.functionalityTypes);
 
-            %             % Save the type of the app for use in preferences
-            %             app.Type = class(app); %TODOpax this is not going to work well. We need to pick a name for the preferences and make sure we are backwards compatible. E.g., a name change for the class would break this.
-            %             app.TypeStr = matlab.lang.makeValidName(app.Type);
-
-            try
-                % TODOpax: there is a bug that makes loading the preferences fail tests.
-                % app.loadPreferences();
-            catch
-                %                 disp(e.getReport());
-            end
+            app.loadPreferences();
 
             % Construct the view. The app (i.e. controller) is supplied to the View
             % constructor for the purpose of connecting listeners. The app
@@ -152,6 +143,9 @@ classdef Controller < handle
                 
                 addlistener(app.OuterShell, 'GitStateChange',         @(h,e)app.onGitStateChange(e));
                 addlistener(app.OuterShell, 'UseParallelStateChange', @(h,e)app.onUseParallelStateChange(e));
+
+                % Notify with initialization values
+                notify(app, 'Controller_RecentSessionPathsChange', QSPViewerNew.Application.RecentSessionPaths_EventData(app.RecentSessionPaths));
             end
         end
 
@@ -161,10 +155,10 @@ classdef Controller < handle
 
         function delete(app)
             % Upon deletion, save the recent sessions and last folder to use
-            %in the next instance of the application
-            setpref(app.PreferencesGroupName, 'LastFolder',         app.LastFolder)
-            setpref(app.PreferencesGroupName, 'RecentSessionPaths', app.RecentSessionPaths)
-            %setpref(app.PreferencesGroupName, 'Position',           app.getUIFigure().Position)
+            % in the next instance of the application
+            setpref(app.PreferencesGroupName, 'LastFolder',         app.LastFolder);
+            setpref(app.PreferencesGroupName, 'RecentSessionPaths', app.RecentSessionPaths);
+            setpref(app.PreferencesGroupName, 'Position',           app.getUIFigure().Position);
 
             % close plugin manager if open
             if isvalid(app.PluginManager)
@@ -199,6 +193,10 @@ classdef Controller < handle
         end
 
         function loadSession(app, fullFilePath)
+            arguments
+                app
+                fullFilePath (1,1) string
+            end
             % Loads a session file from disk found at fullFilePath.
             sessionStatus = app.verifyValidSessionFilePath(fullFilePath);
 
@@ -216,7 +214,7 @@ classdef Controller < handle
                     [~,autosaveSessName,ext] = fileparts(fullFilePath);
                     autosaveSessName = insertBefore(autosaveSessName, ".qsp", "_autosave");
 
-                    asvFullPath = fullfile(Session.AutoSaveDirectory, [autosaveSessName, ext]);
+                    asvFullPath = fullfile(Session.AutoSaveDirectory, autosaveSessName + ext);
 
                     % if autosave exists and not already loaded in the app
                     if exist(asvFullPath, 'file') && ~ismember(asvFullPath, app.SessionPaths)
@@ -333,17 +331,50 @@ classdef Controller < handle
             end
         end
 
-        function loadPreferences(app)
-            % TODOpax: migrate old preferences group name to new one.
+        function loadPreferences(app)            
+            % Migrate old preferences to the new name.
+            allPreferences = string(fieldnames(getpref));
+            qspViewerNewTF = allPreferences.contains("QSPViewerNew");
+            if any(qspViewerNewTF)
+                app.migrateOldPreferences(allPreferences(qspViewerNewTF));
+            end            
+
             if ispref(app.PreferencesGroupName)
                 preferences = getpref(app.PreferencesGroupName);
 
-                app.LastFolder         = preferences.LastFolder;
-                app.RecentSessionPaths = preferences.RecentSessionPaths;
+                if isfield(preferences, "LastFolder")
+                    app.LastFolder = preferences.LastFolder;
+                end
 
-                % Remove invalid file paths
-                idxOk = arrayfun(@(x)exist(x, 'file'), app.RecentSessionPaths);
-                app.RecentSessionPaths(~idxOk) = [];
+                if isfield(preferences, "RecentSessionPaths")
+                    app.RecentSessionPaths = string(preferences.RecentSessionPaths);
+                    % Remove invalid file paths
+                    idxOkTF = arrayfun(@(x)isfile(x), app.RecentSessionPaths);
+                    app.RecentSessionPaths(~idxOkTF) = [];
+                end
+            end
+        end
+
+        function migrateOldPreferences(app, oldPreferencesName)
+            % This will migrate old preferences for v2.0 (i.e. based on
+            % QSPViewerNew) to the new lable for the preferences and will
+            % clean up the old names. 
+            for i = 1:numel(oldPreferencesName)
+                prefName = oldPreferencesName(i);
+                switch prefName
+                    case "QSPViewerNew_Dialogs_LoggerDialog"
+                        loggerPosition = getpref(prefName).Position;
+                        setpref(app.PreferencesGroupName, 'LoggerPosition', loggerPosition);
+                        rmpref(prefName);
+
+                    case "QSPViewerNew_Dialogs_PluginManager"
+                        pluginManagerPosition = getpref(prefName).Position;
+                        setpref(app.PreferencesGroupName, 'PluginManagerPosition', pluginManagerPosition);
+                        rmpref(prefName);
+
+                    case "QSPViewerNew_Application_ApplicationUI"
+                        rmpref(prefName);
+                end
             end
         end
     end
@@ -1060,7 +1091,7 @@ classdef Controller < handle
             app.Sessions(end+1)     = Session;
             app.IsDirty(end+1)      = false;
             app.SessionPaths(end+1) = filePath;
-            %app.addRecentSessionPath(filePath);
+            app.addRecentSessionPath(filePath);
 
             % Need a name for the session. If there is no name on it the
             % controller will assign a name.
@@ -1291,6 +1322,11 @@ classdef Controller < handle
         function addRecentSessionPath(app, newPath)
             % Adds recently used paths (load/save) to a list. Keep the list
             % to 10 items.
+            arguments
+                app
+                newPath (1,1) string
+            end
+            
             listSize = 10;
             inRecentListTF = app.RecentSessionPaths == newPath;
             app.RecentSessionPaths(inRecentListTF) = [];
