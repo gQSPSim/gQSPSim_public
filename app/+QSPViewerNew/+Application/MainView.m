@@ -96,6 +96,7 @@ classdef MainView < handle
 
             % Listen to the following paneManager events.
             addlistener(obj.paneManager, "Alert",   @(h,e)obj.onAlert(h,e));
+            addlistener(obj.paneManager, "PaneStateChange", @(h,e)obj.onPaneStateChange(e));
 
             % Listen to the following controller events.
             addlistener(app, 'Model_NewSession',    @(h,e)obj.onNewSession(e));
@@ -111,6 +112,8 @@ classdef MainView < handle
             % This is just a relay. Arguably overkill but keeps things clean.
             addlistener(obj.paneToolbar, 'GitStateChange',         @(h,e)obj.passEvent(e));
             addlistener(obj.paneToolbar, 'UseParallelStateChange', @(h,e)obj.passEvent(e));
+
+            
         end
 
         function delete(obj)
@@ -540,6 +543,11 @@ classdef MainView < handle
             for i = 1:numel(paths)
                 uimenu(obj.OpenRecentMenu, 'Text', paths(i), 'MenuSelectedFcn', @(h,e)obj.onMenuNotifyWithFile('OpenFile_Request', e));
             end            
+        end
+
+        function onPaneStateChange(obj, eventData)
+            assert(obj.TreeCtrl.SelectedNodes.NodeData == eventData.change);
+            obj.TreeCtrl.SelectedNodes.Text = eventData.change.Name;            
         end
 
         function constructMenuItems(obj, itemTypes)

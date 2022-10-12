@@ -9,6 +9,7 @@ classdef PaneManager < handle
 
     events
         Alert
+        PaneStateChange
     end
 
     methods
@@ -69,6 +70,7 @@ classdef PaneManager < handle
                 if isempty(pane)
                     obj.paneContainer.(type) = obj.constructPane(type);
                     pane = obj.paneContainer.(type);
+                    addlistener(pane, 'StateChange', @(h,e)obj.onUpdateTree(e));
                 end
 
                 pane.("attachNew" + type)(nodeData);
@@ -127,6 +129,13 @@ classdef PaneManager < handle
 
         function onAlert(obj, ~, eventData)
             notify(obj, "Alert", eventData);
-        end        
+        end
+
+        function onUpdateTree(obj, eventData)
+            % could filter the information passed along to the tree control
+            % but at this point there may be uses for data beyond Name and
+            % Description so lets go ahead and apps the whole thing.
+            notify(obj, 'PaneStateChange', eventData);
+        end
     end
 end

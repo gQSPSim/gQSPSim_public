@@ -1,11 +1,10 @@
 classdef ViewPane < matlab.mixin.Heterogeneous & handle
-    % ViewPane - An abstract base class for various view panes
-    % ---------------------------------------------------------------------
-    % Base properties that should be observed by all subclasses
-    %
+    % ViewPane - An abstract base class for view panes
+
     events
         Alert
-        ChangeState
+        ChangeState % get rid of.
+        StateChange
     end
 
     properties(Access = public)        
@@ -60,8 +59,6 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
         EditButton          matlab.ui.control.Button
         SummaryButton       matlab.ui.control.Button
         ButtonsLayout       matlab.ui.container.GridLayout
-        SummaryLabel        matlab.ui.control.Label
-        EditLabel           matlab.ui.control.Label
         RunButton           matlab.ui.control.Button
         ParallelButton      matlab.ui.control.Button
         GitButton           matlab.ui.control.Button
@@ -96,9 +93,6 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
     % Constants for UI specification
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     properties (Constant = true)
-%         ButtonPadding = [0,0,0,0];
-        %ButtonWidthSpacing = 0; 
-        %ButtonHeightSpacing = 0; 
         WidgetPadding = [0,0,0,0];
         WidgetWidthSpacing = 5; 
         WidgetHeightSpacing = 5; 
@@ -127,8 +121,6 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
         RemoveInvalidButtonWidth = 100;
         SaveButtonWidth = 100;
         CancelButtonWidth = 100;
-        EditLabelText = ' Edit';
-        SummaryLabelText = ' Summary'
         PanelBackgroundColor = [.97,.97,.97];
         SubPanelColor = [.97,.97,.97];
         SmallLabel = 80;
@@ -211,7 +203,6 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
 
            %Setup the Summary Panel and Button
            obj.SummaryPanel = uipanel(obj.OuterGrid);
-%            obj.SummaryPanel.BackgroundColor = [.9,.9,.9];
            obj.SummaryPanel.Layout.Row = 1;
            obj.SummaryPanel.Layout.Column = 1;
            obj.SummaryPanel.BackgroundColor = obj.PanelBackgroundColor;
@@ -227,15 +218,7 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
            obj.SummaryGrid.RowSpacing = obj.PanelHeightSpacing;
            obj.SummaryGrid.RowSpacing = obj.PanelWidthSpacing;
            obj.SummaryGrid.Padding = [0 0 0 0];
-           
-           %Add label to the top
-%            obj.SummaryLabel = uilabel(obj.SummaryGrid);
-%            obj.SummaryLabel.Text = obj.SummaryLabelText;
-%            obj.SummaryLabel.FontName = obj.Font;
-%            obj.SummaryLabel.BackgroundColor = obj.HeaderColor;
-%            obj.SummaryLabel.Layout.Row = 1;
-%            obj.SummaryLabel.Layout.Column = 1;
-           
+                     
            %Summary Widget
            obj.SummaryContent = QSPViewerNew.Widgets.Summary(obj.SummaryGrid,2,1,{'Dummy','info';'Purpose','Testing'});
            obj.SummaryContent.Information = {'Yellow','Dog'; 'Blue','Cat'};
@@ -257,21 +240,11 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
             %Setup EditGrid
            obj.EditLayout = uigridlayout(obj.EditPanel);
            obj.EditLayout.ColumnWidth = {'1x'};
-           %obj.EditLayout.RowHeight = {obj.HeaderHeight,obj.WidgetHeight,'1x',obj.ButtonHeight};
-           obj.EditLayout.RowHeight = {obj.WidgetHeight,obj.WidgetHeight,'1x', obj.WidgetHeight}; % todopax
-%            obj.EditLayout.Padding = obj.PanelPadding;
+           obj.EditLayout.RowHeight = {obj.WidgetHeight,obj.WidgetHeight,'1x', obj.WidgetHeight};
            obj.EditLayout.RowSpacing = obj.PanelHeightSpacing;
            obj.EditLayout.ColumnSpacing = obj.PanelWidthSpacing;
            obj.EditLayout.Padding = [0 0 0 0];
-           
-           %Setup Edit Panel Label
-%            obj.EditLabel = uilabel(obj.EditLayout);
-%            obj.EditLabel.Text = obj.EditLabelText;
-%            obj.EditLabel.FontName = obj.Font;
-%            obj.EditLabel.BackgroundColor = obj.HeaderColor;
-%            obj.EditLabel.Layout.Row = 1;
-%            obj.EditLabel.Layout.Column = 1;
-           
+                      
            %Row 1: The name and description
            obj.FileSelectLayout = uigridlayout(obj.EditLayout);
            obj.FileSelectLayout.ColumnWidth = {obj.LabelLength,obj.NameProportion,obj.LabelLength,obj.DescriptionProportion};
@@ -1538,8 +1511,12 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
     end
     
     methods(Abstract)
+        % Note that these two methods are not notifications, they simply
+        % updated the underlying data on the Pane object and set the pane
+        % to dirty.
         NotifyOfChangeInName(obj,value);
         NotifyOfChangeInDescription(obj,value);
+
         saveBackEndInformation(obj);
         checkForDuplicateNames(obj);
         checkForInvalid(obj);

@@ -951,8 +951,9 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
                 %We now need to notify the application
                 obj.notifyOfChange(obj.TemporarySimulation.Session);
 
-%                 notify(obj, "StateChange", QSPViewerNew.Application.ChangeData(obj.TemporarySimulation));
-
+                % Probably should only send the known values needed in the
+                % UI. E.g. Name and Description.
+                notify(obj, "StateChange", QSPViewerNew.Application.ChangeData(obj.Simulation));                
             else
                 uialert(obj.getUIFigure,sprintf('Cannot save changes. Please review invalid entries:\n\n%s',Message),'Cannot Save');
             end
