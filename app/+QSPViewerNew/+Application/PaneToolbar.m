@@ -1,5 +1,5 @@
 classdef PaneToolbar < handle
-    properties
+    properties (Access = private)
         parent
         buttonsLayout
         
@@ -17,6 +17,7 @@ classdef PaneToolbar < handle
 
         minimalModeButtons
         maximalModeButtons
+        explorationButtons
     end
 
     properties(Dependent)
@@ -83,10 +84,15 @@ classdef PaneToolbar < handle
             obj.panButton       = obj.createButton(11, "state", "Pan",       ["pan.png", ""],      "Pan");
             obj.exploreButton   = obj.createButton(12, "state", "Explore",   ["datatip.png", ""],  "Explore");
 
+
             % Make sets of buttons that make up a "mode"
             obj.minimalModeButtons = [obj.summaryButton, obj.editButton];
             obj.maximalModeButtons = [obj.runButton, obj.parallelButton, obj.gitButton, obj.visualizeButton, obj.settingsButton,...
                 obj.zoomInButton, obj.zoomOutButton, obj.panButton, obj.exploreButton];
+            obj.explorationButtons = [obj.zoomInButton, obj.zoomOutButton, obj.panButton, obj.exploreButton];
+
+            % Set the initial state of the exploration buttons to disabled.
+            set(obj.explorationButtons, 'Enable', 'off');
         end
 
         function newButton = createButton(obj, positionIndex, type, name, iconName, tooltipText)
@@ -111,6 +117,8 @@ classdef PaneToolbar < handle
         end
 
         function set.mode(obj, mode)
+            % The button toolbar can be in one of 4 states/modes.
+            % None, Minimal, Maximal, MaximalToolsDisabled (all disabled).
             arguments
                 obj
                 mode (1,1) QSPViewerNew.Application.ToolbarMode
@@ -140,7 +148,16 @@ classdef PaneToolbar < handle
             notify(obj, name, event);            
         end
 
-        function onPushButton(obj, name, event)            
+        function onPushButton(obj, name, event)
+            % push button pressed. Notify of the event and take care of
+            % configuring the toolbar based on the selection made. Right
+            % now that is only relevant for the visualize case.
+            if name == "Visualize"
+                set(obj.explorationButtons, 'Enable', 'on');
+            else
+                set(obj.explorationButtons, 'Enable', 'off');
+            end
+
             notify(obj, name, event);
         end
     end

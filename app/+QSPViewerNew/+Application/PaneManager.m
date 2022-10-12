@@ -35,14 +35,16 @@ classdef PaneManager < handle
             obj.parent    = parent;
             obj.parentApp = parentApp;
 
-            % Don't like that panetoolbar decides where to put itself. Fix this by standardizing to passing in the row, column.
-            obj.paneToolbar = paneToolbar; %QSPViewerNew.Application.PaneToolbar(obj.parent); 
+            % The MainView supplies the toolbar. empty is supported and
+            % used when there is no UI.
+            obj.paneToolbar = paneToolbar;
             
             if ~isempty(obj.paneToolbar)
                 addlistener(obj.paneToolbar, "Run",       @(h,e)obj.onRun);
-                addlistener(obj.paneToolbar, "Edit",      @(h,e)obj.onEdit(h,e));
-                addlistener(obj.paneToolbar, "Summary",   @(h,e)obj.onSummary(h,e));
-                addlistener(obj.paneToolbar, "Visualize", @(h,e)obj.onVisualize(h,e));
+                addlistener(obj.paneToolbar, "Edit",      @(h,e)obj.onEdit);
+                addlistener(obj.paneToolbar, "Summary",   @(h,e)obj.onSummary);
+                addlistener(obj.paneToolbar, "Visualize", @(h,e)obj.onVisualize);
+                addlistener(obj.paneToolbar, "Settings",  @(h,e)obj.onSettings);
             end
         end
                 
@@ -108,26 +110,30 @@ classdef PaneManager < handle
 
             constructFcn = eval("@QSPViewerNew.Application." + type + "Pane");            
             newPane = feval(constructFcn, "Parent", obj.parent, "parentApp", obj.parentApp);            
-            addlistener(newPane, "Alert", @(h,e)obj.onAlert(h,e));            
+            addlistener(newPane, "Alert", @(h,e)obj.onAlert(e));
         end
                
         function onRun(obj)
             obj.activePane.runModel();
         end
 
-        function onSummary(obj, ~, ~)
+        function onSummary(obj)
             obj.activePane.show('Summary');
         end
 
-        function onEdit(obj, ~, ~)
+        function onEdit(obj)
             obj.activePane.show('Edit');            
         end
 
-        function onVisualize(obj, ~, ~)
+        function onVisualize(obj)
             obj.activePane.show('Visualize');
         end
 
-        function onAlert(obj, ~, eventData)
+        function onSettings(obj)
+            obj.activePane.show('Settings');
+        end
+
+        function onAlert(obj, eventData)
             notify(obj, "Alert", eventData);
         end
 
