@@ -1,5 +1,5 @@
 classdef PaneToolbar < handle
-    properties (Access = private)
+    properties (Access = ?matlab.uitest.TestCase)
         parent
         buttonsLayout
         
