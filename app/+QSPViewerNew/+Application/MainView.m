@@ -55,6 +55,8 @@ classdef MainView < handle
         OpenFile_Request
 
         Delete_Request, Restore_Request
+        
+        PermanentlyDelete_Request
 
         % Event for QSP Menu item
         AddTreeNode
@@ -104,6 +106,7 @@ classdef MainView < handle
             addlistener(app, 'Model_SessionClosed', @(h,e)obj.onCloseSession(e));
             addlistener(app, 'Model_ItemDeleted',   @(h,e)obj.onItemDeleted(e));
             addlistener(app, 'Model_ItemRestored',  @(h,e)obj.onItemRestored(e));
+            addlistener(app, 'Model_DeletedItemsDeleted', @(h,e)obj.onDeletedItemsDeleted(e));
             addlistener(app, 'DirtySessions',       @(h,e)obj.onDirtySessions(e));
             addlistener(app, 'CleanSessions',       @(h,e)obj.onCleanSessions(e));            
             
@@ -392,7 +395,7 @@ classdef MainView < handle
                     uimenu(cm, "Text", "Save As...", "MenuSelectedFcn", @(h,e)obj.onMenuNotifyWithSession("SaveAs_Request"));
                 
                 case 'DeletedItems'
-                    uimenu(cm, "Text", "Empty Deleted Items");
+                    uimenu(cm, "Text", "Empty Deleted Items", "MenuSelectedFcn", @(h,e)obj.onMenuNotifyWithSession("PermanentlyDelete_Request"));
 
                 case 'Deleted' % Items in the Deleted Items folder
                     uimenu(cm, "Text", "Restore");
@@ -480,6 +483,13 @@ classdef MainView < handle
             treeNodeToDelete.Parent = deletedItems;
             treeNodeToDelete.Tag = "deleted_instance";
             deletedItems.expand();
+        end
+
+        function onDeletedItemsDeleted(obj, eventData)
+            sessionTF = [obj.TreeCtrl.Children.NodeData] == eventData.Session;
+            sessionNode = obj.TreeCtrl.Children(sessionTF);
+            deletedItemsNode = findobj(sessionNode, 'Tag', 'DeletedItems');
+            delete(deletedItemsNode.Children);            
         end
 
         function onItemRestored(obj, eventData)
