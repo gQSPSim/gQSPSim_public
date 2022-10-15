@@ -92,6 +92,7 @@ classdef Controller < handle
         Model_SessionClosed
         Model_ItemDeleted
         Model_ItemRestored
+        Model_DeletedItemsDeleted
 
         Controller_RecentSessionPathsChange
 
@@ -140,6 +141,7 @@ classdef Controller < handle
 
                 addlistener(app.OuterShell, 'Delete_Request',    @(h,e)app.onDeleteItem(e));
                 addlistener(app.OuterShell, 'Restore_Request',   @(h,e)app.onRestoreItem(e));
+                addlistener(app.OuterShell, 'PermanentlyDelete_Request', @(h,e)app.onEmptyDeletedItems(e));
                 
                 addlistener(app.OuterShell, 'GitStateChange',         @(h,e)app.onGitStateChange(e));
                 addlistener(app.OuterShell, 'UseParallelStateChange', @(h,e)app.onUseParallelStateChange(e));
@@ -751,23 +753,10 @@ classdef Controller < handle
             app.markDirty(activeSession);
         end
 
-        function onEmptyDeletedItems(app,activeNode,activeSession,deleteAllTF)
-            if deleteAllTF
-                TreeRoots = app.SelectedSession.TreeNode.Children;
-                ChildTags = {TreeRoots.Tag};
-                Deleted = TreeRoots(strcmpi(ChildTags,'Deleted Items'));
-                app.permDelete(Deleted.Children,app.SelectedSession)
-            else
-                if isempty(activeSession)
-                    activeSession = app.SelectedSession;
-                end
-
-                if isempty(activeNode)
-                    activeNode = app.TreeRoot.SelectedNodes;
-                end
-                app.permDelete(activeNode,activeSession)
-            end
-            app.markDirty(activeSession);
+        function onEmptyDeletedItems(app, eventData)
+            session = eventData.Session;
+            app.permDelete(session);                        
+            notify(app, 'Model_DeletedItemsDeleted', QSPViewerNew.Application.Session_EventData(session));            
         end
 
         function onOpenLogger(app)
@@ -1744,8 +1733,8 @@ classdef Controller < handle
             notify(app, 'Model_ItemDeleted', QSPViewerNew.Application.MultipleItems_EventData(session, deletedNode));
 
             % update log todopax
-            %             loggerObj = QSPViewerNew.Widgets.Logger(ThisObj.Session.LoggerName);
-            %             loggerObj.write(Node.Text, ItemType, "WARNING", 'deleted item')
+            loggerObj = QSPViewerNew.Widgets.Logger(session.LoggerName);
+            loggerObj.write(deletedNode.Name, type, "WARNING", 'deleted item');
         end
 
         function deleteFolderNodes(app, node)
@@ -1771,47 +1760,35 @@ classdef Controller < handle
             node.NodeData.Session.Settings.Folder(nodeFolderIdx) = [];
         end
 
-        function permDelete(app,nodes,session)
-            %Determine node names
-            NodeNames = {nodes.Text};
-
-            % Confirm with user they would like to delete all
-            Messages = cellfun(@(x) sprintf('Permanently delete "%s"?', x),NodeNames,'UniformOutput',false);
-            Result = uiconfirm(app.UIFigure,Messages,'Delete','Options', {'Delete','Cancel'});
-
-            if strcmpi(Result,'Delete')
-                for Nodeidx = 1:numel(nodes)
-                    % Delete the selected item
-                    ThisNode = nodes(Nodeidx);
-                    ThisObj = ThisNode.NodeData;
-
-                    % update log
-                    % What type of item?
-                    itemType = split(class(ThisObj), '.');
-                    loggerObj = QSPViewerNew.Widgets.Logger(session.Session.LoggerName);
-                    loggerObj.write(ThisNode.Text, itemType{end}, "DEBUG", 'permanently deleted item')
-
-                    %Find the node in the deleted array
-                    MatchIdx = false(size(session.Deleted));
-                    for idx = 1:numel(session.Deleted)
-                        MatchIdx(idx) = session.Deleted(idx)==ThisObj;
-                    end
-
-                    % Remove from deleted items in the session
-                    session.Deleted( MatchIdx ) = [];
-
-                    % Now delete tree node
-                    delete(ThisNode);
-
-                    % Mark the current session dirty
-                    app.markDirty(session);
-
-                end
-
-                % Update the display
-                app.refresh();
+        function permDelete(app, session) %nodes,session)
+            % Permanently delete the items in the Deleted container.
+            % Note there is no confirmation asked, the items are just
+            % deleted.
+            arguments
+                app
+                session
             end
 
+            nodesToDelete = session.Deleted;
+            for i = 1:numel(nodesToDelete)
+                % Update log
+                itemType = split(class(nodesToDelete(i)), '.');
+                loggerObj = QSPViewerNew.Widgets.Logger(session.LoggerName);
+                loggerObj.write(nodesToDelete(i).Name, itemType{end}, "DEBUG", 'permanently deleted item')
+
+                % Delete the node.
+                delete(nodesToDelete(i));
+            end
+
+            % Ideally the Model provides a way to empty this property
+            % further separating the Controller from the Model. But there
+            % aren't currently methods to do that and changing things in
+            % the Model will make needed (and large) merges complicated.
+            % To be precise, the Controller should not know that this next
+            % line is the type of the Deleted property.
+            session.Deleted = QSP.abstract.BaseProps.empty(1,0);
+
+            app.IsDirty(app.Sessions == session) = true;
         end
 
         function updateVpopFolderStructure(app, parentVpopNode)
