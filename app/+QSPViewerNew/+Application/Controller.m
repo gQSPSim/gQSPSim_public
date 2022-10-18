@@ -142,6 +142,7 @@ classdef Controller < handle
                 addlistener(app.OuterShell, 'Delete_Request',    @(h,e)app.onDeleteItem(e));
                 addlistener(app.OuterShell, 'Restore_Request',   @(h,e)app.onRestoreItem(e));
                 addlistener(app.OuterShell, 'PermanentlyDelete_Request', @(h,e)app.onEmptyDeletedItems(e));
+                addlistener(app.OuterShell, 'Duplicate_Request', @(h,e)app.onDuplicateItem(e));
                 
                 addlistener(app.OuterShell, 'GitStateChange',         @(h,e)app.onGitStateChange(e));
                 addlistener(app.OuterShell, 'UseParallelStateChange', @(h,e)app.onUseParallelStateChange(e));
@@ -156,11 +157,12 @@ classdef Controller < handle
         end
 
         function delete(app)
-            % Upon deletion, save the recent sessions and last folder to use
-            % in the next instance of the application
+            % Controller destructor. Save preferences and close down the UI
+            % if it is open.
+            % Note that this destructor only stores preferences for state
+            % owned by the controller. 
             setpref(app.PreferencesGroupName, 'LastFolder',         app.LastFolder);
-            setpref(app.PreferencesGroupName, 'RecentSessionPaths', app.RecentSessionPaths);
-            setpref(app.PreferencesGroupName, 'Position',           app.getUIFigure().Position);
+            setpref(app.PreferencesGroupName, 'RecentSessionPaths', app.RecentSessionPaths);            
 
             % close plugin manager if open
             if isvalid(app.PluginManager)
@@ -535,8 +537,8 @@ classdef Controller < handle
             % that is not the case right now so handle it here at the
             % expense of some technical debt. If the model were
             % to have this add functionality then it would be the one
-            % notifying the controller (or the view) about the addition.
-            % In addition, the model also does not support default names.
+            % notifying the controller about the addition.
+            % Also, the model does not support default names.
             % Rather than adding it in the Model deal with it here, but
             % that is more technical debt.
             buildingBlockType_TF = strcmp(itemType, app.buildingBlockTypes(:,2));
@@ -738,19 +740,15 @@ classdef Controller < handle
             loggerObj.write(ParentNode.Text, itemType, "MESSAGE", 'added item')
         end
 
-        function onDuplicateItem(app,activeSession,activeNode)
-            if isempty(activeSession)
-                activeSession = app.SelectedSession;
-            end
-
-            activeNodes = [activeNode; app.TreeRoot.SelectedNodes];
-            activeNodes = unique(activeNodes);
+        function onDuplicateItem(app, eventData) %activeSession,activeNode)
+            activeSession = eventData.Session;
+            activeNodes = eventData.Items;
 
             for i = 1:length(activeNodes)
-                app.duplicateNode(activeNodes(i),activeSession)
+                app.duplicateItem(activeNodes(i), activeSession)
             end
 
-            app.markDirty(activeSession);
+            app.IsDirty(app.getSessionIndex(activeSession)) = true;            
         end
 
         function onEmptyDeletedItems(app, eventData)
@@ -1662,46 +1660,49 @@ classdef Controller < handle
             node.NodeData.Session.Settings.Folder(end+1) = ThisObj;
         end
 
-        function duplicateNode(app,Node,~)
+        function duplicateItem(app, node, session)
+            % todopax reuse onNewItem as much as possible to avoid duplicate code.
 
-            % What type of item?
-            ParentNode = Node.Parent;
-            while isa(ParentNode.NodeData, 'QSP.Folder')
-                ParentNode = ParentNode.Parent;
-            end
-            ItemType = ParentNode.Tag;
-
-            % What are the data object and its parent?
-            ParentObj = ParentNode.NodeData;
-
-            ThisObj = Node.NodeData;
-
+            type = string(class(node)).extractAfter("QSP.");
+            
             % Create the duplicate item
-            DisallowedNames = {ParentObj.(ItemType).Name};
-            NewName = matlab.lang.makeUniqueStrings(ThisObj.Name, DisallowedNames);
-            ThisObj = ThisObj.copy();
-            ThisObj.Name = NewName;
-            ThisObj.clearData();
 
-            % Place the item and add the tree node
-            if isscalar(ParentNode)
-                ParentObj.(ItemType)(end+1) = ThisObj;
-                app.createTree(ParentNode, ThisObj);
-                ParentNode.expand();
-            else
-                error('Invalid tree parent');
-            end
+            % Need to find all the children of the type we have to make
+            % sure we get a unique name.
+            buildingBlocksTF = app.buildingBlockTypes(:,2) == type;
+            functionalityTF  = app.functionalityTypes(:,2) == type;
+            
+            % Make the copy of the item. The sequence is, maybe, a bit odd.
+            % We make the copy and afterwards determine the unique name
+            % available as well as adding the item to the right list. This
+            % is so that we only need to check for the type {building,
+            % functionality} once.
+            newNode = node.copy();
 
-            % Mark the current session dirty
-            ThisSession = Node.NodeData.Session;
-            app.markDirty(ThisSession);
+            % This removes paths to results from the item being copied.
+            newNode.clearData(); 
+            
+            % Get the siblings so we can make names unique and add the
+            % newItem to the correct list.
+            if any(buildingBlocksTF)                
+                disallowedNames = string({session.Settings.(type).Name});
+                session.Settings.(type)(end+1) = newNode;
+            elseif any(functionalityTF)                
+                disallowedNames = string({session.(type).Name});
+                session.(type)(end+1) = newNode;
+            end           
+                        
+            newNode.Name = matlab.lang.makeUniqueStrings(node.Name, disallowedNames);            
+            
+            app.IsDirty(app.getSessionIndex(session)) = true;
 
-            % Update the display
-            app.refresh();
-
-            % update log
-            loggerObj = QSPViewerNew.Widgets.Logger(ThisSession.LoggerName);
-            loggerObj.write(Node.Text, ItemType, "INFO", 'duplicated item')
+            % Just as we do with adding a new item, a duplicate is just the
+            % same relative to the View so reuse the same notification.
+            notify(app, 'Model_NewItemAdded', QSPViewerNew.Application.NewItemAddedEventData(newNode, type)); % todopax would be nice if we don't need itemType
+            
+            % Record in log.
+            loggerObj = QSPViewerNew.Widgets.Logger(session.LoggerName);
+            loggerObj.write(node.Name, type, "INFO", 'duplicated item');
         end
 
         function deleteNode(app, deletedNode, session)
