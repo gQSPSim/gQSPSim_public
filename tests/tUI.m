@@ -38,5 +38,37 @@ classdef tUI < matlab.uitest.TestCase
             testCase.press(parallelButton);
             testCase.verifyEqual(ctrl.Sessions.UseParallel, true);
         end
+
+        function instanceContextMenus(testCase)
+            ctrl = QSPappN();
+            testCase.addTeardown(@delete, ctrl);            
+
+            % Due to RootDirectory issues we cannot simply use the
+            % controller's api. As a workaround use a direct mat file load
+            % and add the loaded session to the controller.
+            % ctrl.loadSession('tests/baselines/CaseStudy_TMDD_complete/CaseStudy1_TMDD.qsp.mat');            
+            sessionPath = testCase.testRootDirectory + filesep + "baselines" + filesep + "CaseStudy_TMDD_complete" + filesep + "CaseStudy1_TMDD.qsp.mat";
+            SessionContainer = load(sessionPath);
+            rootDirectory = testCase.testRootDirectory + filesep + "baselines" + filesep + "CaseStudy_TMDD_complete";
+            SessionContainer.Session.RootDirectory = rootDirectory;
+            ctrl.addSession(SessionContainer.Session);
+
+            OptimizationFunctionality = findobj(ctrl.OuterShell.TreeCtrl, 'Tag', 'Optimization');
+
+            % Must select a node before using its context menu. This might
+            % be a bug in the chooseContextMenu functionality.
+            testCase.choose(OptimizationFunctionality.Children(1));
+            
+            testCase.chooseContextMenu(OptimizationFunctionality.Children(1), findobj(OptimizationFunctionality.Children(1).ContextMenu, 'Text', 'Duplicate'));
+
+            testCase.verifyNumElements(ctrl.Sessions.Optimization, 2);
+            testCase.verifyEqual({ctrl.Sessions.Optimization.Name}, {'Optimization', 'Optimization_1'});
+
+        end
+
+        function deletedItemsContextMenus(testCase)
+            disp('todo');
+        end
+
     end
 end
