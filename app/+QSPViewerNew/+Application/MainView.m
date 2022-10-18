@@ -1,6 +1,9 @@
 classdef MainView < handle
-    properties
+    properties(Access = ?matlab.uitest.TestCase)
         UIFigure                 matlab.ui.Figure
+    end
+
+    properties        
         FileMenu                 matlab.ui.container.Menu
         NewCtrlNMenu             matlab.ui.container.Menu
         OpenCtrl0Menu            matlab.ui.container.Menu
@@ -41,6 +44,7 @@ classdef MainView < handle
         paneToolbar QSPViewerNew.Application.PaneToolbar
         iconList (1,1) struct
         aboutMessage (:,1) string
+        contextMenuStore (1,1) struct
         
         % Keep a reference of these from the app. If they are not written
         % to then there is no memory overhead (i.e. no copy)
@@ -57,6 +61,8 @@ classdef MainView < handle
         Delete_Request, Restore_Request
         
         PermanentlyDelete_Request
+
+        Duplicate_Request
 
         % Event for QSP Menu item
         AddTreeNode
@@ -81,8 +87,8 @@ classdef MainView < handle
             end
 
             % Keep a local reference to the itemTypes. This is needed
-            % beyond the constructor for use by context menus. Note thatif
-            % not modified in the class no copy if made by MATLAB.
+            % beyond the constructor for use by context menus. Note that if
+            % not modified no copy if made by MATLAB.
             obj.itemTypes = app.ItemTypes;
 
             % initialize the list of icons and the mapping to the 
@@ -120,7 +126,18 @@ classdef MainView < handle
         end
 
         function delete(obj)
-            delete(obj.UIFigure);
+            % View destructor. Save View dependent state and delete the
+            % view.            
+
+            % There are ways to close the UIFigure (main element of the UI)
+            % (e.g. >> close all force) that do not trigger the UIFigure
+            % CloseFcn but yet the UIFigure is deleted. therefore, this 
+            % function must protect against that case. 
+            if isvalid(obj.UIFigure)
+                groupName = QSPViewerNew.Application.Controller.PreferencesGroupName;
+                setpref(groupName, 'Position', obj.UIFigure.Position);
+                delete(obj.UIFigure);
+            end
         end
 
         function createSession(obj, session, buildingBlockTypes, functionalityTypes)
@@ -180,12 +197,14 @@ classdef MainView < handle
                 app QSPViewerNew.Application.Controller
             end
 
-            obj.UIFigure = uifigure('Visible', 'off');
+            obj.UIFigure = uifigure('Visible', 'off', 'HandleVisibility', 'on');
             obj.UIFigure.Position = [100 100 1005 864];
             obj.UIFigure.Name = app.Title;
             obj.UIFigure.CloseRequestFcn =  @(h,e)obj.onMenuNotify("Exit_Request");
 
             constructMenuItems(obj, app.ItemTypes);
+
+            createContextMenus(obj);
 
             obj.FlexGridLayout = uigridlayout(obj.UIFigure);
             gOuter = obj.FlexGridLayout;
@@ -373,45 +392,34 @@ classdef MainView < handle
                 'Tag',      tag,...
                 'Icon',     QSPViewerNew.Resources.LoadResourcePath(Icon));
 
-            % Create context menus
-            obj.createContextMenus(tag, treeNode);
+            % Assign context menus based on creation time's value of tag.
+            obj.assignContextMenus(tag, treeNode);
         end
         
-        function cm = createContextMenus(obj, type, treeNode)
+        function assignContextMenus(obj, type, treeNode)
+            % Assign context menus based on type/tag.
+            % See createContextMenus for the types handled in
+            % this function's switch statement. 
+            % Note that type/tag is not necessarily that of the treeNode,
+            % for example an instance treenode might be deleted and would
+            % then have the contextmenu associated with deleted items.
             arguments
                 obj
                 type     (1,1) string
                 treeNode (1,1) matlab.ui.container.TreeNode
             end
 
-            cm = uicontextmenu(obj.UIFigure);
-
             % Check if the type is in the itemTypes if so then handle here
             % otherwise go to the switch statement.
             switch type
-                case 'Session'                    
-                    uimenu(cm, "Text", "Close",      "MenuSelectedFcn", @(h,e)obj.onMenuNotifyWithSession("Close_Request"));
-                    uimenu(cm, "Text", "Save",       "MenuSelectedFcn", @(h,e)obj.onMenuNotifyWithSession("Save_Request"));
-                    uimenu(cm, "Text", "Save As...", "MenuSelectedFcn", @(h,e)obj.onMenuNotifyWithSession("SaveAs_Request"));
-                
-                case 'DeletedItems'
-                    uimenu(cm, "Text", "Empty Deleted Items", "MenuSelectedFcn", @(h,e)obj.onMenuNotifyWithSession("PermanentlyDelete_Request"));
-
-                case 'Deleted' % Items in the Deleted Items folder
-                    uimenu(cm, "Text", "Restore");
-                    uimenu(cm, "Text", "Permanently Delete");
+                case {'Session', 'DeletedItems', 'Deleted', 'instance'}
+                    treeNode.ContextMenu = obj.contextMenuStore.(type);
 
                 case 'Folder'
                     disp('Not ready yet');
-                
-                case 'instance'
-                    uimenu(cm, "Text", "Duplicate");
-                    uimenu(cm, "Text", "Delete", "MenuSelectedFcn", @(h,e)obj.onSelectedItemsAction("Delete_Request"));
-                    uimenu(cm, "Text", "Move To:");
 
                 case obj.itemTypes(:,2)
-                    uimenu(cm, "Text", "Add new", "MenuSelectedFcn", @(h,e)obj.onMenuNotifyAdd(type));
-                    uimenu(cm, "Text", "Add new Folder");
+                      treeNode.ContextMenu = obj.contextMenuStore.header;
 
                 case {'BuildingBlocks', 'Functionality'}
                     % Do nothing for these nodes. 
@@ -419,7 +427,35 @@ classdef MainView < handle
                 otherwise
                     assert(false, "Unhandled type.");
             end
-            treeNode.ContextMenu = cm;
+        end
+
+        function createContextMenus(obj)
+            % Session
+            obj.contextMenuStore.Session = uicontextmenu(obj.UIFigure, 'Tag', 'Session');
+            uimenu(obj.contextMenuStore.Session, "Text", "Close",      "MenuSelectedFcn", @(h,e)obj.onMenuNotifyWithSession("Close_Request"));
+            uimenu(obj.contextMenuStore.Session, "Text", "Save",       "MenuSelectedFcn", @(h,e)obj.onMenuNotifyWithSession("Save_Request"));
+            uimenu(obj.contextMenuStore.Session, "Text", "Save As...", "MenuSelectedFcn", @(h,e)obj.onMenuNotifyWithSession("SaveAs_Request"));
+
+            % DeletedItems
+            obj.contextMenuStore.DeletedItems = uicontextmenu(obj.UIFigure, 'Tag', 'DeletedItems');
+            uimenu(obj.contextMenuStore.DeletedItems, "Text", "Empty Deleted Items", "MenuSelectedFcn", @(h,e)obj.onMenuNotifyWithSession("PermanentlyDelete_Request"));
+
+            % Deleted
+            obj.contextMenuStore.Deleted = uicontextmenu(obj.UIFigure, 'Tag', 'Deleted');
+            uimenu(obj.contextMenuStore.Deleted, "Text", "Restore", "MenuSelectedFcn",            @(h,e)obj.onSelectedItemsAction("Restore_Request"));
+            uimenu(obj.contextMenuStore.Deleted, "Text", "Permanently Delete", "MenuSelectedFcn", @(h,e)obj.onSelectedItemsAction("PermanentlyDelete_Request"));
+
+            % instance
+            obj.contextMenuStore.instance = uicontextmenu(obj.UIFigure, 'Tag', 'instance');
+            uimenu(obj.contextMenuStore.instance, "Text", "Duplicate", "MenuSelectedFcn", @(h,e)obj.onSelectedItemsAction("Duplicate_Request"));
+            uimenu(obj.contextMenuStore.instance, "Text", "Delete", "MenuSelectedFcn",    @(h,e)obj.onSelectedItemsAction("Delete_Request"));
+            uimenu(obj.contextMenuStore.instance, "Text", "Move To:");
+
+            % header nodes: these are the grouping of nodes such as Task,
+            % Parameter, Dataset, Simulation, Optimization, etc.
+            obj.contextMenuStore.header = uicontextmenu(obj.UIFigure, 'Tag', 'header');
+            uimenu(obj.contextMenuStore.header, "Text", "Add new", "MenuSelectedFcn", @(h,e)obj.onMenuNotifyAdd(type));
+            uimenu(obj.contextMenuStore.header, "Text", "Add new Folder");            
         end
 
         function onAbout(obj, ~, ~)
@@ -465,7 +501,7 @@ classdef MainView < handle
             closeSessionTF = eventData.Session == sessions;
             delete(obj.TreeCtrl.Children(closeSessionTF));
             % NOTIFY with an event is an option here but since this is all view internal
-            % keep this as a direct call. 
+            % its ok to keep as a direct call. 
             obj.paneManager.closeActivePane();
         end
 
@@ -482,6 +518,10 @@ classdef MainView < handle
             deletedItems = findobj(sessionNode, 'Tag', 'DeletedItems');
             treeNodeToDelete.Parent = deletedItems;
             treeNodeToDelete.Tag = "deleted_instance";
+
+            % Change the context menu items on the deleted node. Remember
+            % to set back upon restore.
+
             deletedItems.expand();
         end
 
@@ -568,16 +608,16 @@ classdef MainView < handle
             end
 
             obj.FileMenu                        = obj.createMenuItem(obj.UIFigure, "File");
-            obj.NewCtrlNMenu                    = obj.createMenuItem(obj.FileMenu,   "New...",      @(h,e)obj.onMenuNotify("New_Request"),  "N");
-            obj.OpenCtrl0Menu                   = obj.createMenuItem(obj.FileMenu,   "Open...",     @(h,e)obj.onMenuNotify("Open_Request"), "O");
-            obj.OpenRecentMenu                  = obj.createMenuItem(obj.FileMenu,   "Open Recent");%, @(h,e)obj.onMenuNotifyWithFile('OpenFile_Request', e));
-            obj.CloseMenu                       = obj.createMenuItem(obj.FileMenu,   "Close",       @(h,e)obj.onMenuNotifyWithSession("Close_Request"), "W", "on");
-            obj.SaveCtrlSMenu                   = obj.createMenuItem(obj.FileMenu,   "Save",        @(h,e)obj.onMenuNotifyWithSession("Save_Request"),  "S", "on");
-            obj.SaveAsMenu                      = obj.createMenuItem(obj.FileMenu,   "Save As...",  @(h,e)obj.onMenuNotifyWithSession("SaveAs_Request"));
-            obj.ExitCtrlQMenu                   = obj.createMenuItem(obj.FileMenu,   "Exit",        @(h,e)obj.onMenuNotify("Exit_Request"), "Q", "on");
+            obj.NewCtrlNMenu                    = obj.createMenuItem(obj.FileMenu, "New...",      @(h,e)obj.onMenuNotify("New_Request"),  "N");
+            obj.OpenCtrl0Menu                   = obj.createMenuItem(obj.FileMenu, "Open...",     @(h,e)obj.onMenuNotify("Open_Request"), "O");
+            obj.OpenRecentMenu                  = obj.createMenuItem(obj.FileMenu, "Open Recent");%, @(h,e)obj.onMenuNotifyWithFile('OpenFile_Request', e));
+            obj.CloseMenu                       = obj.createMenuItem(obj.FileMenu, "Close",       @(h,e)obj.onMenuNotifyWithSession("Close_Request"), "W", "on");
+            obj.SaveCtrlSMenu                   = obj.createMenuItem(obj.FileMenu, "Save",        @(h,e)obj.onMenuNotifyWithSession("Save_Request"),  "S", "on");
+            obj.SaveAsMenu                      = obj.createMenuItem(obj.FileMenu, "Save As...",  @(h,e)obj.onMenuNotifyWithSession("SaveAs_Request"));
+            obj.ExitCtrlQMenu                   = obj.createMenuItem(obj.FileMenu, "Exit",        @(h,e)obj.onMenuNotify("Exit_Request"), "Q", "on");
 
-            obj.QSPMenu                         = obj.createMenuItem(obj.UIFigure,    "QSP");
-            obj.AddNewItemMenu                  = obj.createMenuItem(obj.QSPMenu,      "Add New Item");
+            obj.QSPMenu                         = obj.createMenuItem(obj.UIFigure, "QSP");
+            obj.AddNewItemMenu                  = obj.createMenuItem(obj.QSPMenu,  "Add New Item");
             
             % Create menus for all the QSP Item types.
             shortCuts = ["T", "P", "D", "A", "E", "V", "I", "F", "C", "G", "Z"]; % maybe useful but here now for debugging.
