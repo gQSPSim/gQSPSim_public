@@ -25,12 +25,12 @@ stages:
 #     script:
 #         - ./tests/gQSPSimTesterScript2.sh BR2019ad
 
-R2019b Test:
-    stage: test
-    tags:
-        - maci64
-    script:
-        - ./tests/gQSPSimTesterScript2.sh BR2019bd
+# R2019b Test:
+#     stage: test
+#     tags:
+#         - maci64
+#     script:
+#         - ./tests/gQSPSimTesterScript2.sh BR2019bd
 
 R2020a Test:
     stage: test
