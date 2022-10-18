@@ -1,5 +1,7 @@
 classdef MainView < handle
-    properties(Access = ?matlab.uitest.TestCase)
+    properties(Access = {?matlab.uitest.TestCase, ?QSPViewerNew.Application.Controller})
+        % Would be nice to remove the Controller from the access list but
+        % there are a few use cases that require it at the moment.
         UIFigure                 matlab.ui.Figure
     end
 
@@ -121,8 +123,6 @@ classdef MainView < handle
             % This is just a relay. Arguably overkill but keeps things clean.
             addlistener(obj.paneToolbar, 'GitStateChange',         @(h,e)obj.passEvent(e));
             addlistener(obj.paneToolbar, 'UseParallelStateChange', @(h,e)obj.passEvent(e));
-
-            
         end
 
         function delete(obj)
@@ -607,17 +607,17 @@ classdef MainView < handle
                 itemTypes cell
             end
 
-            obj.FileMenu                        = obj.createMenuItem(obj.UIFigure, "File");
-            obj.NewCtrlNMenu                    = obj.createMenuItem(obj.FileMenu, "New...",      @(h,e)obj.onMenuNotify("New_Request"),  "N");
-            obj.OpenCtrl0Menu                   = obj.createMenuItem(obj.FileMenu, "Open...",     @(h,e)obj.onMenuNotify("Open_Request"), "O");
-            obj.OpenRecentMenu                  = obj.createMenuItem(obj.FileMenu, "Open Recent");%, @(h,e)obj.onMenuNotifyWithFile('OpenFile_Request', e));
-            obj.CloseMenu                       = obj.createMenuItem(obj.FileMenu, "Close",       @(h,e)obj.onMenuNotifyWithSession("Close_Request"), "W", "on");
-            obj.SaveCtrlSMenu                   = obj.createMenuItem(obj.FileMenu, "Save",        @(h,e)obj.onMenuNotifyWithSession("Save_Request"),  "S", "on");
-            obj.SaveAsMenu                      = obj.createMenuItem(obj.FileMenu, "Save As...",  @(h,e)obj.onMenuNotifyWithSession("SaveAs_Request"));
-            obj.ExitCtrlQMenu                   = obj.createMenuItem(obj.FileMenu, "Exit",        @(h,e)obj.onMenuNotify("Exit_Request"), "Q", "on");
+            obj.FileMenu        = obj.createMenuItem(obj.UIFigure, "File");
+            obj.NewCtrlNMenu    = obj.createMenuItem(obj.FileMenu, "New...",      @(h,e)obj.onMenuNotify("New_Request"),  "N");
+            obj.OpenCtrl0Menu   = obj.createMenuItem(obj.FileMenu, "Open...",     @(h,e)obj.onMenuNotify("Open_Request"), "O");
+            obj.OpenRecentMenu  = obj.createMenuItem(obj.FileMenu, "Open Recent");%, @(h,e)obj.onMenuNotifyWithFile('OpenFile_Request', e));
+            obj.CloseMenu       = obj.createMenuItem(obj.FileMenu, "Close",       @(h,e)obj.onMenuNotifyWithSession("Close_Request"), "W", "on");
+            obj.SaveCtrlSMenu   = obj.createMenuItem(obj.FileMenu, "Save",        @(h,e)obj.onMenuNotifyWithSession("Save_Request"),  "S", "on");
+            obj.SaveAsMenu      = obj.createMenuItem(obj.FileMenu, "Save As...",  @(h,e)obj.onMenuNotifyWithSession("SaveAs_Request"));
+            obj.ExitCtrlQMenu   = obj.createMenuItem(obj.FileMenu, "Exit",        @(h,e)obj.onMenuNotify("Exit_Request"), "Q", "on");
 
-            obj.QSPMenu                         = obj.createMenuItem(obj.UIFigure, "QSP");
-            obj.AddNewItemMenu                  = obj.createMenuItem(obj.QSPMenu,  "Add New Item");
+            obj.QSPMenu         = obj.createMenuItem(obj.UIFigure, "QSP");
+            obj.AddNewItemMenu  = obj.createMenuItem(obj.QSPMenu,  "Add New Item");
             
             % Create menus for all the QSP Item types.
             shortCuts = ["T", "P", "D", "A", "E", "V", "I", "F", "C", "G", "Z"]; % maybe useful but here now for debugging.
@@ -626,20 +626,20 @@ classdef MainView < handle
                 obj.createMenuItem(obj.AddNewItemMenu, itemTypes{i,1}, @(h,e)obj.onMenuNotifyAdd(type), shortCuts(i));
             end
 
-            obj.DeleteSelectedItemMenu          = obj.createMenuItem(obj.QSPMenu, "Delete Selected Item",  @(h,e)obj.onSelectedItemsAction("Delete_Request"));
-            obj.RestoreSelectedItemMenu         = obj.createMenuItem(obj.QSPMenu, "Restore Selected Item", @(h,e)obj.onSelectedItemsAction("Restore_Request"));
+            obj.DeleteSelectedItemMenu  = obj.createMenuItem(obj.QSPMenu, "Delete Selected Item",  @(h,e)obj.onSelectedItemsAction("Delete_Request"));
+            obj.RestoreSelectedItemMenu = obj.createMenuItem(obj.QSPMenu, "Restore Selected Item", @(h,e)obj.onSelectedItemsAction("Restore_Request"));
             
             % Start with these disabled. Their state depends on treeNode selection.
             obj.DeleteSelectedItemMenu.Enable  = false;
             obj.RestoreSelectedItemMenu.Enable = false;
             
-            obj.ToolsMenu                       = obj.createMenuItem(obj.UIFigure, "Tools");
-            obj.ModelManagerMenu                = obj.createMenuItem(obj.ToolsMenu, "Model Manager",  @(h,e)obj.onMenuNotifyWithSession("OpenModelManager"));
-            obj.PluginsMenu                     = obj.createMenuItem(obj.ToolsMenu, "Plugin Manager", @(h,e)obj.onMenuNotify("OpenPluginManager"));
-            obj.LoggerMenu                      = obj.createMenuItem(obj.ToolsMenu, "Logger",         @(h,e)obj.onMenuNotify("OpenLogger"));
+            obj.ToolsMenu        = obj.createMenuItem(obj.UIFigure, "Tools");
+            obj.ModelManagerMenu = obj.createMenuItem(obj.ToolsMenu, "Model Manager",  @(h,e)obj.onMenuNotifyWithSession("OpenModelManager"));
+            obj.PluginsMenu      = obj.createMenuItem(obj.ToolsMenu, "Plugin Manager", @(h,e)obj.onMenuNotify("OpenPluginManager"));
+            obj.LoggerMenu       = obj.createMenuItem(obj.ToolsMenu, "Logger",         @(h,e)obj.onMenuNotify("OpenLogger"));
 
-            obj.HelpMenu                        = obj.createMenuItem(obj.UIFigure, "Help");
-            obj.AboutMenu                       = obj.createMenuItem(obj.HelpMenu, "About", @(h,e)obj.onAbout);
+            obj.HelpMenu         = obj.createMenuItem(obj.UIFigure, "Help");
+            obj.AboutMenu        = obj.createMenuItem(obj.HelpMenu, "About", @(h,e)obj.onAbout);
         end
 
         function menuObj = createMenuItem(~, parent, text, menuSelectedFcn, accelerator, separator)
