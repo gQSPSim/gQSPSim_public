@@ -8,7 +8,16 @@ pwd
 
 DefinePaths(true);
 
-suite = testsuite('tests', 'Tag', 'RequiresUserInterface');
+% Some testing infrasctructure is not available on all version of MATLAB we are testing.
+v = string(version);
+RVersion = v.extractBetween("(", ")");
+
+testTags = {'RequiresUserInterface'};
+if verLessThan('matlab', '7.0.1')
+    testTags{end+1} = 'RequiresModernTestInfrastructure';
+end
+
+suite = testsuite('tests', 'Tag', testTags);
 
 [~, ~] = mkdir('artifacts');
 
