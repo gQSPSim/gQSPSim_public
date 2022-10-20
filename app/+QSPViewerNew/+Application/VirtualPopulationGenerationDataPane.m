@@ -44,8 +44,8 @@ classdef VirtualPopulationGenerationDataPane < QSPViewerNew.Application.ViewPane
                 pvargs.HasVisualization (1,1) logical = false
             end
     
-            % TODOpax. This does not work. args = namedargs2cell(pvargs);
-            obj = obj@QSPViewerNew.Application.ViewPane(Parent=pvargs.Parent, HasVisualization=pvargs.HasVisualization, ParentApp=pvargs.parentApp);
+            args = namedargs2cell(pvargs);
+            obj = obj@QSPViewerNew.Application.ViewPane(args{:});
             obj.create();
             obj.createListenersAndCallbacks();        
         end

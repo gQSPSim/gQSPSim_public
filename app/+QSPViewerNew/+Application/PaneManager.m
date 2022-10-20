@@ -72,15 +72,21 @@ classdef PaneManager < handle
                 if isempty(pane)
                     obj.paneContainer.(type) = obj.constructPane(type);
                     pane = obj.paneContainer.(type);
-                    addlistener(pane, 'StateChange', @(h,e)obj.onUpdateTree(e));
+                    % Some panes don't have a StateChange event therefore
+                    % conditionally add a listener.
+                    if any(string(events(pane)) == "StateChange")
+                        addlistener(pane, 'StateChange', @(h,e)obj.onUpdateTree(e));
+                    end
                 end
 
+                % This should be a call to a method named update.
+                % No need for special names for such a class method.
                 pane.("attachNew" + type)(nodeData);
 
                 % Configure the Toolbar according to the pane prefs.
                 obj.paneToolbar.mode = pane.toolbarMode;
 
-                % todopax, we can optimize this if we can get a type
+                % This can be optimized if we can get a type
                 % off the activePane, that is not available right now.
 
                 if ~isempty(obj.activePane)

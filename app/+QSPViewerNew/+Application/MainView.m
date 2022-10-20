@@ -601,7 +601,7 @@ classdef MainView < handle
         end
 
         function constructMenuItems(obj, itemTypes)
-            % CONSTRUCTMENUITEMS  Construct the menu items in the toolbar.
+            % Construct the menu items in the toolbar.
             arguments
                 obj
                 itemTypes cell
