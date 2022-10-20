@@ -48,6 +48,13 @@ classdef tUI < matlab.uitest.TestCase
             testCase.verifyEqual(testCase.ctrl.Sessions.UseParallel, true);
         end
 
+        function deletedItemsContextMenus(testCase)
+            disp('todo');
+        end
+
+    end
+
+    methods(Test, TestTags = ["RequiresUserInterface", "RequiresModernTestInfrastructure"])
         function instanceContextMenusFunctionalities(testCase, functionalities)
 
             functionality = findobj(testCase.ctrl.OuterShell.TreeCtrl, 'Tag', functionalities);
@@ -69,10 +76,5 @@ classdef tUI < matlab.uitest.TestCase
             
             testCase.verifyTrue(itemNames(1)+"_1" == itemNames(end));            
         end
-
-        function deletedItemsContextMenus(testCase)
-            disp('todo');
-        end
-
     end
 end
