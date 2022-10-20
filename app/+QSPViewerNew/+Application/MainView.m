@@ -247,7 +247,7 @@ classdef MainView < handle
             pRight.BorderType = 'line';
 
             obj.paneGridLayout = uigridlayout(pRight);
-            obj.paneGridLayout.RowHeight = {30, '1x'}; % todopax where does this 30 come from?
+            obj.paneGridLayout.RowHeight = {30, '1x'}; 
             obj.paneGridLayout.ColumnWidth = {'1x'};
 
             % Construct the paneToolbar.

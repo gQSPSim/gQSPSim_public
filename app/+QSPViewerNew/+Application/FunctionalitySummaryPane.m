@@ -33,7 +33,7 @@ classdef FunctionalitySummaryPane < matlab.mixin.Heterogeneous & handle
         function obj = FunctionalitySummaryPane(pvargs)
             arguments
                 pvargs.Parent (1,1) matlab.ui.container.GridLayout
-                pvargs.layoutrow (1,1) double = 2 %todopax come review this setup.
+                pvargs.layoutrow (1,1) double = 2 
                 pvargs.layoutcolumn (1,1) double = 1
                 pvargs.parentApp
                 pvargs.HasVisualization(1,1) logical = false

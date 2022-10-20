@@ -30,7 +30,7 @@ classdef PaneManager < handle
             % Note that since these types are purely in the UI they do not
             % appear in the itemTypes and should not.
             obj.paneContainer.FunctionalitySummary = [];
-            obj.paneContainer.Session              = []; %todopax: should be called SessionSummary
+            obj.paneContainer.Session              = [];
 
             obj.parent    = parent;
             obj.parentApp = parentApp;
