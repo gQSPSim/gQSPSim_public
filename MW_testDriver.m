@@ -13,7 +13,7 @@ v = string(version);
 RVersion = v.extractBetween("(", ")");
 
 testTags = {'RequiresUserInterface'};
-if verLessThan('matlab', '7.0.1')
+if ~verLessThan('matlab', '9.10.0')
     testTags{end+1} = 'RequiresModernTestInfrastructure';
 end
 
