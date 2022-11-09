@@ -115,6 +115,7 @@ classdef MainView < handle
             addlistener(app, 'Model_ItemDeleted',   @(h,e)obj.onItemDeleted(e));
             addlistener(app, 'Model_ItemRestored',  @(h,e)obj.onItemRestored(e));
             addlistener(app, 'Model_DeletedItemsDeleted', @(h,e)obj.onDeletedItemsDeleted(e));
+            
             addlistener(app, 'DirtySessions',       @(h,e)obj.onDirtySessions(e));
             addlistener(app, 'CleanSessions',       @(h,e)obj.onCleanSessions(e));            
             
@@ -519,8 +520,9 @@ classdef MainView < handle
             treeNodeToDelete.Parent = deletedItems;
             treeNodeToDelete.Tag = "deleted_instance";
 
-            % Change the context menu items on the deleted node. Remember
+            % Change the context menu items on the deleted node. Remember            
             % to set back upon restore.
+            treeNodeToDelete.ContextMenu = obj.contextMenuStore.Deleted;
 
             deletedItems.expand();
         end
@@ -548,7 +550,7 @@ classdef MainView < handle
     
             deletedItemsNode = findobj(sessionNode, 'Tag', 'DeletedItems');
 
-            % Cannot use vectore compare since eq is not sealed and
+            % Cannot use vector compare since eq is not sealed and
             % deletedItemsNode.Children is a heterogeneous array.
             itemToRestoreIndex = 0;
             for i = 1:numel(deletedItemsNode.Children)
@@ -558,7 +560,10 @@ classdef MainView < handle
                 end
             end
 
-            deletedItemsNode.Children(itemToRestoreIndex).Parent = newParentNode;            
+            nodeToRestore = deletedItemsNode.Children(itemToRestoreIndex);
+
+            nodeToRestore.Parent = newParentNode;
+            nodeToRestore.ContextMenu = obj.contextMenuStore.instance;
             
             newParentNode.expand();
         end
