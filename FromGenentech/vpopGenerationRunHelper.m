@@ -145,9 +145,17 @@ for ii = 1:nItems
         end
                 
         thisData = zeros(length(unqTime), length(obj.SpeciesData)); % temporary object for transforming data for relevant species
+        
+        % get full data names
+        if length(taskObj.ModelObj.mObj.Compartments) > 1
+            fullnames = cellfun(@(x) sprintf('%s.%s', x.Compartment, x.Name), simData.DataInfo, 'UniformOutput', false);
+        else
+            fullnames = simData.DataNames;
+        end
+        
         for idxSpecies = 1:length(obj.SpeciesData)
             thisData(:,idxSpecies) = obj.SpeciesData(idxSpecies).evaluate(...
-                simData.Data(:,strcmp(simData.DataNames,obj.SpeciesData(idxSpecies).SpeciesName)));
+                simData.Data(:,strcmp(fullnames,obj.SpeciesData(idxSpecies).SpeciesName)));                       
         end 
         vpatData{ii}(:,:,vpatIdx) = thisData;
     end

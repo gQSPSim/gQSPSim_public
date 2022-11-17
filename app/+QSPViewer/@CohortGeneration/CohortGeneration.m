@@ -204,9 +204,10 @@ classdef CohortGeneration < uix.abstract.CardViewPane
         end %function
         
         function onSaveInvalidPopup(vObj,h,e)
-            values = {'Save all virtual subjects', 'Save valid virtual subjects'};
+            values = get(h,'String');
             vObj.TempData.SaveInvalid = values{get(h,'Value')};
             % Update the view
+            updateSaveInvalid(vObj);
             updateDataset(vObj);
             refreshItemsTable(vObj);
         end

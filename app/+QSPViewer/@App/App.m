@@ -386,7 +386,7 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
         function onHelpAbout(obj,h,e)
            msgbox({['gQSPsim version ', obj.Version], ...
                '', ...
-               'http://www.github.com/feigelman/gQSPsim', ...
+               'http://www.github.com/gQSPSim/gQSPsim-release', ...
                '', ...
                'Authors:', ...
                '', ...
@@ -1034,10 +1034,15 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
     
     methods (Static)
         function checkForUpdates()
+            % Preserving this functionality now, but updates for users will move to 
+            % file exchange notifications rather than this method. This because we are making the 
+            % app distribution mechanism MLTBX based rather than GitHub based. 
+
+            gitHubRepoName = 'gQSPSim/gQSPsim-release';
 
             w = weboptions('CertificateFile','');
             try
-                webData = webread('https://api.github.com/repos/feigelman/gQSPsim-release/tags', w); % TODO: correct repo!
+                webData = webread(['https://api.github.com/repos/',gitHubRepoName,'/tags'], w); 
             catch err
                 warning('Check for updates failed.\n%s', err.message)
                 return
@@ -1045,13 +1050,15 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
             
                     
             if ~isempty(webData) && isstruct(webData) && isfield(webData,'name')
+                repoURL = ['https://www.github.com/',gitHubRepoName];
+
                 webVersion = webData(1).name;
                 if ~strcmp(webVersion, QSPViewer.App.Version)            
-                    doUpdate = questdlg('A newer version of gQSPsim is available. Please visit the gQSPsim repository http://www.github.com/feigelman/gQSPsim-release/ for the latest version.', ...                
+                    doUpdate = questdlg(['A newer version of gQSPsim is available. Please visit the gQSPsim repository ', repoURL, ' for the latest version.'], ...             
                         'Newer version available', ...
                         'Get latest version', 'Cancel', 'Get latest version');
                     if strcmp(doUpdate,  'Get latest version')
-                        web('https://www.github.com/feigelman/gQSPsim-release','-browser');
+                        web(repoURL,'-browser');
                     end
                 end
             end
