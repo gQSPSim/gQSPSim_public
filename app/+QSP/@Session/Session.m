@@ -612,6 +612,50 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
             end
         end %function
         
+        function validateRulesAndReactions(obj)
+            % loop over tasks
+            for index = 1:length(obj.Settings.Task)
+                % check if rules/reactions need to be converted to the new format
+                if ~isempty(obj.Settings.Task(index).InactiveReactionNames) 
+                    for ixReact = 1:length( obj.Settings.Task(index).InactiveReactionNames)
+                        match = regexp( obj.Settings.Task(index).InactiveReactionNames(ixReact), '.*: .*');                        
+%                         if ~contains( obj.Settings.Task(index).InactiveReactionNames(ixReact), '.*: .*') 
+                        if ~isempty(match{1})
+                            
+                            MatchIdx = strcmp(obj.Settings.Task(index).ModelObj.ReactionNames, obj.Settings.Task(index).InactiveReactionNames(ixReact));
+                            if nnz(MatchIdx) > 1
+                                warning('Multiple reactions with same equation. Please update tasks before running')
+                                continue
+                            elseif ~any(MatchIdx)
+                                warning('Invalid reactions detected:\n%s', obj.Settings.Task(index).InactiveReactionNames{ixReact})
+                                continue
+                            end
+                            obj.Settings.Task(index).InactiveReactionNames(ixReact) = obj.Settings.Task(index).ReactionNames(MatchIdx);
+                        end
+                    end
+                end       
+                
+                if ~isempty(obj.Settings.Task(index).InactiveRuleNames) 
+                    for ixRule = 1:length( obj.Settings.Task(index).InactiveRuleNames)
+                        match = regexp( obj.Settings.Task(index).InactiveRuleNames(ixRule), '.*: .*');
+                        if ~isempty( match{1} ) % ~contains( obj.Settings.Task(index).InactiveRuleNames(ixRule), '.*: .*') 
+
+                            MatchIdx = strcmp(obj.Settings.Task(index).ModelObj.RuleNames, obj.Settings.Task(index).InactiveRuleNames(ixRule));
+                            if nnz(MatchIdx) > 1
+                                warning('Multiple rules with same equation. Please update tasks before running')
+                                continue
+                            elseif ~any(MatchIdx)
+                                warning('Invalid rules detected:\n%s', obj.Settings.Task(index).InactiveRuleNames{ixRule})
+                                continue
+                            end                            
+                            obj.Settings.Task(index).InactiveRuleNames(ixRule) = obj.Settings.Task(index).RuleNames(MatchIdx);
+                        end
+                    end
+                end             
+                
+            end
+        end
+
         function addExperimentToDB(obj, type, Name, time, ResultFileNames)
             rootDir = regexprep(obj.RootDirectory, '\\$', '');
             
