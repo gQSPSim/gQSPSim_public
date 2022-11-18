@@ -157,6 +157,9 @@ end
 % Add paths
 javaaddpath(Paths);
 
+% register units used by casestudies
+registerUnits;
+
 if EchoOutput
     disp('---------------------------------------------------');
 end
