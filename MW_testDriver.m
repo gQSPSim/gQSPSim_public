@@ -3,18 +3,17 @@ import matlab.unittest.Verbosity
 import matlab.unittest.plugins.CodeCoveragePlugin
 import matlab.unittest.plugins.codecoverage.CoberturaFormat
 import matlab.unittest.plugins.XMLPlugin
-
-pwd
+import matlab.unittest.selectors.HasTag
 
 DefinePaths(true);
 
-% Some testing infrasctructure is not available on all version of MATLAB we are testing.
-testTags = {'RequiresUserInterface'};
-if ~verLessThan('matlab', '9.10.0')
-    testTags{end+1} = 'RequiresModernTestInfrastructure';
-end
+suite = testsuite('tests');
 
-suite = testsuite('tests', 'Tag', testTags);
+if ~verLessThan('matlab', '9.10.0')
+    suite = suite.selectIf(HasTag("RequiresUserInterface") & HasTag("RequiresModernTestInfrastructure"));
+else
+    suite = suite.selectIf(HasTag("RequiresUserInterface") & ~HasTag("RequiresModernTestInfrastructure"));
+end
 
 [~, ~] = mkdir('artifacts');
 
