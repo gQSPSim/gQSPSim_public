@@ -8,12 +8,18 @@ import matlab.unittest.selectors.HasTag
 DefinePaths(true);
 
 suite = testsuite('tests');
+selector = HasTag("RequiresUserInterface");
 
 if ~verLessThan('matlab', '9.10.0')
-    suite = suite.selectIf(HasTag("RequiresUserInterface") & HasTag("RequiresModernTestInfrastructure"));
+    selector = selector & HasTag("RequiresModernTestInfrastructure");    
 else
-    suite = suite.selectIf(HasTag("RequiresUserInterface") & ~HasTag("RequiresModernTestInfrastructure"));
+    selector = selector & ~HasTag("RequiresModernTestInfrastructure");    
 end
+
+% For now run the CLI tests at MW for debugging, remove when done.
+selector = selector | HasTag("NoUI");
+
+suite = suite.selectIf(selector);
 
 [~, ~] = mkdir('artifacts');
 
