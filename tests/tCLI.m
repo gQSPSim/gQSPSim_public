@@ -8,7 +8,7 @@ classdef tCLI < matlab.unittest.TestCase
         function setup(testCase)
             testCase.testRootDirectory = fileparts(mfilename('fullpath'));
             addpath(genpath('..'));
-            DefinePaths;
+            DefinePaths(false);
         end
     end
 
@@ -22,14 +22,14 @@ classdef tCLI < matlab.unittest.TestCase
             % stored RootDirectory is incorrect in most cases as it was
             % written in the project by the last person to set it and its a
             % hardcoded absolute path.
-            session.RootDirectory = testCase.testRootDirectory + join([filesep, "baselines", "CaseStudy_TMDD_complete"], filesep);
+            session.RootDirectory = testCase.testRootDirectory + filesep + join(["baselines", "CaseStudy_TMDD_complete"], filesep);
 
             session.Simulation(1).run();
         end
 
         function createSession(testCase)
 
-            tmddCaseStudy = testCase.testRootDirectory + join(["Sessions", "CaseStudy_TMDD", "CaseStudy_TMDD_blank"], filesep);
+            tmddCaseStudy = testCase.testRootDirectory + filesep + join(["Sessions", "CaseStudy_TMDD", "CaseStudy_TMDD_blank"], filesep);
 
             session = QSP.Session();
             session.RootDirectory = tmddCaseStudy;
@@ -51,9 +51,7 @@ classdef tCLI < matlab.unittest.TestCase
             Session.Name = 'CaseStudy1_TMDD';
             Session.RootDirectory = tmddCaseStudy;
             Session.AutoSaveBeforeRun = true;
-            Session.ShowProgressBars = false;
-
-            fprintf("*****n********\nPath = %s\n***************\", Session.RootDirectory);
+            Session.ShowProgressBars = false;            
 
             %% Create and configure Session dependencies
             % Create tasks
