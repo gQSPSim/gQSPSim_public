@@ -53,6 +53,8 @@ classdef tCLI < matlab.unittest.TestCase
             Session.AutoSaveBeforeRun = true;
             Session.ShowProgressBars = false;
 
+            fprintf("*****n********\nPath = %s\n***************\", Session.RootDirectory);
+
             %% Create and configure Session dependencies
             % Create tasks
 
