@@ -414,36 +414,44 @@ classdef SimulationPane < QSPViewerNew.Application.ViewPane
         end
 
         function onTableSelectionChange(obj,eventData)
-            Indices = eventData.Indices;
-            obj.SelectedRow = Indices(1);
+            % It would be preferable to not send an event if no row
+            % is selected, however, the selectionChange callback for a table
+            % fires even when there are no rows. Therefore the only code that
+            % can handle this is the target callback. 
+            if ~isempty(eventData.Indices)
+                
+                Indices = eventData.Indices;
 
-            RowIdx = Indices(1,1);
-            ColIdx = Indices(1,2);
+                obj.SelectedRow = Indices(1);
 
-            % if a task cell is selected
-            if size(Indices,1)==1
-                if ColIdx==1 % if task cell is selected
-                    selectedTaskNode = obj.getSelectionNode("Task");
-                    if ~(isempty(selectedTaskNode) || strcmp(selectedTaskNode, ""))
-                        if ~isequal(obj.TemporarySimulation.Item(RowIdx).TaskName,selectedTaskNode)
-                            obj.TemporarySimulation.Item(RowIdx).MATFileName = '';
+                RowIdx = Indices(1,1);
+                ColIdx = Indices(1,2);
+
+                % if a task cell is selected
+                if size(Indices,1)==1
+                    if ColIdx==1 % if task cell is selected
+                        selectedTaskNode = obj.getSelectionNode("Task");
+                        if ~(isempty(selectedTaskNode) || strcmp(selectedTaskNode, ""))
+                            if ~isequal(obj.TemporarySimulation.Item(RowIdx).TaskName,selectedTaskNode)
+                                obj.TemporarySimulation.Item(RowIdx).MATFileName = '';
+                            end
+                            obj.TemporarySimulation.Item(RowIdx).TaskName = char(selectedTaskNode);
+                            obj.updateSimulationTable();
                         end
-                        obj.TemporarySimulation.Item(RowIdx).TaskName = char(selectedTaskNode);
-                        obj.updateSimulationTable();
-                    end
-                elseif ColIdx==2 % if virtual subject cell is selected
-                    selectedVpopNode = obj.getSelectionNode("VirtualPopulation");
-                    if ~(isempty(selectedVpopNode) || strcmp(selectedVpopNode, ""))
-                        if ~isequal(obj.TemporarySimulation.Item(RowIdx).VPopName,selectedVpopNode)
-                            obj.TemporarySimulation.Item(RowIdx).MATFileName = '';
+                    elseif ColIdx==2 % if virtual subject cell is selected
+                        selectedVpopNode = obj.getSelectionNode("VirtualPopulation");
+                        if ~(isempty(selectedVpopNode) || strcmp(selectedVpopNode, ""))
+                            if ~isequal(obj.TemporarySimulation.Item(RowIdx).VPopName,selectedVpopNode)
+                                obj.TemporarySimulation.Item(RowIdx).MATFileName = '';
+                            end
+                            obj.TemporarySimulation.Item(RowIdx).VPopName = char(selectedVpopNode);
+                            obj.updateSimulationTable();
                         end
-                        obj.TemporarySimulation.Item(RowIdx).VPopName = char(selectedVpopNode);
-                        obj.updateSimulationTable();
                     end
                 end
-            end
 
-            obj.IsDirty = true;
+                obj.IsDirty = true;
+            end
         end
 
         function onTableSelectionEdit(obj,eventData)
