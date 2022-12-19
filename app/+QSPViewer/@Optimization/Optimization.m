@@ -5,15 +5,6 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
     %
 
     
-    %   Copyright 2019 The MathWorks, Inc.
-    %
-    % Auth/Revision:
-    %   MathWorks Consulting
-    %   $Author: agajjala $
-    %   $Revision: 331 $
-    %   $Date: 2016-10-05 18:01:36 -0400 (Wed, 05 Oct 2016) $
-    % ---------------------------------------------------------------------
-  
     %% Private properties
     properties (Access=private)
         
@@ -117,8 +108,9 @@ classdef Optimization < uix.abstract.CardViewPane & uix.mixin.AxesMouseHandler
                     UniqueSourceData{index} = SourceData(order,:);
                 else
                     UniqueSourceData{index} = cell(0,2);
-                    hDlg = errordlg(Message,'Parameter Import Failed','modal');
-                    uiwait(hDlg);
+                    warning('Parameter Import Failed for %s', UniqueSourceNames{index})
+%                     hDlg = errordlg(Message,'Parameter Import Failed','modal');
+%                     uiwait(hDlg);
                 end
             end
             

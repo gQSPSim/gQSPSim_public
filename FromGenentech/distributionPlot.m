@@ -910,13 +910,13 @@ switch opt.xyOri
                 % reset to auto
                 set(ah,'XTickMode','auto')
         end
-        xr = get(ah,'xruler');
+        xr = get(ah,'XAxis');
         xr.TickLabelRotation = 90;
         if ~isempty(opt.yLabel)
             ylabel(ah,opt.yLabel);
         end
         % have plot start/end properly
-        xlim([minX,maxX])
+        xlim(ah,[minX,maxX])
     case 'flipped'
         switch opt.xMode
             case 'manual'
@@ -936,7 +936,7 @@ switch opt.xyOri
             xlabel(ah,opt.yLabel);
         end
         % have plot start/end properly
-        ylim([minX,maxX])
+        ylim(ah,[minX,maxX])
 end
 
 

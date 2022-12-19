@@ -18,13 +18,6 @@ function refresh(vObj)
 % Notes: none
 %
 
-% Copyright 2019 The MathWorks, Inc.
-%
-% Auth/Revision:
-%   MathWorks Consulting
-%   $Author: agajjala $
-%   $Revision: 241 $  $Date: 2016-08-17 12:48:39 -0400 (Wed, 17 Aug 2016) $
-% ---------------------------------------------------------------------
 
 
 %% Invoke superclass's refresh

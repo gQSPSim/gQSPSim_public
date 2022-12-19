@@ -26,13 +26,6 @@ function [hLegend,hLegendChildren] = updatePlots(obj,hAxes,hSpeciesGroup,hDatase
 % Notes: none
 %
 
-% Copyright 2019 The MathWorks, Inc.
-%
-% Auth/Revision:
-%   MathWorks Consulting
-%   $Author: agajjala $
-%   $Revision: 331 $  $Date: 2016-10-05 18:01:36 -0400 (Wed, 05 Oct 2016) $
-% ---------------------------------------------------------------------
 
 NumAxes = numel(hAxes);
 hLegend = cell(1,NumAxes);
@@ -254,6 +247,6 @@ for axIndex = AxIndices(:)'
             LegendItems = [];
         end
         
-        [hLegend{axIndex},hLegendChildren{axIndex}] = uix.abstract.CardViewPane.redrawLegend(hAxes(axIndex),LegendItems,obj.PlotSettings(axIndex));
+        [hLegend{axIndex},hLegendChildren{axIndex}] = QSPViewerNew.Application.ViewPane.redrawLegend(hAxes(axIndex),LegendItems,obj.PlotSettings(axIndex));
     end %if RedrawLegend
 end %for axIndex

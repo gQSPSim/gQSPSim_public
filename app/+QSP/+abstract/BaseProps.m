@@ -5,6 +5,7 @@ classdef (Abstract) BaseProps < matlab.mixin.SetGet & matlab.mixin.Heterogeneous
     % It provides the following properties for its descendents:
     %     * Name
     %     * RelativeFilePath
+    %     * FilePath
     %     * Description
     %     * LastUpdate
     %
@@ -15,7 +16,10 @@ classdef (Abstract) BaseProps < matlab.mixin.SetGet & matlab.mixin.Heterogeneous
     %
     %     Name - Name of the object
     %
-    %     RelativeFilePath - Path to the corresponding file
+    %     RelativeFilePath - Relative (to the Session's root directory) 
+    %                        path to the corresponding file
+    %
+    %     FilePath - Absolute path to the corresponding file
     %
     %     Description - Description of the usage
     %
@@ -27,15 +31,6 @@ classdef (Abstract) BaseProps < matlab.mixin.SetGet & matlab.mixin.Heterogeneous
     %   getSummary, validate
     %
     
-    %   Copyright 2008-2019 The MathWorks, Inc.
-    %
-    % Auth/Revision:
-    %   MathWorks Consulting
-    %   $Author: agajjala $
-    %   $Revision: 331 $
-    %   $Date: 2016-10-05 18:01:36 -0400 (Wed, 05 Oct 2016) $
-    % ---------------------------------------------------------------------
-    
     
     %% Properties
     properties
@@ -43,7 +38,7 @@ classdef (Abstract) BaseProps < matlab.mixin.SetGet & matlab.mixin.Heterogeneous
 %         Name = ''    % Name
         RelativeFilePathParts = {''}
 %         Description = '' % Description
-        RelativeFilePath = ''
+        
         
         bShowTraces = []
         bShowQuantiles = []
@@ -58,7 +53,7 @@ classdef (Abstract) BaseProps < matlab.mixin.SetGet & matlab.mixin.Heterogeneous
     end
     properties (Dependent=true)
         FilePath
-        RelativeFilePath_new
+        RelativeFilePath
 %         LastSavedTimeStr        
     end
     
@@ -77,6 +72,9 @@ classdef (Abstract) BaseProps < matlab.mixin.SetGet & matlab.mixin.Heterogeneous
             
         end % constructor       
         
+        function Log(obj, msg)
+            obj.Session.Log(msg);
+        end        
         
                 
     end % Public methods
@@ -317,13 +315,23 @@ classdef (Abstract) BaseProps < matlab.mixin.SetGet & matlab.mixin.Heterogeneous
 %             obj.Name = value;
 %         end
         
-        function set.RelativeFilePath_new(obj,value)
+        function set.RelativeFilePath(obj,value)
             validateattributes(value,{'char'},{})
+            value = obj.updatePath(value);
             obj.RelativeFilePathParts = strsplit(value,filesep);
         end
         
-        function Value = get.RelativeFilePath_new(obj)
-            Value = strjoin(obj.RelativeFilePathParts,filesep);
+        function Value = get.RelativeFilePath(obj)
+            Value = fullfile(obj.RelativeFilePathParts{:});
+        end
+        
+        function value = get.FilePath(obj)
+            value = uix.utility.getAbsoluteFilePath(obj.RelativeFilePath, obj.SessionRoot);
+        end
+        
+        function set.FilePath(obj,value)
+            validateattributes(value,{'char'},{})
+            obj.RelativeFilePath = uix.utility.getRelativeFilePath(value, obj.SessionRoot, false);
         end
         
 %         function set.Description(obj,value)
@@ -359,19 +367,6 @@ classdef (Abstract) BaseProps < matlab.mixin.SetGet & matlab.mixin.Heterogeneous
             else
                 value = '';
             end
-        end
-        
-        function value = get.FilePath(obj)
-            value = fullfile(obj.SessionRoot, obj.RelativeFilePath_new);       
-            if isempty(value)
-                return
-            end
-            
-        end
-        
-        function set.FilePath(obj,value)
-            validateattributes(value,{'char'},{})
-            obj.RelativeFilePath_new = uix.utility.getRelativeFilePath(value, obj.SessionRoot, false);
         end
         
     end %methods

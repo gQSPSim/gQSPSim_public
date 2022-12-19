@@ -18,14 +18,6 @@ function create(vObj)
 % Notes: none
 %
 
-% Copyright 2019 The MathWorks, Inc.
-%
-% Auth/Revision:
-%   MathWorks Consulting
-%   $Author: agajjala $
-%   $Revision: 322 $  $Date: 2016-09-11 23:01:33 -0400 (Sun, 11 Sep 2016) $
-% ---------------------------------------------------------------------
-
 %% Parameters
 
 LabelWidth = 80;

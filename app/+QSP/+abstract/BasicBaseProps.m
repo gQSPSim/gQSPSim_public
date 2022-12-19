@@ -27,29 +27,26 @@ classdef (Abstract) BasicBaseProps < matlab.mixin.SetGet & uix.mixin.AssignPVPai
     %   getSummary, validate
     %
     
-    %   Copyright 2008-2019 The MathWorks, Inc.
-    %
-    % Auth/Revision:
-    %   MathWorks Consulting
-    %   $Author: agajjala $
-    %   $Revision: 331 $
-    %   $Date: 2016-10-05 18:01:36 -0400 (Wed, 05 Oct 2016) $
-    % ---------------------------------------------------------------------
-    
+       
     
     %% Properties
     properties
-        Name = ''    % Name
+        Version     = [] % Version (default initialize with [] 
+                         % for backward compatibility; set version
+                         % in class constructor)
+        Name        = '' % Name
         Description = '' % Description
     end
     
     %% Dependent properties
     properties (Dependent=true)
         LastSavedTimeStr
+        TimeOfCreationStr
     end
     
     %% Protected Properties
     properties (SetAccess=protected)
+        TimeOfCreation = []
         LastSavedTime = [] % Time at which the view was last saved        
         LastValidatedTime = ''
     end
@@ -60,6 +57,8 @@ classdef (Abstract) BasicBaseProps < matlab.mixin.SetGet & uix.mixin.AssignPVPai
             
             % Assign PV pairs to properties
             obj.assignPVPairs(varargin{:});
+            
+            obj.Version = 2.0;
             
         end % constructor       
                 
@@ -147,9 +146,33 @@ classdef (Abstract) BasicBaseProps < matlab.mixin.SetGet & uix.mixin.AssignPVPai
         end
         
         function value = get.LastSavedTimeStr(obj)
-            value = datestr(obj.LastSavedTime);
+            if isempty(obj.LastSavedTime)
+                value='';
+            else
+                value = datestr(obj.LastSavedTime);
+            end
         end        
         
+        function value = get.TimeOfCreationStr(obj)
+            if isempty(obj.TimeOfCreation)
+                value='';
+            else
+                value = datestr(obj.TimeOfCreation);
+            end
+        end 
+    end
+    
+    methods (Access = protected)
+        function value = updatePath(obj, value)
+            if isempty(obj.Version)
+                % project was saved prior to gQSPSim 2.0
+                if ispc
+                    value = strrep(value, '/', '\');
+                else
+                    value = strrep(value, '\', '/');
+                end
+            end
+        end
     end
     
 end % classdef

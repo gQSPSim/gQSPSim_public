@@ -4,13 +4,6 @@ function createNewSession(obj,Session)
 % Abstract: This method is executed when the user creates a new session
 %
 
-% Copyright 2019 The MathWorks, Inc.
-%
-% Auth/Revision:
-%   MathWorks Consulting
-%   $Author: rjackey $
-%   $Revision: 226 $  $Date: 2016-08-02 16:46:16 -0400 (Tue, 02 Aug 2016) $
-% ---------------------------------------------------------------------
 
 % Was a session provided? If not, make a new one
 if nargin<2

@@ -30,69 +30,40 @@ function RelPath = getRelativeFilePath(FullPath, RootPath, FlagRequireSubdir)
 %   false, the path will contain parent directory separators "..\"
 %
 
-% Copyright 2016 The MathWorks, Inc.
+% Copyright 2020 The MathWorks, Inc.
 %
 % Auth/Revision:
-%   MathWorks Consulting
-%   $Author: rjackey $
-%   $Revision: 272 $  $Date: 2016-08-31 12:42:59 -0400 (Wed, 31 Aug 2016) $
+%   $Author: Florian Augustin $
+%   $Revision: 1 $  
+%   $Date: 2020-12-02$
 % ---------------------------------------------------------------------
 
-% Validate inputs
-if nargin<3
-    FlagRequireSubdir = true;
-end
-validateattributes(RootPath,{'char'},{})
-validateattributes(FullPath,{'char'},{})
-validateattributes(FlagRequireSubdir,{'logical'},{'scalar'})
+    % Validate inputs
+    if nargin<3
+        FlagRequireSubdir = true;
+    end
+    validateattributes(RootPath,{'char'},{})
+    validateattributes(FullPath,{'char'},{})
+    validateattributes(FlagRequireSubdir,{'logical'},{'scalar'})
 
-% Is RootPath empty?
-if isempty(FullPath)
-    
-    RelPath = RootPath;
-    
-elseif isempty(RootPath)
-    
-    RelPath = FullPath;
-    
-else
-    
-    % Remove trailing filesep
-    if strcmp(RootPath(end),filesep)
-        RootPath(end) = '';
+    % Helper function that takes an absolute path, absolutePath, as
+    % input and returns the corresponding path, relativePath, that
+    % is relative to the sessions root directory.
+    rootDirectoryParts = strsplit(RootPath, filesep);
+    absolutePathParts = strsplit(FullPath, filesep);
+    numPathParts = numel(absolutePathParts);
+    for i = 1:numPathParts
+        if isempty(rootDirectoryParts) || ~strcmp(absolutePathParts{1}, rootDirectoryParts{1})
+            break;
+        end
+        absolutePathParts(1)  = [];
+        rootDirectoryParts(1) = [];
     end
-    if strcmp(FullPath(end),filesep)
-        FullPath(end) = '';
+    relativePathParts = repmat({'..'}, 1, numel(rootDirectoryParts));
+    if isempty(relativePathParts)
+        relativePathParts = {'.'};
     end
-    
-    % Split the paths apart
-    RootParts = strsplit(RootPath,filesep);
-    FullParts = strsplit(FullPath,filesep);
-    
-    % Find where the paths diverge
-    idx = 1;
-    SmallestPath = min(numel(RootParts), numel(FullParts));
-    while idx<=SmallestPath && strcmpi(RootParts{idx}, FullParts{idx})
-        idx = idx+1;
-    end
-    
-    % Is the specified path outside of the root directory?
-    NumAbove = max(numel(RootParts) - idx + 1, 0);
-    if FlagRequireSubdir && NumAbove>0
-        error('The specified path:\n\t"%s"\nis not a subdirectory of the root path:\n\t"%s"',...
-            FullPath,RootPath);
-    else
-        % In case full path is above the RootPath, add ".." paths
-        ParentPaths = repmat(['..' filesep],1,NumAbove);
-        
-        % Form the relative path
-        RelPath = fullfile(ParentPaths, FullParts{idx:end});
-    end
-    
-    % What if paths are still the same?
-    if isempty(RelPath)
-        RelPath = ['.' filesep];
-    end
+    RelPath = strjoin([relativePathParts, absolutePathParts], filesep);
     
 end %if isempty(RootPath)
 

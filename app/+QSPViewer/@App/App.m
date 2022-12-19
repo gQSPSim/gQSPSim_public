@@ -141,20 +141,13 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
     % Examples:
     %  obj = QSPViewer.App()
     
-    %   Copyright 2019 The MathWorks, Inc.
-    %
-    % Auth/Revision:
-    %   MathWorks Consulting
-    %   $Author: agajjala $
-    %   $Revision: 299 $
-    %   $Date: 2016-09-06 17:18:29 -0400 (Tue, 06 Sep 2016) $
-    % ---------------------------------------------------------------------
     
     
     %% Properties
     
     properties (SetAccess=private)
-        Session = QSP.Session.empty(0,1) %Top level session sessions        
+        Session = QSP.Session.empty(0,1) %Top level session sessions   
+        Plugins = struct()
     end
     
     properties (SetAccess=private, Dependent=true)
@@ -169,6 +162,7 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
     
     properties(Constant)
         Version = 'v1.1'
+        PluginsDir = fullfile( fileparts(fileparts(fileparts(fileparts(mfilename('fullpath'))))), 'plugins');
     end
         
     %% Methods in separate files with custom permissions
@@ -207,6 +201,26 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
             % the superclass AppWithSessionFiles method to create one here:
             %obj.createUntitledSession();
             
+              % load the plugins
+            if exist(fullfile(obj.PluginsDir, 'manifest'), 'file')
+                addpath(obj.PluginsDir)
+                
+                try
+                    f = fopen(fullfile(obj.PluginsDir, 'manifest') );
+                    PluginData = textscan(f, '%s %s %s', 'Delimiter', ',');
+                    fclose(f);
+                    PluginData = horzcat(PluginData{:});
+                    
+                    obj.Plugins = cell2struct(PluginData, {'Target','Function','Label'}, 2);
+
+                catch err
+                    warning(err.identifier, 'Error encountered loading plugins file\n%s', err.message);
+                end
+                    
+            else
+                warning('Plugins manifest not detected')
+            end
+            
             % Create the graphics objects
             obj.create();
             
@@ -225,8 +239,8 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
             % check version
 %             QSPViewer.App.checkForUpdates() % TODO reenable when repo is
 %             public
-            
-            
+
+          
         end %function
         
     end %methods
@@ -519,6 +533,8 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
                 error('Invalid tree parent');
             end
             
+            ThisSession.Log(sprintf('added %s tree node item for %s', ItemType, NewName))
+            
             % Mark the current session dirty
             obj.markDirty();
             
@@ -607,6 +623,8 @@ classdef App < uix.abstract.AppWithSessionFiles & uix.mixin.ViewPaneManager
                 SelNode(nodeIdx).Tree.SelectedNodes = SelNode;
                 % Change context menu
                 SelNode(nodeIdx).UIContextMenu = obj.h.TreeMenu.Leaf.Deleted;
+                
+                ThisSession.Log(sprintf('Removed item %s', SelNode.Name))
             end
 %             
 %             % Update the tree

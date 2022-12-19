@@ -18,14 +18,6 @@ function [hSpeciesGroup,hDatasetGroup,hLegend,hLegendChildren] = plotOptimizatio
 % Notes: none
 %
 
-% Copyright 2019 The MathWorks, Inc.
-%
-% Auth/Revision:
-%   MathWorks Consulting
-%   $Author: agajjala $
-%   $Revision: 331 $  $Date: 2016-10-05 18:01:36 -0400 (Wed, 05 Oct 2016) $
-% ---------------------------------------------------------------------
-
 
 %% Turn on hold
 
@@ -49,8 +41,11 @@ for index = 1:numel(hAxes)
         set(hAxes(index),...
             'YLim',tmp);
     end
-    
-    hold(hAxes(index),'on')    
+    % This seems broken right now because the hold code assumes axes have a figure in their ancestry and in our
+    % case they don't. Need to fix this.
+    if ~isa(hAxes(index).Parent, 'matlab.graphics.shape.internal.AxesLayoutManager')
+        hold(hAxes(index),'on')
+    end
 end
 
 NumAxes = numel(hAxes);
@@ -207,8 +202,12 @@ end
 %% Plot Simulation Items
 
 Show = [obj.PlotProfile.Show];
-HighlightIdx = find(Show) == obj.SelectedProfileRow;
-HighlightIdx = find(HighlightIdx);
+if ~isempty(obj.SelectedProfileRow)
+    HighlightIdx = find(Show) == obj.SelectedProfileRow;
+    HighlightIdx = find(HighlightIdx);
+else
+    HighlightIdx = 0;
+end
 
 for sIdxIdx = 1:length(obj.SpeciesData) % 1:size(obj.PlotSpeciesTable,1)
     sIdx = find( strcmp(obj.SpeciesData(sIdxIdx).SpeciesName, obj.PlotSpeciesTable(:,3)) & ...
@@ -473,8 +472,11 @@ for index = 1:numel(hAxes)
         'FontWeight',obj.PlotSettings(index).YLabelFontWeight); % 'States');
     set(hAxes(index),'YScale',obj.PlotSettings(index).YScale);
     
-    hold(hAxes(index),'off')
-     % Reset zoom state
+    if ~isa(hAxes(index).Parent, 'matlab.graphics.shape.internal.AxesLayoutManager')
+        hold(hAxes(index),'off')
+    end
+
+    % Reset zoom state
     hFigure = ancestor(hAxes(index),'Figure');
     if ~isempty(hFigure) && strcmpi(obj.PlotSettings(index).XLimMode,'auto') && strcmpi(obj.PlotSettings(index).YLimMode,'auto')
         set(hFigure,'CurrentAxes',hAxes(index)) % This causes the legend fontsize to reset: axes(hAxes(index));

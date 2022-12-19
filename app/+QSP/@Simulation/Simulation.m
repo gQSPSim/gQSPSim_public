@@ -18,14 +18,6 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
     %
     %
     
-    % Copyright 2019 The MathWorks, Inc.
-    %
-    % Auth/Revision:
-    %   MathWorks Consulting
-    %   $Author: agajjala $
-    %   $Revision: 331 $  $Date: 2016-10-05 18:01:36 -0400 (Wed, 05 Oct 2016) $
-    % ---------------------------------------------------------------------
-    
     % Properties
     properties
         Settings = QSP.Settings.empty(0,1)
@@ -65,7 +57,7 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
     properties (Dependent=true)
         TaskVPopItems
     end
-    
+ 
     % Constructor
     methods
         function obj = Simulation(varargin)
@@ -111,6 +103,7 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 obj.PlotSettings(index).Title = sprintf('Plot %d', index);
             end
             
+            obj.TimeOfCreation = datetime('now', "Format", "dd-MMM-uuuu");
         end %function obj = Simulation(varargin)
         
     end %methods
@@ -164,6 +157,20 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 };
             
         end %function
+        
+        function Summary = getSummaryTableItems(obj)
+            % Populate summary
+            Summary = {...
+                'Name',obj.Name;
+                'Description',obj.Description;
+                'Results Path',obj.SimResultsFolderName_new;
+                'Dataset',obj.DatasetName;
+                'Virtual Population(s) used', join(unique(string(obj.TaskVPopItems(:,2))), ', ');
+                'Task(s) used', join(unique(string(obj.TaskVPopItems(:,1))), ', ');
+                'Time created', obj.TimeOfCreationStr;
+                'Last Saved',obj.LastSavedTimeStr;
+                };
+        end
         
         function [StatusOK, Message] = validate(obj,FlagRemoveInvalid)
             
@@ -285,6 +292,8 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 obj.Item(index).MATFileName = [];
             end
         end
+        
+     
           
     end
     
@@ -309,9 +318,15 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                     autoSaveFile(obj.Session,'Tag','preRunSimulation');
                 end
                 
+                if obj.Session.AutoSaveGit
+                    obj.Session.gitCommit();
+                end
+                
                 % Run helper
-                [ThisStatusOK, thisMessage, ResultFileNames, Cancelled, resultsArray] = simulationRunHelper(obj);
-
+                obj.Log(['running simulation ' obj.Name])
+                [ThisStatusOK,thisMessage,ResultFileNames,Cancelled, resultsArray] = simulationRunHelper(obj);
+                obj.Log('complete')
+                
                 if ~ThisStatusOK && ~Cancelled
 %                     error('run: %s',Message);
                     StatusOK = false;
@@ -328,6 +343,10 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                     obj.Item(index).MATFileName = ResultFileNames{index};
                 end
                 
+                % add entry to the database
+                if obj.Session.UseSQL
+                    obj.Session.addExperimentToDB( 'SIMULATION', obj.Name, now, ResultFileNames);
+                end
             end 
             
             Message = strtrim(Message);
@@ -465,7 +484,11 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
     methods
         
         function set.Settings(obj,Value)
-            validateattributes(Value,{'QSP.Settings'},{'scalar'});
+            arguments
+                obj
+                Value (1,1) QSP.Settings
+            end
+            
             obj.Settings = Value;
         end
         
@@ -540,4 +563,17 @@ classdef Simulation < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         end
     end %methods
     
+    methods (Static)
+        function value = ExtractSpeciesData(Results, Species)
+                        
+            for k=1:length(Results)
+            
+                idxCol = find( strcmp(Results(k).Data.SpeciesNames, Species));
+                NS = length(Results(k).Data.SpeciesNames);
+                value(:,k) = Results(k).Data.Data(:, idxCol:NS:end);
+                
+            end                      
+                
+        end
+    end       
 end %classdef

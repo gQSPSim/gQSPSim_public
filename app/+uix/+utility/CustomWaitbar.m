@@ -48,7 +48,7 @@ function varargout = CustomWaitbar(x,Name,Message,AllowCancel)
 persistent TStart hTxt
 
 % check if running on a worker thread
-% This method does not require PCT to answer the question, are we running on 
+% This method does not require PCT to answer the question, are we running on
 % a worker or not.
 if ~isempty(java.lang.System.getProperty('java.awt.headless'))
     if nargout
@@ -60,7 +60,7 @@ end
 % Which syntax was used?
 if ischar(Name)
     % Syntax: hWbar = CustomWaitbar(x,Name,Message,AllowCancel)
-    
+
     % Was a cancel button called for
     if nargin>3 && AllowCancel
         % Initialize the waitbar with cancel button
@@ -70,15 +70,15 @@ if ischar(Name)
         % Initialize the waitbar
         hWbar = waitbar(x,Message,'Name',Name);
     end
-    
+
     % Turn off Tex
     hTxt = findall(hWbar,'Type','text');
     set(hTxt,'Interpreter','none')
-    
+
     % Increase button font
     hBut = findall(hWbar,'Type','uicontrol');
     set(hBut,'FontSize',10);
-    
+
     % Create remaining time display
     hTxt = uicontrol('Parent',hWbar,...
         'Style','text',...
@@ -87,40 +87,40 @@ if ischar(Name)
         'BackgroundColor',get(hWbar,'Color'),...
         'Position',[10 1 250 20],...
         'String','Remaining time: Calculating...');
-    
+
     % Make it a modal figure
     set(hWbar,'WindowStyle','modal')
-    
+
     % Process output handle
     if nargout
         varargout{1} = hWbar;
     end
-    
+
     % Keep track of time
     TStart = now;
-    
+
 else
     % Syntax: CustomWaitbar(x,hWbar,Message,AllowCancel)
-    
+
     % Check for TStart
     if ~exist('TStart','var')
         TStart = now;
     end
-    
+
     % Name argument is actually hWbar
     hWbar = Name;
-    
+
     % Does the waitbar still exist, or was it cancelled?
     StatusOk = ishandle(hWbar);
     if StatusOk
-        
+
         % Update the progress
         waitbar(x,hWbar,Message)
-        
+
         % Calculate the remaining time
         TimeElapsed = now - TStart;
         TimeRemaining = (1-x)/x * TimeElapsed;
-        
+
         % Update the time
         if ishandle(hTxt)
             if isfinite(TimeRemaining)
@@ -132,14 +132,14 @@ else
             end
             set(hTxt,'String',TimeStr)
         end
-        
+
     end
-    
+
     % Was an output requested?
     if nargout
         varargout{1} = StatusOk;
     end
-    
+
 end
 
 
@@ -149,4 +149,3 @@ function CancelCallback(src,~)
 
 % Delete the waitbar
 delete(ancestor(src,'figure'));
-

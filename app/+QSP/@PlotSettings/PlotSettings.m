@@ -72,14 +72,6 @@ classdef PlotSettings < matlab.mixin.SetGet & uix.mixin.AssignPVPairs
     % QSP.PlotSettings Methods:
     %
     
-    % Copyright 2019 The MathWorks, Inc.
-    %
-    % Auth/Revision:
-    %   MathWorks Consulting
-    %   $Author: agajjala $
-    %   $Revision: 421 $  $Date: 2017-12-07 15:07:04 -0500 (Thu, 07 Dec 2017) $
-    % ---------------------------------------------------------------------
-   
     %% Private Properties
     properties(SetAccess=private,Transient=true)        
         hAxes        
@@ -480,7 +472,7 @@ classdef PlotSettings < matlab.mixin.SetGet & uix.mixin.AssignPVPairs
         
         function Value = get.XTickLabelFontSize(obj)            
 %             if ~isempty(ancestor(obj.hAxes,'figure'))
-                hThis = get(obj.hAxes,'XRuler');
+                hThis = get(obj.hAxes,'XAxis');
                 Value = get(hThis,'FontSize');
 %             else
 %                 Value = obj.DefaultXTickLabelFontSize;
@@ -489,7 +481,7 @@ classdef PlotSettings < matlab.mixin.SetGet & uix.mixin.AssignPVPairs
         function set.XTickLabelFontSize(obj,Value)
             validateattributes(Value,{'numeric'},{'scalar','nonnegative','nonnan'})
 %             if ~isempty(ancestor(obj.hAxes,'figure'))
-                hThis = get(obj.hAxes,'XRuler');
+                hThis = get(obj.hAxes,'XAxis');
                 hLabel = get(obj.hAxes,'xlabel');
                 LabelFontSize = get(hLabel,'FontSize');
                 set(hThis,'FontSize',Value);
@@ -500,7 +492,7 @@ classdef PlotSettings < matlab.mixin.SetGet & uix.mixin.AssignPVPairs
         
         function Value = get.YTickLabelFontSize(obj)
 %             if ~isempty(ancestor(obj.hAxes,'figure'))
-                hThis = get(obj.hAxes,'YRuler');
+                hThis = get(obj.hAxes,'YAxis');
                 Value = get(hThis,'FontSize');
 %             else
 %                 Value = obj.DefaultYTickLabelFontSize;
@@ -511,7 +503,7 @@ classdef PlotSettings < matlab.mixin.SetGet & uix.mixin.AssignPVPairs
 %             if ~isempty(ancestor(obj.hAxes,'figure'))
                 hLabel = get(obj.hAxes,'ylabel');
                 LabelFontSize = get(hLabel,'FontSize');
-                hThis = get(obj.hAxes,'YRuler');
+                hThis = get(obj.hAxes,'YAxis');
                 set(hThis,'FontSize',Value);
                 set(hLabel,'FontSize',LabelFontSize);
 %             end
@@ -571,7 +563,7 @@ classdef PlotSettings < matlab.mixin.SetGet & uix.mixin.AssignPVPairs
         
         function Value = get.XTickLabelFontWeight(obj)
 %             if ~isempty(ancestor(obj.hAxes,'figure'))
-                hThis = get(obj.hAxes,'XRuler');
+                hThis = get(obj.hAxes,'XAxis');
                 Value = get(hThis,'FontWeight');
 %             else
 %                 Value = QSP.PlotSettings.DefaultXTickLabelFontWeight;
@@ -582,7 +574,7 @@ classdef PlotSettings < matlab.mixin.SetGet & uix.mixin.AssignPVPairs
 %             if ~isempty(ancestor(obj.hAxes,'figure'))
                 hLabel = get(obj.hAxes,'xlabel');
                 LabelFontWeight = get(hLabel,'FontWeight');
-                hThis = get(obj.hAxes,'XRuler');
+                hThis = get(obj.hAxes,'XAxis');
                 set(hThis,'FontWeight',Value);
                 set(hLabel,'FontWeight',LabelFontWeight);
 %             end
@@ -591,7 +583,7 @@ classdef PlotSettings < matlab.mixin.SetGet & uix.mixin.AssignPVPairs
         
         function Value = get.YTickLabelFontWeight(obj)
 %             if ~isempty(ancestor(obj.hAxes,'figure'))
-                hThis = get(obj.hAxes,'YRuler');
+                hThis = get(obj.hAxes,'YAxis');
                 Value = get(hThis,'FontWeight');
 %             else
 %                 Value = QSP.PlotSettings.DefaultYTickLabelFontWeight;
@@ -602,7 +594,7 @@ classdef PlotSettings < matlab.mixin.SetGet & uix.mixin.AssignPVPairs
 %             if ~isempty(ancestor(obj.hAxes,'figure'))
                 hLabel = get(obj.hAxes,'ylabel');
                 LabelFontWeight = get(hLabel,'FontWeight');
-                hThis = get(obj.hAxes,'YRuler');
+                hThis = get(obj.hAxes,'YAxis');
                 set(hThis,'FontWeight',Value);
                 set(hLabel,'FontWeight',LabelFontWeight);
 %             end

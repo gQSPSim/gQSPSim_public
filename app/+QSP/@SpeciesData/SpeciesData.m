@@ -18,13 +18,6 @@ classdef SpeciesData < QSP.abstract.BaseProps
     %
     %
     
-    % Copyright 2019 The MathWorks, Inc.
-    %
-    % Auth/Revision:
-    %   MathWorks Consulting
-    %   $Author: agajjala $
-    %   $Revision: 328 $  $Date: 2016-09-23 17:49:09 -0400 (Fri, 23 Sep 2016) $
-    % ---------------------------------------------------------------------
     
     %% Properties
     properties        

@@ -18,13 +18,6 @@ function updateEditView(vObj)
 % Notes: none
 %
 
-% Copyright 2019 The MathWorks, Inc.
-%
-% Auth/Revision:
-%   MathWorks Consulting
-%   $Author: agajjala $
-%   $Revision: 318 $  $Date: 2016-09-09 17:22:35 -0400 (Fri, 09 Sep 2016) $
-% ---------------------------------------------------------------------
 
 if vObj.Selection ~= 2
     return;

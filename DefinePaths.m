@@ -18,13 +18,6 @@ function OutPaths = DefinePaths(varargin)
 %
 % Notes: This function must reside in the root directory for the tools.
 %
-
-% Copyright 2013 The MathWorks, Inc.
-%
-% Auth/Revision:
-%   MathWorks Consulting
-%   $Author: rjackey $
-%   $Revision: 312 $  $Date: 2016-09-08 13:06:09 -0400 (Thu, 08 Sep 2016) $
 % ---------------------------------------------------------------------
 
 if nargin < 1
@@ -68,10 +61,11 @@ rootDirs={...
     fullfile(RootPath,'app'),true;... %root folder with children
     fullfile(RootPath,'utilities'),true;... %root folder with children
     fullfile(RootPath,'FromGenentech'),true;... %root folder with children
-    
+    fullfile(RootPath,'app/+QSPViewerNew/+Widgets/AdvLogger'),true;...
+    fullfile(RootPath,'ModelManager'),true;... %root folder with children
     };
 
-OutPaths = [ genpath(fullfile(RootPath,'app')), genpath(fullfile(RootPath,'utilities')), genpath(fullfile(RootPath,'FromGenentech')) ];
+OutPaths = [ genpath(fullfile(RootPath,'app')), genpath(fullfile(RootPath,'utilities')), genpath(fullfile(RootPath,'FromGenentech')), genpath(fullfile(RootPath,'app/+QSPViewerNew/+Widgets/AdvLogger')) ];
 
 %************ EDIT ABOVE %************
 
@@ -162,6 +156,9 @@ end
 
 % Add paths
 javaaddpath(Paths);
+
+% register units used by casestudies
+registerUnits;
 
 if EchoOutput
     disp('---------------------------------------------------');
