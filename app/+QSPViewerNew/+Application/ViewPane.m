@@ -1296,8 +1296,8 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
             % Get the treenode for the Building Blocks for the supplied
             % type. This is used to generate a dialog for picking which
             % settings to use for a given "item".
-            parentTypeNode = findobj(obj.ParentApp.OuterShell.TreeCtrl, 'Tag', type);
-            position = obj.ParentApp.OuterShell.UIFigure.Position;
+            parentTypeNode = findobj(obj.ParentApp.OuterShell.TreeCtrl, 'Tag', type);            
+            position = obj.ParentApp.getUIFigure.Position;
             text = type;
 
             nodeSelDialog = QSPViewerNew.Widgets.TreeNodeSelectionModalDialog (obj, ...
