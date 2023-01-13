@@ -423,7 +423,7 @@ classdef MainView < handle
                       treeNode.ContextMenu = obj.contextMenuStore.header;
 
                 case {'BuildingBlocks', 'Functionality'}
-                    % Do nothing for these nodes. 
+                    % Do nothing for these nodes yet. 
                 
                 otherwise
                     assert(false, "Unhandled type.");
@@ -443,19 +443,19 @@ classdef MainView < handle
 
             % Deleted
             obj.contextMenuStore.Deleted = uicontextmenu(obj.UIFigure, 'Tag', 'Deleted');
-            uimenu(obj.contextMenuStore.Deleted, "Text", "Restore", "MenuSelectedFcn",            @(h,e)obj.onSelectedItemsAction("Restore_Request"));
-            uimenu(obj.contextMenuStore.Deleted, "Text", "Permanently Delete", "MenuSelectedFcn", @(h,e)obj.onSelectedItemsAction("PermanentlyDelete_Request"));
+            uimenu(obj.contextMenuStore.Deleted, "Text", "Restore", "MenuSelectedFcn",            @(h,e)obj.onContextMenuAction("Restore_Request"));
+            uimenu(obj.contextMenuStore.Deleted, "Text", "Permanently Delete", "MenuSelectedFcn", @(h,e)obj.onContextMenuAction("PermanentlyDelete_Request"));
 
             % instance
             obj.contextMenuStore.instance = uicontextmenu(obj.UIFigure, 'Tag', 'instance');
-            uimenu(obj.contextMenuStore.instance, "Text", "Duplicate", "MenuSelectedFcn", @(h,e)obj.onSelectedItemsAction("Duplicate_Request"));
-            uimenu(obj.contextMenuStore.instance, "Text", "Delete", "MenuSelectedFcn",    @(h,e)obj.onSelectedItemsAction("Delete_Request"));
+            uimenu(obj.contextMenuStore.instance, "Text", "Duplicate", "MenuSelectedFcn", @(h,e)obj.onContextMenuAction("Duplicate_Request"));
+            uimenu(obj.contextMenuStore.instance, "Text", "Delete",    "MenuSelectedFcn", @(h,e)obj.onContextMenuAction("Delete_Request"));
             uimenu(obj.contextMenuStore.instance, "Text", "Move To:");
 
             % header nodes: these are the grouping of nodes such as Task,
             % Parameter, Dataset, Simulation, Optimization, etc.
             obj.contextMenuStore.header = uicontextmenu(obj.UIFigure, 'Tag', 'header');
-            uimenu(obj.contextMenuStore.header, "Text", "Add new", "MenuSelectedFcn", @(h,e)obj.onMenuNotifyAdd(type));
+            uimenu(obj.contextMenuStore.header, "Text", "Add new", "MenuSelectedFcn", @(h,e)obj.onContextMenuNotifyAdd());
             uimenu(obj.contextMenuStore.header, "Text", "Add new Folder");            
         end
 
@@ -476,6 +476,25 @@ classdef MainView < handle
         function onMenuNotifyAdd(obj, type)            
             ed = QSPViewerNew.Application.NewItemEventData(obj.getCurrentSession(), type);
             notify(obj, 'AddTreeNode', ed);
+        end
+
+        function onContextMenuNotifyAdd(obj)
+            % Selected Nodes is not the same as clicked on nodes. e.g., a treenode can be 
+            % selected while a right-click on a different node opens its context menu.
+            % Therefore this function uses the figures CurrentObject. See
+            % onSelectedItemsAction for a callback using the selected Tree
+            % node instead.
+            ed = QSPViewerNew.Application.NewItemEventData(obj.getCurrentSession(), obj.UIFigure.CurrentObject.Tag);
+            notify(obj, 'AddTreeNode', ed);
+        end
+
+        function onContextMenuAction(obj, eventType)
+            % ContextMenu action can happen for nodes that are not
+            % Selected. Therefore this uses the UIFigure.CurrentObject.
+            % This also assumes there is only one item clicked on (by
+            % definition a context menu isn't invoked on a multiple selection.
+            eventData = QSPViewerNew.Application.MultipleItems_EventData(obj.getCurrentSession(), obj.UIFigure.CurrentObject.NodeData);
+            notify(obj, eventType, eventData);
         end
 
         function onMenuNotifyWithSession(obj, type)
