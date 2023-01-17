@@ -114,7 +114,7 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
         Font = 'default';
 %         HeaderHeight = 20;
         RowSpacing = 0;
-        LabelLength = 80;
+        LabelLength = 100;
         LabelHeight = 30;
         NameProportion = '1x';
         DescriptionProportion = '2x';
