@@ -18,14 +18,6 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
     %
     %
     
-    % Copyright 2019 The MathWorks, Inc.
-    %
-    % Auth/Revision:
-    %   MathWorks Consulting
-    %   $Author: agajjala $
-    %   $Revision: 331 $  $Date: 2016-10-05 18:01:36 -0400 (Wed, 05 Oct 2016) $
-    % ---------------------------------------------------------------------
-    
     %% Properties
     properties
         Settings = QSP.Settings.empty(0,1)
@@ -80,10 +72,9 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
     end
     
     properties (Dependent=true)
+        VPopResultsFolderName_new
         TaskGroupItems
         SpeciesDataMapping
-        VPopResultsFolderName_new
-        
     end
     
     %% Constructor
@@ -125,6 +116,7 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
                 obj.PlotSettings(index).Title = sprintf('Plot %d', index);
             end
             
+            obj.TimeOfCreation = datetime('now', "Format", "dd-MMM-uuuu");
         end %function obj = VirtualPopulationGeneration(varargin)
         
     end %methods
@@ -233,6 +225,21 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
             
         end %function
         
+        function Summary = getSummaryTableItems(obj)
+            
+            % Populate summary
+            Summary = {...
+                'Name',obj.Name;
+                'Description',obj.Description;
+                'Results Path',obj.VPopResultsFolderName_new;
+                %'Parameters',join(unique(string(UsedParamNames)), ', ');
+                'Cohort Used',obj.DatasetName;
+                %'# of Items',numel(TheseOptimizationItems);
+                'Time created', obj.TimeOfCreationStr;
+                'Last Saved',obj.LastSavedTimeStr;
+                };
+        end        
+            
         function [StatusOK, Message] = validate(obj,FlagRemoveInvalid)
             
             StatusOK = true;
@@ -501,11 +508,19 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
                     autoSaveFile(obj.Session,'Tag','preRunVPopGen');
                 end
                 
+                if obj.Session.AutoSaveGit
+                    obj.Session.gitCommit();
+                end                
+                
                 % Run helper
                 % clear cached results if any
                 obj.SimResults = {};
                 obj.SimFlag = [];
+                
+                obj.Log(['running vpop generation ' obj.Name])
                 [StatusOK,Message,ResultsFileName,ThisVPopName] = vpopGenerationRunHelper(obj);
+                obj.Log('complete')
+                
                 % Update MATFileName in the simulation items
                 obj.ExcelResultFileName = ResultsFileName;
                 obj.VPopName = ThisVPopName;
@@ -520,6 +535,12 @@ classdef VirtualPopulationGeneration < QSP.abstract.BaseProps & uix.mixin.HasTre
                     updateLastSavedTime(vpopObj);
                     % Validate
                     validate(vpopObj,false);
+                    
+                    % add entry to the database
+                    if obj.Session.UseSQL
+                        obj.Session.addExperimentToDB( 'VPOP GENERATION', obj.Name, now, obj.ExcelResultFileName);                    
+                    end                    
+                    
                 else
                     vpopObj = QSP.VirtualPopulation.empty(0,1);
                 end

@@ -5,13 +5,6 @@ function StatusOk = loadSessionFromFile(obj, FilePath, interactiveTF)
 % session from a file
 %
 
-% Copyright 2019 The MathWorks, Inc.
-%
-% Auth/Revision:
-%   MathWorks Consulting
-%   $Author: rjackey $
-%   $Revision: 226 $  $Date: 2016-08-02 16:46:16 -0400 (Tue, 02 Aug 2016) $
-% ---------------------------------------------------------------------
 
 StatusOk = true;
 
@@ -67,7 +60,7 @@ if StatusOk
     
     % convert rules and reactions
     
-    Session.validateRulesAndReactions();
+    %Session.validateRulesAndReactions();
     
     
     % Add the session to the app

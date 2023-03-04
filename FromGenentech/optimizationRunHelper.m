@@ -1,4 +1,4 @@
-function [StatusOK,Message,ResultsFileNames,VpopNames, groupErrorCounts, groupErrorMessages, groupErrorMessageCounts] = optimizationRunHelper(obj)
+function [StatusOK,Message,ResultsFileNames,VpopNames, resultsArray, groupErrorCounts, groupErrorMessages, groupErrorMessageCounts] = optimizationRunHelper(obj)
 % Sets up and runs the optimization contained in the Optimization object
 % "obj".
 
@@ -8,7 +8,10 @@ if isempty(obj.SpeciesData)
     Message = 'At least one species-data mapping must be defined for optimization to proceed.';
     ResultsFileNames = {};
     VpopNames = {};
-   
+    resultsArray = [];
+    groupErrorCounts = [];
+    groupErrorMessages = {};
+    groupErrorMessageCounts = {};
     return 
 end
 
@@ -21,6 +24,10 @@ end
 
 StatusOK = true;
 Message = '';
+resultsArray = [];
+groupErrorCounts = [];
+groupErrorMessages = {};
+groupErrorMessageCounts = {};
 
 % store path & add all subdirectories of root directory
 myPath = path;
@@ -66,8 +73,6 @@ if ~isempty(paramData)
     colId.P0 = find(contains(upper(paramHeaders), 'P0')); % keep only first column for now!    
     colId.Scale = find(strcmpi(paramHeaders, 'SCALE'));
     
-    
-
     % convert to numeric cell array if it is a cell array (i.e. contains strings)
     for k=1:length(colId.P0)
         if iscell(paramData(:,colId.P0(k)))            
@@ -171,7 +176,7 @@ MatchIdx = strcmpi(Names,obj.DatasetName);
 if any(MatchIdx)
     odObj = obj.Settings.OptimizationData(MatchIdx);
     DestFormat = 'wide';
-    [ThisStatusOk,ThisMessage,optimHeader,optimData] = importData(odObj,odObj.FilePath,DestFormat);
+    [ThisStatusOk,ThisMessage,optimHeader,optimData,weights] = importData(odObj,odObj.FilePath,DestFormat);
     if ~ThisStatusOk
         StatusOK = false;
         Message = sprintf('%s\n%s\n',Message,ThisMessage);
@@ -197,6 +202,7 @@ if ~isempty(optimHeader) && ~isempty(optimData)
     IDs = cell2mat(optimData(:,strcmp(obj.IDName,optimHeader)));
     Time = cell2mat(optimData(:,strcmp('Time',optimHeader)));
 
+    % check for exclude column
     excludeIdx = find(strcmpi('Exclude',optimHeader));
     Exclude = false(size(optimData,1),1);
 
@@ -205,15 +211,31 @@ if ~isempty(optimHeader) && ~isempty(optimData)
         Exclude(strcmpi(tmp,'Yes')) = true;
     end
     
+    % check for weights column
+    weightIdx = find(strcmpi('Weight',optimHeader));
+    if ~isempty(weightIdx)
+        tmp = cell2mat(optimData(:,weightIdx));
+        weights(~isnan(tmp)) = tmp(~isnan(tmp));
+    else
+        weights = ones(size(optimData,1));
+        
+    end
+    
     % find columns corresponding to species data and initial conditions
     [~, dataInds] = ismember(union({obj.SpeciesIC.DataName}, {obj.SpeciesData.DataName}), optimHeader);
     % filter
     optimData = optimData(~Exclude,:);
+    weights = weights(~Exclude,:);
     
     % convert optimData into a matrix of species data
     optimData = cell2mat(optimData(:,dataInds));
     % save only the headers for the data columns
     dataNames = optimHeader(:,dataInds);
+    
+    % convert weights
+    if iscell(weights)
+        weights = cell2mat(weights(:,dataInds));
+    end
     
     % remove data for groups that are not currently being used in optimization
     optimGrps = cell2mat(cellfun(@str2num, {obj.Item.GroupID}, 'UniformOutput', false));
@@ -222,14 +244,21 @@ if ~isempty(optimHeader) && ~isempty(optimData)
     Time = Time(include,:);
     IDs = IDs(include,:);
     Groups = Groups(include,:);
+    weights = weights(include,:);
+    weights(isnan(weights))= 1; % 1 by default if left blank
     
     % process data so that if there are multiple measurements for a given time
     % point, replace with the average of those measurements
     [~,ia,G] = unique([Groups, IDs, Time], 'rows');
     optimData = splitapply(@(X) nanmean(X,1), optimData, G );
+    % average or weights for same group/ID/time
+    weights = splitapply(@(X) nanmean(X,1), weights, G );
+    
     Time = Time(ia,:);
     IDs = IDs(ia,:);
     Groups = Groups(ia,:);
+    weights = weights(ia,:);
+    
 else
     StatusOK = false;
     Message = 'The selected Data for Optimization file is empty.';
@@ -277,7 +306,7 @@ end % for ii = ...
 %% pre-optimization check
 p0 = estParamData(:,3);
 
-[~, thisStatusOK, thisMessage] = objectiveFun(p0,paramObj,ItemModels,Groups,IDs,Time,optimData,dataNames,obj);
+[~, thisStatusOK, thisMessage] = objectiveFun(p0,paramObj,ItemModels,Groups,IDs,Time,optimData,weights,dataNames,obj);
 
 if ~thisStatusOK
     Message = sprintf('%s\nError encountered for initial parameter set P0_1:%s.\nAborting optimization.', Message, thisMessage);
@@ -288,11 +317,21 @@ end
 %% Call optimization program
 switch obj.AlgorithmName
     case 'ScatterSearch'
-        if obj.Session.UseParallel
-            [VpopParams,StatusOK,ThisMessage] = run_ss_par(@(est_p) objectiveFun(est_p,paramObj,ItemModels,Groups,IDs,Time,optimData,dataNames,obj),estParamData);
-        else
-            [VpopParams,StatusOK,ThisMessage] = run_ss_ser(@(est_p) objectiveFun(est_p,paramObj,ItemModels,Groups,IDs,Time,optimData,dataNames,obj),estParamData);
-        end
+        
+        try
+            if obj.Session.UseParallel
+                [VpopParams,StatusOK,ThisMessage] = run_ss_par(@(est_p) objectiveFun(est_p,paramObj,ItemModels,Groups,IDs,Time,optimData,weights,dataNames,obj),estParamData);
+            else
+                [VpopParams,StatusOK,ThisMessage] = run_ss_ser(@(est_p) objectiveFun(est_p,paramObj,ItemModels,Groups,IDs,Time,optimData,weights,dataNames,obj),estParamData);
+            end
+        
+        catch err
+            StatusOK = false;
+            warning('Encountered error in scatter search')
+            Message = sprintf('%s\n%s\n',Message,err.message);
+            path(myPath);
+            return
+        end    
         
         Message = sprintf('%s\n%s\n',Message,ThisMessage);
         
@@ -318,11 +357,17 @@ switch obj.AlgorithmName
             UB = estParamData(:,2);
             p0 = estParamData(:,3);
 
+            if obj.Session.ShowProgressBars
+                plotFcn = @pswplotbestf;
+            else
+                plotFcn = [];
+            end
+
             options = optimoptions('ParticleSwarm', 'Display', 'iter', 'FunctionTolerance', .1, 'MaxTime', 12000, ...
-                'UseParallel', logical(obj.Session.UseParallel), 'FunValCheck', 'on', 'UseVectorized', false, 'PlotFcn',  @pswplotbestf, ...
+                'UseParallel', logical(obj.Session.UseParallel), 'FunValCheck', 'on', 'UseVectorized', false, 'PlotFcn',  plotFcn, ...
                 'InitialSwarmMatrix', p0');
             
-            VpopParams = particleswarm( @(est_p) objectiveFun(est_p',paramObj,ItemModels,Groups,IDs,Time,optimData,dataNames,obj), N, LB, UB, options);
+            VpopParams = particleswarm( @(est_p) objectiveFun(est_p',paramObj,ItemModels,Groups,IDs,Time,optimData,weights,dataNames,obj), N, LB, UB, options);
         catch err
             StatusOK = false;
             warning('Encountered error in particle swarm optimization')
@@ -338,12 +383,15 @@ switch obj.AlgorithmName
         UB = estParamData(:,2);
 
         % options
+%         LSQopts = optimoptions(@lsqnonlin,'MaxFunctionEvaluations',1e4,'MaxIterations',1e4, 'FunctionTolerance',1e-5,'StepTolerance',1e-3,...
+%             'Display', 'iter', 'PlotFcn', @optimplotfval, 'UseParallel', logical(obj.Session.UseParallel));
         opts = optimoptions(@fmincon,'MaxFunctionEvaluations',1e4,'MaxIterations',1e4, 'FunctionTolerance',1e-5,'StepTolerance',1e-3,...
-            'Display', 'iter', 'PlotFcn', @optimplotfval, 'UseParallel', obj.Session.UseParallel );
+            'Display', 'iter', 'PlotFcn', @optimplotfval, 'UseParallel', logical(obj.Session.UseParallel) );
         
         % fit
         p0 = estParamData(:,3);
         try
+%         VpopParams = lsqnonlin(@(est_p) objectiveFun(est_p,paramObj,ItemModels,Groups,IDs,Time,optimData,weights,dataNames,obj), p0, LB, UB, LSQopts);
         
         VpopParams = fmincon(@(est_p) objectiveFun(est_p,paramObj,ItemModels,Groups,IDs,Time,optimData,dataNames,obj), p0, [], [], [], [], LB, UB, [], opts);        
         VpopParams = VpopParams';
@@ -446,7 +494,7 @@ else
         VpopHeaders = [VpopHeaders(paramOrder(bParam)), VpopHeaders(~bParam)];
         VpopData = [VpopData(:, paramOrder(bParam)), VpopData(:, ~bParam)];
         
-        Vpop_grp = [ VpopHeaders; VpopData];
+        Vpop_grp = [VpopHeaders; VpopData];
 
         % save current group's Vpop
         SaveFlag = true;
@@ -501,6 +549,8 @@ VpopData = [VpopData(:, paramOrder(bParam)), VpopData(:, ~bParam)];
 
 Vpop = [ VpopHeaders; VpopData];
 
+resultsArray = Vpop;
+
 
 % Vpop = [[estParamNames',ICspecNames,fixedParamNames']; [num2cell(Vpop), num2cell(repmat(fixedParamData', size(Vpop,1), 1)) ]];
 
@@ -537,13 +587,13 @@ end
 
 
 %% Objective function
-    function [objective,varargout] = objectiveFun(est_p,paramObj,ItemModels,Groups,IDs,Time,optimData,dataNames,obj)
+    function [objective,varargout] = objectiveFun(est_p,paramObj,ItemModels,Groups,IDs,Time,optimData,weights,dataNames,obj)
         tempStatusOK = true;
         tempMessage = '';
         
-        if nargout>1 % preset the output arguments
-            varargout{1} = true;
-            varargout{2} = '';
+        if nargout>1
+            varargout{1} = tempStatusOK;
+            varargout{2} = tempMessage;
         end
         
 %         inputStr = '(species,data,simTime,dataTime,allData,ID,Grp,currID,currGrp)';
@@ -587,6 +637,7 @@ end
                 IDs_grp = IDs(grpInds);
                 Time_grp = Time(grpInds);
                 optimData_grp = optimData(grpInds,:);
+                weights_grp = weights(grpInds,:);
                 
                 % for each ID (varying initial conditions (animals) and time points in the same experiment)
                 uniqueIDs_grp = unique(IDs_grp);
@@ -595,6 +646,7 @@ end
                     % get time and data values for this ID
                     optimData_id = optimData_grp(IDs_grp == currID,:);
                     Time_id = Time_grp(IDs_grp == currID);
+                    weights_id = weights_grp(IDs_grp == currID,:);
                     
                     %get species IC values from data for the current ID
                     % use average of values with t <= 0
@@ -666,15 +718,21 @@ end
                         % compare model outputs to data and concatenate onto the
                         % objective vector, keeping only time points for which
                         % there is data for that species
+                        
                         optimData_spec = optimData_id(Time_id>=0,strcmp(SpeciesData(spec).DataName,dataNames));
+                        weights_spec = weights_id(Time_id>=0,strcmp(SpeciesData(spec).DataName,dataNames));
+                        
                         nonNanDataIdx = find(~isnan(optimData_spec));
                         if isempty(nonNanDataIdx)
                             % ignore data if it is all missing
                             continue
                         end
                         simData_spec = simData_spec(nonNanDataIdx);
-                        dataTime_spec = sort(Time_id(Time_id>=0));
+                        [dataTime_spec, timeOrder] = sort(Time_id(Time_id>=0));
                         dataTime_spec = dataTime_spec(~isnan(optimData_spec));
+                        
+                        weights_spec = weights_spec(timeOrder,:);
+                        weights_spec = weights_spec(~isnan(optimData_spec),:);
                         
                         % simTime was set to be the unique list of times for
                         % this ID, therefore it should be the same length
@@ -690,7 +748,9 @@ end
                         
                         % Inputs are '(species,data,simTime,dataTime,allData,ID,Grp,currID,currGrp)'
                         % or           (simData_spec,optimData_spec,simTime_spec,dataTime_spec,optimData(:,strcmp(currDataName,dataNames)),IDs,Groups,currID,currGrp)
-                        thisObj = objective_handles{spec}(simData_spec,optimData_spec,simTime_spec,dataTime_spec,optimData(:,strcmp(currDataName,dataNames)),IDs,Groups,currID,currGrp);
+%                         weights = ones(size(simData_spec));
+                        
+                        thisObj = objective_handles{spec}(simData_spec,optimData_spec,weights_spec,simTime_spec,dataTime_spec,optimData(:,strcmp(currDataName,dataNames)),IDs,Groups,currID,currGrp);
                         objectiveVec = [objectiveVec; thisObj];
                         
                     end % for spec = ...

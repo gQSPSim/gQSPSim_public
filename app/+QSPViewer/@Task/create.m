@@ -18,13 +18,6 @@ function create(vObj)
 % Notes: none
 %
 
-% Copyright 2019 The MathWorks, Inc.
-%
-% Auth/Revision:
-%   MathWorks Consulting
-%   $Author: agajjala $
-%   $Revision: 294 $  $Date: 2016-09-05 20:37:01 -0400 (Mon, 05 Sep 2016) $
-% ---------------------------------------------------------------------
 
 %TODO
 % Settings controls

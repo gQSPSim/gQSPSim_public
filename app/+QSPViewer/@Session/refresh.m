@@ -18,13 +18,6 @@ function refresh(vObj)
 % Notes: none
 %
 
-% Copyright 2014-2019 The MathWorks, Inc.
-%
-% Auth/Revision:
-%   MathWorks Consulting
-%   $Author: rjackey $
-%   $Revision: 281 $  $Date: 2016-09-01 09:27:14 -0400 (Thu, 01 Sep 2016) $
-% ---------------------------------------------------------------------
 
 %% Invoke superclass's refresh
 
@@ -40,6 +33,10 @@ if isscalar(vObj.Data)
     set(vObj.h.UserDefinedFunctionsDirSelector,'RootDirectory',RootDir)
     
     set(vObj.h.UseParallelCheckbox, 'Value', vObj.Data.UseParallel);
+    set(vObj.h.UseLogFile, 'Value', vObj.Data.UseLogging)
+    set(vObj.h.UseGit, 'Value', vObj.Data.AutoSaveGit)
+    set(vObj.h.UseSQL, 'Value', vObj.Data.UseSQL)
+    
     if vObj.Data.UseParallel
         Enable_cluster = 'on';
     else
@@ -53,6 +50,10 @@ else
     RelativeUserDefinedFunctionsPath = '';
     RelativeObjectiveFunctionsPath = '';
     vObj.h.UseParallelCheckbox.Value = 0;
+    vObj.h.UseLogFile.Value = false;
+    vObj.h.UseGit.Value = false;
+    vObj.h.UseSQL.Value = false;
+    
     Enable_cluster = 'off';
     ThisCluster = '';
     

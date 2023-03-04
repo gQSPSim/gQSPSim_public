@@ -24,16 +24,7 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
     %
     % QSP.Task Methods:
     %
-    %
-    %
     
-    % Copyright 2019 The MathWorks, Inc.
-    %
-    % Auth/Revision:
-    %   MathWorks Consulting
-    %   $Author: agajjala $
-    %   $Revision: 299 $  $Date: 2016-09-06 17:18:29 -0400 (Tue, 06 Sep 2016) $
-    % ---------------------------------------------------------------------
     
     %% Properties
     properties
@@ -44,6 +35,10 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         InactiveRuleNames = {}
         OutputTimesStr = ''
         MaxWallClockTime = 60
+        AbsoluteTolerance = 1e-6
+        RelativeTolerance = 1e-3
+        DefaultAbsoluteTolerance = 1e-6
+        DefaultRelativeTolerance = 1e-3
         RunToSteadyState = true
         TimeToSteadyState = 100
         Resample = true
@@ -90,7 +85,7 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
         ReactionNames
         RuleNames
         DefaultOutputTimes
-        DefaultMaxWallClockTime        
+        DefaultMaxWallClockTime
     end
     
     %% Dependent Properties
@@ -154,7 +149,7 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 'Name',obj.Name;
                 'Last Saved',obj.LastSavedTimeStr;
                 'Description',obj.Description;
-                'Model',obj.RelativeFilePath_new;                
+                'Model',obj.RelativeFilePath;                
                 'Active Variants',obj.ActiveVariantNames;
                 'Active Doses',obj.ActiveDoseNames;
                 'Active Species',obj.ActiveSpeciesNames;
@@ -164,6 +159,8 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 'Run to Steady State',RunToSteadyStateStr;
                 'Time to Steady State',TimeToSteadyStateStr;
                 'Max Wall Clock Time', obj.MaxWallClockTime;
+                'Absolute Tolerance', obj.AbsoluteTolerance;
+                'Relative Tolerance', obj.RelativeTolerance;
                 };
         end
         
@@ -473,7 +470,7 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                  % Store path
 %                fprintf('Importing %s\nRoot directory %s:', evalc('disp(ProjectPath)'), evalc('disp(obj.Session.RootDirectory)'))
                  
-                thisObj.RelativeFilePath_new = uix.utility.getRelativeFilePath(ProjectPath, obj.Session.RootDirectory, true);                
+                thisObj.RelativeFilePath = uix.utility.getRelativeFilePath(ProjectPath, obj.Session.RootDirectory, true);                
                 
                 [StatusOK,Message] = importModel(thisObj,ProjectPath,ModelName);
                
@@ -882,6 +879,20 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
             obj.MaxWallClockTime = Value;
         end % set.MaxWallClockTime
         
+        function set.AbsoluteTolerance(obj,Value)
+            if ~isempty(Value)
+                validateattributes(Value,{'numeric'},{'scalar','nonnegative','nonnan'});
+            end
+            obj.AbsoluteTolerance = Value;
+        end % set.AbsoluteTolerance
+        
+        function set.RelativeTolerance(obj,Value)
+            if ~isempty(Value)
+                validateattributes(Value,{'numeric'},{'scalar','nonnegative','nonnan','<',1});
+            end
+            obj.RelativeTolerance = Value;
+        end % set.RelativeTolerance
+        
         function set.RunToSteadyState(obj,Value)
             validateattributes(Value,{'logical'},{'scalar'});
             obj.RunToSteadyState = Value;
@@ -905,7 +916,7 @@ classdef Task < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
          function [StatusOK,Message] = SetProject(obj,RelativeFilePath)
              
              % Update the relative file path
-             obj.RelativeFilePath_new = RelativeFilePath;
+             obj.RelativeFilePath = RelativeFilePath;
              
              [StatusOK,Message] = importModelWrapper(obj);
              if nargout < 2

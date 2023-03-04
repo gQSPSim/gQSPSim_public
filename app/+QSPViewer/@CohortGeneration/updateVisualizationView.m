@@ -18,13 +18,6 @@ function updateVisualizationView(vObj)
 % Notes: none
 %
 
-% Copyright 2019 The MathWorks, Inc.
-%
-% Auth/Revision:
-%   MathWorks Consulting
-%   $Author: agajjala $
-%   $Revision: 331 $  $Date: 2016-10-05 18:01:36 -0400 (Wed, 05 Oct 2016) $
-% ---------------------------------------------------------------------
 
 if vObj.Selection ~= 3
     return;
@@ -200,6 +193,8 @@ if ~isempty(vObj.Data)
         'ColumnFormat',{'boolean','char','char','char','char'},...
         'ColumnEditable',[true,false,false,false,true]...
         );
+    
+    
     % Set cell color
     for index = 1:size(TableData,1)
         ThisColor = vObj.Data.PlotItemTable{index,2};

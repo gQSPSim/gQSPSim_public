@@ -18,14 +18,6 @@ function update(vObj)
 % Notes: none
 %
 
-% Copyright 2019 The MathWorks, Inc.
-%
-% Auth/Revision:
-%   MathWorks Consulting
-%   $Author: agajjala $
-%   $Revision: 285 $  $Date: 2016-09-02 13:08:51 -0400 (Fri, 02 Sep 2016) $
-% ---------------------------------------------------------------------
-
 
 %% Invoke superclass's update
 
@@ -37,7 +29,7 @@ update@uix.abstract.CardViewPane(vObj);
 if ~isempty(vObj.TempData)
     set(vObj.h.FileSelector,...
         'RootDirectory',vObj.TempData.Session.RootDirectory,...
-        'Value',vObj.TempData.RelativeFilePath_new)
+        'Value',vObj.TempData.RelativeFilePath)
 else
     set(vObj.h.FileSelector,'Value','')
 end

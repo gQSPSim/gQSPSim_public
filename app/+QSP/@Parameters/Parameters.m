@@ -18,13 +18,6 @@ classdef Parameters < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
     %
     %
     
-    % Copyright 2019 The MathWorks, Inc.
-    %
-    % Auth/Revision:
-    %   MathWorks Consulting
-    %   $Author: agajjala $
-    %   $Revision: 299 $  $Date: 2016-09-06 17:18:29 -0400 (Tue, 06 Sep 2016) $
-    % ---------------------------------------------------------------------
     
     
     %% Protected Properties
@@ -71,7 +64,7 @@ classdef Parameters < QSP.abstract.BaseProps & uix.mixin.HasTreeReference
                 'Name',obj.Name;
                 'Last Saved',obj.LastSavedTimeStr;
                 'Description',obj.Description;
-                'File Name',obj.RelativeFilePath_new;                
+                'File Name',obj.RelativeFilePath;                
                 'No of Parameters',obj.NumParameters;
                 };
         end

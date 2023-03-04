@@ -18,14 +18,6 @@ function update(vObj)
 % Notes: none
 %
 
-% Copyright 2019 The MathWorks, Inc.
-%
-% Auth/Revision:
-%   MathWorks Consulting
-%   $Author: rjackey $
-%   $Revision: 316 $  $Date: 2016-09-09 13:26:15 -0400 (Fri, 09 Sep 2016) $
-% ---------------------------------------------------------------------
-
 
 %% Invoke superclass's update
 
@@ -38,7 +30,7 @@ FlagValidModel = true;
 if ~isempty(vObj.TempData)
     set(vObj.h.ProjectFileSelector,...
         'RootDirectory',vObj.TempData.Session.RootDirectory,...
-        'Value',vObj.TempData.RelativeFilePath_new)
+        'Value',vObj.TempData.RelativeFilePath)
     
     % check if the task data is out of date -- project file has changed
     

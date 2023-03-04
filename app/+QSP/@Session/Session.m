@@ -33,40 +33,70 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
     %    
     %
     
-    % Copyright 2019 The MathWorks, Inc.
-    %
-    % Auth/Revision:
-    %   MathWorks Consulting
-    %   $Author: agajjala $
-    %   $Revision: 331 $  $Date: 2016-10-05 18:01:36 -0400 (Wed, 05 Oct 2016) $
-    % ---------------------------------------------------------------------
     
     %% Properties
     properties
-        RootDirectory = pwd
-
         AutoSaveFrequency = 1 % minutes
         AutoSaveBeforeRun = true
+        AutoSaveSingleFile = false
         UseParallel = false
         ParallelCluster
         UseAutoSaveTimer = false
+
+        RootDirectory = pwd
         ShowProgressBars = true % set false for CLI, testing
         
-        RelativeResultsPathParts = {}
-        RelativeUserDefinedFunctionsPathParts = {}
-        RelativeObjectiveFunctionsPathParts = {}
-        RelativeAutoSavePathParts = {}
+        AutoSaveGit = false
+        GitRepo = '.git'                
         
-        % for backwards compatibility
-        RelativeResultsPath = ''        
-        RelativeUserDefinedFunctionsPath = ''
-        RelativeObjectiveFunctionsPath = ''        
-        RelativeAutoSavePath = ''  
+        UseSQL = false
+        experimentsDB = 'experiments.db3'        
         
+        UseLogging = true
+        LogFile = 'logfile.txt'
+        
+        LoggerSeverityDialog mlog.Level = mlog.Level.MESSAGE;
+        LoggerSeverityFile mlog.Level = mlog.Level.INFO;
     end
     
-    properties (Transient=true)        
+	properties (Access=protected)
+        % These properties need to  be (at least) protected in order for
+        % copy to work.
+        RelativeResultsPathParts = {''}
+        RelativeUserDefinedFunctionsPathParts = {''}
+        RelativeObjectiveFunctionsPathParts = {''}
+        RelativePluginsPathParts = {''}
+        RelativeAutoSavePathParts = {''}
+        RelativeLoggerFilePathParts = {''}
+    end
+    
+    properties (Dependent)
+        % Dependent properties on *PathParts counter parts to ensure
+        % portability between different OS.
+        RelativeResultsPath
+        RelativeUserDefinedFunctionsPath
+        RelativeObjectiveFunctionsPath
+        RelativePluginsPath
+        RelativeAutoSavePath
+        RelativeLoggerFilePath
+        LoggerName
+    end
+    
+    properties (Dependent=true, SetAccess=immutable)
+        ResultsDirectory
+        ObjectiveFunctionsDirectory
+        UserDefinedFunctionsDirectory
+        PluginsDirectory
+        AutoSaveDirectory
+        LoggerFile
+        GitFiles
+    end
+    
+    properties (Transient)        
         timerObj
+        dbid = []
+        LogHandle = []
+        
     end
     
     properties % (NonCopyable=true) % Note: These properties need to be public for tree
@@ -75,6 +105,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         Optimization = QSP.Optimization.empty(1,0)
         VirtualPopulationGeneration = QSP.VirtualPopulationGeneration.empty(1,0)
         CohortGeneration = QSP.CohortGeneration.empty(1,0)
+        GlobalSensitivityAnalysis = QSP.GlobalSensitivityAnalysis.empty(1,0)
         Deleted = QSP.abstract.BaseProps.empty(1,0)
     end
     
@@ -85,26 +116,14 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         ColorMap2 = QSP.Session.DefaultColorMap
         
         toRemove = false;
+        
+        SessionNameListener
     end
     
     properties (Constant=true)
         DefaultColorMap = repmat(lines(10),5,1)
     end
-    
-    properties (Dependent)
-        RelativeResultsPath_new = ''        
-        RelativeUserDefinedFunctionsPath_new = ''
-        RelativeObjectiveFunctionsPath_new = ''        
-        RelativeAutoSavePath_new = ''                
-    end
-        
-    properties (Dependent=true, SetAccess='immutable')
-        ResultsDirectory
-        ObjectiveFunctionsDirectory
-        UserDefinedFunctionsDirectory
-        AutoSaveDirectory
-    end
-    
+            
     %% Constructor and Destructor
     methods
         function obj = Session(varargin)
@@ -130,6 +149,10 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
             % Populate public properties from P-V input pairs
             obj.assignPVPairs(varargin{:});
             
+            % Instantiate logger object
+%             obj.LoggerObj = QSPViewerNew.Widgets.Logger(strcat(string(datetime('now', 'format', 'MMMddyyyyhhmm')), "_session"));
+%             obj.updateLogger();
+            
             % Provide Session handle to Settings
             obj.Settings.Session = obj;
             
@@ -140,28 +163,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
             else
                 obj.ParallelCluster = {''};
             end
-            
-            % check if the new path fields need to be set from old
-            % properties
-            if ~isempty(obj.RelativeResultsPath)
-                obj.RelativeResultsPath_new = obj.RelativeResultsPath;
-                obj.RelativeResultsPath = [];                
-            end
-            
-            if ~isempty(obj.RelativeUserDefinedFunctionsPath)
-                obj.RelativeUserDefinedFunctionsPath_new = obj.RelativeUserDefinedFunctionsPath;
-                obj.RelativeUserDefinedFunctionsPath = [];
-            end
-            
-            if ~isempty(obj.RelativeObjectiveFunctionsPath)
-                obj.RelativeObjectiveFunctionsPath_new = obj.RelativeObjectiveFunctionsPath;
-                obj.RelativeObjectiveFunctionsPath = [];
-            end
-            
-            if ~isempty(obj.RelativeAutoSavePath)
-                obj.RelativeAutoSavePath_new = obj.RelativeAutoSavePath;
-                obj.RelativeAutoSavePath = [];
-            end
+           
             
 %             % Initialize timer - If you call initialize here, it will
 %             enter a recursive loop. Do not call here. Instead, invoke
@@ -172,6 +174,16 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         end %function obj = Session(varargin)
         
         % Destructor
+        function delete(obj)
+            if ~isempty(obj.LogHandle) && obj.LogHandle > 0
+                try
+                    status = fclose(obj.LogHandle);
+                catch err
+                   warning(err.identifier, 'Failed to close the log file.\n%s', err.message);
+                end
+
+            end
+        end
 %         function delete(obj)
 %             removeUDF(obj)             
 %         end
@@ -183,7 +195,23 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
     methods (Static=true)
         function obj = loadobj(s)
             
-            obj = s;
+            if isa(s, 'QSP.Session')
+                obj = s;
+            else
+                obj = QSP.Session;
+                props = fields(s);
+                invalidProps = {};
+                for i = 1:numel(props)
+                    try
+                        obj.(props{i}) = s.(props{i});
+                    catch
+                        invalidProps = [invalidProps, props{i}];
+                    end
+                end
+                if ~isempty(invalidProps)
+                    warning('Unable to set properties %s.', strjoin(invalidProps, ','));
+                end
+            end
             
             % check if the root directory does not exist
             % for example if running on a worker on a remote cluster
@@ -211,7 +239,9 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
             end
             % Invoke refreshData
             try 
-                [StatusOK,Message] = refreshData(obj.Settings);
+                % Pass in no UI here regardless of CLI or UI access. Part
+                % of cleanup separating the model and the view.
+                [StatusOK,Message] = refreshData(obj.Settings, false);
             catch err
                 if strcmp(err.identifier, 'Settings:CancelledLoad')
                      % cancelled
@@ -241,12 +271,23 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
                 'Root Directory',obj.RootDirectory;
                 'Objective Functions Directory',obj.ObjectiveFunctionsDirectory;
                 'User Functions Directory',obj.UserDefinedFunctionsDirectory;
+                'Plugins Directory',obj.PluginsDirectory;
+                'Enable Logging', mat2str(obj.UseLogging);
+                'Log file', obj.LogFile;
+                'Use Git Versioning', mat2str(obj.AutoSaveGit);
+                'Git Repository Directory', obj.GitRepo;
+                'Use SQLite DB', mat2str(obj.UseSQL);
+                'SQLite DB file', obj.experimentsDB;
                 'Use parallel toolbox', mat2str(logical(obj.UseParallel));
                 'Parallel cluster', obj.ParallelCluster;
                 'Use AutoSave',mat2str(obj.UseAutoSaveTimer);
                 'AutoSave Directory',obj.AutoSaveDirectory;
+                'Enable Checkpoints',mat2str(~obj.AutoSaveSingleFile);
                 'AutoSave Frequency (min)',num2str(obj.AutoSaveFrequency);
-                'AutoSave Before Run',mat2str(obj.AutoSaveBeforeRun);                
+                'AutoSave Before Run',mat2str(obj.AutoSaveBeforeRun);  
+                'Logger File', obj.LoggerFile;
+                'Logger Level (Dialog)', sprintf('%-7s', obj.LoggerSeverityDialog);
+                'Logger Level (File)', sprintf('%-7s', obj.LoggerSeverityFile);
                 };
         end
         
@@ -303,6 +344,24 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
             
         end %function
         
+        function updateTimerObj(obj)
+            if obj.UseAutoSaveTimer 
+                if ~isempty(obj.timerObj) && isvalid(obj.timerObj)
+                    if ~strcmpi(obj.timerObj.Running,'on')
+                        start(obj.timerObj);
+                    end
+                else
+                    obj.initializeTimer();
+                end
+            else
+                if ~isempty(obj.timerObj) && isvalid(obj.timerObj)
+                    if strcmpi(obj.timerObj.Running,'on')
+                        stop(obj.timerObj);
+                    end
+                end
+            end
+        end
+        
         function deleteTimer(obj)
             if ~isempty(obj.timerObj) && isvalid(obj.timerObj)
                 if strcmpi(obj.timerObj.Running,'on')
@@ -326,56 +385,28 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
               
                 newObj.RootDirectory = obj.RootDirectory;
                 
-                if ~isempty(obj.RelativeResultsPath)
-                    if ispc
-                        newPath = strrep(obj.RelativeResultsPath, '/', '\');
-                    else
-                        newPath = strrep(obj.RelativeResultsPath, '\', '/');
-                    end
-                    newObj.RelativeResultsPath_new = newPath;
-                    
-                else
-                    newObj.RelativeResultsPath_new = obj.RelativeResultsPath_new;
-                end
+                newObj.RelativeResultsPathParts = obj.RelativeResultsPathParts;
+                newObj.RelativeUserDefinedFunctionsPathParts = obj.RelativeUserDefinedFunctionsPathParts;
+                newObj.RelativeObjectiveFunctionsPathParts = obj.RelativeObjectiveFunctionsPathParts;
+                newObj.RelativePluginsPathParts = obj.RelativePluginsPathParts;
+                newObj.RelativeAutoSavePathParts = obj.RelativeAutoSavePathParts;
+                newObj.RelativeLoggerFilePathParts = obj.RelativeLoggerFilePathParts;
                 
-               if ~isempty(obj.RelativeUserDefinedFunctionsPath)
-                    if ispc
-                        newPath = strrep(obj.RelativeUserDefinedFunctionsPath, '/', '\');
-                    else
-                        newPath = strrep(obj.RelativeUserDefinedFunctionsPath, '\', '/');
-                    end
-                    newObj.RelativeUserDefinedFunctionsPath_new = newPath;
-                else
-                    newObj.RelativeUserDefinedFunctionsPath_new = obj.RelativeUserDefinedFunctionsPath_new;
-                end
-                
-               if ~isempty(obj.RelativeObjectiveFunctionsPath)
-                    if ispc
-                        newPath = strrep(obj.RelativeObjectiveFunctionsPath, '/', '\');
-                    else
-                        newPath = strrep(obj.RelativeObjectiveFunctionsPath, '\', '/');
-                    end
-                    newObj.RelativeObjectiveFunctionsPath_new = newPath;
-                else
-                    newObj.RelativeObjectiveFunctionsPath_new = obj.RelativeObjectiveFunctionsPath_new;
-               end
-
-                if ~isempty(obj.RelativeAutoSavePath)
-                    if ispc
-                        newPath = strrep(obj.RelativeAutoSavePath, '/', '\');
-                    else
-                        newPath = strrep(obj.RelativeAutoSavePath, '\', '/');
-                    end
-                    newObj.RelativeAutoSavePath_new = newPath;
-                else
-                    newObj.RelativeAutoSavePath_new = obj.RelativeAutoSavePath_new;
-                end                                               
-                
+                newObj.AutoSaveSingleFile = obj.AutoSaveSingleFile;
                 newObj.AutoSaveFrequency = obj.AutoSaveFrequency;
                 newObj.AutoSaveBeforeRun = obj.AutoSaveBeforeRun;
                 newObj.UseParallel = obj.UseParallel;
                 newObj.ParallelCluster = obj.ParallelCluster;
+                
                 newObj.UseAutoSaveTimer = obj.UseAutoSaveTimer;
+                
+                newObj.LoggerSeverityDialog = obj.LoggerSeverityDialog;
+                newObj.LoggerSeverityFile = obj.LoggerSeverityFile;
+                
+                newObj.UseLogging = obj.UseLogging;
+                newObj.AutoSaveGit = obj.AutoSaveGit;
+                newObj.GitRepo = obj.GitRepo;
+                newObj.UseSQL = obj.UseSQL;
                 
                 newObj.LastSavedTime = obj.LastSavedTime;
                 newObj.LastValidatedTime = obj.LastValidatedTime;
@@ -387,22 +418,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
                 sObj.Session = newObj;
                 
                 newObj.Settings = sObj;
-                SettingsItems = {'Task','VirtualPopulation','Parameters','OptimizationData','VirtualPopulationData','VirtualPopulationGenerationData','Model'};
-                for idxType = 1:length(SettingsItems)
-                    thisSetting = newObj.Settings.(SettingsItems{idxType});
-                    for idxItem = 1:length(thisSetting)
-                        if ~isempty(thisSetting(idxItem).RelativeFilePath)
-                            if ispc
-                                newPath = strrep(thisSetting(idxItem).RelativeFilePath, '/', '\');
-                            else
-                                newPath = strrep(thisSetting(idxItem).RelativeFilePath, '\', '/');
-                            end
-
-                            thisSetting(idxItem).RelativeFilePath_new = newPath;
-                        end
-                    end
-                end
-                                
+                               
                 newObj.Simulation = obj.Simulation;
                 for idxSimulation = 1:length(newObj.Simulation)
                     if ~isempty(newObj.Simulation(idxSimulation).SimResultsFolderName)
@@ -451,84 +467,32 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
                     end
                 end
                 
+                newObj.GlobalSensitivityAnalysis = obj.GlobalSensitivityAnalysis;
+                
                 newObj.Deleted = obj.Deleted;
                 
                 for idx = 1:numel(obj.Settings.Task)
 %                     sObj.Task(idx) = copy(obj.Settings.Task(idx));
-                    if ~isempty(sObj.Task(idx).RelativeFilePath)
-                        if ispc
-                            newPath = strrep(sObj.Task(idx).RelativeFilePath, '/', '\');
-                        else
-                            newPath = strrep(sObj.Task(idx).RelativeFilePath, '\', '/');
-                        end
-                        sObj.Task(idx).RelativeFilePath_new = newPath;
-                        sObj.Task(idx).RelativeFilePath = [];
-                    end
                     sObj.Task(idx).Session = newObj;
                 end
                 for idx = 1:numel(obj.Settings.VirtualPopulation)
 %                     sObj.VirtualPopulation(idx) = copy(obj.Settings.VirtualPopulation(idx));
-                    if ~isempty(sObj.VirtualPopulation(idx).RelativeFilePath)
-                        if ispc
-                            newPath = strrep(sObj.VirtualPopulation(idx).RelativeFilePath, '/', '\');
-                        else
-                            newPath = strrep(sObj.VirtualPopulation(idx).RelativeFilePath, '\', '/');
-                        end
-                        sObj.VirtualPopulation(idx).RelativeFilePath_new = newPath;
-                        sObj.VirtualPopulation(idx).RelativeFilePath = [];
-                    end
                     sObj.VirtualPopulation(idx).Session = newObj;
                 end
                 for idx = 1:numel(obj.Settings.Parameters)
 %                     sObj.Parameters(idx) = copy(obj.Settings.Parameters(idx));
-                    if ~isempty(sObj.Parameters(idx).RelativeFilePath)
-                        if ispc
-                            newPath = strrep(sObj.Parameters(idx).RelativeFilePath, '/', '\');
-                        else
-                            newPath = strrep(sObj.Parameters(idx).RelativeFilePath, '\', '/');
-                        end
-                        sObj.Parameters(idx).RelativeFilePath_new = newPath;
-                        sObj.Parameters(idx).RelativeFilePath = [];
-                    end
                     sObj.Parameters(idx).Session = newObj;
                 end
                 for idx = 1:numel(obj.Settings.OptimizationData)
 %                     sObj.OptimizationData(idx) = copy(obj.Settings.OptimizationData(idx));
-                    if ~isempty(sObj.OptimizationData(idx).RelativeFilePath)
-                        if ispc
-                            newPath = strrep(sObj.OptimizationData(idx).RelativeFilePath, '/', '\');
-                        else
-                            newPath = strrep(sObj.OptimizationData(idx).RelativeFilePath, '\', '/');
-                        end
-                        sObj.OptimizationData(idx).RelativeFilePath_new = newPath;
-                        sObj.OptimizationData(idx).RelativeFilePath = [];
-                    end
                     sObj.OptimizationData(idx).Session = newObj;
                 end
                 for idx = 1:numel(obj.Settings.VirtualPopulationData)
 %                     sObj.VirtualPopulationData(idx) = copy(obj.Settings.VirtualPopulationData(idx));
-                    if ~isempty(sObj.VirtualPopulationData(idx).RelativeFilePath)
-                        if ispc
-                            newPath = strrep(sObj.VirtualPopulationData(idx).RelativeFilePath, '/', '\');
-                        else
-                            newPath = strrep(sObj.VirtualPopulationData(idx).RelativeFilePath, '\', '/');
-                        end
-                        sObj.VirtualPopulationData(idx).RelativeFilePath_new = newPath;
-                        sObj.VirtualPopulationData(idx).RelativeFilePath = [];
-                    end
                     sObj.VirtualPopulationData(idx).Session = newObj;
                 end
                 for idx = 1:numel(obj.Settings.VirtualPopulationGenerationData)
 %                     sObj.VirtualPopulationGenerationData(idx) = copy(obj.Settings.VirtualPopulationGenerationData(idx));
-                    if ~isempty(sObj.VirtualPopulationGenerationData(idx).RelativeFilePath)
-                        if ispc
-                            newPath = strrep(sObj.VirtualPopulationGenerationData(idx).RelativeFilePath, '/', '\');
-                        else
-                            newPath = strrep(sObj.VirtualPopulationGenerationData(idx).RelativeFilePath, '\', '/');
-                        end
-                        sObj.VirtualPopulationGenerationData(idx).RelativeFilePath_new = newPath;
-                        sObj.VirtualPopulationGenerationData(idx).RelativeFilePath = [];
-                    end
                     sObj.VirtualPopulationGenerationData(idx).Session = newObj;
                 end
           
@@ -553,6 +517,12 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
                     newObj.CohortGeneration(idx).Session = newObj;
                     newObj.CohortGeneration(idx).Settings = sObj;
                 end
+                
+                for idx = 1:numel(obj.GlobalSensitivityAnalysis)
+%                     newObj.CohortGeneration(idx) = copy(obj.CohortGeneration(idx));
+                    newObj.GlobalSensitivityAnalysis(idx).Session = newObj;
+                    newObj.GlobalSensitivityAnalysis(idx).Settings = sObj;
+                end
              
                 % TODO:
                 for index = 1:numel(obj.Deleted)
@@ -568,7 +538,10 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
             
         end %function
         
+        % todopax replace with a set method so that all methods call this
+        % function.
         function setSessionName(obj,SessionName)
+            updateLoggerName(obj, SessionName)
             obj.SessionName = SessionName;
         end %function
         
@@ -610,15 +583,21 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
             
             try
                 % Save when fired
-                s.Session = obj; %#ok<STRNU>
+                s.Session = obj; 
                 % Remove .qsp.mat from name temporarily
                 ThisName = regexprep(obj.SessionName,'\.qsp\.mat','');
-                TimeStamp = datestr(now,'dd-mmm-yyyy_HH-MM-SS');
-                if ~isempty(Tag)
-                    FileName = sprintf('%s_%s_%s.qsp.mat',ThisName,TimeStamp,Tag);
+                
+                if ~obj.AutoSaveSingleFile
+                    TimeStamp = datestr(now,'dd-mmm-yyyy_HH-MM-SS');
+                    if ~isempty(Tag)
+                        FileName = sprintf('%s_%s_%s.qsp.mat',ThisName,TimeStamp,Tag);
+                    else
+                        FileName = sprintf('%s_%s.qsp.mat',ThisName,TimeStamp);
+                    end
                 else
-                    FileName = sprintf('%s_%s.qsp.mat',ThisName,TimeStamp);
+                    FileName = sprintf('%s_autosave.qsp.mat', ThisName);
                 end
+                
                 if ~exist(obj.AutoSaveDirectory, 'dir')
                     mkdir(obj.AutoSaveDirectory)
                     warning('Creating autosave directory %s', obj.AutoSaveDirectory)
@@ -676,84 +655,327 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
                 
             end
         end
+
+        function addExperimentToDB(obj, type, Name, time, ResultFileNames)
+            rootDir = regexprep(obj.RootDirectory, '\\$', '');
+            
+            commit = git(sprintf('-C "%s" --git-dir="%s" rev-parse HEAD', rootDir, fullfile(rootDir,obj.GitRepo)));
+            cmd = sprintf('INSERT INTO Experiments VALUES ("%s", "%s", "%s", %f)', ...
+                type, Name, commit, time);
+            if isempty(obj.dbid)
+%                 system(sprintf('touch "%s"', fullfile(rootDir, obj.experimentsDB)) );
+                dbPath = fullfile(rootDir, obj.experimentsDB);
+                fclose(fopen(dbPath,'w'));
+                
+                obj.dbid = mksqlite(0, 'open', dbPath, 'rw');
+%                 obj.dbid = mksqlite('open', 'experiments.db3', 'rw');
+                
+                mksqlite(obj.dbid, 'create table if not exists EXPERIMENTS (Type TEXT, Item TEXT, GitCommit TEXT, Time INTEGER);')
+                mksqlite(obj.dbid, 'create table if not exists RUNS (Experiment INTEGER, Files TEXT);')                
+            end
+            
+            mksqlite( obj.dbid, cmd );
+                       
+            % add files
+            id=mksqlite(obj.dbid, sprintf('select rowid from Experiments where Type="%s" and Item="%s" and GitCommit="%s" and Time=%f', ...
+                type, Name, commit, time));
+            if iscell(ResultFileNames)
+                values=cellfun(@(s) sprintf('(%d, "%s")', id.rowid, s), ResultFileNames, 'UniformOutput', false);
+                cmd = sprintf('INSERT INTO RUNS VALUES %s', strjoin(values, ','));
+                
+            else
+                values = sprintf('(%d, "%s")', id.rowid, ResultFileNames);
+                cmd = sprintf('INSERT INTO RUNS VALUES %s', values);
+            end
+            
+            mksqlite(obj.dbid, cmd);
+            
+            
+        end
+        
+        function gitCommit(obj)
+            
+            gitFiles = obj.GitFiles;
+            tic
+            
+            rootDir = regexprep(obj.RootDirectory, '\\$', '');
+            
+            if ~exist(fullfile(rootDir, obj.GitRepo), 'dir')
+                obj.Log('creating git repository')
+                [repoPath,repo,~] = fileparts(obj.GitRepo);
+                result = git(sprintf('init "%s"', fullfile(rootDir, fullfile(repoPath,repo))));
+%                 if ~isempty(result)
+%                     warning(result)
+%                 end                
+            end
+                
+            % get all the changes for each of the model files
+            fileChanges = git(sprintf('-C "%s" --git-dir="%s" diff --name-only', ...
+                rootDir, obj.GitRepo));
+            fileChanges = strsplit(fileChanges,'\n');
+            % add files
+            for k=1:length(gitFiles)
+                result = git(sprintf('-C "%s" --git-dir="%s" add "%s" ', rootDir, ...
+                     obj.GitRepo, gitFiles{k}));
+                if ~isempty(result)
+                    warning(result)
+                end                
+            end
+            
+            diffMsg = '';
+
+            
+            % do some diffing on the excel files
+            for k=1:length(fileChanges)
+                thisFile = fileChanges{k};
+                [~,~,ext] = fileparts(thisFile);
+                if strcmp(ext,'.xlsx')
+                    tmpFile = [tempname '.xlsx'];
+                    tmpXlsx = git(sprintf('-C "%s" --git-dir="%s" show HEAD:"%s" > "%s" ', rootDir, ...
+                        obj.GitRepo, thisFile, tmpFile));
+                    
+                    % check if this is a vpop
+                    if ismember(thisFile, unique({obj.Settings.VirtualPopulation.RelativeFilePath}) )
+                        type = 'vpop';
+                    else
+                        type = '';
+                    end
+
+                    
+                    if isempty(type)
+                        xlsMsg = xlsxDiff(fullfile(rootDir, thisFile), tmpFile);
+                    else
+                        xlsMsg = xlsxDiff(fullfile(rootDir, thisFile), tmpFile, type);
+                    end
+                    
+                    diffMsg = sprintf('%s\n%s\n%s\n', diffMsg, thisFile, xlsMsg);
+                        
+                end
+            end
+            
+            
+            
+            % update files that were already added for now. would be better
+            % if this were only the files that are currently in the session
+            result = git(sprintf('-C "%s" --git-dir="%s" add -u ', rootDir, ...
+                obj.GitRepo));
+            if ~isempty(result)
+                warning(result)
+            end                    
+
+            % construct commit message
+%             gitMessage = git(sprintf('-C "%s" diff', obj.Session.RootDirectory));
+
+            
+            % get model files
+            objs = obj.Settings.Task;
+            sbprojFiles = {};
+            for ixObj = 1:length(objs)
+                m = objs(ixObj).ModelObj;
+                if ~isempty(m)
+                   sbprojFiles = [sbprojFiles, strrep( m.RelativeFilePath, [rootDir filesep], '')];
+                end
+            end
+            sbprojFiles = unique(sbprojFiles);
+            sbprojFiles = intersect(sbprojFiles, fileChanges);
+            
+            for ixProj = 1:length(sbprojFiles)
+                % pull out cached version for comparison
+                tmpFile = [tempname '.sbproj'];                
+                git(sprintf('-C "%s" --git-dir="%s" show HEAD:"%s" > "%s"', ...
+                    rootDir, obj.GitRepo, sbprojFiles{ixProj}, tmpFile ));
+                m1 = sbioloadproject( tmpFile);
+                m2 = sbioloadproject( fullfile(rootDir, sbprojFiles{ixProj}));
+                evalc('thisMsg = sbprojDiff(m1.m1, m2.m1)'); % TODO handle case with multiple models
+                diffMsg = [diffMsg, thisMsg]; 
+            end
+            
+            gitMessage = [fileChanges, diffMsg];
+            
+            gitMessage = sprintf('Snapshot at %s\r\n\r\n%s', datestr(now), strjoin(gitMessage,'\r\n'));
+          
+            result = git(sprintf('-C "%s" --git-dir="%s" commit -m "%s"', rootDir, obj.GitRepo, ...
+                gitMessage ));
+
+            fprintf('[%s] Committed snapshot to git (%0.2f s)\n', datestr(now), toc);
+
+            % TODO version control qsp session as well
+
+%                     if ~isempty(result)
+%                         warning(result)
+%                     end               
+            
+            
+        end
+      
+        function Log(obj,msg)
+            if ~obj.UseLogging
+                return
+            end
+
+            if isempty(obj.LogHandle)  
+                try
+                    obj.LogHandle = fopen(fullfile(obj.RootDirectory, obj.LogFile), 'a');
+                catch err
+                    warning(err.identifier, 'Could not open log file for writing.\n%s', err.message);
+                    obj.LogHandle = -1;
+                    return
+                end       
+            elseif obj.LogHandle == -1
+                return
+            end            
+
+            try
+                fprintf(obj.LogHandle, sprintf('[%s] %s\n', datestr(now), msg))  ;                      
+            catch
+                warning('Could not write to log file.' )
+                obj.LogHandle = -1;
+            end
+
+        end
+        
+        function updateLogger(obj)
+            loggerObj = QSPViewerNew.Widgets.Logger(obj.LoggerName);
+            loggerObj.MessageReceivedEventThreshold = obj.LoggerSeverityDialog;
+            loggerObj.FileThreshold = obj.LoggerSeverityFile;
+        end
+        
+        function updateLoggerName(obj, newSessionName)
+            loggerObj = QSPViewerNew.Widgets.Logger(obj.LoggerName);
+            
+            % check if logger exists in root directory
+            moveLogFile(loggerObj, obj.RootDirectory); % moves log file if not present in root dir
+            
+            % check if current logger name is same as new session name
+            [~,name,~] = fileparts(newSessionName);
+            if contains(name, '.qsp')
+                newLoggerName = extractBefore(name, ".qsp");
+            else
+                newLoggerName = name;
+            end
+            
+            if ~isequal(newLoggerName, obj.LoggerName)
+                rename(loggerObj, newLoggerName);
+            end
+        end
+        
+        function updateLoggerFileDir(obj)
+            loggerObj = QSPViewerNew.Widgets.Logger(obj.LoggerName);
+            
+            % check if logger exists in root directory
+            moveLogFile(loggerObj, obj.RootDirectory); % moves log file if not present in root dir
+        end
         
     end %methods    
     
     %% Get/Set Methods
     methods
-      
-        function set.RootDirectory(obj,Value)
-            validateattributes(Value,{'char'},{});
-            obj.RootDirectory = fullfile(Value);
-        end %function
-        
-        function set.RelativeResultsPath_new(obj,Value)
-            validateattributes(Value,{'char'},{});
-%             obj.RelativeResultsPath = fullfile(Value);
-            obj.RelativeResultsPathParts = strsplit(fullfile(Value), filesep);
-        end %function\
-        
-        function Value=get.RelativeResultsPath_new(obj)
-            Value = strjoin(obj.RelativeResultsPathParts, filesep);
+        function set.RootDirectory(obj, value)
+            arguments 
+                obj   (1,1) QSP.Session
+                value (1,:) char
+            end
+            obj.RootDirectory = value;
+%            obj.updateLoggerFileDir();
         end
         
-        function set.RelativeObjectiveFunctionsPath_new(obj,Value)
-            validateattributes(Value,{'char'},{});
-%             obj.RelativeObjectiveFunctionsPath = fullfile(Value);
-            obj.RelativeObjectiveFunctionsPathParts = strsplit(fullfile(Value),filesep);
-        end %function
+        function set.RelativeResultsPath(obj, value)
+            arguments 
+                obj   (1,1) QSP.Session
+                value (1,:) char
+            end
+            value = obj.updatePath(value);
+            obj.RelativeResultsPathParts = strsplit(value, filesep);
+        end
+        function value = get.RelativeResultsPath(obj)
+            value = fullfile(obj.RelativeResultsPathParts{:});
+        end
+
+        function set.RelativeUserDefinedFunctionsPath(obj, value)
+            arguments 
+                obj   (1,1) QSP.Session
+                value (1,:) char
+            end
+            value = obj.updatePath(value);
+            obj.RelativeUserDefinedFunctionsPathParts = strsplit(value, filesep);
+        end
+        function value = get.RelativeUserDefinedFunctionsPath(obj)
+            value = fullfile(obj.RelativeUserDefinedFunctionsPathParts{:});
+        end
         
-        function Value = get.RelativeObjectiveFunctionsPath_new(obj)
-            if ~isempty(obj.RelativeObjectiveFunctionsPathParts)
-                Value = strjoin(obj.RelativeObjectiveFunctionsPathParts, filesep);
+        function set.RelativeObjectiveFunctionsPath(obj, value)
+            arguments 
+                obj   (1,1) QSP.Session
+                value (1,:) char
+            end
+            value = obj.updatePath(value);
+            obj.RelativeObjectiveFunctionsPathParts = strsplit(value, filesep);
+        end
+        function value = get.RelativeObjectiveFunctionsPath(obj)
+            value = fullfile(obj.RelativeObjectiveFunctionsPathParts{:});
+        end
+        
+        function set.RelativePluginsPath(obj, value)
+            arguments 
+                obj   (1,1) QSP.Session
+                value (1,:) char
+            end
+            value = obj.updatePath(value);
+            obj.RelativePluginsPathParts = strsplit(value, filesep);
+        end
+        function value = get.RelativePluginsPath(obj)
+            value = fullfile(obj.RelativePluginsPathParts{:});
+        end
+        
+        function set.RelativeAutoSavePath(obj, value)
+            arguments 
+                obj   (1,1) QSP.Session
+                value (1,:) char
+            end
+            value = obj.updatePath(value);
+            obj.RelativeAutoSavePathParts = strsplit(value, filesep);
+        end
+        function value = get.RelativeAutoSavePath(obj)
+            value = fullfile(obj.RelativeAutoSavePathParts{:});
+        end
+        
+        function value = get.RelativeLoggerFilePath(obj)
+            value = fullfile(obj.RelativeLoggerFilePathParts{:});
+        end
+        
+        function value = get.RelativeLoggerFilePathParts(obj)
+            loggerObj = QSPViewerNew.Widgets.Logger(obj.LoggerName);
+            [~,name,ext] = fileparts(loggerObj.LogFile);
+            value = strcat(name,ext);
+        end
+        
+        function value = get.LoggerName(obj)
+            [~,name,~] = fileparts(obj.SessionName);
+            if contains(name, '.qsp')
+                value = extractBefore(name, ".qsp");
             else
-                Value = '';
+                value = name;
             end
         end
-        
-                
-        function set.RelativeUserDefinedFunctionsPath_new(obj,Value)
-            validateattributes(Value,{'char'},{});
-%             obj.RelativeUserDefinedFunctionsPath = fullfile(Value);
-            obj.RelativeUserDefinedFunctionsPathParts = strsplit(fullfile(Value), filesep);
-        end %function
-        
-        function Value = get.RelativeUserDefinedFunctionsPath_new(obj)
-            if ~isempty(obj.RelativeUserDefinedFunctionsPathParts)
-                Value = strjoin(obj.RelativeUserDefinedFunctionsPathParts, filesep);
-            else
-                Value = '';
-            end
-                
-        end
-            
-                
-        function set.RelativeAutoSavePath_new(obj,Value)
-            validateattributes(Value,{'char'},{});
-%             obj.RelativeAutoSavePath = fullfile(Value);                
-            obj.RelativeAutoSavePathParts = strsplit(fullfile(Value), filesep);           
-        end %function
-        
-        function Value = get.RelativeAutoSavePath_new(obj)
-            Value = strjoin(obj.RelativeAutoSavePathParts,filesep);
-        end
-        
+         
+        % TODOpax why do we need this
         function addUDF(obj)
+            if false %TODOpax
             % add the UDF to the path
             p = path;
-            if isempty(obj.RelativeUserDefinedFunctionsPath_new)
+            if isempty(obj.RelativeUserDefinedFunctionsPath)
                 % don't add anything unless UDF is defined
                 return
             end
             
-            UDF = fullfile(obj.RootDirectory, obj.RelativeUserDefinedFunctionsPath_new);
+            UDF = fullfile(obj.RootDirectory, obj.RelativeUserDefinedFunctionsPath);
             
             if exist(UDF, 'dir')
-                if ~isempty(obj.RelativeUserDefinedFunctionsPath_new) && ...
-                	isempty(strfind(p, UDF))
+                if ~isempty(obj.RelativeUserDefinedFunctionsPath) && ~contains(p, UDF)
                     addpath(genpath(UDF))
                 end
             end    
+            end
         end
         
         function removeUDF(obj)
@@ -763,7 +985,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
             end
                 
             % don't do anything if the UDF is empty
-            if isempty(obj.RelativeUserDefinedFunctionsPath_new)
+            if isempty(obj.RelativeUserDefinedFunctionsPath)
                 return
             end
             
@@ -771,9 +993,9 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
             
             p = path;
             try
-                subdirs = genpath(fullfile(obj.RootDirectory, obj.RelativeUserDefinedFunctionsPath_new));
+                subdirs = genpath(uix.utility.getAbsoluteFilePath(obj.RelativeUserDefinedFunctionsPath, obj.RootDirectory));
             catch err
-                warning('Unable to remove UDF from path\n%s', err.message)
+                warning(err.identifier, 'Unable to remove UDF from path\n%s', err.message);
                 return
             end
             if isempty(subdirs)
@@ -800,29 +1022,43 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         end
         
         function value = get.ResultsDirectory(obj)
-            value = fullfile(obj.RootDirectory, obj.RelativeResultsPath_new);
-            if obj.UseParallel && ~isempty(getCurrentWorker)
+            value = uix.utility.getAbsoluteFilePath(obj.RelativeResultsPath, obj.RootDirectory);
+            if ~isempty(getCurrentWorker)
                 value = getAttachedFilesFolder(value);
             end
         end
         
         function value = get.ObjectiveFunctionsDirectory(obj)
-            value = fullfile(obj.RootDirectory, obj.RelativeObjectiveFunctionsPath_new);
-            if obj.UseParallel && ~isempty(getCurrentWorker)
+            value = uix.utility.getAbsoluteFilePath(obj.RelativeObjectiveFunctionsPath, obj.RootDirectory);
+            if ~isempty(getCurrentWorker)
                 value = getAttachedFilesFolder(value);
             end            
         end
         
         function value = get.UserDefinedFunctionsDirectory(obj)
-            value = fullfile(obj.RootDirectory, obj.RelativeUserDefinedFunctionsPath_new);
-            if obj.UseParallel && ~isempty(getCurrentWorker)
+            value = uix.utility.getAbsoluteFilePath(obj.RelativeUserDefinedFunctionsPath, obj.RootDirectory);
+            if ~isempty(getCurrentWorker)
+                value = getAttachedFilesFolder(value);
+            end            
+        end
+        
+        function value = get.PluginsDirectory(obj)
+            value = uix.utility.getAbsoluteFilePath(obj.RelativePluginsPath, obj.RootDirectory);
+            if ~isempty(getCurrentWorker)
                 value = getAttachedFilesFolder(value);
             end            
         end
         
         function value = get.AutoSaveDirectory(obj)
-            value = fullfile(obj.RootDirectory, obj.RelativeAutoSavePath_new);
-            if obj.UseParallel && ~isempty(getCurrentWorker)
+            value = uix.utility.getAbsoluteFilePath(obj.RelativeAutoSavePath, obj.RootDirectory);
+            if ~isempty(getCurrentWorker)
+                value = getAttachedFilesFolder(value);
+            end            
+        end
+        
+        function value = get.LoggerFile(obj)
+            value = uix.utility.getAbsoluteFilePath(obj.RelativeLoggerFilePath, obj.RootDirectory);
+            if ~isempty(getCurrentWorker)
                 value = getAttachedFilesFolder(value);
             end            
         end
@@ -830,6 +1066,12 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         function set.UseAutoSaveTimer(obj,Value)
             validateattributes(Value,{'logical'},{'scalar'});
             obj.UseAutoSaveTimer = Value;
+            obj.updateTimerObj();
+        end
+        
+        function set.AutoSaveSingleFile(obj,Value)
+            validateattributes(Value,{'logical'},{'scalar'});
+            obj.AutoSaveSingleFile = Value;
         end
         
         function set.AutoSaveFrequency(obj,Value)
@@ -852,10 +1094,76 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
             obj.ColorMap2 = Value;
         end
         
-       
+        function set.LoggerSeverityDialog(obj,Value)
+            obj.LoggerSeverityDialog = Value;
+            obj.updateLogger();
+        end
+        
+        function set.LoggerSeverityFile(obj,Value)
+            obj.LoggerSeverityFile = Value;
+            obj.updateLogger();
+        end
+        
+        function files = get.GitFiles(obj)
+            allFiles = {};
+
+            % session
+            allFiles = [allFiles, obj.SessionName];
+            
+            % model files
+            files = {};
+            objs = obj.Settings.Task;
+            for ixObj = 1:length(objs)
+                m = objs(ixObj).ModelObj;
+                if ~isempty(m)
+                   allFiles = [allFiles, strrep( m.RelativeFilePath, [obj.RootDirectory filesep], '')];
+                end
+            end
+            allFiles = unique(allFiles);
+            
+            files = allFiles;
+            
+            %% input files
+            
+            % virtual populations
+            files = [files, unique({obj.Settings.VirtualPopulation.RelativeFilePath})];
+            
+            % parameters
+            files = [files, unique({obj.Settings.Parameters.RelativeFilePath})];
+            
+            % data
+            files = [files, unique({obj.Settings.OptimizationData.RelativeFilePath})];
+            
+            % acceptance criteria
+            files = [files, unique({obj.Settings.VirtualPopulationData.RelativeFilePath})];
+            
+            % target statistics
+            files = [files, unique({obj.Settings.VirtualPopulationGenerationData.RelativeFilePath})];
+            
+            % Session
+            
+            % remove . for empty items
+            files = setdiff(files, {'.','./','.\'});
+            
+        end
         
     end %methods
-       
+    
+    %% Utility Methods
+    methods
+        function sObj = getSimulationItem(obj, Name)
+            MatchIdx = strcmp(Name, {obj.Simulation.Name});
+            sObj = [];
+            if any(MatchIdx)
+                sObj = obj.Simulation(MatchIdx);
+            else
+                warning('Simulation %s not found in session', Name)
+            end
+        end
+
+    end
+
+    
     %% API methods - Helper
     methods (Access=private)
         function newObj = AddHelper(obj,FuncType,varargin)
@@ -912,6 +1220,60 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
             newObj = AddHelper(obj,'QSP.Task',varargin(:));
         end %function
         
+        function sObj = getVPopItem(obj, Name)
+            MatchIdx = strcmp(Name, {obj.Settings.VirtualPopulation.Name});
+            sObj = [];
+            if any(MatchIdx)
+                sObj = obj.Settings.VirtualPopulation(MatchIdx);
+            else
+                warning('Virtual subjects %s not found in session', Name)
+            end
+        end        
+        
+        function sObj = getTaskItem(obj, Name)
+            MatchIdx = strcmp(Name, {obj.Settings.Task.Name});
+            sObj = [];
+            if any(MatchIdx)
+                sObj = obj.Settings.Task(MatchIdx);
+            else
+                warning('Task %s not found in session', Name)
+            end            
+        end
+        
+        function mObj = GetModelItem(obj, Name)
+            MatchIdx = strcmp(Name, {obj.Settings.Model.ModelName});
+            mObj = [];
+            if any(MatchIdx)
+                mObj = obj.Settings.Model(MatchIdx);
+            else
+                warning('Model %s not found in session', Name)
+            end            
+        end
+            
+        function sObj = getACItem(obj, Name)
+            MatchIdx = strcmp(Name, {obj.Settings.VirtualPopulationData.Name});
+            sObj = [];
+            if any(MatchIdx)
+                sObj = obj.Settings.VirtualPopulationData(MatchIdx);
+            else
+                warning('Acceptance Criteria %s not found in session', Name)
+            end
+        end           
+        
+        function sObj = getDataItem(obj, Name)
+            MatchIdx = strcmp(Name, {obj.Settings.OptimizationData.Name});
+            sObj = [];
+            if any(MatchIdx)
+                sObj = obj.Settings.OptimizationData(MatchIdx);
+            else
+                warning('Optimization Data %s not found in session', Name)
+            end
+        end
+
+    end %methods
+    
+    %% API methods
+    methods 
         function thisObj = GetTask(obj,Name)
             thisObj = obj.Settings.Task(strcmp({obj.Settings.Task.Name},Name));
         end %function
@@ -987,14 +1349,13 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         function thisObj = GetVirtualPopulationGeneration(obj,Name)
             thisObj = obj.VirtualPopulationGeneration(strcmp({obj.VirtualPopulationGeneration.Name},Name));
         end %function
-        
-        function thisObj = GetModelItem(obj, Name)
-            MatchIdx = strcmp(Name, {obj.Settings.Model.ModelName});
-            thisObj = [];
-            if any(MatchIdx)
-                thisObj = obj.Settings.Model(MatchIdx);
-            else
-                warning('Model %s not found in session', Name)
+          
+        function relativePath = getTaskRelativePath(obj, taskName)
+            relativePath = '';
+            
+            idx = strcmp({obj.Settings.Task.Name}, taskName);
+            if any(idx)
+                relativePath = obj.Settings.Task(idx).ModelObj.RelativeFilePath;
             end
         end
         

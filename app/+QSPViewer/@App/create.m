@@ -4,13 +4,6 @@ function create(obj)
 % Abstract: This method creates all parts of the main obj display
 %
 
-% Copyright 2019 The MathWorks, Inc.
-%
-% Auth/Revision:
-%   MathWorks Consulting
-%   $Author: rjackey $
-%   $Revision: 249 $  $Date: 2016-08-24 08:48:10 -0400 (Wed, 24 Aug 2016) $
-% ---------------------------------------------------------------------
 
 
 %% Create QSP Menus
@@ -111,6 +104,18 @@ for idx=1:size(ItemTypes,1)
         'Label', ['Delete this ' ThisItemType],...
         'Separator', 'on',...
         'Callback', @(h,e)onRemoveItem(obj));
+    
+    % add plug-ins
+    idxPlugin = find(strcmp({obj.Plugins.Target}, ItemTypes{idx,2}));
+    for k = 1:length(idxPlugin)
+        pluginId = idxPlugin(k);
+        pluginHandle = str2func(obj.Plugins(pluginId).Function);
+        uimenu(...
+            'Parent', obj.h.TreeMenu.Leaf.(ItemTypes{idx,2}),...
+            'Text', strrep(obj.Plugins(pluginId).Label, '"', ''),...
+            'Separator', 'on',...
+            'MenuSelectedFcn', @(h,e) pluginHandle(obj, obj.h.SessionTree.SelectedNodes) );
+    end
 end
 
 % For Deleted Items

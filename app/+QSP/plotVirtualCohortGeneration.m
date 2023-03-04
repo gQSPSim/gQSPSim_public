@@ -20,13 +20,6 @@ function [hSpeciesGroup,hDatasetGroup,hLegend,hLegendChildren] = plotVirtualCoho
 % Notes: none
 %
 
-% Copyright 2019 The MathWorks, Inc.
-%
-% Auth/Revision:
-%   MathWorks Consulting
-%   $Author: agajjala $
-%   $Revision: 331 $  $Date: 2016-10-05 18:01:36 -0400 (Wed, 05 Oct 2016) $
-% ---------------------------------------------------------------------
 
 p = inputParser;
 p.KeepUnmatched = false;
@@ -45,8 +38,10 @@ for index = 1:numel(hAxes)
     %     XLimMode{index} = get(hAxes(index),'XLimMode');
     %     YLimMode{index} = get(hAxes(index),'YLimMode');
     cla(hAxes(index));
-    xr = get(hAxes(index),'xruler');
-    xr.TickLabelRotation = 0;
+    if isa(hAxes(index),'matlab.graphics.axis.Axes')
+        xr = get(hAxes(index),'xruler');
+        xr.TickLabelRotation = 0;
+    end
     
     legend(hAxes(index),'off')
     %     set(hAxes(index),'XLimMode',XLimMode{index},'YLimMode',YLimMode{index})
@@ -396,12 +391,12 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
             if isempty(thisData)
                 continue
             end
-            
+
             % invalid lines
             if ~isempty(ColumnIdx_invalid)
                 nInvalid = length(ColumnIdx_invalid);
                 ixSample = discretesample(ones(size(ColumnIdx_invalid))/length(ColumnIdx_invalid), min(nInvalid,obj.MaxTracesToDisplay));
-                ColumnIdx_invalid_sample = ColumnIdx_invalid(ixSample);               
+                ColumnIdx_invalid_sample = ColumnIdx_invalid(ixSample);
                 % Plot
                 hThis = plot(hSpeciesGroup{sIdx,axIdx},Results{itemIdx}.Time,thisData(:,ColumnIdx_invalid_sample),...
                     'Color',[0.5,0.5,0.5],...
@@ -436,7 +431,7 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
                     nValid = length(ValidIdx);
                     sampleIdx = discretesample(ones(size(ValidIdx))/length(ValidIdx), min(nValid,obj.MaxTracesToDisplay));
                     ValidIdx = ValidIdx(sampleIdx);
-                                        
+                    
                     x = thisData(:,ValidIdx);
                     w = ones(size(x,2),1) * 1/size(x,2);
                 else
@@ -632,7 +627,8 @@ for sIdx = 1:size(obj.PlotSpeciesTable,1)
     
     overlays = [ublb_lines; acc_lines; rej_lines];
     if ~isempty(overlays)
-        uistack(overlays,'top');
+        %uistack is not supported using uiaxes. 
+        %uistack(overlays,'top');
     end
     
 end %for

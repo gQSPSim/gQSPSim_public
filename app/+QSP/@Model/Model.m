@@ -18,13 +18,6 @@ classdef Model < QSP.abstract.BaseProps
     %
     %
     
-    % Copyright 2019 The MathWorks, Inc.
-    %
-    % Auth/Revision:
-    %   MathWorks Consulting
-    %   $Author: agajjala $
-    %   $Revision: 328 $  $Date: 2016-09-23 17:49:09 -0400 (Fri, 23 Sep 2016) $
-    % ---------------------------------------------------------------------
     
     %% Properties
     properties                
@@ -274,11 +267,9 @@ classdef Model < QSP.abstract.BaseProps
         
         function Value = get.VariantNames(obj)
             if ~isempty(obj.mObj)
-                Value = getvariant(obj.mObj);
-                Value = get(Value,'Name');
-                if isempty(Value)
-                    Value = cell(0,1);
-                end
+                Variants = getvariant(obj.mObj);
+                Value = {Variants.Name};
+                Value = reshape(Value,[],1);
             else
                 Value = cell(0,1);
             end
@@ -286,13 +277,9 @@ classdef Model < QSP.abstract.BaseProps
         
         function Value = get.DoseNames(obj)
             if ~isempty(obj.mObj)
-                Value = getdose(obj.mObj);
-                Value = get(Value,'Name');
-                if isempty(Value)
-                    Value = cell(0,1);
-                elseif ischar(Value)
-                    Value = {Value};
-                end
+                Doses = getdose(obj.mObj);
+                Value = {Doses.Name};
+                Value = reshape(Value,[],1);
             else
                 Value = cell(0,1);
             end
@@ -300,23 +287,13 @@ classdef Model < QSP.abstract.BaseProps
         
         function Value = get.SpeciesNames(obj)
             if ~isempty(obj.mObj)
-                Value = sbioselect(obj.mObj, 'Type', 'Species');
-                
-                nComp = length(sbioselect(obj.mObj, 'Type', 'Compartment'));
-                Value2 = {};
-                if nComp>1
-                    for k=1:length(Value)
-                        Value2{k} = sprintf('%s.%s', get(Value(k).Parent, 'Name'), Value(k).Name);
-                    end
-                    Value = Value2';
-                else
-                    Value = get(Value,'Name');
+                Value = {obj.mObj.Species.Name};
+                if numel(obj.mObj.Compartments) > 1
+                    Parent = {obj.mObj.Species.Parent};
+                    Value = cellfun(@(parent, speciesName) sprintf('%s.%s', parent.Name, speciesName), ...
+                        Parent, Value, 'UniformOutput', false);
                 end
-                if isempty(Value)
-                    Value = cell(0,1);
-                elseif ischar(Value)
-                    Value = {Value};
-                end
+                Value = reshape(Value,[],1);
             else
                 Value = cell(0,1);
             end
@@ -324,13 +301,8 @@ classdef Model < QSP.abstract.BaseProps
         
         function Value = get.ParameterNames(obj)
             if ~isempty(obj.mObj)
-                Value = sbioselect(obj.mObj,'Type','Parameter');                
-                Value = get(Value,'Name');
-                if isempty(Value)
-                    Value = cell(0,1);
-                elseif ischar(Value)
-                    Value = {Value};
-                end
+                Value = {obj.mObj.Parameters.Name};
+                Value = reshape(Value,[],1);
             else
                 Value = cell(0,1);
             end
@@ -338,13 +310,8 @@ classdef Model < QSP.abstract.BaseProps
         
         function Value = get.ParameterValues(obj)
             if ~isempty(obj.mObj)
-                Value = sbioselect(obj.mObj,'Type','Parameter');                                
-                Value = get(Value,'Value');
-                if isempty(Value)
-                    Value = cell(0,1);
-                elseif ischar(Value)
-                    Value = {Value};
-                end
+                Value = {obj.mObj.Parameters.Value};
+                Value = reshape(Value,[],1);
             else
                 Value = cell(0,1);
             end
@@ -352,33 +319,14 @@ classdef Model < QSP.abstract.BaseProps
         
         function Value = get.RuleNames(obj)
             if ~isempty(obj.mObj)
-                Value = sbioselect(obj.mObj, 'Type', 'Rule');
-                Rule = get(Value,'Rule');
-                Name = get(Value,'Name');
+                RuleString = {obj.mObj.Rules.Rule};
+                RuleName   = {obj.mObj.Rules.Name};
+                RuleName(cellfun(@isempty,RuleName)) = {'unnamed'};
                 
-                if isempty(Rule)
-                    Value = cell(0,1);
-                    return
-                end
-                
-                if ~iscell(Name)
-                    Name = {Name};
-                end
-                
-                if ~iscell(Rule)
-                    Rule = {Rule};
-                end
-                
-                Name(cellfun(@isempty,Name)) = {'unnamed'};
-                
-                Value = arrayfun(@(k) sprintf('%s: %s', Name{k}, Rule{k}), 1:numel(Rule), 'UniformOutput', false);
+                Value = cellfun(@(name, rule) sprintf('%s: %s', name, rule), ...
+                    RuleName, RuleString, 'UniformOutput', false);
                 Value = reshape(Value,[],1);
-                
-                if isempty(Value)
-                    Value = cell(0,1);                
-                elseif ischar(Value)
-                    Value = {Value};
-                end
+
             else
                 Value = cell(0,1);
             end
@@ -386,32 +334,13 @@ classdef Model < QSP.abstract.BaseProps
         
         function Value = get.ReactionNames(obj)
             if ~isempty(obj.mObj)
-                Value = sbioselect(obj.mObj, 'Type', 'Reaction');                           
-                Reaction = get(Value,'Reaction');
-                if isempty(Reaction)
-                    Value = cell(0,1);
-                    return
-                end
-                    
-                Name = get(Value,'Name');
-                if ~iscell(Name)
-                    Name = {Name};
-                end
+                ReactionString = {obj.mObj.Reactions.Reaction};
+                ReactionName   = {obj.mObj.Reactions.Name};
+                ReactionName(cellfun(@isempty,ReactionName)) = {'unnamed'};
                 
-                if ~iscell(Reaction)
-                    Reaction = {Reaction};
-                end
-                
-                Name(cellfun(@isempty,Name)) = {'unnamed'};
-                
-                Value = arrayfun(@(k) sprintf('%s: %s', Name{k}, Reaction{k}), 1:numel(Reaction), 'UniformOutput', false);
+                Value = cellfun(@(name, reaction) sprintf('%s: %s', name, reaction), ...
+                    ReactionName, ReactionString, 'UniformOutput', false);
                 Value = reshape(Value,[],1);
-                
-                if isempty(Value)
-                    Value = cell(0,1);                
-                elseif ischar(Value)
-                    Value = {Value};
-                end
             else
                 Value = cell(0,1);
             end
