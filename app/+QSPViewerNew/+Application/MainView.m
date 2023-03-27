@@ -620,8 +620,7 @@ classdef MainView < handle
         end
 
         function onPaneStateChange(obj, eventData)
-            assert(obj.TreeCtrl.SelectedNodes.NodeData == eventData.change);
-            obj.TreeCtrl.SelectedNodes.Text = eventData.change.Name;            
+            obj.TreeCtrl.SelectedNodes.Text = eventData.value;
         end
 
         function constructMenuItems(obj, itemTypes)

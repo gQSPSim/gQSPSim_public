@@ -610,6 +610,13 @@ classdef ViewPane < matlab.mixin.Heterogeneous & handle
             if SuccesfulSave
                obj.refocus('Summary');
             end
+
+            % Possibly wasteful to send the event regarless of dirty state.
+            % But the dirty state was implemented at the derived class
+            % level and is therefore not available here in the base class.
+            % A rearchitecture of how that was done would be a good idea.
+            % TODO is the description also needed in the UI?
+            notify(obj, 'StateChange', StringValueEventData('Name', obj.NameEditBox.Value));
         end
         
         function onCancel(obj)
