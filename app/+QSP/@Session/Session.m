@@ -96,17 +96,16 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         timerObj
         dbid = []
         LogHandle = []
-        
     end
     
     properties % (NonCopyable=true) % Note: These properties need to be public for tree
         Settings = QSP.Settings.empty(1,0);
-        Simulation = QSP.Simulation.empty(1,0)
-        Optimization = QSP.Optimization.empty(1,0)
-        VirtualPopulationGeneration = QSP.VirtualPopulationGeneration.empty(1,0)
-        CohortGeneration = QSP.CohortGeneration.empty(1,0)
-        GlobalSensitivityAnalysis = QSP.GlobalSensitivityAnalysis.empty(1,0)
-        Deleted = QSP.abstract.BaseProps.empty(1,0)
+        Simulation = QSP.Simulation.empty(1,0);
+        Optimization = QSP.Optimization.empty(1,0);
+        VirtualPopulationGeneration = QSP.VirtualPopulationGeneration.empty(1,0);
+        CohortGeneration = QSP.CohortGeneration.empty(1,0);
+        GlobalSensitivityAnalysis = QSP.GlobalSensitivityAnalysis.empty(1,0);
+        Deleted = QSP.abstract.BaseProps.empty(1,0);
     end
     
     properties (SetAccess='private')
@@ -181,7 +180,10 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
                 catch err
                    warning(err.identifier, 'Failed to close the log file.\n%s', err.message);
                 end
+            end
 
+            if ~isempty(obj.LoggerName)
+                delete(QSPViewerNew.Widgets.Logger(obj.LoggerName));
             end
         end
 %         function delete(obj)
@@ -541,7 +543,9 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         % todopax replace with a set method so that all methods call this
         % function.
         function setSessionName(obj,SessionName)
-            updateLoggerName(obj, SessionName)
+            if ~isempty(obj.SessionName)
+                updateLoggerName(obj, SessionName)
+            end
             obj.SessionName = SessionName;
         end %function
         
@@ -840,7 +844,7 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
             loggerObj.FileThreshold = obj.LoggerSeverityFile;
         end
         
-        function updateLoggerName(obj, newSessionName)
+        function updateLoggerName(obj, newSessionName)            
             loggerObj = QSPViewerNew.Widgets.Logger(obj.LoggerName);
             
             % check if logger exists in root directory
@@ -944,9 +948,13 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
         end
         
         function value = get.RelativeLoggerFilePathParts(obj)
-            loggerObj = QSPViewerNew.Widgets.Logger(obj.LoggerName);
-            [~,name,ext] = fileparts(loggerObj.LogFile);
-            value = strcat(name,ext);
+            value = "";
+            if ~isempty(obj.LoggerName)
+                loggerObj = QSPViewerNew.Widgets.Logger(obj.LoggerName);
+                assert(numel(loggerObj) == 1);
+                [~,name,ext] = fileparts(loggerObj.LogFile);
+                value = strcat(name,ext);
+            end
         end
         
         function value = get.LoggerName(obj)

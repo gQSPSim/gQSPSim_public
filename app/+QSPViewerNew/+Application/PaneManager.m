@@ -56,7 +56,7 @@ classdef PaneManager < handle
 
             if ~isempty(nodeData)
                 % Summary panes will be invoked for nodeDatas of type
-                % struct with a Type filed in them.
+                % struct with a Type field in them.
                 if isfield(nodeData, "Type")
                     type = nodeData.Type;
                 elseif class(nodeData) == "QSP.Folder"

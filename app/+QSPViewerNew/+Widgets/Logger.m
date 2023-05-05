@@ -10,7 +10,6 @@ classdef Logger < mlog.Logger
                 name (1,1) string = "Advanced_Logger_for_MATLAB"
                 filepath (1,1) string = fullfile(tempdir, "temp_log.csv")
             end
-           
             
             % Call superclass constructor with the same inputs
             obj@mlog.Logger(name, filepath);
@@ -27,15 +26,10 @@ classdef Logger < mlog.Logger
             % increase buffer size
             obj.BufferSize = 1e4;
             
-        end %function
+        end 
+    end 
         
-    end %methods
-    
-    
-    
-    %% Public Methods
-    methods
-        
+    methods        
         function varargout = write(obj, Name, Type, varargin)
             % write a message to the log
             %
@@ -73,7 +67,7 @@ classdef Logger < mlog.Logger
                 varargout{1} = msg;
             end
             
-        end %function
+        end 
         
         function rename(obj, Name)
             obj.Name = Name;

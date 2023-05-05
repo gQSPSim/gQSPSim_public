@@ -348,6 +348,9 @@ classdef TaskPane < QSPViewerNew.Application.ViewPane
        
     methods (Access = public)
         
+        % These are bad names for these functions. They don't notify, they
+        % rather set the dirty flag and store the new value in the
+        % temporary object.
         function NotifyOfChangeInName(obj,value)
             obj.TemporaryTask.Name = value;
             obj.IsDirty = true;
