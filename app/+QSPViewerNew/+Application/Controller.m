@@ -1268,19 +1268,15 @@ classdef Controller < handle
             end
         end
 
-        function [status,newFilePath] = getValidSessionRootDirectory(app, filePath)
-            %Check if a directory exists. If not, find a valid one.
-            existence = exist(filePath,'dir');
-
-            %Check if the directory exists
-            if existence
-
-                %If the directory exists, we set the output values
+        function [status,newFilePath] = getValidSessionRootDirectory(app, filePath)                                    
+        
+            if exist(filePath, 'dir')            
                 status =true;
                 newFilePath = filePath;
-            else
+            elseif app.UseUI
                 questionResult = uiconfirm(app.getUIFigure(),'Session root directory is invalid. Select a new root directory?',...
                     'Select root directory','Options', {'Yes','Cancel'}, 'Icon', 'question');
+
 
                 %If they they would like to add a new root directory
                 if strcmp(questionResult,'Yes')
@@ -1304,6 +1300,8 @@ classdef Controller < handle
                     status = false;
                     newFilePath = '';
                 end
+            else
+                warning('Session root directory is invalid:\n\t%s\n', filePath);
             end
         end
 

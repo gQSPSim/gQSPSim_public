@@ -27,6 +27,16 @@ classdef tCLI < matlab.unittest.TestCase
             session.Simulation(1).run();
         end
 
+        function basicLoggerFunction(testCase)
+            % Make a controller with no UI. In general the controller
+            % should not have to be told there is no UI but the code in the
+            % controller still has UI elements in it. 
+            ctrl = QSPViewerNew.Application.Controller(false);
+
+            ctrl.loadSession(testCase.testRootDirectory + filesep + join(["baselines", "CaseStudy_TMDD_complete", "CaseStudy1_TMDD_pax.qsp.mat"], filesep));
+            
+        end
+
         function createSession(testCase)
 
             tmddCaseStudy = testCase.testRootDirectory + filesep + join(["Sessions", "CaseStudy_TMDD", "CaseStudy_TMDD_blank"], filesep);

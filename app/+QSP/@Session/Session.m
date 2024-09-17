@@ -215,6 +215,13 @@ classdef Session < QSP.abstract.BasicBaseProps & uix.mixin.HasTreeReference
                 end
             end
             
+            % If the RootDirectory is an absolute path then check if it exists and if it does not then 
+            % assume the parent directory is the Root. This assumes that running on a worker (cluster) 
+            % will not work if RootDirectory is an absolute path.
+            if ~exist(obj.RootDirectory, 'dir')
+                disp('foo');
+            end
+
             % check if the root directory does not exist
             % for example if running on a worker on a remote cluster
             % if that is the case then change the root directory
