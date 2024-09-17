@@ -35,42 +35,42 @@ stages:
 R2020a Test:
     stage: test
     tags:
-        - maci64
+        - glnxa64
     script:
         - ./tests/gQSPSimTesterScript2.sh BR2020ad
 
 R2020b Test:
     stage: test
     tags:
-        - maci64
+        - glnxa64
     script:
         - ./tests/gQSPSimTesterScript2.sh BR2020bd
 
 R2021a Test:
     stage: test
     tags:
-        - maci64
+        - glnxa64
     script:
         - ./tests/gQSPSimTesterScript2.sh BR2021ad
 
 R2021b Test:
     stage: test
     tags:
-        - maci64
+        - glnxa64
     script:
         - ./tests/gQSPSimTesterScript2.sh BR2021bd
 
 R2022a Test:
     stage: test
     tags:
-        - maci64
+        - glnxa64
     script:
         - ./tests/gQSPSimTesterScript2.sh BR2022ad
 
 R2022b Test:
     stage: test
     tags:
-        - maci64
+        - glnxa64
     script:
         - ./tests/gQSPSimTesterScript2.sh BR2022bd
         
